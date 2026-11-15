@@ -67,7 +67,13 @@ const FIX_ROUTES: Readonly<Record<string, string>> = {
                 @if (syncService.pendingCount() > 0) {
                   {{ 'sync.pendingText' | transloco: { count: syncService.pendingCount() } }}
                 } @else if (syncService.rejected().length === 0) {
-                  {{ 'sync.allSynced' | transloco }}
+                  <!-- "All synced" only after a round got through; failing, offline or never
+                       synced, it only says nothing waits here (the box below says why). -->
+                  @if (syncService.status() === 'synced' && syncService.lastSyncedAt()) {
+                    {{ 'sync.allSynced' | transloco }}
+                  } @else {
+                    {{ 'sync.nothingPending' | transloco }}
+                  }
                 }
               </p>
             </div>

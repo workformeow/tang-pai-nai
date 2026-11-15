@@ -234,6 +234,9 @@ Web only, no API change. Owner: the toast after adding a transaction covered the
   toasts (the list shows the row); "บันทึกแล้วเพิ่มต่อ" still does. Saves done now and then
   (wallet, category, profile, debt, event, security) keep theirs (owner's choice). The rule is in
   DESIGN.md §6.
+- **Sync sheet wording**: "ทุกรายการ sync แล้ว" shows only after a round got through and while
+  nothing is wrong. Never synced, failing, offline or server down, it says "ไม่มีรายการค้างส่งจาก
+  เครื่องนี้" instead, so it no longer sits beside the red "sync ไม่สำเร็จ" box.
 
 ---
 

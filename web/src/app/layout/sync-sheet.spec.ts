@@ -8,7 +8,7 @@ import { CategoryService } from '@/core/category'
 import th from '@/core/i18n/th.json'
 import { NetworkStatusService } from '@/core/network'
 import { SyncService } from '@/core/offline'
-import type { OutboxOp, SyncNotice } from '@/core/offline'
+import type { OutboxOp, SyncNotice, SyncStatus } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
 import { WalletService } from '@/core/wallet'
 import { SyncSheet } from './sync-sheet'
@@ -45,6 +45,7 @@ describe('SyncSheet', () => {
     canSync: signal(true),
     isSyncing: signal(false),
     failed: signal(false),
+    status: signal<SyncStatus>('synced'),
     sync: vi.fn(async () => Promise.resolve()),
     discard: vi.fn(),
     dismissNotice: vi.fn(),
@@ -89,6 +90,9 @@ describe('SyncSheet', () => {
     children.set({})
     sync.notices.set([])
     sync.pendingCount.set(0)
+    sync.lastSyncedAt.set(null)
+    sync.status.set('synced')
+    sync.failed.set(false)
     TestBed.configureTestingModule({
       imports: [
         TranslocoTestingModule.forRoot({
@@ -110,11 +114,27 @@ describe('SyncSheet', () => {
   afterEach(() => fixture.destroy())
 
   it('shows that nothing is waiting, and syncs on demand', async () => {
+    sync.lastSyncedAt.set(Date.now())
     await open()
-    expect(text()).toContain(th.sync.neverSynced)
     expect(text()).toContain(th.sync.allSynced)
     button(th.sync.syncNow)?.click()
     expect(sync.sync).toHaveBeenCalledOnce()
+  })
+
+  it('never says "all synced" before a round got through, or while it fails', async () => {
+    await open()
+    expect(text()).toContain(th.sync.neverSynced)
+    expect(text()).toContain(th.sync.nothingPending)
+    expect(text()).not.toContain(th.sync.allSynced)
+    fixture.destroy()
+
+    sync.lastSyncedAt.set(Date.now())
+    sync.status.set('failed')
+    sync.failed.set(true)
+    await open()
+    expect(text()).toContain(th.sync.failedText)
+    expect(text()).toContain(th.sync.nothingPending)
+    expect(text()).not.toContain(th.sync.allSynced)
   })
 
   it("lists a rejected op by its translated reason, not the server's English", async () => {

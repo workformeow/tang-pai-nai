@@ -628,6 +628,7 @@
     "needsSignIn": "Sign in again to sync",
     "pendingText": "{{count}} changes waiting to go to the server",
     "allSynced": "Everything is synced",
+    "nothingPending": "Nothing on this device is waiting to be sent",
     "rejectedHeading": "Not saved",
     "rejectedHint": "The server refused these, so this device went back to the server's version",
     "fix": "Fix",
