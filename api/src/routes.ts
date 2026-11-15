@@ -3,6 +3,7 @@ import { authRouter } from '@/features/auth'
 import { currencyRouter } from '@/features/currency'
 import { docsRouter } from '@/features/docs'
 import { healthRouter } from '@/features/health'
+import { liveRouter } from '@/features/live'
 import '@/features/profile'
 import '@/features/category'
 import '@/features/wallet'
@@ -22,6 +23,7 @@ router.use('/auth', authRouter)
 router.use('/currencies', currencyRouter)
 router.use('/sync', syncRouter)
 router.use('/sharing', sharingRouter)
+router.use('/live', liveRouter)
 router.use('/todos', todoRouter)
 router.use('/docs', docsRouter)
 

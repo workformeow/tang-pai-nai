@@ -2,6 +2,7 @@ import type { LogLevel } from '@/shared/constants'
 import type {
   AppEnv,
   EmailProviderName,
+  LiveProviderName,
   PasswordBreachCheck,
   SmsProviderName,
 } from '@/shared/types'
@@ -39,4 +40,6 @@ export type EnvConfig = {
   CRON_SECRET?: string
   TURNSTILE_SITE_KEY?: string
   TURNSTILE_SECRET_KEY?: string
+  LIVE_PROVIDER: LiveProviderName
+  ABLY_API_KEY?: string
 }

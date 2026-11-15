@@ -1,7 +1,13 @@
 import { z } from 'zod'
 import { ERRORS, LOG_LEVELS } from '@/shared/constants'
 import type { LogLevel } from '@/shared/constants'
-import { AppEnv, EmailProviderName, PasswordBreachCheck, SmsProviderName } from '@/shared/types'
+import {
+  AppEnv,
+  EmailProviderName,
+  LiveProviderName,
+  PasswordBreachCheck,
+  SmsProviderName,
+} from '@/shared/types'
 import type { EnvConfig } from './env.type'
 
 const logLevel = Object.keys(LOG_LEVELS) as LogLevel[]
@@ -90,6 +96,10 @@ export const envSchema: z.ZodType<EnvConfig> = z
     // Cloudflare Turnstile bot check (auth rule 32) is off unless both are set.
     TURNSTILE_SITE_KEY: optionalSecret,
     TURNSTILE_SECRET_KEY: optionalSecret,
+    // Live sync pokes (docs/features/live-sync.md): `local` is one API process only (dev, Docker),
+    // `ably` needs ABLY_API_KEY (one Ably app per environment).
+    LIVE_PROVIDER: z.enum(LiveProviderName).default(LiveProviderName.DISABLED),
+    ABLY_API_KEY: optionalSecret,
   })
   .superRefine((env, ctx) => {
     if (env.EMAIL_PROVIDER === EmailProviderName.SMTP && !env.SMTP_URL) {
@@ -106,6 +116,13 @@ export const envSchema: z.ZodType<EnvConfig> = z
     if (Boolean(env.TURNSTILE_SITE_KEY) !== Boolean(env.TURNSTILE_SECRET_KEY)) {
       const missing = env.TURNSTILE_SITE_KEY ? 'TURNSTILE_SECRET_KEY' : 'TURNSTILE_SITE_KEY'
       ctx.addIssue({ code: 'custom', path: [missing], message: ERRORS.requiredField(missing) })
+    }
+    if (env.LIVE_PROVIDER === LiveProviderName.ABLY && !env.ABLY_API_KEY) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['ABLY_API_KEY'],
+        message: ERRORS.requiredField('ABLY_API_KEY'),
+      })
     }
     // Console providers print OTPs to stdout: dev only.
     if (env.NODE_ENV === AppEnv.PRODUCTION) {

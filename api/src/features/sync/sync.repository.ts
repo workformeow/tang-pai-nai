@@ -31,6 +31,8 @@ export interface SyncRepository {
   deleteOpsBefore(before: number): Promise<number>
   /** The wallet's owner and `userId`'s role on it; null when there's no such wallet (#16.2). */
   walletAccess(userId: string, walletId: string): Promise<WalletAccess | null>
+  /** The wallet's profile when the wallet is shared with someone (live-sync rule 6), else null. */
+  sharedProfileOf(walletId: string): Promise<string | null>
 
   // Per-table work, through the table's registered handler.
   pull(table: string, userId: string, since: number, limit: number): Promise<SyncRow[]>
