@@ -333,3 +333,58 @@ describe('DELETE /auth/google/link', () => {
     expect((res.body as AppResponse<AuthUserData>).data?.identities).toEqual([])
   })
 })
+
+describe('the account (privacy rules 6–10)', () => {
+  it('says what deleting takes, then deletes the account with the typed email', async () => {
+    const ctx = buildApp()
+    const { bearer } = await signIn(ctx)
+
+    const summary = await request(ctx.app)
+      .get('/auth/account/deletion')
+      .set('Authorization', bearer)
+    expect(summary.status).toBe(HttpStatus.OK)
+    expect((summary.body as AppResponse<{ sharedWith: number }>).data).toEqual({ sharedWith: 0 })
+
+    const res = await request(ctx.app)
+      .delete('/auth/account')
+      .set('Authorization', bearer)
+      .send({ email: 'Mom@Example.com ', lang: 'en' })
+    expect(res.status).toBe(HttpStatus.OK)
+
+    const me = await request(ctx.app).get('/auth/me').set('Authorization', bearer)
+    expect(me.status).toBe(HttpStatus.UNAUTHORIZED)
+  })
+
+  it('answers 422 ACCOUNT_EMAIL_MISMATCH for another email, and 422 without one', async () => {
+    const ctx = buildApp()
+    const { bearer } = await signIn(ctx)
+
+    const other = await request(ctx.app)
+      .delete('/auth/account')
+      .set('Authorization', bearer)
+      .send({ email: 'dad@example.com' })
+    expect(other.status).toBe(HttpStatus.UNPROCESSABLE_ENTITY)
+    expect((other.body as { code: string }).code).toBe('ACCOUNT_EMAIL_MISMATCH')
+
+    const none = await request(ctx.app).delete('/auth/account').set('Authorization', bearer)
+    expect(none.status).toBe(HttpStatus.UNPROCESSABLE_ENTITY)
+  })
+
+  it('answers 403 REAUTH_REQUIRED after 10 minutes, and 401 without a token', async () => {
+    const ctx = buildApp()
+    const { bearer } = await signIn(ctx)
+    ctx.advance(11 * MINUTE)
+
+    const stale = await request(ctx.app)
+      .delete('/auth/account')
+      .set('Authorization', bearer)
+      .send({ email: 'mom@example.com' })
+    expect(stale.status).toBe(HttpStatus.FORBIDDEN)
+    expect((stale.body as { code: string }).code).toBe('REAUTH_REQUIRED')
+
+    const anonymous = await request(ctx.app)
+      .delete('/auth/account')
+      .send({ email: 'mom@example.com' })
+    expect(anonymous.status).toBe(HttpStatus.UNAUTHORIZED)
+  })
+})

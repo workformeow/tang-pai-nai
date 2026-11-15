@@ -1,0 +1,21 @@
+type: object
+required: [message, timestamp, data]
+properties:
+  message:
+    type: string
+    example: What deleting the account takes with it
+  timestamp:
+    type: string
+    format: date-time
+    example: '2026-01-01T00:00:00.000Z'
+  data:
+    type: object
+    required: [sharedWith]
+    properties:
+      sharedWith:
+        type: integer
+        minimum: 0
+        description: >-
+          People the user's live wallets are shared with, counted once each: their shared view
+          goes with the account (privacy spec rule 10)
+        example: 2

@@ -6,7 +6,16 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { env } from '@/core/config'
 import { createDatabase } from '@/core/database/client'
-import { sessions, users } from '@/core/database/schema/auth'
+import {
+  categories,
+  profiles,
+  sessions,
+  transactions,
+  users,
+  walletInvites,
+  walletMembers,
+  wallets,
+} from '@/core/database/schema'
 import { createDrizzleAuthRepository } from './auth.repository.drizzle'
 import type { AuthRepository } from './auth.repository'
 
@@ -445,5 +454,143 @@ describe('phone (4.4b)', () => {
     expect((await repo.findLatestChallenge('+66812345678', 'sign_in', 'sms'))?.expiresAt).toEqual(
       later(2)
     )
+  })
+})
+
+describe('deleting an account (privacy rules 8, 10)', () => {
+  const sync = { createdAt: 1, updatedAt: 1, deletedAt: null, changeSeq: 1, updatedBy: 'device' }
+  const profile = (id: string, userId: string) => ({
+    id,
+    userId,
+    name: id,
+    icon: 'lucideHouse',
+    color: '#000',
+    sortOrder: 0,
+    ...sync,
+  })
+  const wallet = (id: string, profileId: string, userId: string, extra = {}) => ({
+    id,
+    userId,
+    profileId,
+    name: id,
+    currencyCode: 'THB',
+    initialBalance: 0,
+    icon: 'lucideWallet',
+    color: '#000',
+    excludeFromTotal: false,
+    isArchived: false,
+    sortOrder: 0,
+    ...sync,
+    ...extra,
+  })
+
+  /** Alice owns a profile with two wallets shared with Bob and Carol; she is a member of Bob's. */
+  const seed = async () => {
+    const alice = await repo.createUser({ email: 'alice@example.com', displayName: 'Alice' })
+    const bob = await repo.createUser({ email: 'bob@example.com', displayName: 'Bob' })
+    const carol = await repo.createUser({ email: 'carol@example.com', displayName: 'Carol' })
+    await database.insert(profiles).values([profile('pa', alice.id), profile('pb', bob.id)])
+    await database
+      .insert(wallets)
+      .values([
+        wallet('home', 'pa', alice.id),
+        wallet('cash', 'pa', alice.id),
+        wallet('gone', 'pa', alice.id, { deletedAt: 5 }),
+        wallet('bobs', 'pb', bob.id),
+      ])
+    const member = (walletId: string, userId: string) => ({
+      walletId,
+      userId,
+      role: 'editor' as const,
+      addedAt: 1,
+    })
+    await database
+      .insert(walletMembers)
+      .values([
+        member('home', bob.id),
+        member('cash', bob.id),
+        member('cash', carol.id),
+        member('gone', carol.id),
+        member('bobs', alice.id),
+      ])
+    await database.insert(categories).values({
+      id: 'food',
+      userId: alice.id,
+      profileId: 'pa',
+      type: 'expense',
+      parentId: null,
+      name: 'Food',
+      icon: 'lucideUtensils',
+      color: '#000',
+      isArchived: false,
+      sortOrder: 0,
+      ...sync,
+    })
+    await database.insert(transactions).values({
+      id: 't1',
+      userId: alice.id,
+      profileId: 'pa',
+      walletId: 'home',
+      categoryId: 'food',
+      amount: 100,
+      occurredOn: '2026-11-01',
+      note: '',
+      excludeFromReport: false,
+      ...sync,
+    })
+    const invite = (id: string, email: string) => ({
+      id,
+      profileId: 'pb',
+      ownerId: bob.id,
+      email,
+      role: 'viewer' as const,
+      walletIds: ['bobs'],
+      createdAt: 1,
+      expiresAt: later(1000).getTime(),
+      lastSentAt: 1,
+    })
+    await database
+      .insert(walletInvites)
+      .values([
+        invite('00000000-0000-7000-8000-0000000000f1', 'alice@example.com'),
+        invite('00000000-0000-7000-8000-0000000000f2', 'carol@example.com'),
+      ])
+    await newChallenge('alice@example.com')
+    await newChallenge('bob@example.com')
+    return { alice, bob, carol }
+  }
+
+  it('counts each person the live wallets are shared with once', async () => {
+    const { alice, bob } = await seed()
+    await expect(repo.countSharedPeople(alice.id)).resolves.toBe(2)
+    await expect(repo.countSharedPeople(bob.id)).resolves.toBe(1)
+  })
+
+  it('takes everything of the user with it, and leaves everyone else’s', async () => {
+    const { alice, bob } = await seed()
+
+    await expect(
+      repo.transaction(async (tx) => tx.deleteUser(alice.id, alice.email))
+    ).resolves.toBe(true)
+
+    const left = async <T extends { id: string }>(rows: Promise<T[]>) =>
+      (await rows).map((row) => row.id).sort()
+    await expect(left(database.select().from(users))).resolves.toEqual(
+      [bob.id, (await repo.findUserByEmail('carol@example.com'))?.id ?? ''].sort()
+    )
+    await expect(left(database.select().from(profiles))).resolves.toEqual(['pb'])
+    await expect(left(database.select().from(wallets))).resolves.toEqual(['bobs'])
+    await expect(left(database.select().from(transactions))).resolves.toEqual([])
+    await expect(left(database.select().from(categories))).resolves.toEqual([])
+    const members = await database.select().from(walletMembers)
+    expect(members).toEqual([])
+    const invites = await database.select().from(walletInvites)
+    expect(invites.map((invite) => invite.email)).toEqual(['carol@example.com'])
+    await expect(repo.findLatestChallenge('alice@example.com', 'sign_in')).resolves.toBeNull()
+    await expect(repo.findLatestChallenge('bob@example.com', 'sign_in')).resolves.not.toBeNull()
+  })
+
+  it('answers false for a user already gone', async () => {
+    await expect(repo.deleteUser('nobody', 'nobody@example.com')).resolves.toBe(false)
   })
 })
