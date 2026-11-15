@@ -27,6 +27,8 @@ export interface AuthProvidersData {
   phone: boolean
   /** Rule 32: the Turnstile site key the web renders its widget with; `null` while it's off. */
   botCheckSiteKey: string | null
+  /** Privacy rule 2: the app shows it is a test version (`TEST_VERSION`). */
+  testVersion: boolean
 }
 
 /** `data` of sign-in and refresh. The refresh token only travels in the cookie. */

@@ -13,11 +13,13 @@ import type {
   Caller,
   CleanupResult,
   ClientContext,
+  DeletionSummary,
   SessionSummary,
   SignInResult,
   UserProfile,
 } from './auth.entity'
 import type {
+  AccountDeleteInput,
   EmailStartInput,
   EmailVerifyInput,
   GoogleCallbackQuery,
@@ -238,6 +240,36 @@ export const createAuthController = (authService: AuthService, config: AuthContr
     }
   }
 
+  /** Privacy rule 10. */
+  const accountDeletion = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const data: DeletionSummary = await authService.deletionSummary(callerOf(req))
+      const response = createResponse(AUTH_MESSAGE.ACCOUNT_DELETION, data)
+      res.status(HttpStatus.OK).json(response)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /** Privacy rules 6–9. */
+  const accountDelete = async (
+    req: Request<unknown, unknown, AccountDeleteInput>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      await authService.deleteAccount(callerOf(req), req.body, clientOf(req))
+      const response = createResponse(AUTH_MESSAGE.ACCOUNT_DELETED)
+      res.status(HttpStatus.OK).json(response)
+    } catch (error) {
+      next(error)
+    }
+  }
+
   const reauthStart = async (
     req: Request<unknown, unknown, ReauthStartInput>,
     res: Response,
@@ -295,6 +327,7 @@ export const createAuthController = (authService: AuthService, config: AuthContr
       google: authService.googleEnabled,
       phone: authService.phoneEnabled,
       botCheckSiteKey: authService.botCheckSiteKey,
+      testVersion: authService.testVersion,
     }
     res.status(HttpStatus.OK).json(createResponse(AUTH_MESSAGE.PROVIDERS, data))
   }
@@ -614,6 +647,8 @@ export const createAuthController = (authService: AuthService, config: AuthContr
     passwordSignIn,
     passwordSet,
     passwordRemove,
+    accountDeletion,
+    accountDelete,
     reauthStart,
     reauthVerify,
     refresh,

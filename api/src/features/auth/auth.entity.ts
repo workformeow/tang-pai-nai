@@ -184,6 +184,21 @@ export interface PasswordChange {
   lang?: MailLanguage
 }
 
+/** `DELETE /auth/account` (privacy rules 6–9). */
+export interface AccountDeletion {
+  /** Typed by the user; must be the account's email (trimmed, lower case). */
+  email: string
+  currentPassword?: string
+  /** Language of the "account deleted" mail. */
+  lang?: MailLanguage
+}
+
+/** `GET /auth/account/deletion` (privacy rule 10). */
+export interface DeletionSummary {
+  /** People the user's live wallets are shared with, counted once each. */
+  sharedWith: number
+}
+
 /** What the mail of rule 31 reports. */
 export type CredentialChange =
   | 'password_set'

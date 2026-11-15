@@ -62,6 +62,7 @@ export const authService = createAuthService({
   config: {
     webOrigin: env.WEB_ORIGIN,
     signupEnabled: env.SIGNUP_ENABLED,
+    testVersion: env.TEST_VERSION,
     emailDailyLimit: env.EMAIL_DAILY_LIMIT,
     startMinDurationMs: AUTH_LIMITS.START_MIN_DURATION_MS,
     // Rule 21: no SMS provider, no phone sign-in.

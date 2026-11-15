@@ -8,6 +8,8 @@ import {
   userIdentities,
   users,
 } from '@/core/database/schema/auth'
+import { walletInvites } from '@/core/database/schema/sharing'
+import { walletMembers, wallets } from '@/core/database/schema/wallet'
 import { wrapUnexpected } from '@/core/error'
 import type {
   ChallengeChannel,
@@ -401,6 +403,35 @@ export const createDrizzleAuthRepository = (db: Executor): AuthRepository => {
       }),
 
     // Buckets carry no window length, so one older than the longest window (a day) is stale.
+    countSharedPeople: async (userId) =>
+      run('countSharedPeople', async () => {
+        const rows = await db
+          .select({ count: sql<number>`count(distinct ${walletMembers.userId})` })
+          .from(walletMembers)
+          .innerJoin(wallets, eq(wallets.id, walletMembers.walletId))
+          .where(
+            and(
+              eq(wallets.userId, userId),
+              isNull(wallets.deletedAt),
+              ne(walletMembers.userId, userId)
+            )
+          )
+        return Number(rows.at(0)?.count ?? 0)
+      }),
+
+    deleteUser: async (userId, email) =>
+      run('deleteUser', async () => {
+        await db
+          .delete(otpChallenges)
+          .where(and(eq(otpChallenges.channel, 'email'), eq(otpChallenges.destination, email)))
+        await db.delete(walletInvites).where(eq(walletInvites.email, email))
+        const deleted = await db
+          .delete(users)
+          .where(eq(users.id, userId))
+          .returning({ id: users.id })
+        return deleted.length > 0
+      }),
+
     deleteExpired: async (before) =>
       run('deleteExpired', async () => {
         const challenges = await db

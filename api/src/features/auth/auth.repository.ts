@@ -90,6 +90,17 @@ export interface AuthRepository {
   /** The bucket of `key` if its window is still running, without counting a hit. */
   peekRateLimit(key: string, windowMs: number, at: Date): Promise<RateLimitHit | null>
 
+  /**
+   * Privacy rule 10: how many people the user's live wallets are shared with (counted once each).
+   */
+  countSharedPeople(userId: string): Promise<number>
+  /**
+   * Privacy rule 8: deletes the user (every table that references it cascades) and the rows that
+   * hold the address without a user id: email challenges and invites addressed to it. `false`
+   * when the user was already gone.
+   */
+  deleteUser(userId: string, email: string): Promise<boolean>
+
   /** Deletes challenges, sessions and buckets that ended before `before`. */
   deleteExpired(before: Date): Promise<CleanupResult>
 }

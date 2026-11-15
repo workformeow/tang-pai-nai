@@ -28,6 +28,7 @@ export type EnvConfig = {
   JWT_SECRET: string
   OTP_PEPPER: string
   SIGNUP_ENABLED: boolean
+  TEST_VERSION: boolean
   EMAIL_DAILY_LIMIT: number
   SMS_DAILY_LIMIT: number
   PASSWORD_BREACH_CHECK: PasswordBreachCheck

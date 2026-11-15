@@ -37,16 +37,19 @@ import { NotificationChannel } from '@/shared/types'
 import { maskPhone, phoneLastDigits } from '@/shared/utils'
 import { AUTH_LIMITS, AUTH_MESSAGE, AuthErrorCode, PASSWORD_POLICY } from './auth.const'
 import {
+  buildAccountDeletedMail,
   buildCredentialChangeMail,
   buildPhoneSms,
   buildReauthMail,
   buildSignInMail,
 } from './auth.mail'
 import type {
+  AccountDeletion,
   Caller,
   CleanupResult,
   ClientContext,
   CredentialChange,
+  DeletionSummary,
   EmailVerification,
   GoogleCallback,
   GoogleSignInResult,
@@ -71,6 +74,8 @@ export interface AuthServiceConfig {
   phoneEnabled: boolean
   /** Global cap on SMS per day (rule 23). */
   smsDailyLimit: number
+  /** Privacy rule 2: the app is a test version (`TEST_VERSION`, staging). */
+  testVersion?: boolean
 }
 
 /** Rule 32: the bot check; absent when `TURNSTILE_SITE_KEY` / `_SECRET_KEY` aren't set. */
@@ -388,6 +393,27 @@ export const createAuthService = ({
     lang: MailLanguage,
     at: Date,
     phone?: string
+  ): Promise<void> =>
+    sendNoticeMail(user, change, at, () =>
+      buildCredentialChangeMail({
+        change,
+        email: user.email,
+        lang,
+        at,
+        timeZone: user.timezone,
+        phoneLastDigits: phone ? phoneLastDigits(phone) : undefined,
+      })
+    )
+
+  /**
+   * A mail that reports something done (rule 31, privacy rule 9). It never fails what it reports:
+   * a reached daily cap or a failed send only logs a warning.
+   */
+  const sendNoticeMail = async (
+    user: User,
+    change: CredentialChange | 'account_deleted',
+    at: Date,
+    build: () => { subject: string; text: string }
   ): Promise<void> => {
     try {
       const daily = await authRepo.hitRateLimit('email:global:day', L.EMAILS_PER_DAY_WINDOW_MS, at)
@@ -396,15 +422,7 @@ export const createAuthService = ({
         logger.warn(LOG.AUTH.credentialMailSkipped('daily cap'), { userId: user.id, change })
         return
       }
-      const mail = buildCredentialChangeMail({
-        change,
-        email: user.email,
-        lang,
-        at,
-        timeZone: user.timezone,
-        phoneLastDigits: phone ? phoneLastDigits(phone) : undefined,
-      })
-      await notifier.send({ channel: NotificationChannel.EMAIL, to: user.email, ...mail })
+      await notifier.send({ channel: NotificationChannel.EMAIL, to: user.email, ...build() })
     } catch (error) {
       const detail = error instanceof Error ? error.message : undefined
       logger.warn(LOG.AUTH.credentialMailSkipped('send failed'), {
@@ -1532,6 +1550,37 @@ export const createAuthService = ({
     return profileOf(user)
   }
 
+  /** Privacy rule 10: what the delete page warns about before anything can be pressed. */
+  const deletionSummary = async (caller: Caller): Promise<DeletionSummary> => {
+    const { user } = await activeCaller(caller, now(), 'deletionSummary')
+    return { sharedWith: await authRepo.countSharedPeople(user.id) }
+  }
+
+  /**
+   * Privacy rules 6–9: the typed email, then recent auth, then everything goes at once. The mail
+   * goes out after the commit and never undoes it.
+   */
+  const deleteAccount = async (
+    caller: Caller,
+    { email, currentPassword, lang = 'th' }: AccountDeletion,
+    client: ClientContext
+  ): Promise<void> => {
+    const at = now()
+    const access = await activeCaller(caller, at, 'deleteAccount')
+    const { user } = access
+    if (email.trim().toLowerCase() !== user.email.toLowerCase()) {
+      throw new BusinessRuleError(AUTH_MESSAGE.ACCOUNT_EMAIL_MISMATCH)
+        .withCode(AuthErrorCode.ACCOUNT_EMAIL_MISMATCH)
+        .withOperation('deleteAccount')
+    }
+    await requireRecentAuth(access, currentPassword, client, at, 'deleteAccount')
+    await authRepo.transaction(async (repo) => repo.deleteUser(user.id, user.email))
+    logger.info(LOG.AUTH.accountDeleted, { userId: user.id })
+    await sendNoticeMail(user, 'account_deleted', at, () =>
+      buildAccountDeletedMail({ email: user.email, lang, at, timeZone: user.timezone })
+    )
+  }
+
   /** Rule 20: drop rows that ended more than 7 days ago. */
   const cleanup = async (): Promise<CleanupResult> =>
     authRepo.deleteExpired(new Date(now().getTime() - L.CLEANUP_AFTER_MS))
@@ -1540,6 +1589,7 @@ export const createAuthService = ({
     googleEnabled: google !== null,
     phoneEnabled: config.phoneEnabled,
     botCheckSiteKey: botCheck?.siteKey ?? null,
+    testVersion: config.testVersion ?? false,
     checkHuman,
     startGoogleSignIn,
     finishGoogleSignIn,
@@ -1565,6 +1615,8 @@ export const createAuthService = ({
     refresh,
     signOut,
     getMe,
+    deletionSummary,
+    deleteAccount,
     cleanup,
   }
 }

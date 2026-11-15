@@ -300,6 +300,23 @@ export const createMemoryAuthRepository = (
       return { ...next }
     },
 
+    // The memory adapter holds no wallets: nobody is shared with.
+    countSharedPeople: async () => 0,
+
+    deleteUser: async (userId, email) => {
+      const before = state.users.length
+      state.users = state.users.filter((user) => user.id !== userId)
+      state.passwords.delete(userId)
+      state.identities = state.identities.filter((identity) => identity.userId !== userId)
+      state.sessions = state.sessions.filter((session) => session.userId !== userId)
+      state.challenges = state.challenges.filter(
+        (challenge) =>
+          challenge.userId !== userId &&
+          !(challenge.channel === 'email' && challenge.destination === email)
+      )
+      return state.users.length < before
+    },
+
     deleteExpired: async (before) => {
       const ended = (date: Date | null) => date !== null && date.getTime() < before.getTime()
       const challenges = state.challenges.length

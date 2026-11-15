@@ -254,3 +254,38 @@ export const buildPhoneSms = (
   purpose === 'sign_in'
     ? `รหัสเข้าสู่ระบบ ตังค์ไปไหน: ${code} ใช้ได้ ${expiresInMinutes} นาที ห้ามบอกผู้อื่น`
     : `รหัสยืนยันเบอร์ ตังค์ไปไหน: ${code} ใช้ได้ ${expiresInMinutes} นาที ห้ามบอกผู้อื่น`
+
+interface AccountDeletedMail {
+  email: string
+  lang: MailLanguage
+  at: Date
+  timeZone: string
+}
+
+/** Privacy rule 9: one mail after the account is gone. No link: there is nothing to open. */
+export const buildAccountDeletedMail = ({ email, lang, at, timeZone }: AccountDeletedMail) => {
+  const when = new Intl.DateTimeFormat(lang === 'en' ? 'en-GB' : 'th-TH', {
+    dateStyle: 'long',
+    timeStyle: 'short',
+    timeZone,
+  }).format(at)
+  return lang === 'en'
+    ? {
+        subject: `Your Tang Pai Nai account was deleted: ${email}`,
+        text: [
+          `Your ตังค์ไปไหน (Tang Pai Nai) account and all its data were deleted on ${when}.`,
+          '',
+          'Your other devices will clear their copy the next time they go online.',
+          'Signing in again with this email starts a new, empty account.',
+        ].join('\n'),
+      }
+    : {
+        subject: `ลบบัญชี ตังค์ไปไหน แล้ว: ${email}`,
+        text: [
+          `บัญชีผู้ใช้ ตังค์ไปไหน ของคุณและข้อมูลทั้งหมดถูกลบแล้ว เมื่อ ${when}`,
+          '',
+          'อุปกรณ์อื่นของคุณจะล้างข้อมูลในเครื่องเมื่อออนไลน์ครั้งถัดไป',
+          'ถ้าเข้าสู่ระบบด้วยอีเมลนี้อีกครั้ง จะได้บัญชีใหม่ที่ว่างเปล่า',
+        ].join('\n'),
+      }
+}

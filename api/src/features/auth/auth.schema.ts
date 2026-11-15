@@ -69,6 +69,14 @@ const recentAuthBody = z
 
 const reauthStartBody = z.object({ lang }).default({ lang: 'th' })
 
+// Privacy rule 6: the typed email (checked against the account by the service), and the usual
+// recent-auth proof.
+const accountDeleteBody = z.object({
+  email,
+  currentPassword: password('Current password').optional(),
+  lang,
+})
+
 // Rules 22–25 (4.4b).
 const phoneStartBody = z.object({ phone })
 const phoneVerifyBody = z.object({ phone, code })
@@ -109,6 +117,7 @@ export const authSchema = {
   googleUnlink: { body: recentAuthBody },
   sessionRevoke: { params: sessionParams },
   reauthStart: { body: reauthStartBody },
+  accountDelete: { body: accountDeleteBody },
   phoneStart: { body: phoneStartBody },
   phoneVerify: { body: phoneVerifyBody },
   phoneChange: { body: phoneChangeBody },
@@ -126,6 +135,7 @@ export type PasswordSetInput = z.infer<typeof passwordSetBody>
 export type RecentAuthInput = z.infer<typeof recentAuthBody>
 export type SessionParams = z.infer<typeof sessionParams>
 export type ReauthStartInput = z.infer<typeof reauthStartBody>
+export type AccountDeleteInput = z.infer<typeof accountDeleteBody>
 export type ReauthVerifyInput = z.infer<typeof reauthVerifyBody>
 export type PhoneStartInput = z.infer<typeof phoneStartBody>
 export type PhoneVerifyInput = z.infer<typeof phoneVerifyBody>
