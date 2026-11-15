@@ -280,7 +280,7 @@ describe('linking Google while signed in', () => {
     expect(me.avatarUrl).toBe('https://lh3.googleusercontent.com/a/mom')
     expect(ctx.mails().at(-1)).toMatchObject({
       to: EMAIL,
-      subject: 'A Google account was linked on your Tang Pai Nai account',
+      subject: 'A Google account was linked on your Tang Pai Nai account: mom@example.com',
     })
   })
 
@@ -400,7 +400,9 @@ describe('unlinkGoogle', () => {
     const user = await ctx.service.unlinkGoogle(caller, undefined, 'th', CLIENT)
 
     expect(user.identities).toEqual([])
-    expect(ctx.mails().at(-1)?.subject).toBe('มีการยกเลิกการเชื่อม Google ในบัญชีผู้ใช้ ตังค์ไปไหน')
+    expect(ctx.mails().at(-1)?.subject).toBe(
+      'มีการยกเลิกการเชื่อม Google ในบัญชี ตังค์ไปไหน: mom@example.com'
+    )
   })
 
   it('is a no-op without a Google identity: no proof asked, no mail', async () => {
@@ -431,9 +433,9 @@ describe('mail on credential change (rule 31)', () => {
         .slice(-3)
         .map((mail) => mail.subject)
     ).toEqual([
-      'A password was set on your Tang Pai Nai account',
-      'มีการเปลี่ยนรหัสผ่าน ในบัญชีผู้ใช้ ตังค์ไปไหน',
-      'Your password was removed on your Tang Pai Nai account',
+      'A password was set on your Tang Pai Nai account: mom@example.com',
+      'มีการเปลี่ยนรหัสผ่าน ในบัญชี ตังค์ไปไหน: mom@example.com',
+      'Your password was removed on your Tang Pai Nai account: mom@example.com',
     ])
   })
 
@@ -450,7 +452,7 @@ describe('mail on credential change (rule 31)', () => {
 
     expect(result.linked).toBe(true)
     expect(ctx.mails().at(-1)?.subject).toBe(
-      'A Google account was linked on your Tang Pai Nai account'
+      'A Google account was linked on your Tang Pai Nai account: mom@example.com'
     )
   })
 
@@ -490,12 +492,14 @@ describe('buildCredentialChangeMail', () => {
     const at = new Date('2026-10-20T05:17:00.000Z')
     const th = buildCredentialChangeMail({
       change: 'google_unlinked',
+      email: EMAIL,
       lang: 'th',
       at,
       timeZone: 'Asia/Bangkok',
     })
     const en = buildCredentialChangeMail({
       change: 'password_changed',
+      email: EMAIL,
       lang: 'en',
       at,
       timeZone: 'Asia/Bangkok',
@@ -503,18 +507,23 @@ describe('buildCredentialChangeMail', () => {
 
     expect(th.text).toContain('20 ตุลาคม 2569 เวลา 12:17')
     expect(en.text).toContain('on 20 October 2026 at 12:17')
-    expect(en.subject).toBe('Your password was changed on your Tang Pai Nai account')
+    expect(th.subject).toBe('มีการยกเลิกการเชื่อม Google ในบัญชี ตังค์ไปไหน: mom@example.com')
+    expect(en.subject).toBe(
+      'Your password was changed on your Tang Pai Nai account: mom@example.com'
+    )
   })
 
   it('carries no link and no code', () => {
     for (const lang of ['th', 'en'] as const) {
       const mail = buildCredentialChangeMail({
         change: 'password_set',
+        email: EMAIL,
         lang,
         at: START,
         timeZone: 'Asia/Bangkok',
       })
       expect(mail.text).not.toMatch(/https?:|\d{6}/)
+      expect(mail.subject).toMatch(/: mom@example\.com$/)
     }
   })
 })

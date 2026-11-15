@@ -3,12 +3,16 @@ import type { ChallengePurpose, CredentialChange, MailLanguage } from './auth.en
 interface SignInMail {
   code: string
   link: string
+  /** The address the mail goes to, named at the end of the subject. */
+  email: string
+  /** No account has this email yet: verifying creates one (rule 1), so the subject says sign-up. */
+  isNewAccount: boolean
   lang: MailLanguage
   expiresInMinutes: number
 }
 
 interface SignInWords {
-  subject: (code: string) => string
+  subject: (email: string, isNewAccount: boolean) => string
   intro: string
   /** The plain-text part has the link itself; the HTML part has a button instead. */
   orLink: string
@@ -23,8 +27,9 @@ interface SignInWords {
 // Thai: neutral politeness, no ครับ/ค่ะ (web/DESIGN.md §11); the app is "แอป".
 const SIGN_IN_WORDS: Record<MailLanguage, SignInWords> = {
   th: {
-    // The code first: a phone's notification shows it without opening the mail.
-    subject: (code) => `${code} รหัสยืนยันการเข้าแอป ตังค์ไปไหน`,
+    // What the code is for and whose account; no code in the subject (lock screens show it).
+    subject: (email, isNewAccount) =>
+      `รหัส OTP สำหรับ${isNewAccount ? 'สมัครบัญชี' : 'เข้าสู่ระบบ'} ตังค์ไปไหน: ${email}`,
     intro: 'รหัส OTP สำหรับเข้าสู่ระบบ ตังค์ไปไหน ของคุณคือ',
     orLink: 'หรือเปิดลิงก์ด้านล่างบนอุปกรณ์ที่คุณกำลังใช้งาน เพื่อเข้าสู่ระบบทันที',
     orButton: 'หรือกดปุ่มด้านล่างบนอุปกรณ์ที่คุณกำลังใช้งาน เพื่อเข้าสู่ระบบทันที',
@@ -37,7 +42,10 @@ const SIGN_IN_WORDS: Record<MailLanguage, SignInWords> = {
     team: 'ทีมงาน ตังค์ไปไหน',
   },
   en: {
-    subject: (code) => `${code} is your Tang Pai Nai sign-in code`,
+    subject: (email, isNewAccount) =>
+      isNewAccount
+        ? `OTP to finish signing up for your Tang Pai Nai account: ${email}`
+        : `OTP to sign in to your Tang Pai Nai account: ${email}`,
     intro: 'Your sign-in code for ตังค์ไปไหน (Tang Pai Nai) is',
     orLink: "Or open the link below on the device you're using to sign in right away.",
     orButton: "Or press the button below on the device you're using to sign in right away.",
@@ -66,7 +74,7 @@ const ON_BRAND = '#2b2418'
 /** The HTML part: the code large, a button for the link, the same words as the text part. */
 const signInHtml = (
   words: SignInWords,
-  { code, link, lang, expiresInMinutes }: SignInMail
+  { code, link, email, isNewAccount, lang, expiresInMinutes }: SignInMail
 ): string => {
   const p = (text: string, style = '') =>
     `<p style="margin:0 0 16px;font-size:16px;line-height:1.7;${style}">${escapeHtml(text)}</p>`
@@ -75,7 +83,7 @@ const signInHtml = (
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(words.subject(code))}</title>
+<title>${escapeHtml(words.subject(email, isNewAccount))}</title>
 </head>
 <body style="margin:0;padding:0;background:#f5f5f4;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f4;">
@@ -111,7 +119,7 @@ ${p(words.team, 'margin:0;')}
 export const buildSignInMail = (mail: SignInMail) => {
   const words = SIGN_IN_WORDS[mail.lang]
   return {
-    subject: words.subject(mail.code),
+    subject: words.subject(mail.email, mail.isNewAccount),
     text: [
       words.intro,
       '',
@@ -132,15 +140,16 @@ export const buildSignInMail = (mail: SignInMail) => {
 
 interface ReauthMail {
   code: string
+  email: string
   lang: MailLanguage
   expiresInMinutes: number
 }
 
 /** Step-up code for a signed-in user (rule 13). No link: it must be typed where it was asked. */
-export const buildReauthMail = ({ code, lang, expiresInMinutes }: ReauthMail) =>
+export const buildReauthMail = ({ code, email, lang, expiresInMinutes }: ReauthMail) =>
   lang === 'en'
     ? {
-        subject: `${code} is your Tang Pai Nai confirmation code`,
+        subject: `OTP to confirm it's you on your Tang Pai Nai account: ${email}`,
         text: [
           `Use this code to confirm it's you before changing your sign-in settings in`,
           `ตังค์ไปไหน (Tang Pai Nai):`,
@@ -153,7 +162,7 @@ export const buildReauthMail = ({ code, lang, expiresInMinutes }: ReauthMail) =>
         ].join('\n'),
       }
     : {
-        subject: `${code} คือรหัสยืนยันตัวตน ตังค์ไปไหน`,
+        subject: `รหัส OTP สำหรับยืนยันตัวตน ตังค์ไปไหน: ${email}`,
         text: [
           'มีการขอยืนยันตัวตนในแอป ตังค์ไปไหน เพื่อแก้ไขการตั้งค่าการเข้าสู่ระบบ รหัสของคุณคือ',
           '',
@@ -166,6 +175,7 @@ export const buildReauthMail = ({ code, lang, expiresInMinutes }: ReauthMail) =>
 
 interface CredentialChangeMail {
   change: CredentialChange
+  email: string
   lang: MailLanguage
   at: Date
   /** The user's timezone (IANA), for the time in the mail. */
@@ -191,6 +201,7 @@ const CHANGE_TEXT: Record<CredentialChange, Record<MailLanguage, string>> = {
  */
 export const buildCredentialChangeMail = ({
   change,
+  email,
   lang,
   at,
   timeZone,
@@ -210,7 +221,7 @@ export const buildCredentialChangeMail = ({
   }).format(at)
   return lang === 'en'
     ? {
-        subject: `${what} on your Tang Pai Nai account`,
+        subject: `${what} on your Tang Pai Nai account: ${email}`,
         text: [
           `${what}${number} on your ตังค์ไปไหน (Tang Pai Nai) account on ${when}.`,
           '',
@@ -220,7 +231,7 @@ export const buildCredentialChangeMail = ({
         ].join('\n'),
       }
     : {
-        subject: `${what} ในบัญชีผู้ใช้ ตังค์ไปไหน`,
+        subject: `${what} ในบัญชี ตังค์ไปไหน: ${email}`,
         text: [
           `${what}${number} ในบัญชีผู้ใช้ ตังค์ไปไหน ของคุณ เมื่อ ${when}`,
           '',

@@ -108,8 +108,8 @@ const wrongCode = (code: string) => (code === '000000' ? '111111' : '000000')
 
 describe('startEmailSignIn', () => {
   it.each<[MailLanguage, string]>([
-    ['th', 'รหัสยืนยันการเข้าแอป ตังค์ไปไหน'],
-    ['en', 'your Tang Pai Nai sign-in code'],
+    ['th', 'รหัส OTP สำหรับสมัครบัญชี ตังค์ไปไหน: mom@example.com'],
+    ['en', 'OTP to finish signing up for your Tang Pai Nai account: mom@example.com'],
   ])('mails one code and one magic link in the chosen language (%s)', async (lang, subject) => {
     const ctx = setup()
     await ctx.service.startEmailSignIn(EMAIL, lang, CLIENT)
@@ -117,10 +117,27 @@ describe('startEmailSignIn', () => {
     const mail = ctx.lastMail()
     expect(ctx.sent).toHaveLength(1)
     expect(mail.to).toBe(EMAIL)
-    expect(mail.subject).toContain(subject)
+    // An unknown email: verifying creates the account, so the subject says sign-up.
+    expect(mail.subject).toBe(subject)
+    expect(mail.subject).not.toContain(mail.code)
     expect(mail.code).toMatch(/^\d{6}$/)
     expect(mail.text).toContain(`http://web.test/auth/link#token=${mail.token}`)
     expect(mail.token).toHaveLength(43)
+  })
+
+  it.each<[MailLanguage, string]>([
+    ['th', 'รหัส OTP สำหรับเข้าสู่ระบบ ตังค์ไปไหน: mom@example.com'],
+    ['en', 'OTP to sign in to your Tang Pai Nai account: mom@example.com'],
+  ])('says sign-in in the subject once the email has an account (%s)', async (lang, subject) => {
+    const ctx = setup()
+    await signIn(ctx)
+    ctx.advance(AUTH_LIMITS.RESEND_COOLDOWN_MS)
+
+    await ctx.service.startEmailSignIn(EMAIL, lang, CLIENT)
+
+    const mail = ctx.lastMail()
+    expect(mail.subject).toBe(subject)
+    expect(mail.html).toContain(`<title>${subject}</title>`)
   })
 
   it('stores only hashes of the code and the link token', async () => {
@@ -938,8 +955,8 @@ describe('removePassword', () => {
 
 describe('startReauth / verifyReauth', () => {
   it.each<[MailLanguage, string]>([
-    ['th', 'คือรหัสยืนยันตัวตน'],
-    ['en', 'is your Tang Pai Nai confirmation code'],
+    ['th', 'รหัส OTP สำหรับยืนยันตัวตน ตังค์ไปไหน: mom@example.com'],
+    ['en', "OTP to confirm it's you on your Tang Pai Nai account: mom@example.com"],
   ])('mails a code, and no link, to the user’s own email (%s)', async (lang, subject) => {
     const ctx = setup()
     const session = await signIn(ctx)

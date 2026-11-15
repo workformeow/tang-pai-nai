@@ -115,6 +115,16 @@ Raw OTPs, link tokens and refresh tokens are **never stored**, only their hashes
    (`crypto.randomInt`, so uniformly random) and a **32-byte link token**, invalidates the email's
    earlier open challenges, and sends one email containing both. Both expire after **10 minutes**.
    `lang` (`th` | `en`, default `th`) is the app's current UI language; the email is written in it.
+   **Subjects** (every auth mail; owner, 2026-11, after npm's): what the code is for, the app, then
+   `: <the user's email>`, and **no code** (a lock screen would show it):
+   - sign-up (no account has the email yet): `รหัส OTP สำหรับสมัครบัญชี ตังค์ไปไหน: …` /
+     `OTP to finish signing up for your Tang Pai Nai account: …`;
+   - sign-in: `รหัส OTP สำหรับเข้าสู่ระบบ ตังค์ไปไหน: …` /
+     `OTP to sign in to your Tang Pai Nai account: …`;
+   - step-up (rule 13): `รหัส OTP สำหรับยืนยันตัวตน ตังค์ไปไหน: …` /
+     `OTP to confirm it's you on your Tang Pai Nai account: …`;
+   - credential change (rule 31): `<what changed> ในบัญชี ตังค์ไปไหน: …` /
+     `<what changed> on your Tang Pai Nai account: …`.
 5. It **always** answers `202` with the same body. The challenge row is created even when no mail
    is sent (sign-up closed and the email unknown), so verify behaves the same for every email, and
    every start takes at least a fixed minimum time, so timing doesn't tell the cases apart either.
