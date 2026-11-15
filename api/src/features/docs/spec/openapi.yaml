@@ -21,6 +21,8 @@ tags:
     description: Offline sync, push then pull (docs/features/offline-sync.md)
   - name: Sharing
     description: Family sharing, invitations and shared profiles (docs/features/sharing.md)
+  - name: Live
+    description: Live sync pokes after a push (docs/features/live-sync.md)
   - name: Todo
     description: Reference CRUD feature (in-memory, resets on restart)
 
@@ -99,6 +101,10 @@ paths:
     $ref: './paths/sharing/leave.yaml'
   /sharing/with-me/{profileId}/rows:
     $ref: './paths/sharing/rows.yaml'
+  /live/token:
+    $ref: './paths/live/token.yaml'
+  /live/events:
+    $ref: './paths/live/events.yaml'
   /todos:
     $ref: './paths/todo/todos.yaml'
   /todos/{id}:
