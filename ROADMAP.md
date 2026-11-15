@@ -91,7 +91,7 @@ merging.
 | 15  | CSV export + move transactions        | —   | ✅  | owner cut search and filters; Account › ส่งออก CSV, "ย้ายรายการ" in the category sheet, no API change. [spec](docs/features/export.md)                                                                                                     |
 | 16  | Family sharing                        | ✅  | ✅  | 16.1 invites per person, Account › แชร์กระเป๋า; 16.2 shared profiles in the switcher, online only, editors write. [spec](docs/features/sharing.md)                                                                                         |
 | 16R | Shared components                     | —   | ✅  | `date-row` (4 sheets) and `wallet-pick` (3 sheets) moved to `shared/components`; same look, same initial bundle                                                                                                                            |
-| 17  | **Deploy (Vercel)** ← now             | 🚧  | 🚧  | code in the #17 PR (Vercel entries, cron, `/api` middleware); the owner sets up Vercel ×2, Turso, Resend: [steps](docs/deploy.md)                                                                                                          |
+| 17  | Deploy (Vercel)                       | ✅  | ✅  | **staging only** (`develop`), the app's show-and-test copy; production waits until the family uses it for real (owner, 2026-11). [steps](docs/deploy.md)                                                                                   |
 | 18  | Credit card                           | ✅  | ✅  | `wallets.isCreditCard`: out of the total, counted in "ทุกกระเป๋า"; paid by one transfer (pay sheet, Wallets tab card section). [spec](docs/features/credit-card.md)                                                                        |
 | 19  | Loading                               | —   | ✅  | splash in `index.html` until the first page, a creeping bar for slow page changes, a new device waits for its whole first pull. [spec](docs/features/loading.md)                                                                           |
 | 20  | Live sync (2nd)                       | ⬜  | ⬜  | a poke (no data) from the API after a push makes open devices sync at once; Ably on Vercel, a local stream in dev. [spec](docs/features/live-sync.md)                                                                                      |
@@ -107,7 +107,11 @@ decision "Local-first").
 
 ---
 
-## Next: Deploy (#17)
+## Done: Deploy (#17), staging only
+
+**Owner, 2026-11: staging only for now.** This is a personal project shown to friends; production
+(`main`, its own Turso database and secrets) goes up only once the family uses the app for real
+(Backlog → "Production deploy"). The steps below stay valid for that day.
 
 **Code: done in the #17 PR.** What's left is the owner's setup in each dashboard, step by step in
 [docs/deploy.md](docs/deploy.md): GitHub settings, Turso (staging + prod), Resend, Cloudflare
@@ -1538,17 +1542,14 @@ Agreed with the user. Do not re-propose alternatives unless asked.
 
 ## Backlog / open questions
 
-- **Prod email provider** for OTP and magic links (decide at #17). Dev uses Nodemailer with no
-  provider. Proposal: **Resend** (free tier, offers SMTP too, so it can stay a Nodemailer config).
 - **SMS gateway account**: SMS is for phone-OTP sign-in (auth spec rules 21–27), gateway =
   **ThaiBulkSMS**. Its adapter (`sms.thaibulksms.ts`) is written when the account and API key
-  exist; until then dev uses the `console` SMS provider.
-- **GitGuardian check is red on auth PRs** (from 4.2): its GitHub App flags the made-up passwords
-  in `*.test.ts` / `*.spec.ts` and the `PASSWORD_BREACH_CHECK` setting name as "Generic Password".
-  They are false positives, and the check isn't required, so PRs merge anyway; don't chase it in a
-  feature session. The app ignores `.gitguardian.yaml` (that file only helps a local ggshield).
-  Fix once someone has dashboard access: mark the incidents as false positives and exclude test
-  files in the workspace settings.
+  exist; until then dev uses the `console` SMS provider. Later (owner, 2026-11), together with
+  **Google sign-in**: both stay off on staging (env only) until the owner turns them on.
+- **Production deploy** (#17 went up as staging only, owner 2026-11): when the family uses the
+  app for real, set up production by [docs/deploy.md](docs/deploy.md) (Vercel `main`, its own
+  Turso, Resend and Turnstile keys, the daily cron jobs) and run every migration on its database
+  first.
 - **Budget** (was #11, moved here after #10 by the owner: never used in Money Lover, and the
   Reports tab already shows spending per category against the months before). If a family
   member asks for it: per category or total per period, progress and an over-budget warning;
