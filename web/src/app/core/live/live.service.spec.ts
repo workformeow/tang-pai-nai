@@ -98,7 +98,7 @@ describe('LiveService', () => {
     TestBed.tick()
     await answerToken('local')
     expect(stream.fetchMock).toHaveBeenCalledWith('/api/live/events', expect.anything())
-    expect(stream.calls[0].headers).toEqual({ Authorization: 'Bearer token-1' })
+    expect(stream.calls[0].headers).toMatchObject({ Authorization: 'Bearer token-1' })
   })
 
   it('opens no stream when the API has live sync off', async () => {

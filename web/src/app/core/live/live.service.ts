@@ -233,7 +233,11 @@ export class LiveService {
       while (live()) {
         try {
           const response = await fetch(EVENTS_URL, {
-            headers: { Authorization: `Bearer ${this.authStore.accessToken() ?? ''}` },
+            headers: {
+              Authorization: `Bearer ${this.authStore.accessToken() ?? ''}`,
+              // Straight to the network: the service worker would hold the stream.
+              'ngsw-bypass': 'true',
+            },
             cache: 'no-store',
             signal: abort.signal,
           })
