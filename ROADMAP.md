@@ -94,6 +94,7 @@ merging.
 | 17  | **Deploy (Vercel)** ← now      | 🚧  | 🚧  | code in the #17 PR (Vercel entries, cron, `/api` middleware); the owner sets up Vercel ×2, Turso, Resend: [steps](docs/deploy.md)                                        |
 | 18  | Credit card                    | ✅  | ✅  | `wallets.isCreditCard`: out of the total, counted in "ทุกกระเป๋า"; paid by one transfer (pay sheet, Wallets tab card section). [spec](docs/features/credit-card.md)      |
 | 19  | Loading                        | —   | ✅  | splash in `index.html` until the first page, a creeping bar for slow page changes, a new device waits for its whole first pull. [spec](docs/features/loading.md)         |
+| 20  | Live sync                      | ⬜  | ⬜  | a poke (no data) from the API after a push makes open devices sync at once; Ably on Vercel, a local stream in dev. [spec](docs/features/live-sync.md)                    |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
 
