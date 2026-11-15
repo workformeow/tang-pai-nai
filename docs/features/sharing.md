@@ -89,7 +89,9 @@ Schema: `api/src/core/database/schema/sharing.ts` (invites) and `wallet.ts` (mem
     comes back); the editor gets no notice (they see it on the next load). Between the owner's
     own devices rule 12 of offline-sync is unchanged.
 15. The owner sees "เพิ่มโดย <name>" on rows with `addedBy`, offline too; the name comes from the
-    profile's members once read online (`GET /sharing/profiles/:id`), else "สมาชิก".
+    profile's members once read online (`GET /sharing/profiles/:id`), else "สมาชิก". #21
+    widens this to everyone in the share and adds "แก้ไขโดย", plus an activity page:
+    [shared-activity.md](shared-activity.md) rule 6.
 
 ## Endpoints
 

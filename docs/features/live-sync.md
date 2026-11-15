@@ -19,13 +19,15 @@ rules and cursors. A lost poke costs nothing: the timed rounds still run and cat
 ## Out of scope
 
 - **Sending data** over the live channel. Amounts, names and notes never leave our API through it.
-- **Notifications the user sees** (Web Push, "แม่เพิ่มรายจ่าย 500 บาท"). That is a separate feature
-  (backlog): it needs Web Push, and on iPhone an installed app. It can reuse rule 6's publish
-  point.
-- Waking a **closed** app. Live sync works only while the app is open.
-- Presence ("who is online") and typing indicators.
-- Live updates of sharing itself (an invite arriving, a member removed, a role changed). Those
-  keep their current triggers ([sharing.md](sharing.md) rules 6–7).
+- **Decided against** (owner, 2026-11: a personal, offline-first app that shows nothing as a
+  notification today, and new data in a share needs no alert):
+  - notifications the user sees (Web Push, "แม่เพิ่มรายจ่าย 500 บาท");
+  - waking a **closed** app: live sync works only while the app is open;
+  - presence ("who is online") and typing indicators.
+    Who did what in a share is [shared-activity.md](shared-activity.md) (#21) instead.
+- Live updates of sharing itself (an invite arriving, a member removed, a role changed): backlog
+  (ROADMAP). It would reuse the `user:` channel; until then they keep their current triggers
+  ([sharing.md](sharing.md) rules 6–7).
 
 ## Providers
 
