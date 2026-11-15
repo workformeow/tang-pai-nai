@@ -71,9 +71,16 @@ minimum the backlog's "open sign-up obligations" (PDPA) asked for.
 7. The deletion happens **at once**: no waiting period and no undo.
 8. On the server, in one transaction: the `users` row is deleted, and every table that
    references it goes with it (`onDelete: 'cascade'`: sessions, identities, OTPs, profiles and
-   everything under them, outbox records, change history, invites, memberships). The API checks
-   the typed email again (`422 ACCOUNT_EMAIL_MISMATCH` when it differs) and the recent
-   authentication (`403 REAUTH_REQUIRED`).
+   everything under them, outbox records, change history, invites, memberships). Two kinds of
+   rows hold the **email in plain text without a `userId`**, so the same transaction deletes
+   them by address: sign-in codes (`otp_challenges` with that `destination`) and invites
+   **addressed to** that email by other owners (`wallet_invites.email`). The API checks the typed
+   email again (`422 ACCOUNT_EMAIL_MISMATCH` when it differs) and the recent authentication
+   (`403 REAUTH_REQUIRED`).
+   - What may stay, and why it isn't personal data: rate-limit counters keyed by a **SHA-256 of**
+     the email or IP (they expire within a day); the user's random id in `addedBy` /
+     `updatedBy` / `change_history` of **other owners'** rows (rule 14; the name is gone with
+     the user).
 9. After it commits, the API mails the address once: "บัญชีของคุณถูกลบแล้ว" (in the request's
    `lang`, no link). The mail counts toward `EMAIL_DAILY_LIMIT`; a failed send is logged and
    doesn't undo anything.
