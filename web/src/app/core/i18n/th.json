@@ -127,7 +127,8 @@
     "saveAndAdd": "บันทึกแล้วเพิ่มต่อ",
     "copy": "คัดลอกเป็นรายการใหม่",
     "frequent": "ใช้บ่อย",
-    "allCategories": "ทั้งหมด"
+    "allCategories": "ทั้งหมด",
+    "cardOwed": "ยอดค้าง {{amount}}"
   },
   "wallets": {
     "firstHeading": "เพิ่มกระเป๋าเงินใบแรก",
@@ -182,7 +183,17 @@
     "categoriesAll": "ทั้งหมด",
     "categoriesHidden": "ซ่อน {{count}}",
     "deleteUsed": "กระเป๋านี้มีธุรกรรมแล้ว จึงลบไม่ได้ เก็บถาวรแทนได้",
-    "sharedListHeading": "กระเป๋าที่แชร์ให้ฉัน ({{count}})"
+    "sharedListHeading": "กระเป๋าที่แชร์ให้ฉัน ({{count}})",
+    "creditCard": "บัตรเครดิต",
+    "creditCardHint": "รายจ่ายนับในรายงาน · ชำระบัตรด้วยการโอน",
+    "creditCardExcluded": "บัตรเครดิตไม่รวมในยอดรวมเสมอ",
+    "cardsHeading": "บัตรเครดิต ({{count}})",
+    "owed": "ค้างจ่าย",
+    "owedTotal": "ค้างจ่าย {{amount}}",
+    "afterCards": "หลังหักหนี้บัตร {{amount}}",
+    "nothingOwed": "ไม่มียอดค้าง",
+    "pay": "ชำระ",
+    "payItem": "ชำระ {{name}} ยอดค้าง {{amount}}"
   },
   "categories": {
     "title": "หมวดหมู่",
@@ -869,7 +880,10 @@
     "created": "บันทึกการโอนแล้ว",
     "saved": "บันทึกการแก้ไขแล้ว",
     "copy": "คัดลอกเป็นการโอนใหม่",
-    "needsOnline": "ต่ออินเทอร์เน็ตก่อนจึงจะบันทึกการโอนได้"
+    "needsOnline": "ต่ออินเทอร์เน็ตก่อนจึงจะบันทึกการโอนได้",
+    "payHeading": "ชำระบัตร",
+    "paid": "ชำระบัตรแล้ว",
+    "useOwed": "ใช้ยอดค้าง {{amount}}"
   },
   "recurring": {
     "title": "รายการซ้ำ",

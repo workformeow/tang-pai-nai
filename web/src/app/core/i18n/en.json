@@ -127,7 +127,8 @@
     "saveAndAdd": "Save and add another",
     "copy": "Copy as new",
     "frequent": "Frequent",
-    "allCategories": "All"
+    "allCategories": "All",
+    "cardOwed": "Owed {{amount}}"
   },
   "wallets": {
     "firstHeading": "Add your first wallet",
@@ -182,7 +183,17 @@
     "categoriesAll": "All",
     "categoriesHidden": "{{count}} hidden",
     "deleteUsed": "This wallet has transactions, so it can’t be deleted. Archive it instead.",
-    "sharedListHeading": "Shared with me ({{count}})"
+    "sharedListHeading": "Shared with me ({{count}})",
+    "creditCard": "Credit card",
+    "creditCardHint": "Spending counts in reports · pay the bill with a transfer",
+    "creditCardExcluded": "A credit card is never in the total",
+    "cardsHeading": "Credit cards ({{count}})",
+    "owed": "Owed",
+    "owedTotal": "Owed {{amount}}",
+    "afterCards": "After card debt {{amount}}",
+    "nothingOwed": "Nothing owed",
+    "pay": "Pay",
+    "payItem": "Pay {{name}}, owed {{amount}}"
   },
   "categories": {
     "title": "Categories",
@@ -869,7 +880,10 @@
     "created": "Transfer saved",
     "saved": "Changes saved",
     "copy": "Copy as a new transfer",
-    "needsOnline": "Go online to save a transfer."
+    "needsOnline": "Go online to save a transfer.",
+    "payHeading": "Pay card",
+    "paid": "Card paid",
+    "useOwed": "Use amount owed {{amount}}"
   },
   "recurring": {
     "title": "Recurring",

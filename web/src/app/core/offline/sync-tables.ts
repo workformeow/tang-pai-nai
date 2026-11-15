@@ -47,6 +47,7 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
       'icon',
       'color',
       'excludeFromTotal',
+      'isCreditCard',
       'isArchived',
       'sortOrder',
       'hiddenCategoryIds',
@@ -56,7 +57,7 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
       'changeSeq',
       'updatedBy',
     ],
-    booleans: ['excludeFromTotal', 'isArchived'],
+    booleans: ['excludeFromTotal', 'isCreditCard', 'isArchived'],
     json: ['hiddenCategoryIds'],
   },
   categories: {

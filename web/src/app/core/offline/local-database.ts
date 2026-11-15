@@ -251,6 +251,8 @@ const MIGRATIONS: readonly string[] = [
   CREATE INDEX transactions_event ON transactions (event_id) WHERE event_id IS NOT NULL`,
   // #16.2: the editor of a shared wallet who added a transaction (set by the server).
   `ALTER TABLE transactions ADD COLUMN added_by TEXT`,
+  // Credit card (docs/features/credit-card.md): out of the total, counted in "all wallets".
+  `ALTER TABLE wallets ADD COLUMN is_credit_card INTEGER NOT NULL DEFAULT 0`,
 ]
 
 let sqlitePromise: Promise<Sqlite3Static> | null = null

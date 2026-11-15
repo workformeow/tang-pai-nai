@@ -54,6 +54,8 @@ import { formatMoney } from '@/shared/utils'
   ],
   template: `
     @let open = walletService.openWallets();
+    @let listed = listedWallets();
+    @let cards = walletService.cards();
     @let archived = walletService.archived();
     <div class="flex flex-col gap-6 p-4">
       @if (!shared() && !walletService.canWrite()) {
@@ -75,6 +77,12 @@ import { formatMoney } from '@/shared/utils'
           @for (line of totals(); track line.currencyCode) {
             <p class="text-2xl font-semibold tabular-nums" [class.text-expense]="line.amount < 0">
               {{ line.text }}
+            </p>
+          }
+          @for (line of afterCards(); track line.currencyCode) {
+            <!-- Credit-card rule 6 (Q1): the total less what the cards owe. -->
+            <p class="text-sm text-muted-foreground tabular-nums">
+              {{ 'wallets.afterCards' | transloco: { amount: line.text } }}
             </p>
           }
         </section>
@@ -154,13 +162,13 @@ import { formatMoney } from '@/shared/utils'
           </section>
         }
 
-        @if (open.length > 0) {
+        @if (listed.length > 0) {
           <section class="flex flex-col gap-3" aria-labelledby="wallets-open">
             <div class="flex items-center justify-between gap-3">
               <h2 id="wallets-open" class="text-sm font-medium text-muted-foreground">
                 {{
                   (shared() ? 'wallets.sharedListHeading' : 'wallets.listHeading')
-                    | transloco: { count: open.length }
+                    | transloco: { count: listed.length }
                 }}
               </h2>
               @if (open.length > 1 && !shared()) {
@@ -184,7 +192,7 @@ import { formatMoney } from '@/shared/utils'
               [cdkDropListDisabled]="!ordering()"
               (cdkDropListDropped)="drop($event)"
             >
-              @for (wallet of open; track wallet.id) {
+              @for (wallet of listed; track wallet.id) {
                 <li
                   class="flex min-h-14 items-center gap-3 bg-card py-2 pr-2 pl-4 first:rounded-t-xl last:rounded-b-xl"
                   cdkDrag
@@ -262,6 +270,76 @@ import { formatMoney } from '@/shared/utils'
             </button>
           }
         </div>
+      }
+
+      @if (cards.length > 0 && !ordering()) {
+        <!-- Credit cards (credit-card rule 6): what each owes, and "ชำระ" while it owes. -->
+        <section class="flex flex-col gap-3" aria-labelledby="wallets-cards">
+          <div class="flex items-center justify-between gap-3">
+            <h2 id="wallets-cards" class="text-sm font-medium text-muted-foreground">
+              {{ 'wallets.cardsHeading' | transloco: { count: cards.length } }}
+            </h2>
+            @if (owedText(); as owed) {
+              <p class="text-sm text-muted-foreground tabular-nums">
+                {{ 'wallets.owedTotal' | transloco: { amount: owed } }}
+              </p>
+            }
+          </div>
+          <ul
+            class="divide-y divide-border rounded-xl border border-border bg-card text-card-foreground"
+          >
+            @for (card of cards; track card.id) {
+              @let owed = walletService.owed(card);
+              <li class="flex min-h-16 items-center gap-2 py-2 pr-3 pl-4">
+                <button
+                  type="button"
+                  class="-my-2 -ml-4 flex min-h-16 min-w-0 flex-1 items-center gap-3 py-2 pl-4 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  [attr.aria-label]="
+                    'wallets.editItem' | transloco: { name: card.name, balance: owedOf(card) }
+                  "
+                  (click)="openWallet(card)"
+                >
+                  <app-icon-badge
+                    [icon]="card.icon"
+                    [color]="card.color"
+                    [fallback]="defaultIcon"
+                  />
+                  <span class="flex min-w-0 flex-1 flex-col">
+                    <span class="truncate text-base">{{ card.name }}</span>
+                    <span class="text-sm text-muted-foreground">
+                      @if (walletService.pendingIds().has(card.id)) {
+                        {{ 'wallets.pending' | transloco }}
+                      } @else {
+                        {{ (owed > 0 ? 'wallets.owed' : 'wallets.nothingOwed') | transloco }}
+                      }
+                    </span>
+                  </span>
+                  <span
+                    class="shrink-0 text-right text-base tabular-nums"
+                    [class.text-expense]="owed > 0"
+                  >
+                    {{ owed > 0 ? owedOf(card) : balanceText(card) }}
+                  </span>
+                </button>
+                @if (owed > 0) {
+                  <button
+                    hlmBtn
+                    variant="ghost"
+                    type="button"
+                    class="h-9 shrink-0 bg-brand/10 px-3 text-brand hover:bg-brand/15 hover:text-brand"
+                    [disabled]="!walletService.canWrite()"
+                    [attr.aria-label]="
+                      'wallets.payItem' | transloco: { name: card.name, amount: owedOf(card) }
+                    "
+                    (click)="transferService.pay(card.id)"
+                  >
+                    {{ 'wallets.pay' | transloco }}
+                  </button>
+                }
+              </li>
+            }
+          </ul>
+        </section>
       }
 
       @if (archived.length > 0) {
@@ -395,6 +473,48 @@ export class WalletsPage {
       text: formatMoney(line.amount, line.currencyCode, line.minorUnit, locale),
     }))
   })
+
+  /**
+   * The wallet list: open wallets without the cards, which have their own section
+   * (credit-card rule 6); all of them in order mode, which keeps one order.
+   */
+  protected listedWallets = computed(() => {
+    const open = this.walletService.openWallets()
+    return this.ordering() ? open : open.filter((wallet) => !wallet.isCreditCard)
+  })
+
+  /** What the cards owe per currency, joined; null while they owe nothing. */
+  protected owedText = computed(() => {
+    const locale = this.languageService.locale()
+    const lines = this.walletService.owedTotals()
+    return lines.length > 0
+      ? lines
+          .map((line) => formatMoney(line.amount, line.currencyCode, line.minorUnit, locale))
+          .join(' · ')
+      : null
+  })
+
+  /** Credit-card rule 6 (Q1): the total less what the cards owe, while they owe something. */
+  protected afterCards = computed(() => {
+    const locale = this.languageService.locale()
+    const totals = this.walletService.totals()
+    return this.walletService.owedTotals().map((owed) => {
+      const total = totals.find((line) => line.currencyCode === owed.currencyCode)?.amount ?? 0
+      return {
+        currencyCode: owed.currencyCode,
+        text: formatMoney(total - owed.amount, owed.currencyCode, owed.minorUnit, locale),
+      }
+    })
+  })
+
+  protected owedOf(wallet: Wallet): string {
+    return formatMoney(
+      this.walletService.owed(wallet),
+      wallet.currencyCode,
+      this.walletService.minorUnit(wallet.currencyCode),
+      this.languageService.locale()
+    )
+  }
 
   /** Touch: press and hold the handle before dragging, so scrolling the list still works. */
   protected dragDelay = { touch: 300, mouse: 0 }

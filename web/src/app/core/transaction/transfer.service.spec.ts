@@ -187,6 +187,22 @@ describe('TransferService', () => {
     expect(transfers.lastToId('bank')).toBeNull()
   })
 
+  it('pays a card from the wallet last used for it, else the first counted one of its currency (credit-card rule 4)', () => {
+    const card = { isCreditCard: true, excludeFromTotal: true }
+    wallet('kcard', { ...card, sortOrder: 3 })
+    wallet('usd', { sortOrder: 4, currencyCode: 'USD' })
+    expect(transfers.payFromId('kcard')).toBe('cash')
+    transfers.save(null, { ...values, toWalletId: 'kcard' })
+    expect(transfers.payFromId('kcard')).toBe('bank')
+    wallet('bank', { sortOrder: 1, isArchived: true })
+    expect(transfers.payFromId('kcard')).toBe('cash')
+    wallet('cash', { sortOrder: 0, isArchived: true })
+    expect(transfers.payFromId('kcard')).toBe('save')
+    expect(transfers.payFromId('gone')).toBeNull()
+    transfers.pay('kcard')
+    expect(transfers.sheet()).toEqual({ mode: 'create', pay: 'kcard' })
+  })
+
   it('lists a transfer as two rows among the transactions, the outgoing side first (Q5)', () => {
     transaction('t1', { occurredOn: '2026-11-02', createdAt: 5 })
     transfer('r1', { occurredOn: '2026-11-02', createdAt: 9, note: 'ATM' })

@@ -111,6 +111,33 @@ export class WalletService {
       }))
   })
 
+  /** Open credit cards, in order (credit-card rule 6). */
+  cards = computed(() => this.openWallets().filter((wallet) => wallet.isCreditCard))
+
+  /** Credit-card rule 3: what a card owes (minor units, never negative). */
+  owed(wallet: Wallet): number {
+    return wallet.isCreditCard ? Math.max(0, -this.balance(wallet)) : 0
+  }
+
+  /** What the open cards owe, one line per currency (lines of 0 left out). */
+  owedTotals = computed<CurrencyTotal[]>(() => {
+    const sums = new Map<string, number>()
+    for (const wallet of this.cards()) {
+      const owed = this.owed(wallet)
+      if (owed > 0) {
+        sums.set(wallet.currencyCode, (sums.get(wallet.currencyCode) ?? 0) + owed)
+      }
+    }
+    const order = this.currencies().map((currency) => currency.code)
+    return [...sums.entries()]
+      .sort(([a], [b]) => order.indexOf(a) - order.indexOf(b) || a.localeCompare(b))
+      .map(([currencyCode, amount]) => ({
+        currencyCode,
+        minorUnit: this.minorUnit(currencyCode),
+        amount,
+      }))
+  })
+
   /** The open wallet sheet (layout/wallet-sheet), if any. */
   sheet = signal<WalletSheetState | null>(null)
 
@@ -245,6 +272,7 @@ export class WalletService {
         currencyCode: text('currencyCode', this.defaultCurrency()),
         initialBalance: typeof row['initialBalance'] === 'number' ? row['initialBalance'] : 0,
         excludeFromTotal: row['excludeFromTotal'] === true,
+        isCreditCard: row['isCreditCard'] === true,
         hiddenCategoryIds: Array.isArray(row['hiddenCategoryIds'])
           ? row['hiddenCategoryIds'].filter((item): item is string => typeof item === 'string')
           : [],
@@ -295,7 +323,9 @@ export class WalletService {
         color: values.color,
         currencyCode: values.currencyCode,
         initialBalance: values.initialBalance,
-        excludeFromTotal: values.excludeFromTotal,
+        // Credit-card rule 1: a card is always out of the total.
+        excludeFromTotal: values.excludeFromTotal || values.isCreditCard,
+        isCreditCard: values.isCreditCard,
         hiddenCategoryIds: cleanHidden(db, values.hiddenCategoryIds),
         isArchived: live?.isArchived ?? false,
         sortOrder: live?.sortOrder ?? this.nextSortOrder(db, profileId),

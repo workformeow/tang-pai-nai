@@ -82,6 +82,7 @@ describe('WalletService', () => {
     currencyCode: 'THB',
     initialBalance: -1825075,
     excludeFromTotal: false,
+    isCreditCard: false,
     hiddenCategoryIds: [],
   }
 
@@ -157,6 +158,35 @@ describe('WalletService', () => {
       { currencyCode: 'THB', minorUnit: 2, amount: -1675025 },
       { currencyCode: 'JPY', minorUnit: 0, amount: 15000 },
     ])
+  })
+
+  it('lists open cards and what they owe, never below 0 (credit-card rules 3, 6)', () => {
+    const card = { isCreditCard: true, excludeFromTotal: true }
+    pulled(wallet('cash', { initialBalance: 150050 }))
+    pulled(wallet('kbank', { ...card, initialBalance: -325000, sortOrder: 1 }))
+    pulled(wallet('scb', { ...card, initialBalance: -100000, sortOrder: 2 }))
+    pulled(wallet('paid', { ...card, initialBalance: 5000, sortOrder: 3 }))
+    pulled(wallet('old', { ...card, initialBalance: -999, isArchived: true }))
+    expect(service.cards().map((item) => item.id)).toEqual(['kbank', 'scb', 'paid'])
+    const byId = (id: string) => service.wallets().find((item) => item.id === id)
+    const kbank = byId('kbank')
+    const paid = byId('paid')
+    const cash = byId('cash')
+    expect(kbank && service.owed(kbank)).toBe(325000)
+    expect(paid && service.owed(paid)).toBe(0)
+    expect(cash && service.owed(cash)).toBe(0)
+    expect(service.owedTotals()).toEqual([{ currencyCode: 'THB', minorUnit: 2, amount: 425000 }])
+    expect(service.totals()).toEqual([{ currencyCode: 'THB', minorUnit: 2, amount: 150050 }])
+  })
+
+  it('has no owed line while no card owes', () => {
+    pulled(wallet('paid', { isCreditCard: true, excludeFromTotal: true, initialBalance: 0 }))
+    expect(service.owedTotals()).toEqual([])
+  })
+
+  it('saves a card excluded from the total, whatever the switch said (credit-card rule 2)', () => {
+    const id = service.save(null, { ...values, isCreditCard: true, excludeFromTotal: false })
+    expect(service.byId(id)).toMatchObject({ isCreditCard: true, excludeFromTotal: true })
   })
 
   it('reads currency digits and the default currency from the pulled currencies', () => {
@@ -254,6 +284,7 @@ describe('WalletService', () => {
         currencyCode: 'THB',
         initialBalance: 0,
         excludeFromTotal: false,
+        isCreditCard: false,
         hiddenCategoryIds: [],
       },
     })

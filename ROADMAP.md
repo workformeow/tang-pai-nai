@@ -92,6 +92,7 @@ merging.
 | 16  | Family sharing                 | ✅  | ✅  | 16.1 invites per person, Account › แชร์กระเป๋า; 16.2 shared profiles in the switcher, online only, editors write. [spec](docs/features/sharing.md)                       |
 | 16R | Shared components              | —   | ✅  | `date-row` (4 sheets) and `wallet-pick` (3 sheets) moved to `shared/components`; same look, same initial bundle                                                          |
 | 17  | **Deploy (Vercel)** ← now      | 🚧  | 🚧  | code in the #17 PR (Vercel entries, cron, `/api` middleware); the owner sets up Vercel ×2, Turso, Resend: [steps](docs/deploy.md)                                        |
+| 18  | Credit card                    | ✅  | ✅  | `wallets.isCreditCard`: out of the total, counted in "ทุกกระเป๋า"; paid by one transfer (pay sheet, Wallets tab card section). [spec](docs/features/credit-card.md)      |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
 
@@ -143,6 +144,47 @@ Decisions (owner, #17):
 Known: a pull request's own preview URL can't keep a session (the API accepts the refresh cookie
 only from `WEB_ORIGIN`): test sign-in on the `develop` URL. `TRUST_PROXY_HOPS` is checked on the
 first staging deploy (docs/deploy.md step 7).
+
+---
+
+## Done: Credit card (#18)
+
+Branch `feat/credit-card`, built and tested 2026-11-15; to merge into `develop`. Before staging
+runs the new web: `npm run db:migrate` on staging's database (migration 0020).
+
+- **Decided at the start** (owner, mock-up `docs/features/mockups/credit-card.html`;
+  credit-card.md → Open questions): a card stays a **wallet** with one flag, `isCreditCard`
+  (no wallet type); it is always out of the total but counts in "ทุกกระเป๋า", so a purchase is
+  an expense in its real category on the day it was made, and the bill is paid with **one
+  transfer** (no "ชำระบัตร" category, no income on the card). Q1 the "หลังหักหนี้บัตร" line
+  under ยอดรวม: yes. Q2 three ways in: the Wallets tab's card section (ชำระ), the card's
+  Transactions banner (ชำระบัตร), the transfer sheet's "ใช้ยอดค้าง" chip. Q3 old rows: left as
+  they are. Statement cycles / due dates: phase 2 (out of scope).
+- **Decided while building**: a report's start / end balances include the cards (money − card
+  debt), so end − start = net + transfers still holds; the pay sheet is the transfer sheet in a
+  `pay` mode (to fixed, the amount owed filled in, no ⇅, no repeat, no save-and-add) and
+  remembers the source per card (`tpn-profile:tx:transfer:pay:<cardId>`); a member of a shared
+  wallet always gets `isCreditCard: false`.
+- **API**: migration `0020_wallets_credit_card`; `wallet.schema.ts` refuses a card counted in the
+  total (`VALIDATION`, credit-card rule 1); a push without the field means `false`; OpenAPI
+  `SyncWalletRow.isCreditCard`. **Web**: schema step 15; `WalletService.cards()` / `owed()` /
+  `owedTotals()`; `TransactionService.viewWalletIds` adds cards; `TransferService.pay()` /
+  `payFromId()`; the wallet sheet's switch (locks "ไม่รวมในยอดรวม"), the Wallets tab's card
+  section, the Transactions tab's ค้างจ่าย header and banner, the transfer sheet's `pay` mode
+  and chip.
+- **Verified**: API typecheck + lint, the wallet schema / repository tests; web `npm run fix`,
+  typecheck, `npm test` (692), `npm run build` (initial 758.3 kB); Playwright on 375×812, Thai,
+  light and dark: card switch → Wallets tab (card section, ชำระ, หลังหักหนี้บัตร) → card
+  expenses in "ทุกกระเป๋า" → card view banner → pay sheet (debit, 8,400 filled in) → total down,
+  card 0, both transfer sides in view → chip "ใช้ยอดค้าง" → Reports by real category.
+- **Tests** (after the owner confirmed): API the wallet schema (a card counted in the total is
+  refused) and repository; web `WalletService.cards` / `owed` / `owedTotals` and the forced
+  exclusion on save, `viewWalletIds` with a card, `TransferService.payFromId` / `pay`, the
+  transfer sheet's `pay` mode and chip, the wallet sheet's lock, the Wallets tab's card section,
+  the Transactions tab's ค้างจ่าย header and banner. Web `npm test` 704.
+- **Known**: on Windows the API's DB tests fail at teardown (`EPERM` removing the temp folder) and
+  Vitest needs `--pool=vmThreads` with Node 26.13.0 (the repo pins 26.13.1); CI on Linux is
+  unaffected.
 
 ---
 

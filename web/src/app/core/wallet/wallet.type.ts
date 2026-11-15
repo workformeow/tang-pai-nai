@@ -12,6 +12,8 @@ export interface Wallet {
   /** `#rrggbb`. */
   color: string
   excludeFromTotal: boolean
+  /** docs/features/credit-card.md: out of the total (rule 1), counted in "all wallets" (rule 2). */
+  isCreditCard: boolean
   isArchived: boolean
   sortOrder: number
   /** Categories this wallet doesn't use (category rule 13); a parent's id hides its children. */
@@ -32,6 +34,8 @@ export interface WalletValues {
   /** Minor units. */
   initialBalance: number
   excludeFromTotal: boolean
+  /** Credit-card rule 1: true needs `excludeFromTotal` too. */
+  isCreditCard: boolean
   /** Category rule 13. */
   hiddenCategoryIds: string[]
 }

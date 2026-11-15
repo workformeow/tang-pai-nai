@@ -21,6 +21,8 @@ export const toWallet = (row: SyncRow): Wallet => {
   const hidden = row['hiddenCategoryIds']
   return {
     ...(row as unknown as Wallet),
+    // A shared row from before the credit-card feature has no flag.
+    isCreditCard: row['isCreditCard'] === true,
     hiddenCategoryIds: Array.isArray(hidden)
       ? hidden.filter((id): id is string => typeof id === 'string')
       : [],

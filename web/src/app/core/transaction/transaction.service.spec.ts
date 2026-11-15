@@ -298,6 +298,12 @@ describe('TransactionService', () => {
     })
   })
 
+  it('shows credit cards under every wallet though they are out of the total (credit-card rule 5)', () => {
+    wallet('kid', { excludeFromTotal: true })
+    wallet('kcard', { excludeFromTotal: true, isCreditCard: true })
+    expect(service.viewWalletIds().sort()).toEqual(['card', 'cash', 'kcard'])
+  })
+
   it('starts the period tabs at the oldest transaction and goes back to the current one on a new unit', () => {
     service.today.set('2026-11-02')
     transaction('old', { occurredOn: '2026-08-20' })

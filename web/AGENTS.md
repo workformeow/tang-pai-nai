@@ -191,8 +191,9 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
   `delete` (the row with `deletedAt` set: a tombstone locally, `{ id, updatedAt }` on the wire).
   Keep the row's `changeSeq` in the object you pass (spread the current row), it becomes the
   op's `baseSeq`. Ids are `uuidv7()`. Screens list rows `WHERE deleted_at IS NULL`.
-- **A synced table on the device** = a schema step in `MIGRATIONS` (step 14 after #16.2; a spec
-  that rebuilds an older snapshot undoes the newer steps first, `UNDO_STEP_14`, `UNDO_STEP_13`
+- **A synced table on the device** = a schema step in `MIGRATIONS` (step 15 after #18; a spec
+  that rebuilds an older snapshot undoes the newer steps first, `UNDO_STEP_15`, `UNDO_STEP_14`,
+  `UNDO_STEP_13`
   then `UNDO_STEP_12` in `local-database.spec.ts`) (snake_case columns,
   `change_seq INTEGER` nullable) + an entry in `SYNC_TABLES` (`sync-tables.ts`: key, camelCase
   columns, booleans, `json` columns, `readOnly` for master data). `putRow` / `getRow` / `fromSql`
@@ -295,7 +296,10 @@ Spec: [wallet.md](../docs/features/wallet.md).
   some; `remove()` refuses then too), `nameTaken()`, `byId()`, `openOf(profileId)`,
   `save(id | null, values, fixOpId?, profileId?)` (`values.hiddenCategoryIds` goes through
   `cleanHidden`), `setArchived(id, archived)` (answers `nameTaken` / `limit` when coming
-  back is refused), `remove(id)`, `moveTo(id, index)`, `sheet` / `open()` / `openFix()`.
+  back is refused), `remove(id)`, `moveTo(id, index)`, `sheet` / `open()` / `openFix()`;
+  credit cards (#18, [credit-card.md](../docs/features/credit-card.md)): `cards()` (open ones),
+  `owed(wallet)` (−balance, never below 0), `owedTotals()` (per currency). `save()` keeps a card
+  out of the total.
 - The shell renders `layout/wallet-first-step` instead of the Transactions and Wallets pages
   while the profile has no wallet (`isWalletTab()`), the ➕ leads there, and
   `layout/wallet-sheet` is `@defer`red like the profile sheet. `features/wallets` holds only the
@@ -363,7 +367,8 @@ values, fixOpId?, profileId?)` (remembers the wallet: `defaultWalletId()`), `rem
   `values` + `type`: "copy"), `frequentCategoryIds(profileId, type)` ("ใช้บ่อย", last 90 days),
   `lastType()` / `rememberType()` (8.2). The Transactions tab's view
   lives here too, shared by the header and the page: `viewWalletId` (null = "ทุกกระเป๋า",
-  `viewWalletIds()` leaves out wallets excluded from the total), `unit` (`PeriodUnit`), `tab`,
+  `viewWalletIds()` leaves out wallets excluded from the total, except credit cards), `unit`
+  (`PeriodUnit`), `tab`,
   `custom`, `range()`, `tabs()`, `items()`, `summaryLines()`, `today`; `selectWallet` /
   `selectUnit` / `selectCustom` remember wallet and unit per profile (`tpn-profile:tx:…`, wiped
   with the device). An effect tombstones live transactions whose wallet or category is a
@@ -375,7 +380,8 @@ values, fixOpId?, profileId?)` (remembers the wallet: `defaultWalletId()`), `rem
   with `addQuickAmount` (`@/shared/utils` `calc.ts`).
 - **Transfers** (#9, spec: [transfer.md](../docs/features/transfer.md)) live in
   `core/transaction` too: `TransferService` (`byId`, `save`, `remove` / `restore`,
-  `defaultFromId`, `lastToId` (Q7, `tpn-profile:tx:transfer:…`), `sheet` / `open` / `openFix`;
+  `defaultFromId`, `lastToId` (Q7, `tpn-profile:tx:transfer:…`), `payFromId` / `pay(cardId)`
+  (#18: the sheet's `pay` mode, a create state with `pay`), `sheet` / `open` / `openFix`;
   an effect tombstones live transfers with a side in a wallet that is a tombstone here; the
   shell injects it). One row per transfer (`transfers`, schema step 9); the list reads
   `TransactionService.entries(range, walletIds)`: `list` merged in order with

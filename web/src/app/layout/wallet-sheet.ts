@@ -185,8 +185,14 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
                     </div>
                     <div class="-mx-4 border-t border-border"></div>
                     <app-switch-field
+                      [control]="f.isCreditCard"
+                      [label]="'wallets.creditCard' | transloco"
+                      [hint]="'wallets.creditCardHint' | transloco"
+                    />
+                    <app-switch-field
                       [control]="f.excludeFromTotal"
                       [label]="'wallets.excludeFromTotal' | transloco"
+                      [hint]="isCard() ? ('wallets.creditCardExcluded' | transloco) : ''"
                     />
                     <div class="-mx-4 -mt-1 flex flex-col border-y border-border">
                       <button
@@ -480,6 +486,7 @@ export class WalletSheet {
     initialBalance: ['', [this.balanceValid]],
     negative: [false],
     currencyCode: [''],
+    isCreditCard: [false],
     excludeFromTotal: [false],
     icon: [WALLET_DEFAULT_ICON as string],
     color: [USER_COLORS[0] as string],
@@ -487,12 +494,18 @@ export class WalletSheet {
   })
 
   protected open = signal(false)
+  /** The credit-card switch, for the template's hint (credit-card rule 1). */
+  protected isCard = signal(false)
 
   constructor() {
     this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
       this.refusal.set(null)
       this.hidden.set(this.form.controls.hiddenCategoryIds.value)
     })
+    // Credit-card rule 1: a card is out of the total, so that switch is on and locked.
+    this.form.controls.isCreditCard.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe((card) => this.lockExcluded(card))
     // The balance's allowed decimals follow the currency.
     this.form.controls.currencyCode.valueChanges
       .pipe(takeUntilDestroyed())
@@ -528,6 +541,7 @@ export class WalletSheet {
       currencyCode: value.currencyCode,
       initialBalance: value.negative && magnitude !== 0 ? -magnitude : magnitude,
       excludeFromTotal: value.excludeFromTotal,
+      isCreditCard: value.isCreditCard,
       hiddenCategoryIds: value.hiddenCategoryIds,
     }
     if (state.mode === 'fix') {
@@ -609,6 +623,18 @@ export class WalletSheet {
     }
   }
 
+  private lockExcluded(card: boolean): void {
+    this.isCard.set(card)
+    const excluded = this.form.controls.excludeFromTotal
+    if (card) {
+      excluded.setValue(true, { emitEvent: false })
+      excluded.disable({ emitEvent: false })
+    } else {
+      // Rule 8: turning the card off leaves the switch on, for the user to change.
+      excluded.enable({ emitEvent: false })
+    }
+  }
+
   private minorUnit(): number {
     return this.walletService.minorUnit(this.form.controls.currencyCode.value)
   }
@@ -623,6 +649,7 @@ export class WalletSheet {
         initialBalance: '',
         negative: false,
         currencyCode: this.walletService.defaultCurrency(),
+        isCreditCard: false,
         excludeFromTotal: false,
         icon: WALLET_DEFAULT_ICON,
         color: USER_COLORS[0],
@@ -655,6 +682,7 @@ export class WalletSheet {
         values.initialBalance === 0 ? '' : toMajorText(values.initialBalance, minorUnit),
       negative: values.initialBalance < 0,
       currencyCode: values.currencyCode,
+      isCreditCard: values.isCreditCard,
       excludeFromTotal: values.excludeFromTotal,
       icon: values.icon,
       color: userColor(values.color),

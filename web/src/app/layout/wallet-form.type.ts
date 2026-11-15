@@ -7,6 +7,8 @@ export interface WalletFormControls {
   /** The +/− button (wallet rule 5). */
   negative: FormControl<boolean>
   currencyCode: FormControl<string>
+  /** Credit-card rule 1: while on, excludeFromTotal is on and disabled. */
+  isCreditCard: FormControl<boolean>
   excludeFromTotal: FormControl<boolean>
   icon: FormControl<string>
   color: FormControl<string>

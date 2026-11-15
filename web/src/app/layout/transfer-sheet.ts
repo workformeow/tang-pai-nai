@@ -224,6 +224,7 @@ type View = 'form' | 'pick' | 'note' | 'repeat'
                               ' ' +
                               (item?.name ?? ('transfers.pickTo' | transloco))
                             "
+                            [disabled]="side === 'to' && paying()"
                             (click)="pick(side)"
                           >
                             <span class="flex w-10 shrink-0 justify-center">
@@ -267,19 +268,21 @@ type View = 'form' | 'pick' | 'note' | 'repeat'
                           }
                         </div>
                       }
-                      <!-- ⇅ on the line between the two wallets. -->
-                      <button
-                        hlmBtn
-                        variant="outline"
-                        size="icon"
-                        type="button"
-                        class="absolute top-[2.4rem] right-3 z-10 size-10 rounded-full bg-card"
-                        [disabled]="!toWallet()"
-                        [attr.aria-label]="'transfers.swap' | transloco"
-                        (click)="swap()"
-                      >
-                        <ng-icon name="lucideArrowUpDown" size="18" aria-hidden="true" />
-                      </button>
+                      <!-- ⇅ on the line between the two wallets (not while paying a card). -->
+                      @if (!paying()) {
+                        <button
+                          hlmBtn
+                          variant="outline"
+                          size="icon"
+                          type="button"
+                          class="absolute top-[2.4rem] right-3 z-10 size-10 rounded-full bg-card"
+                          [disabled]="!toWallet()"
+                          [attr.aria-label]="'transfers.swap' | transloco"
+                          (click)="swap()"
+                        >
+                          <ng-icon name="lucideArrowUpDown" size="18" aria-hidden="true" />
+                        </button>
+                      }
                       <div class="px-4">
                         <app-calc-amount-field
                           [control]="f.amount"
@@ -290,6 +293,18 @@ type View = 'form' | 'pick' | 'note' | 'repeat'
                           [active]="keypad()"
                           (activate)="keypad.set(true)"
                         />
+                        @if (owedChip(); as chip) {
+                          <!-- Credit-card rule 5: fill in what the card owes. -->
+                          <button
+                            hlmBtn
+                            variant="ghost"
+                            type="button"
+                            class="mb-2 h-9 rounded-full bg-brand/10 px-3 text-sm text-brand hover:bg-brand/15 hover:text-brand"
+                            (click)="useOwed(chip.amount)"
+                          >
+                            {{ 'transfers.useOwed' | transloco: { amount: chip.text } }}
+                          </button>
+                        }
                       </div>
                       <button
                         type="button"
@@ -363,7 +378,7 @@ type View = 'form' | 'pick' | 'note' | 'repeat'
                       >
                         {{ 'transactions.save' | transloco }}
                       </button>
-                      @if (state()?.mode === 'create' && !repeat()) {
+                      @if (state()?.mode === 'create' && !repeat() && !paying()) {
                         <button
                           hlmBtn
                           variant="outline"
@@ -526,9 +541,35 @@ export class TransferSheet {
     const mode = this.state()?.mode
     return mode === 'rule' || mode === 'fixRule'
   })
+  /** The credit card being paid (credit-card rule 4): the to wallet is fixed. */
+  protected paying = computed(() => {
+    const state = this.state()
+    return state?.mode === 'create' && state.pay ? state.pay : null
+  })
   protected repeatable = computed(() => {
     const state = this.state()
-    return (state?.mode === 'create' && !state.occurrence) || this.ruleMode()
+    // A card's bill changes every month, so the pay sheet doesn't repeat.
+    return (state?.mode === 'create' && !state.occurrence && !state.pay) || this.ruleMode()
+  })
+  /**
+   * Credit-card rule 5: a new transfer to a card that owes money offers the amount owed, while
+   * the amount typed differs from it.
+   */
+  protected owedChip = computed(() => {
+    const to = this.toWallet()
+    if (this.state()?.mode !== 'create' || !to?.isCreditCard) {
+      return null
+    }
+    const owed = this.walletService.owed(to)
+    const minorUnit = this.walletService.minorUnit(to.currencyCode)
+    const typed = evaluate(this.values().amount ?? '', minorUnit)
+    if (owed <= 0 || (typed.ok && typed.minor === owed)) {
+      return null
+    }
+    return {
+      amount: owed,
+      text: formatMoney(owed, to.currencyCode, minorUnit, this.languageService.locale()),
+    }
   })
   protected startsRule = computed(() => this.repeatable() && this.repeat() !== null)
   /** A recorded occurrence: the rule it came from, while it's live. */
@@ -617,6 +658,9 @@ export class TransferSheet {
     this.walletService.minorUnit(this.fromWallet()?.currencyCode ?? '')
   )
   protected heading = computed(() => {
+    if (this.paying()) {
+      return 'transfers.payHeading'
+    }
     switch (this.state()?.mode) {
       case 'edit':
         return 'transfers.editHeading'
@@ -632,9 +676,13 @@ export class TransferSheet {
   })
 
   /** Rule 2: open wallets (and the one the row already has); an edit keeps its currency. */
-  protected fromChoices = computed<Wallet[]>(() =>
-    this.choices(this.fromWallet(), this.startCurrency(), null)
-  )
+  protected fromChoices = computed<Wallet[]>(() => {
+    const card = this.paying() ? this.walletService.byId(this.paying() ?? '') : null
+    // Paying a card: wallets of its currency, never the card itself.
+    return card
+      ? this.choices(this.fromWallet(), card.currencyCode, card.id)
+      : this.choices(this.fromWallet(), this.startCurrency(), null)
+  })
   /** Rule 1: open wallets of the from wallet's currency, never the from wallet itself. */
   protected toChoices = computed<Wallet[]>(() => {
     const from = this.fromWallet()
@@ -718,6 +766,9 @@ export class TransferSheet {
   }
 
   protected pick(view: 'from' | 'to' | 'note' | 'repeat'): void {
+    if (view === 'to' && this.paying()) {
+      return
+    }
     this.settleAmount()
     this.keypad.set(false)
     if (view === 'note' || view === 'repeat') {
@@ -766,6 +817,14 @@ export class TransferSheet {
     control.markAsDirty()
   }
 
+  /** Credit-card rule 5: the amount the card owes. */
+  protected useOwed(amount: number): void {
+    const control = this.form.controls.amount
+    control.setValue(toMajorText(amount, this.minorUnit()).replace(/,/g, ''))
+    control.markAsDirty()
+    this.keypad.set(false)
+  }
+
   protected addQuick(major: number): void {
     const control = this.form.controls.amount
     control.setValue(addQuickAmount(control.value, major, this.minorUnit()))
@@ -807,6 +866,11 @@ export class TransferSheet {
       return
     }
     const value = this.form.getRawValue()
+    if (!value.fromWalletId) {
+      // The pay sheet of a card with no other wallet of its currency to pay from.
+      this.pick('from')
+      return
+    }
     const amount = evaluate(value.amount, this.minorUnit())
     const values: TransferValues = {
       fromWalletId: value.fromWalletId,
@@ -851,6 +915,9 @@ export class TransferSheet {
       done = 'recurring.created'
     } else {
       this.transferService.save(this.editingId(), values)
+      if (this.paying()) {
+        done = 'transfers.paid'
+      }
     }
     toast.success(this.transloco.translate(done))
     if (addAnother && state.mode === 'create') {
@@ -961,11 +1028,37 @@ export class TransferSheet {
     }
   }
 
+  /** Credit-card rule 4: to the card, the amount it owes, from the wallet it was last paid from. */
+  private startPay(cardId: string): void {
+    const card = this.walletService.byId(cardId)
+    if (!card) {
+      this.state.set(null)
+      return
+    }
+    const owed = this.walletService.owed(card)
+    this.startCurrency.set(null)
+    this.form.reset({
+      fromWalletId: this.transferService.payFromId(card.id) ?? '',
+      toWalletId: card.id,
+      amount:
+        owed > 0
+          ? toMajorText(owed, this.walletService.minorUnit(card.currencyCode)).replace(/,/g, '')
+          : '',
+      note: '',
+      occurredOn: this.transactionService.today(),
+    })
+    this.keypad.set(owed <= 0)
+  }
+
   private start(state: TransferSheetState): void {
     this.view.set('form')
     this.repeat.set(state.mode === 'create' && state.repeat ? MONTHLY : null)
     if (state.mode === 'rule' || state.mode === 'fixRule') {
       this.startRule(state)
+      return
+    }
+    if (state.mode === 'create' && state.pay) {
+      this.startPay(state.pay)
       return
     }
     if (state.mode === 'create') {

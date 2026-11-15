@@ -18,6 +18,7 @@ import {
   lucideBell,
   lucideChevronRight,
   lucideCloud,
+  lucideCreditCard,
   lucideHandCoins,
   lucidePlane,
   lucideReceiptText,
@@ -109,6 +110,7 @@ interface DayGroup {
       lucideBell,
       lucideChevronRight,
       lucideCloud,
+      lucideCreditCard,
       lucideHandCoins,
       lucidePlane,
       lucideReceiptText,
@@ -121,14 +123,18 @@ interface DayGroup {
     <div class="flex flex-col items-center px-4 pt-1 pb-2 text-center">
       <span class="text-sm text-muted-foreground">
         {{
-          (transactionService.viewWallet() ? 'transactions.balance' : 'transactions.total')
-            | transloco
+          (transactionService.viewWallet()?.isCreditCard
+            ? 'wallets.owed'
+            : transactionService.viewWallet()
+              ? 'transactions.balance'
+              : 'transactions.total'
+          ) | transloco
         }}
       </span>
       @for (line of balance(); track line.code) {
         <span
           class="text-2xl leading-snug font-bold tabular-nums"
-          [class.text-expense]="line.amount < 0"
+          [class.text-expense]="line.owing ? line.amount > 0 : line.amount < 0"
         >
           {{ line.text }}
         </span>
@@ -146,6 +152,30 @@ interface DayGroup {
       [appSlide]="tabIndex()"
       (swiped)="move($event)"
     >
+      @if (cardDue(); as card) {
+        <!-- Credit-card rule 7: a card in view that owes money, with its pay sheet. -->
+        <div
+          class="flex min-h-14 items-center gap-3 rounded-xl border border-brand/30 bg-brand/10 px-3 py-2.5"
+        >
+          <span
+            class="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-background"
+          >
+            <ng-icon name="lucideCreditCard" size="18" aria-hidden="true" />
+          </span>
+          <span class="min-w-0 flex-1 text-base font-semibold tabular-nums">
+            {{ 'transactions.cardOwed' | transloco: { amount: card.text } }}
+          </span>
+          <button
+            hlmBtn
+            type="button"
+            class="h-9 shrink-0 px-3"
+            [disabled]="!transactionService.canWrite()"
+            (click)="payCard(card.id)"
+          >
+            {{ 'transfers.payHeading' | transloco }}
+          </button>
+        </div>
+      }
       @if (due(); as due) {
         <!-- Ask-first recurring rules that are due (recurring rule 10), in every period. -->
         <button
@@ -481,12 +511,15 @@ export class TransactionsPage {
     const locale = this.languageService.locale()
     const wallet = this.transactionService.viewWallet()
     if (wallet) {
-      const amount = this.walletService.balance(wallet)
+      // Credit-card rule 7: a card shows what it owes instead of its balance.
+      const owing = wallet.isCreditCard
+      const amount = owing ? this.walletService.owed(wallet) : this.walletService.balance(wallet)
       const minorUnit = this.walletService.minorUnit(wallet.currencyCode)
       return [
         {
           code: wallet.currencyCode,
           amount,
+          owing,
           text: formatMoney(amount, wallet.currencyCode, minorUnit, locale),
         },
       ]
@@ -500,9 +533,32 @@ export class TransactionsPage {
     return lines.map((line) => ({
       code: line.currencyCode,
       amount: line.amount,
+      owing: false,
       text: formatMoney(line.amount, line.currencyCode, line.minorUnit, locale),
     }))
   })
+
+  /** Credit-card rule 7: the card in view, while it owes money (and isn't a shared profile's). */
+  protected cardDue = computed(() => {
+    const wallet = this.transactionService.viewWallet()
+    const owed = wallet?.isCreditCard ? this.walletService.owed(wallet) : 0
+    if (!wallet || owed <= 0 || wallet.isArchived) {
+      return null
+    }
+    return {
+      id: wallet.id,
+      text: formatMoney(
+        owed,
+        wallet.currencyCode,
+        this.walletService.minorUnit(wallet.currencyCode),
+        this.languageService.locale()
+      ),
+    }
+  })
+
+  protected payCard(id: string): void {
+    this.transferService.pay(id)
+  }
 
   /** Rule 11 per currency; signed figures without the symbol (Money Lover style). */
   protected summary = computed<(MoneySummaryLine & { currencyCode: string })[]>(() => {

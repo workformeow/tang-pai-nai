@@ -221,6 +221,59 @@ describe('TransferSheet', () => {
     expect(button('ไปยัง ' + th.transfers.pickTo)).toBeDefined()
   })
 
+  it('pays a card: the card and what it owes filled in, from the first counted wallet (credit-card rule 4)', async () => {
+    wallet('Visa', {
+      sortOrder: 4,
+      initialBalance: -840000,
+      isCreditCard: true,
+      excludeFromTotal: true,
+    })
+    await open({ mode: 'create', pay: 'Visa' })
+    expect(text()).toContain(th.transfers.payHeading)
+    expect(button('จาก Cash')).toBeDefined()
+    expect(button('ไปยัง Visa')?.disabled).toBe(true)
+    expect(button(th.transfers.swap)).toBeUndefined()
+    expect(button(th.transactions.saveAndAdd)).toBeUndefined()
+    expect(text()).toContain('8,400')
+    await click('จาก ', true)
+    expect(choices()).not.toContain('Visa')
+    await choose('Bank')
+    await submit()
+    const [op] = listOps(db, 'pending')
+    expect(getRow(db, 'transfers', op.rowId)).toMatchObject({
+      fromWalletId: 'Bank',
+      toWalletId: 'Visa',
+      amount: 840000,
+    })
+    expect(toastState.toasts().at(0)?.title).toBe(th.transfers.paid)
+    // The next bill starts from the wallet this one was paid from.
+    expect(transfers.payFromId('Visa')).toBe('Bank')
+  })
+
+  it('offers what a card owes as a chip on a plain transfer to it (credit-card rule 5)', async () => {
+    wallet('Visa', {
+      sortOrder: 4,
+      initialBalance: -64000,
+      isCreditCard: true,
+      excludeFromTotal: true,
+    })
+    const chip = () =>
+      [...body().querySelectorAll('button')].find((b) =>
+        b.textContent.trim().startsWith(th.transfers.useOwed.split(' ')[0])
+      )
+    await open({ mode: 'create', fromWalletId: 'Bank' })
+    expect(chip()).toBeUndefined()
+    await click('ไปยัง ', true)
+    await choose('Visa')
+    expect(chip()?.textContent).toContain('640.00')
+    chip()?.click()
+    await settle()
+    expect(chip()).toBeUndefined()
+    await submit()
+    const [op] = listOps(db, 'pending')
+    expect(getRow(db, 'transfers', op.rowId)).toMatchObject({ toWalletId: 'Visa', amount: 64000 })
+  })
+
   it('edits either side as one transfer, and deletes both at once with undo in the toast', async () => {
     putRow(db, 'transfers', {
       ...base,

@@ -284,6 +284,39 @@ describe('TransactionsPage', () => {
     expect(summary?.textContent).toContain('+1,000.00')
   })
 
+  it('shows what a card in view owes, with "ชำระบัตร" opening its pay sheet (credit-card rule 7)', async () => {
+    const visa = {
+      profileId: 'p1',
+      name: 'Visa',
+      currencyCode: 'THB',
+      icon: 'lucideCreditCard',
+      color: '#16a34a',
+      isCreditCard: true,
+      excludeFromTotal: true,
+      isArchived: false,
+      sortOrder: 2,
+    }
+    put('wallets', { ...visa, id: 'visa', initialBalance: -840000 })
+    transactions.selectWallet('visa')
+    await settle()
+    const header = element().querySelector('div')?.textContent ?? ''
+    expect(header).toContain(th.wallets.owed)
+    expect(header).toContain('8,400.00')
+    expect(element().textContent).toContain('ยอดค้าง ฿8,400.00')
+    const pay = [...element().querySelectorAll('button')].find(
+      (b) => b.textContent.trim() === th.transfers.payHeading
+    )
+    pay?.click()
+    expect(TestBed.inject(TransferService).sheet()).toEqual({ mode: 'create', pay: 'visa' })
+    // Paid off: no banner; a plain wallet never has one.
+    put('wallets', { ...visa, id: 'visa', initialBalance: 0 })
+    await settle()
+    expect(element().textContent).not.toContain('ยอดค้าง')
+    transactions.selectWallet('cash')
+    await settle()
+    expect(element().textContent).not.toContain('ยอดค้าง')
+  })
+
   describe('recurring (docs/features/recurring.md)', () => {
     const rule = (id: string, extra: object = {}) =>
       put('recurring_rules', {

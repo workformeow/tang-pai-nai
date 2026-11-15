@@ -89,6 +89,10 @@ export class TransferService {
     })
     this.remember(`from:${profileId}`, values.fromWalletId)
     this.remember(`to:${values.fromWalletId}`, values.toWalletId)
+    if (this.walletService.byId(values.toWalletId)?.isCreditCard) {
+      // Credit-card rule 4: the pay sheet starts on the wallet this card was last paid from.
+      this.remember(`pay:${values.toWalletId}`, values.fromWalletId)
+    }
     return rowId
   }
 
@@ -126,6 +130,33 @@ export class TransferService {
     const last = this.recall(`to:${fromId}`)
     const to = this.walletService.openOf(profileId).find((wallet) => wallet.id === last)
     return to && from && to.id !== from.id && to.currencyCode === from.currencyCode ? to.id : null
+  }
+
+  /**
+   * Credit-card rule 4: the wallet a card's bill is paid from: the last one, while it's open and
+   * fits; else the first open wallet of the card's currency that counts in the total; else any
+   * other open one of that currency.
+   */
+  payFromId(cardId: string): string | null {
+    const card = this.walletService.byId(cardId)
+    if (!card) {
+      return null
+    }
+    const fits = this.walletService
+      .openOf(card.profileId)
+      .filter((wallet) => wallet.id !== card.id && wallet.currencyCode === card.currencyCode)
+    const last = this.recall(`pay:${cardId}`)
+    return (
+      fits.find((wallet) => wallet.id === last)?.id ??
+      fits.find((wallet) => !wallet.excludeFromTotal)?.id ??
+      fits.at(0)?.id ??
+      null
+    )
+  }
+
+  /** The pay sheet of a credit card (credit-card rule 4). */
+  pay(cardId: string): void {
+    this.open({ mode: 'create', pay: cardId })
   }
 
   open(state: TransferSheetState): void {

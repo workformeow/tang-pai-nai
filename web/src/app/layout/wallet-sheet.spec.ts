@@ -126,6 +126,8 @@ describe('WalletSheet', () => {
     [...body().querySelectorAll('button[role="switch"]')].find((b) =>
       b.textContent.trim().startsWith(name)
     ) as HTMLButtonElement
+  /** The form's switches in order: credit card, then excluded from the total. */
+  const switches = () => [...body().querySelectorAll<HTMLButtonElement>('button[role="switch"]')]
   /** A row of the form that opens a view, by its label. */
   const row = (label: string) =>
     [...body().querySelectorAll('button')].find((b) => b.textContent.trim().startsWith(label))
@@ -210,7 +212,7 @@ describe('WalletSheet', () => {
     expect(text()).toContain(th.wallets.iconHeading)
     await click(th.sheet.back)
     expect(input(th.wallets.name).value).toBe('  บัตรเครดิต ')
-    ;(body().querySelector('[role="switch"]') as HTMLElement).click()
+    switches()[1].click()
     await settle()
     await submit()
     expect(wallets.wallets()).toMatchObject([
@@ -225,6 +227,37 @@ describe('WalletSheet', () => {
     ])
     expect(wallets.sheet()).toBeNull()
     expect(toastState.toasts().map((toast) => toast.title)).toEqual([th.wallets.created])
+  })
+
+  it('locks "excluded from the total" on while the wallet is a credit card (credit-card rule 2)', async () => {
+    wallets.open({ mode: 'create' })
+    await settle()
+    await type(th.wallets.name, 'Visa')
+    const [card, excluded] = switches()
+    expect(excluded.disabled).toBe(false)
+    card.click()
+    await settle()
+    expect(switches()[1].getAttribute('aria-checked')).toBe('true')
+    expect(switches()[1].disabled).toBe(true)
+    expect(text()).toContain(th.wallets.creditCardExcluded)
+    switches()[0].click()
+    await settle()
+    expect(switches()[1].disabled).toBe(false)
+    expect(text()).not.toContain(th.wallets.creditCardExcluded)
+    switches()[0].click()
+    await settle()
+    await submit()
+    expect(wallets.wallets()).toMatchObject([
+      { name: 'Visa', isCreditCard: true, excludeFromTotal: true },
+    ])
+  })
+
+  it('opens a card with the switch on and "excluded" locked', async () => {
+    wallet('w1', { name: 'Visa', isCreditCard: true, excludeFromTotal: true })
+    wallets.open({ mode: 'edit', id: 'w1' })
+    await settle()
+    expect(switches()[0].getAttribute('aria-checked')).toBe('true')
+    expect(switches()[1].disabled).toBe(true)
   })
 
   it('hides categories from their view: a parent locks its children, the row counts them (category rule 13)', async () => {

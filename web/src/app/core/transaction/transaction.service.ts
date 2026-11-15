@@ -98,8 +98,8 @@ export class TransactionService {
     return this.walletService.wallets().find((wallet) => wallet.id === id) ?? null
   })
   /**
-   * Rule 11's "all wallets": the profile's wallets without `excludeFromTotal`, archived ones
-   * included (their history stays); or the one chosen.
+   * Rule 11's "all wallets": the profile's wallets without `excludeFromTotal`, and credit cards
+   * (credit-card rule 2), archived ones included (their history stays); or the one chosen.
    */
   viewWalletIds = computed<string[]>(() => {
     const wallet = this.viewWallet()
@@ -108,7 +108,7 @@ export class TransactionService {
     }
     return this.walletService
       .wallets()
-      .filter((item) => !item.excludeFromTotal)
+      .filter((item) => !item.excludeFromTotal || item.isCreditCard)
       .map((item) => item.id)
   })
   /** The profile's oldest transaction or transfer day, where the period tabs start. */

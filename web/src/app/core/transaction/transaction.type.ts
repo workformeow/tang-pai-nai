@@ -118,6 +118,8 @@ export type TransferSheetState =
       values?: TransferValues
       repeat?: boolean
       occurrence?: { ruleId: string; on: string }
+      /** Pay this credit card (credit-card rule 4): it is the to wallet, the amount owed the amount. */
+      pay?: string
     }
   | { mode: 'edit'; id: string }
   | { mode: 'fix'; opId: string; id: string; profileId: string; values: TransferValues }
@@ -183,6 +185,8 @@ export type TransactionSheetState =
       repeat?: boolean
       /** A due occurrence of an ask-first rule, recorded by this save (recurring rule 10). */
       occurrence?: { ruleId: string; on: string }
+      /** Pay this credit card (credit-card rule 4): it is the to wallet, the amount owed the amount. */
+      pay?: string
       /** "เพิ่มรายการ" on an event's page: starts tagged to it, as if chosen (event rule 5). */
       eventId?: string
     }

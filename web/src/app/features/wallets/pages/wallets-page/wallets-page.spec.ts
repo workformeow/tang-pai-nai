@@ -147,6 +147,36 @@ describe('WalletsPage', () => {
     expect(text()).toContain('กระเป๋าที่ใช้อยู่ (3)')
   })
 
+  it('lists cards in their own section with what they owe, and "ชำระ" opens the pay sheet (credit-card rule 6)', async () => {
+    const card = { isCreditCard: true, excludeFromTotal: true }
+    wallet('Cash', { initialBalance: 5711300, sortOrder: 0 })
+    wallet('Visa', { ...card, initialBalance: -840000, sortOrder: 1 })
+    wallet('Amex', { ...card, initialBalance: 0, sortOrder: 2 })
+    await settle()
+    expect(rows()).toEqual(['Cash'])
+    const cards = [...page().querySelectorAll('section[aria-labelledby="wallets-cards"] li')]
+    expect(cards).toHaveLength(2)
+    expect(text()).toContain('บัตรเครดิต (2)')
+    expect(text()).toContain(`${th.wallets.total} ฿57,113.00`)
+    expect(text()).toContain('หลังหักหนี้บัตร ฿48,713.00')
+    expect(cards[0].textContent).toContain('฿8,400.00')
+    expect(cards[1].textContent).toContain(th.wallets.nothingOwed)
+    // Only a card that owes has "ชำระ".
+    const pay = [...page().querySelectorAll('button')].filter(
+      (b) => b.textContent.trim() === th.wallets.pay
+    )
+    expect(pay).toHaveLength(1)
+    pay[0].click()
+    expect(TestBed.inject(TransferService).sheet()).toEqual({ mode: 'create', pay: 'Visa' })
+  })
+
+  it('has no "after cards" line while no card owes', async () => {
+    wallet('Cash', { initialBalance: 100 })
+    wallet('Visa', { isCreditCard: true, excludeFromTotal: true, sortOrder: 1 })
+    await settle()
+    expect(text()).not.toContain('หลังหักหนี้บัตร')
+  })
+
   it('puts the debts under the total, one row to the debts page while nothing is owed', async () => {
     wallet('Cash')
     await settle()
