@@ -4,10 +4,13 @@ import {
   DOCUMENT,
   effect,
   inject,
+  Injector,
   Service,
   signal,
   untracked,
 } from '@angular/core'
+import { TranslocoService } from '@jsverse/transloco'
+import { toast } from '@spartan-ng/brain/sonner'
 import { ApiClient, isUnreachable, toApiError } from '@/core/api'
 import { AuthStore } from '@/core/auth'
 import { NetworkStatusService } from '@/core/network'
@@ -65,6 +68,8 @@ const SYNC_LOCK = 'tpn-sync'
 @Service()
 export class SyncService {
   private window = inject(DOCUMENT).defaultView
+  /** Transloco only when a toast is shown, so specs without it can still build the service. */
+  private injector = inject(Injector)
   private api = inject(ApiClient)
   private authStore = inject(AuthStore)
   private networkStatusService = inject(NetworkStatusService)
@@ -370,6 +375,11 @@ export class SyncService {
    */
   private markFailed(): void {
     this.networkStatusService.serverReachable.set(true)
+    // The pill alone is easy to miss. Toasted here, not by the pill: the header re-creates the
+    // pill on some navigations, and each new one would toast again.
+    if (!this.failed()) {
+      toast.error(this.injector.get(TranslocoService).translate('sync.failedToast'))
+    }
     this.failed.set(true)
     this.scheduleRetry()
   }
