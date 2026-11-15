@@ -187,6 +187,8 @@ describe('TransactionSheet', () => {
       excludeFromReport: false,
     })
     expect(transactions.sheet()).toBeNull()
+    // The list already shows the row: a toast would only cover the header.
+    expect(toastState.toasts()).toEqual([])
   })
 
   it('needs an amount above 0 and a category before saving', async () => {
@@ -385,6 +387,8 @@ describe('TransactionSheet', () => {
     await click(th.transactions.saveAndAdd)
     expect(listOps(db, 'pending')).toHaveLength(1)
     expect(transactions.sheet()?.mode).toBe('create')
+    // The sheet stays over the list, so this save says so.
+    expect(toastState.toasts().map((toast) => toast.title)).toEqual([th.transactions.created])
     expect(keypad()).not.toBeNull()
     expect(button('หมวดหมู่ Coffee')).toBeDefined()
     await quick('20')

@@ -245,7 +245,8 @@ describe('TransferSheet', () => {
       toWalletId: 'Visa',
       amount: 840000,
     })
-    expect(toastState.toasts().at(0)?.title).toBe(th.transfers.paid)
+    // The Wallets tab shows what's left owed: no toast.
+    expect(toastState.toasts()).toEqual([])
     // The next bill starts from the wallet this one was paid from.
     expect(transfers.payFromId('Visa')).toBe('Bank')
   })

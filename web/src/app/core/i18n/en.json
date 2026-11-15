@@ -95,7 +95,6 @@
     "deleted": "Transaction deleted",
     "undo": "Undo",
     "created": "Transaction saved",
-    "saved": "Changes saved",
     "needsOnline": "Go online to save transactions.",
     "type": "Type",
     "wallet": "Wallet",
@@ -879,11 +878,9 @@
     "delete": "Delete transfer",
     "deleted": "Transfer deleted",
     "created": "Transfer saved",
-    "saved": "Changes saved",
     "copy": "Copy as a new transfer",
     "needsOnline": "Go online to save a transfer.",
     "payHeading": "Pay card",
-    "paid": "Card paid",
     "useOwed": "Use amount owed {{amount}}"
   },
   "recurring": {

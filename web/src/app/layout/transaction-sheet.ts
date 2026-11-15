@@ -1324,7 +1324,10 @@ export class TransactionSheet {
       debtId: values.debtId,
       startOn: values.occurredOn,
     })
-    let done = state.mode === 'create' ? 'transactions.created' : 'transactions.saved'
+    // A plain save closes the sheet onto the list that already shows the row, so it gets no
+    // toast (owner 2026-11: it only covered the header). "Save and add" keeps the sheet open,
+    // so that one still says the row was saved. Rules and due bills aren't on the list: toast.
+    let done: string | null = addAnother && state.mode === 'create' ? 'transactions.created' : null
     if (state.mode === 'rule' || state.mode === 'fixRule') {
       // A rule stays a rule: "ไม่ทำซ้ำ" isn't offered on one (delete it instead).
       this.recurringService.update(
@@ -1348,7 +1351,9 @@ export class TransactionSheet {
     if (state.mode === 'create') {
       this.transactionService.rememberType(value.type as CategoryType)
     }
-    toast.success(this.transloco.translate(done))
+    if (done) {
+      toast.success(this.transloco.translate(done))
+    }
     if (addAnother && state.mode === 'create') {
       this.form.reset({ ...value, amount: '', note: '' })
       this.keypad.set(true)

@@ -239,6 +239,10 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 - **Toasts** sit at the **top** of the screen (owner's choice in 8.2, so they never cover the
   keypad or a sheet's main button), above an open sheet, last about 4s, say one short thing, and
   have at most one action (เลิกทำ), which works over a sheet without closing it.
+  **Toast only what the screen doesn't already show** (owner, 2026-11): a save that closes its
+  sheet onto the list showing the row (adding or editing a transaction or a transfer, paying a
+  card) gets none; "บันทึกแล้วเพิ่มต่อ" keeps the sheet open, so it still toasts. Undo, errors and
+  things that happen away from the screen (a rule recorded, a sync that failed) keep theirs.
 - **Account tab** (owner's choice A1 in #7): who is signed in on top, then titled groups of
   rows (ข้อมูลของฉัน, บัญชีและความปลอดภัย, การตั้งค่า), each row a link with a 40px muted icon
   square, its name, one muted line on what's there and a chevron; settings live on their own
