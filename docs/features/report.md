@@ -35,8 +35,10 @@ No table of its own and no new column. A report reads, for the current profile:
    `excludeFromReport` rows and **transfers are left out** (transfer rule 5). Archived wallets
    and categories still count (wallet rule 6, category rule 7); categories hidden in a wallet
    too (hiding is for the picker only).
-2. **Wallets**: "ทุกกระเป๋า" = the profile's wallets without `excludeFromTotal`, archived ones
-   included (transaction rule 11); one wallet can be chosen instead, an excluded one included.
+2. **Wallets**: "ทุกกระเป๋า" = the profile's wallets without `excludeFromTotal`, and credit
+   cards, archived ones included (transaction rule 11, [credit-card.md](credit-card.md) rule 2:
+   so rule 9's balances include what the cards owe); one wallet can be chosen instead, an
+   excluded one included.
 3. **One currency at a time**: every figure, chart and percentage is in one currency, never
    added across currencies (ROADMAP → Money & data). See Q6 for how a view with several is
    shown.

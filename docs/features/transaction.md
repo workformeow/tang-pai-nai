@@ -112,8 +112,9 @@ never stored (ROADMAP → Money & data).
     `expense` = Σ amount of expense-type rows, `net` = income − expense. All three leave out
     `excludeFromReport` rows and are **one line per currency** when the wallets span several.
     **All wallets** ("ทุกกระเป๋า", decided at the start of #8) = the profile's wallets **without**
-    `excludeFromTotal`, archived ones included (their history stays, wallet rule 6); a wallet
-    excluded from the total is seen by choosing it in the wallet switcher.
+    `excludeFromTotal`, and credit cards ([credit-card.md](credit-card.md) rule 2), archived
+    ones included (their history stays, wallet rule 6); any other wallet excluded from the total
+    is seen by choosing it in the wallet switcher.
 12. **Wallet balance** = `initialBalance` + Σ income − Σ expense of all its live transactions,
     `excludeFromReport` ones included, − transfers out + transfers in (transfer rule 6).
 13. **Order**: `occurredOn` desc, then `createdAt` desc, then `id` desc. There is no time of day

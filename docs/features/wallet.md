@@ -30,7 +30,8 @@ per currency, like Money Lover.
 - **wallets** (synced, like `profiles`): `id` (UUIDv7 from the device), `userId` (the
   **owner**), `profileId` (FK profiles), `name`, `currencyCode` (FK currencies),
   `initialBalance` (integer, minor units, may be negative), `icon` (rule 8), `color`
-  (`#rrggbb`), `excludeFromTotal` (default `false`), `isArchived` (default `false`),
+  (`#rrggbb`), `excludeFromTotal` (default `false`), `isCreditCard` (default `false`, #18:
+  [credit-card.md](credit-card.md)), `isArchived` (default `false`),
   `sortOrder`, `hiddenCategoryIds` (7.2: a JSON array of category ids the wallet doesn't use,
   at most 200, default `[]`; category rule 13), plus the sync columns (`createdAt`,
   `updatedAt`, `deletedAt?`, `changeSeq`, `updatedBy`). Indexes (`userId`, `changeSeq`),

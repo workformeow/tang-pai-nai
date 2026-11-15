@@ -19,6 +19,7 @@ AI can understand a feature without reading its code. These docs are the shared 
 | Event / trip   | [event.md](event.md)               | Built (#14)        |
 | CSV export     | [export.md](export.md)             | Built (#15)        |
 | Family sharing | [sharing.md](sharing.md)           | Built (16.1)       |
+| Credit card    | [credit-card.md](credit-card.md)   | Built (#18)        |
 | Offline & sync | [offline-sync.md](offline-sync.md) | Built (4a.1, 4a.2) |
 | Install (PWA)  | [install.md](install.md)           | Built (web only)   |
 
