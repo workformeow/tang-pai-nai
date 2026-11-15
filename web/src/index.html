@@ -45,11 +45,179 @@
         document
           .querySelector('meta[name="theme-color"]')
           .setAttribute('content', colors[palette][dark ? 1 : 0])
+        // The splash's background, in case its theme tokens aren't loaded yet (docs/features/loading.md).
+        root.style.setProperty('--boot-bg', colors[palette][dark ? 1 : 0])
       })()
     </script>
+    <style>
+      /* The splash (docs/features/loading.md rules 1–3): plain CSS, painted before any script.
+         Theme tokens when the stylesheet is in, else the theme script's colours. */
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 0 24px 12vh;
+        text-align: center;
+        background: var(--background, var(--boot-bg, #f4f7fc));
+        color: var(--foreground, #1c2333);
+        font-family: var(--font-sans, system-ui, sans-serif);
+        transition: opacity 150ms ease-out;
+      }
+      .dark #boot-splash {
+        color: var(--foreground, #f3f5fa);
+      }
+      #boot-splash.boot-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #boot-splash img {
+        width: 88px;
+        height: 88px;
+        border-radius: 22px;
+      }
+      .boot-name {
+        margin-top: 14px;
+        font-size: 22px;
+        font-weight: 700;
+      }
+      .boot-wait-only,
+      .boot-slow-only,
+      .boot-step > span,
+      html[lang='en'] .boot-th,
+      html:not([lang='en']) .boot-en {
+        display: none;
+      }
+      .boot-wait .boot-wait-only,
+      .boot-slow .boot-slow-only {
+        display: block;
+      }
+      #boot-splash[data-step='app'] [data-for='app'],
+      #boot-splash[data-step='auth'] [data-for='auth'],
+      #boot-splash[data-step='data'] [data-for='data'] {
+        display: inline;
+      }
+      .boot-bar {
+        position: relative;
+        width: 132px;
+        height: 4px;
+        margin: 22px auto 0;
+        overflow: hidden;
+        border-radius: 2px;
+        background: var(--muted, rgb(128 128 128 / 0.2));
+      }
+      .boot-bar::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        width: 45%;
+        border-radius: 2px;
+        background: var(--brand, #c9962c);
+        animation: boot-slide 1.3s ease-in-out infinite;
+      }
+      .boot-step,
+      .boot-slow-only p {
+        margin: 10px 0 0;
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--muted-foreground, #6b7280);
+      }
+      .boot-slow-only p {
+        margin-top: 18px;
+      }
+      .boot-slow-only button {
+        margin-top: 12px;
+        height: 36px;
+        padding: 0 16px;
+        border: 1px solid var(--border, rgb(128 128 128 / 0.3));
+        border-radius: 10px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      @keyframes boot-slide {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(225%);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .boot-bar::after {
+          width: 60%;
+          animation: none;
+        }
+        #boot-splash {
+          transition: none;
+        }
+      }
+    </style>
+    <noscript
+      ><style>
+        #boot-splash {
+          display: none;
+        }
+      </style></noscript
+    >
   </head>
   <body>
     <app-root></app-root>
+    <div id="boot-splash" data-step="app" role="status" aria-live="polite">
+      <img src="icons/icon-192x192.png" alt="" />
+      <div class="boot-name">ตังค์ไปไหน</div>
+      <div class="boot-wait-only">
+        <div class="boot-bar"></div>
+        <p class="boot-step">
+          <span data-for="app"
+            ><span class="boot-th">กำลังโหลดแอป</span
+            ><span class="boot-en">Loading the app</span></span
+          >
+          <span data-for="auth"
+            ><span class="boot-th">กำลังตรวจสอบการเข้าสู่ระบบ</span
+            ><span class="boot-en">Checking your sign-in</span></span
+          >
+          <span data-for="data"
+            ><span class="boot-th">กำลังเปิดข้อมูลในเครื่อง</span
+            ><span class="boot-en">Opening your data</span></span
+          >
+        </p>
+      </div>
+      <div class="boot-slow-only">
+        <p>
+          <span class="boot-th"
+            >การเชื่อมต่อใช้เวลานานกว่าปกติ<br />กรุณารอสักครู่ หรือลองใหม่อีกครั้ง</span
+          >
+          <span class="boot-en"
+            >This is taking longer than usual.<br />Please wait, or try again.</span
+          >
+        </p>
+        <button type="button">
+          <span class="boot-th">ลองใหม่</span><span class="boot-en">Try again</span>
+        </button>
+      </div>
+    </div>
+    <script>
+      // The splash's timers: after 1 s the bar and the step, after 10 s "longer than usual" and a
+      // reload. Angular's BootSplash (core/boot) sets the step and removes it.
+      ;(function () {
+        var splash = document.getElementById('boot-splash')
+        setTimeout(function () {
+          splash.classList.add('boot-wait')
+        }, 1000)
+        setTimeout(function () {
+          splash.classList.add('boot-slow')
+        }, 10000)
+        splash.querySelector('button').addEventListener('click', function () {
+          location.reload()
+        })
+      })()
+    </script>
     <noscript>กรุณาเปิดใช้งาน JavaScript เพื่อใช้แอปนี้</noscript>
   </body>
 </html>

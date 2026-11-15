@@ -1,5 +1,6 @@
 import { DOCUMENT, inject, Service } from '@angular/core'
 import { ApiClient, isUnreachable, toApiError } from '@/core/api'
+import { BootSplash } from '@/core/boot'
 import { skipAuthRefresh } from './auth.context'
 import { AuthStore } from './auth.store'
 import type {
@@ -59,6 +60,7 @@ const recentAuthBody = (lang: string, currentPassword?: string) =>
 export class AuthService {
   private api = inject(ApiClient)
   private authStore = inject(AuthStore)
+  private bootSplash = inject(BootSplash)
   private window = inject(DOCUMENT).defaultView
   private locks = this.window?.navigator.locks
   private storage = this.readStorage()
@@ -259,6 +261,8 @@ export class AuthService {
     if (status === 'signedIn' || status === 'signedOut') {
       return status
     }
+    // docs/features/loading.md rule 2: the splash says what it waits for (both guards come here).
+    this.bootSplash.step('auth')
     this.restoring ??= this.sendPendingSignOut()
       .then(async (signedOut) => (signedOut ? undefined : this.refresh()))
       .then(() => this.authStore.status())
