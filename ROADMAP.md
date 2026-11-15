@@ -70,37 +70,37 @@ merging.
 
 ## Status
 
-| #   | Feature / phase                       | API | Web | Notes                                                                                                                                                                                                                                      |
-| --- | ------------------------------------- | --- | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0   | Starter repos                         | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                                                                                                                                                    |
-| 1   | Local dev workflow                    | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                                                                                                                                                |
-| 2   | Database foundation                   | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                                                                                                                                                 |
-| 3   | App shell                             | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                                                                                                                                             |
-| 4   | Auth                                  | ✅  | ✅  | email code + link, password, Google, Security page, phone OTP. [spec](docs/features/auth.md)                                                                                                                                               |
-| 4a  | Offline sync foundation               | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md)                                                                                                                  |
-| 5   | Currency                              | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                                                                                                        |
-| 6   | Profile + Wallet                      | ✅  | ✅  | 6.1 profiles; 6.2 wallets (`wallet_members`, `tpn` icons, near-full sheets, `sync_probes` gone). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md)                                                                   |
-| 7   | Category                              | ✅  | ✅  | 7.1 categories, default set, Account › หมวดหมู่; 7.2 hide per wallet (both forms); 7.3 merge. [spec](docs/features/category.md)                                                                                                            |
-| 8   | Transaction                           | ✅  | ✅  | 8.1 table, form + keypad, Money Lover tab, real balances; 8.2 quick amounts, toasts on top. [spec](docs/features/transaction.md)                                                                                                           |
-| 9   | Transfer                              | ✅  | ✅  | two linked rows of one `transfers` row, outside income / expense; ⋮ menu, Wallets tab button. [spec](docs/features/transfer.md)                                                                                                            |
-| 10  | Reports                               | —   | ✅  | on the device: H1 summary with balances, trend, by category with drill-down pages; Transactions header shared. [spec](docs/features/report.md)                                                                                             |
-| 11  | Budget                                | ⏸   | ⏸   | moved to the backlog after #10 (owner: not used in Money Lover; reports cover it); see Backlog                                                                                                                                             |
-| 12  | Recurring transactions                | ✅  | ✅  | rules recorded on the device when due (or asked first), deterministic ids, "อนาคต" shows what comes. [spec](docs/features/recurring.md)                                                                                                    |
-| 13  | Debt / loan                           | ✅  | ✅  | borrowed / lent, entries outside income / expense, counted once per debt, instalments as rules, "หนี้สิน" card. [spec](docs/features/debt.md)                                                                                              |
-| 14  | Event / trip                          | ✅  | ✅  | events per profile, one per transaction, totals computed, default by date, close / reopen; under `/transactions/events`. [spec](docs/features/event.md)                                                                                    |
-| 15  | CSV export + move transactions        | —   | ✅  | owner cut search and filters; Account › ส่งออก CSV, "ย้ายรายการ" in the category sheet, no API change. [spec](docs/features/export.md)                                                                                                     |
-| 16  | Family sharing                        | ✅  | ✅  | 16.1 invites per person, Account › แชร์กระเป๋า; 16.2 shared profiles in the switcher, online only, editors write. [spec](docs/features/sharing.md)                                                                                         |
-| 16R | Shared components                     | —   | ✅  | `date-row` (4 sheets) and `wallet-pick` (3 sheets) moved to `shared/components`; same look, same initial bundle                                                                                                                            |
-| 17  | Deploy (Vercel)                       | ✅  | ✅  | **staging only** (`develop`), the app's show-and-test copy; production waits until the family uses it for real (owner, 2026-11). [steps](docs/deploy.md)                                                                                   |
-| 18  | Credit card                           | ✅  | ✅  | `wallets.isCreditCard`: out of the total, counted in "ทุกกระเป๋า"; paid by one transfer (pay sheet, Wallets tab card section). [spec](docs/features/credit-card.md)                                                                        |
-| 19  | Loading                               | —   | ✅  | splash in `index.html` until the first page, a creeping bar for slow page changes, a new device waits for its whole first pull. [spec](docs/features/loading.md)                                                                           |
-| 20  | Live sync (2nd)                       | ⬜  | ⬜  | a poke (no data) from the API after a push makes open devices sync at once; Ably on Vercel, a local stream in dev. [spec](docs/features/live-sync.md)                                                                                      |
-| 21  | Shared activity (3rd)                 | ⬜  | ⬜  | who added, edited or deleted which transaction in a shared profile (latest action per row, 90 days), under ⋮; names on rows when not you. Web only. [spec](docs/features/shared-activity.md)                                               |
-| 22  | **Privacy & account deletion** ← next | ⬜  | ⬜  | before friends try staging: a privacy notice (open without sign-in), a test-version line, "signing in accepts the notice", deleting the account in the app (at once; recent auth + typed email + button). [spec](docs/features/privacy.md) |
+| #   | Feature / phase                | API | Web | Notes                                                                                                                                                                                                                                                   |
+| --- | ------------------------------ | --- | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0   | Starter repos                  | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                                                                                                                                                                 |
+| 1   | Local dev workflow             | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                                                                                                                                                             |
+| 2   | Database foundation            | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                                                                                                                                                              |
+| 3   | App shell                      | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                                                                                                                                                          |
+| 4   | Auth                           | ✅  | ✅  | email code + link, password, Google, Security page, phone OTP. [spec](docs/features/auth.md)                                                                                                                                                            |
+| 4a  | Offline sync foundation        | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md)                                                                                                                               |
+| 5   | Currency                       | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                                                                                                                     |
+| 6   | Profile + Wallet               | ✅  | ✅  | 6.1 profiles; 6.2 wallets (`wallet_members`, `tpn` icons, near-full sheets, `sync_probes` gone). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md)                                                                                |
+| 7   | Category                       | ✅  | ✅  | 7.1 categories, default set, Account › หมวดหมู่; 7.2 hide per wallet (both forms); 7.3 merge. [spec](docs/features/category.md)                                                                                                                         |
+| 8   | Transaction                    | ✅  | ✅  | 8.1 table, form + keypad, Money Lover tab, real balances; 8.2 quick amounts, toasts on top. [spec](docs/features/transaction.md)                                                                                                                        |
+| 9   | Transfer                       | ✅  | ✅  | two linked rows of one `transfers` row, outside income / expense; ⋮ menu, Wallets tab button. [spec](docs/features/transfer.md)                                                                                                                         |
+| 10  | Reports                        | —   | ✅  | on the device: H1 summary with balances, trend, by category with drill-down pages; Transactions header shared. [spec](docs/features/report.md)                                                                                                          |
+| 11  | Budget                         | ⏸   | ⏸   | moved to the backlog after #10 (owner: not used in Money Lover; reports cover it); see Backlog                                                                                                                                                          |
+| 12  | Recurring transactions         | ✅  | ✅  | rules recorded on the device when due (or asked first), deterministic ids, "อนาคต" shows what comes. [spec](docs/features/recurring.md)                                                                                                                 |
+| 13  | Debt / loan                    | ✅  | ✅  | borrowed / lent, entries outside income / expense, counted once per debt, instalments as rules, "หนี้สิน" card. [spec](docs/features/debt.md)                                                                                                           |
+| 14  | Event / trip                   | ✅  | ✅  | events per profile, one per transaction, totals computed, default by date, close / reopen; under `/transactions/events`. [spec](docs/features/event.md)                                                                                                 |
+| 15  | CSV export + move transactions | —   | ✅  | owner cut search and filters; Account › ส่งออก CSV, "ย้ายรายการ" in the category sheet, no API change. [spec](docs/features/export.md)                                                                                                                  |
+| 16  | Family sharing                 | ✅  | ✅  | 16.1 invites per person, Account › แชร์กระเป๋า; 16.2 shared profiles in the switcher, online only, editors write. [spec](docs/features/sharing.md)                                                                                                      |
+| 16R | Shared components              | —   | ✅  | `date-row` (4 sheets) and `wallet-pick` (3 sheets) moved to `shared/components`; same look, same initial bundle                                                                                                                                         |
+| 17  | Deploy (Vercel)                | ✅  | ✅  | **staging only** (`develop`), the app's show-and-test copy; production waits until the family uses it for real (owner, 2026-11). [steps](docs/deploy.md)                                                                                                |
+| 18  | Credit card                    | ✅  | ✅  | `wallets.isCreditCard`: out of the total, counted in "ทุกกระเป๋า"; paid by one transfer (pay sheet, Wallets tab card section). [spec](docs/features/credit-card.md)                                                                                     |
+| 19  | Loading                        | —   | ✅  | splash in `index.html` until the first page, a creeping bar for slow page changes, a new device waits for its whole first pull. [spec](docs/features/loading.md)                                                                                        |
+| 20  | **Live sync** ← next           | ⬜  | ⬜  | a poke (no data) from the API after a push makes open devices sync at once; Ably on Vercel, a local stream in dev. [spec](docs/features/live-sync.md)                                                                                                   |
+| 21  | Shared activity (3rd)          | ⬜  | ⬜  | who added, edited or deleted which transaction in a shared profile (latest action per row, 90 days), under ⋮; names on rows when not you. Web only. [spec](docs/features/shared-activity.md)                                                            |
+| 22  | Privacy & account deletion     | ✅  | ✅  | a privacy notice open without sign-in (`/auth/privacy`, Account › เกี่ยวกับแอป), "test version" from `TEST_VERSION`, "signing in accepts the notice"; delete the account at once (recent auth + typed email + button). [spec](docs/features/privacy.md) |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
 
-Order of work from here (owner, 2026-11): **#22 → #20 → #21**. The number is a feature's id, not
+Order of work from here (owner, 2026-11): **#22 (done) → #20 → #21**. The number is a feature's id, not
 its place in the queue, so numbers are never reused or shuffled. Each row gets its `docs/features/<feature>.md` before work starts. Rows 0–8 (with 4a) are the MVP.
 After #8 the app can replace Money Lover for daily use. Until #17, everything runs **locally only** (see locked
 decision "Local-first").
@@ -226,6 +226,33 @@ Branch `feat/web-loading`, built and tested 2026-11-15. Web only, no API change.
 - **Known**: over the dev tunnel a cached old `main.js` with the new `index.html` leaves the
   splash up (the old script never removes it); Ctrl+F5 fixes it. Production can't mix them
   (hashed file names, `index.html` not cached, the service worker serves one version).
+
+---
+
+## Done: Privacy notice and account deletion (#22)
+
+API + web. [spec](docs/features/privacy.md). Owner: friends are about to try staging, so they
+must be able to read what is kept and delete their account themselves (PDPA minimum).
+
+- **API** (`features/auth`): `DELETE /auth/account { email, currentPassword?, lang }` checks the
+  typed email first (`422 ACCOUNT_EMAIL_MISMATCH`), then recent auth (`403 REAUTH_REQUIRED`),
+  then deletes the user in one transaction: every table cascades from `users`, plus sign-in
+  codes and invites **addressed to** the email (they hold it without a user id). A mail says so
+  afterwards; a failed send undoes nothing. `GET /auth/account/deletion` = how many people the
+  user's live wallets reach. `TEST_VERSION` (setup-env writes `true` for dev and staging) is
+  `testVersion` in `GET /auth/providers`. The credential mails and this one share one sender.
+- **Web**: `/auth/privacy` (before sign-in) and `/account/privacy` (Account › เกี่ยวกับแอป) show
+  `PrivacyPage`; the sign-in page has the test-version line, "การเข้าสู่ระบบถือว่าคุณยอมรับ
+  ประกาศความเป็นส่วนตัว" and, after a deletion, "ลบบัญชีแล้ว". Security › บัญชีผู้ใช้ › ลบบัญชี
+  (`/account/delete`, ‹ to Security): what goes (people shared with, unsynced changes), a link
+  to CSV export, the confirm step (`ReauthFlow`), the typed email (button off until it matches),
+  then `OfflineService.wipe()` and sign-in.
+- Tests: API 661 (service, Drizzle cascade on SQLite, HTTP), web 722 (`delete-page.spec`,
+  `privacy-page.spec`). Checked in Chromium at 375 px: sign-in lines, the notice, the delete
+  flow to "ลบบัญชีแล้ว" and the mail in the API log.
+- **Known**: the initial bundle is 763 kB, over the 760 kB warning budget; `develop` was already
+  at 762.1 kB before this (the notice's text adds 0.9 kB). Not raised here: decide whether to
+  raise the budget or move long texts to a lazy translation scope.
 
 ---
 

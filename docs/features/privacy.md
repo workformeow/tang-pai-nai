@@ -1,8 +1,9 @@
 # Privacy notice and account deletion
 
-> Status: **Spec** (#22). Nothing built yet. API: `src/features/auth/` (the deletion routes and
-> the test-version flag); web: `features/auth` (the notice page, the sign-in lines),
-> `features/account` (the delete page). Builds on [auth.md](auth.md) rule 13 (recent
+> Status: **Built** (#22). API: `src/features/auth/` (`DELETE /auth/account`,
+> `GET /auth/account/deletion`, `TEST_VERSION`); web: `features/account` (`privacy-page`,
+> `delete-page`, the Account and Security rows), `features/auth` (`/auth/privacy`, the sign-in
+> lines). Builds on [auth.md](auth.md) rule 13 (recent
 > authentication) and [sharing.md](sharing.md).
 
 ## Purpose
