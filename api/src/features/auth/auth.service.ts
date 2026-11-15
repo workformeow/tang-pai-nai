@@ -398,6 +398,7 @@ export const createAuthService = ({
       }
       const mail = buildCredentialChangeMail({
         change,
+        email: user.email,
         lang,
         at,
         timeZone: user.timezone,
@@ -511,6 +512,8 @@ export const createAuthService = ({
       const mail = buildSignInMail({
         code,
         link: `${config.webOrigin}/auth/link#token=${linkToken}`,
+        email,
+        isNewAccount: user === null,
         lang,
         expiresInMinutes: minutes(L.CHALLENGE_TTL_MS),
       })
@@ -787,7 +790,12 @@ export const createAuthService = ({
         expiresAt: new Date(at.getTime() + L.CHALLENGE_TTL_MS),
       })
     })
-    const mail = buildReauthMail({ code, lang, expiresInMinutes: minutes(L.CHALLENGE_TTL_MS) })
+    const mail = buildReauthMail({
+      code,
+      email: user.email,
+      lang,
+      expiresInMinutes: minutes(L.CHALLENGE_TTL_MS),
+    })
     await notifier.send({ channel: NotificationChannel.EMAIL, to: user.email, ...mail })
     logger.info(LOG.AUTH.reauthRequested, { challengeId: challenge.id, userId: user.id })
   }

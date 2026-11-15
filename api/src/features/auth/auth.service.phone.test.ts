@@ -286,7 +286,7 @@ describe('removePhone', () => {
     expect(user.phone).toBeNull()
     expect(user.phoneVerifiedAt).toBeNull()
     expect(ctx.mails().at(-1)?.subject).toBe(
-      'Your phone number was removed on your Tang Pai Nai account'
+      'Your phone number was removed on your Tang Pai Nai account: mom@example.com'
     )
     expect(ctx.mails().at(-1)?.text).toContain('(ending in 5678)')
   })
@@ -540,13 +540,13 @@ describe('mail on a phone change (rule 31)', () => {
     await addPhone(ctx, caller, PHONE, 'th')
     expect(ctx.mails().at(-1)).toMatchObject({
       to: EMAIL,
-      subject: 'มีการเพิ่มเบอร์มือถือ ในบัญชีผู้ใช้ ตังค์ไปไหน',
+      subject: 'มีการเพิ่มเบอร์มือถือ ในบัญชี ตังค์ไปไหน: mom@example.com',
       text: expect.stringContaining('(ลงท้าย 5678)') as string,
     })
 
     await addPhone(ctx, caller, '+66898765432', 'en')
     expect(ctx.mails().at(-1)).toMatchObject({
-      subject: 'Your phone number was changed on your Tang Pai Nai account',
+      subject: 'Your phone number was changed on your Tang Pai Nai account: mom@example.com',
       text: expect.stringContaining('(ending in 5432)') as string,
     })
   })
@@ -568,13 +568,16 @@ describe('buildCredentialChangeMail (phone)', () => {
   it('names the number by its last 4 digits only', () => {
     const mail = buildCredentialChangeMail({
       change: 'phone_added',
+      email: EMAIL,
       lang: 'en',
       at: START,
       timeZone: 'Asia/Bangkok',
       phoneLastDigits: '5678',
     })
 
-    expect(mail.subject).toBe('A phone number was added on your Tang Pai Nai account')
+    expect(mail.subject).toBe(
+      'A phone number was added on your Tang Pai Nai account: mom@example.com'
+    )
     expect(mail.text).toContain('A phone number was added (ending in 5678) on your')
     expect(mail.text).not.toContain('812345678')
   })
