@@ -2,6 +2,7 @@ import { inject } from '@angular/core'
 import { Router } from '@angular/router'
 import type { CanActivateFn } from '@angular/router'
 import { AuthService, AuthStore, SIGN_IN_URL } from '@/core/auth'
+import { BootSplash } from '@/core/boot'
 import { LOCK_URL, OfflineService, OTHER_TAB_URL } from './offline.service'
 
 /**
@@ -18,7 +19,10 @@ export const shellGuard: CanActivateFn = async (_route, state) => {
   const router = inject(Router)
   const authStore = inject(AuthStore)
   const offlineService = inject(OfflineService)
+  const splash = inject(BootSplash)
   const [status, meta] = await Promise.all([inject(AuthService).restore(), offlineService.ready()])
+  // docs/features/loading.md rule 2: signed in (or not); now the device's data.
+  splash.step('data')
   const queryParams = { returnUrl: state.url === '/' ? undefined : state.url }
 
   if (meta && (authStore.endedBy() === 'revoked' || offlineService.belongsToSomeoneElse())) {

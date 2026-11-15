@@ -28,8 +28,13 @@ Same for `tang-pai-nai-prod`. Apply the migrations from your PC, in `api/`, befo
 deploy and again whenever a merge adds a file to `api/drizzle/`:
 
 ```bash
-DATABASE_URL="libsql://…" DATABASE_AUTH_TOKEN="…" npm run db:migrate
+npm run db:migrate:staging   # staging: DATABASE_URL / DATABASE_AUTH_TOKEN from api/.env.staging
+DATABASE_URL="libsql://…" DATABASE_AUTH_TOKEN="…" npm run db:migrate   # production (bash)
 ```
+
+Production has no env file on the PC, so its URL and token are given inline from the password
+manager. A variable already set in the shell wins over the env file, so don't leave a
+`DATABASE_URL` exported when running the staging script.
 
 The currencies come with the migrations; there is nothing to seed. Deploys never migrate by
 themselves (a pull request's preview must not change the staging database).

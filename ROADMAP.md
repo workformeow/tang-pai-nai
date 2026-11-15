@@ -93,6 +93,7 @@ merging.
 | 16R | Shared components              | —   | ✅  | `date-row` (4 sheets) and `wallet-pick` (3 sheets) moved to `shared/components`; same look, same initial bundle                                                          |
 | 17  | **Deploy (Vercel)** ← now      | 🚧  | 🚧  | code in the #17 PR (Vercel entries, cron, `/api` middleware); the owner sets up Vercel ×2, Turso, Resend: [steps](docs/deploy.md)                                        |
 | 18  | Credit card                    | ✅  | ✅  | `wallets.isCreditCard`: out of the total, counted in "ทุกกระเป๋า"; paid by one transfer (pay sheet, Wallets tab card section). [spec](docs/features/credit-card.md)      |
+| 19  | Loading                        | —   | ✅  | splash in `index.html` until the first page, a creeping bar for slow page changes, a new device waits for its whole first pull. [spec](docs/features/loading.md)         |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
 
@@ -122,7 +123,8 @@ Decisions (owner, #17):
 
 - **Staging = the `develop` branch** (Vercel _Preview_ scoped to `develop`), production = `main`;
   each with its own Turso database and secrets. Migrations run by hand from the owner's PC
-  (`npm run db:migrate` with that database's URL), never by a deploy.
+  (`npm run db:migrate:staging` for staging, `npm run db:migrate` with production's URL), never
+  by a deploy.
 - Mail: Resend through the existing SMTP adapter (env only). SMS stays `disabled` (phone sign-in
   hidden) and Google stays off until the owner sets them up. Account's Security row says only
   "รหัสผ่าน, PIN และอุปกรณ์" (`account.securityHint`, owner 2026-11): add phone / Google back to
@@ -149,8 +151,8 @@ first staging deploy (docs/deploy.md step 7).
 
 ## Done: Credit card (#18)
 
-Branch `feat/credit-card`, built and tested 2026-11-15; to merge into `develop`. Before staging
-runs the new web: `npm run db:migrate` on staging's database (migration 0020).
+Built and tested 2026-11-15, merged into `develop` the same day. Before staging runs the new
+web: `npm run db:migrate:staging` (migration 0020).
 
 - **Decided at the start** (owner, mock-up `docs/features/mockups/credit-card.html`;
   credit-card.md → Open questions): a card stays a **wallet** with one flag, `isCreditCard`
@@ -184,7 +186,39 @@ runs the new web: `npm run db:migrate` on staging's database (migration 0020).
   the Transactions tab's ค้างจ่าย header and banner. Web `npm test` 704.
 - **Known**: on Windows the API's DB tests fail at teardown (`EPERM` removing the temp folder) and
   Vitest needs `--pool=vmThreads` with Node 26.13.0 (the repo pins 26.13.1); CI on Linux is
-  unaffected.
+  unaffected. Not covered by a test yet: a shared wallet's member rows carry `isCreditCard: false`
+  (`sharing.service.ts`).
+
+---
+
+## Done: Loading (#19)
+
+Branch `feat/web-loading`, built and tested 2026-11-15. Web only, no API change.
+[spec](docs/features/loading.md), mock-up `docs/features/mockups/loading.html`.
+
+- **Why** (owner): opening the app showed a blank screen until the JavaScript, `/auth/refresh` (slow
+  when the server starts cold) and the local database were all done, so it looked frozen.
+- **Decided** (owner, from the mock-up): a splash in `index.html` (icon + name at once; after 1 s
+  a bar and what it waits for; after 10 s "การเชื่อมต่อใช้เวลานานกว่าปกติ" + ลองใหม่); one loader
+  for a new device's first pull, which now waits for the **whole** first round (rows so far
+  shown) so the first numbers don't move; no bar for background sync (the header's icon is
+  enough); a creeping bar for slow page changes (over 300 ms, holds under 90 %, then fills).
+  **No preloading** of the lazy pages: the service worker already caches every chunk once
+  installed, so only a device's first session is slow; measure on staging before adding it.
+- **Web**: the splash markup, CSS and timers in `index.html`; `BootSplash` (`core/boot`):
+  `AuthService.restore()` sets `auth`, `shellGuard` `data`, `App` removes it after the first
+  navigation; `NavProgress` (`layout/nav-progress.ts`, `transform` only);
+  `ProfileService.firstPull` + `SyncService.pulledRows` for the shell's `loading` gate.
+- **Verified**: web `npm run fix`, typecheck, `npm test` (713), `npm run build` (initial
+  762.3 kB, +3.9 kB); Playwright on `ng serve`: a slowed `/auth/refresh` (splash steps, the 10 s
+  line, gone at once after), a slowed lazy chunk (bar 20 % → 86 %, then 100 % and gone; a fast
+  page change shows nothing), a wiped local database with a slowed second pull page ("ได้รับแล้ว
+  48 รายการ", then the whole data).
+- **Tests**: `NavProgress` (fake timers), `BootSplash`, `AuthService.restore` step,
+  `ProfileService.firstPull`, `SyncService.pulledRows`.
+- **Known**: over the dev tunnel a cached old `main.js` with the new `index.html` leaves the
+  splash up (the old script never removes it); Ctrl+F5 fixes it. Production can't mix them
+  (hashed file names, `index.html` not cached, the service worker serves one version).
 
 ---
 

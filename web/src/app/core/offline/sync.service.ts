@@ -73,6 +73,8 @@ export class SyncService {
   isSyncing = signal(false)
   /** The last round reached the server, which answered with an error (a 500): retried like rule 11. */
   failed = signal(false)
+  /** Rows pulled in the running round (the new device's loader, docs/features/loading.md rule 4). */
+  pulledRows = signal(0)
   /** Rounds finished (or failed) since the app loaded: work that should follow a pull waits. */
   rounds = signal(0)
   /** When the last round finished, kept on the device. */
@@ -244,6 +246,7 @@ export class SyncService {
 
   private async round(): Promise<void> {
     this.isSyncing.set(true)
+    this.pulledRows.set(0)
     try {
       await this.push()
       await this.pull()
@@ -325,6 +328,7 @@ export class SyncService {
       }
       const pulled = data
       this.offlineService.write((db) => applyPull(db, pulled))
+      this.pulledRows.update((count) => count + pulled.changes.length)
       if (!pulled.hasMore) {
         return
       }

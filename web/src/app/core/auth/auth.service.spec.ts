@@ -109,6 +109,19 @@ describe('AuthService', () => {
     await expect(service.restore()).resolves.toBe('signedIn')
   })
 
+  it('tells the splash it is checking the sign-in (loading.md rule 2)', async () => {
+    const splash = TestBed.inject(DOCUMENT).createElement('div')
+    splash.id = 'boot-splash'
+    splash.dataset['step'] = 'app'
+    TestBed.inject(DOCUMENT).body.append(splash)
+    const restored = service.restore()
+    expect(splash.dataset['step']).toBe('auth')
+    await tick()
+    http.expectOne('/api/auth/refresh').flush(envelope(session()))
+    await restored
+    splash.remove()
+  })
+
   it('restores to signedOut without a valid cookie, and does not ask again', async () => {
     const restored = service.restore()
     await tick()

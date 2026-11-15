@@ -237,6 +237,26 @@ describe('ProfileService', () => {
     expect(service.ready()).toBe(true)
   })
 
+  it('keeps a new device on its first pull until the round ends, profiles in or not (loading.md rule 4)', () => {
+    canSync.set(true)
+    start()
+    expect(service.firstPull()).toBe(true)
+    isSyncing.set(true)
+    TestBed.tick()
+    expect(service.firstPull()).toBe(true)
+    isSyncing.set(false)
+    TestBed.tick()
+    expect(service.firstPull()).toBe(false)
+  })
+
+  it('does not wait for a first pull offline, or on a device that synced before', () => {
+    start()
+    expect(service.firstPull()).toBe(false)
+    canSync.set(true)
+    lastSyncedAt.set(1)
+    expect(service.firstPull()).toBe(false)
+  })
+
   it('is ready at once offline, or after an earlier sync', () => {
     start()
     expect(service.ready()).toBe(true)

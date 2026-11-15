@@ -200,6 +200,34 @@ describe('SyncService', () => {
     expect(offline.syncMeta('cursor')).toBe('30')
   })
 
+  it('counts the rows the running round pulled, from 0 each round (loading.md rule 4)', async () => {
+    const currency = (code: string) => ({
+      table: 'currencies',
+      row: {
+        id: code,
+        code,
+        minorUnit: 2,
+        isActive: true,
+        sortOrder: 0,
+        createdAt: 1,
+        updatedAt: 1,
+        changeSeq: 1,
+      },
+    })
+    pullData = (since) => ({
+      ...emptyPull(since),
+      changes: since === 0 ? [currency('THB'), currency('USD')] : [currency('JPY')],
+      cursor: since + 10,
+      hasMore: since === 0,
+    })
+    offline.write((tx) => tx.exec(`INSERT OR REPLACE INTO sync_meta VALUES ('cursor', '0')`))
+    await drive(service.sync())
+    expect(service.pulledRows()).toBe(3)
+    pullData = emptyPull
+    await drive(service.sync())
+    expect(service.pulledRows()).toBe(0)
+  })
+
   it('stores the winner and a notice when an op was overridden', async () => {
     offline.write((tx) =>
       queueWrite(tx, 'profiles', 'upsert', profile('p1', 'Tea', { changeSeq: 5 }))

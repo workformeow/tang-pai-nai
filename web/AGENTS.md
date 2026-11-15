@@ -129,6 +129,15 @@ Owner's rule (after #16.1): **a component used in more than one place lives in
   tab, a deeper page) starts at the top, and back (‹ is `location.back()`, so it counts)
   returns to where it was. Tapping the tab already showing scrolls it to the top
   (`BottomTabBar.toTop`, smooth unless reduced motion), as native tab bars do.
+- **Loading** ([loading.md](../docs/features/loading.md)): `index.html` holds a splash (plain
+  HTML + CSS + a tiny timer script, its words in both languages) painted before any script, so
+  the app never shows a blank screen. `BootSplash` (`core/boot`) sets its step
+  (`AuthService.restore()` → `auth`, `shellGuard` → `data`) and `App` removes it when the first
+  navigation ends; keep the splash's ids, classes and steps in sync with `index.html`.
+  `NavProgress` (`layout/nav-progress.ts`, in `App`'s template) is the 3px bar of a slow
+  navigation (over 300ms, creeps toward and holds under 90%, `transform` only). A new device's
+  first pull is the shell's `loading` gate (`ProfileService.firstPull`, rows so far from
+  `SyncService.pulledRows`). No spinners or bars for local reads or background sync.
 - The service worker (`ngsw-config.json`) caches the **app shell only**. Never add `dataGroups`:
   data comes from the local DB ([offline-sync](../docs/features/offline-sync.md) → Layers). It is
   off in `ng serve`, so check PWA behaviour against `npm run build` output served with an SPA

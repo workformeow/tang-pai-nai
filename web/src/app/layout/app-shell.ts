@@ -9,9 +9,12 @@ import {
 } from '@angular/core'
 import { RouterOutlet } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
-import { HlmSpinner } from '@spartan-ng/helm/spinner'
+import { NgIcon, provideIcons } from '@ng-icons/core'
+import { lucideCloudDownload } from '@ng-icons/lucide'
 import { CategoryService } from '@/core/category'
+import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
+import { SyncService } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
 import { NavHistory } from '@/core/routing'
 import type { SharingService } from '@/core/sharing'
@@ -51,10 +54,11 @@ const OWN_ONLY = [
 /** Layout route for the signed-in tabs: header, page, fixed bottom tab bar. */
 @Component({
   selector: 'app-shell',
+  providers: [provideIcons({ lucideCloudDownload })],
   imports: [
     RouterOutlet,
     TranslocoPipe,
-    HlmSpinner,
+    NgIcon,
     AppHeader,
     BottomTabBar,
     ProfileCreateStep,
@@ -82,8 +86,19 @@ const OWN_ONLY = [
         <div [appSlide]="navHistory.step()">
           @switch (gate()) {
             @case ('loading') {
-              <div class="flex justify-center py-16">
-                <hlm-spinner [aria-label]="'profiles.loading' | transloco" />
+              <!-- A new device's first pull (docs/features/loading.md rule 4): the one loader. -->
+              <div class="flex flex-col items-center px-6 py-16 text-center" role="status">
+                <span
+                  class="mb-3 flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground"
+                >
+                  <ng-icon name="lucideCloudDownload" size="28" aria-hidden="true" />
+                </span>
+                <p class="font-semibold">{{ 'sync.firstLoad' | transloco }}</p>
+                @if (pulledText(); as count) {
+                  <p class="mt-1 text-sm text-muted-foreground tabular-nums">
+                    {{ 'sync.firstLoadCount' | transloco: { count } }}
+                  </p>
+                }
               </div>
             }
             @case ('create') {
@@ -155,6 +170,13 @@ export class AppShell {
   /** Also keeps its sweep of transfers whose wallet was deleted (transfer rule 8). */
   protected transferService = inject(TransferService)
   protected switchSheetOpen = this.profileService.switchSheet
+  private syncService = inject(SyncService)
+  private languageService = inject(LanguageService)
+  /** Rows the first pull brought so far, formatted; null until some arrive. */
+  protected pulledText = computed(() => {
+    const count = this.syncService.pulledRows()
+    return count > 0 ? count.toLocaleString(this.languageService.locale()) : null
+  })
   private networkStatusService = inject(NetworkStatusService)
   private url = currentUrl()
   private injector = inject(Injector)
@@ -200,6 +222,9 @@ export class AppShell {
     }
     if (shared) {
       return this.sharedGate(url, shared.status)
+    }
+    if (this.profileService.firstPull()) {
+      return 'loading'
     }
     if (this.profileService.current() === null) {
       return this.profileService.ready() ? 'create' : 'loading'

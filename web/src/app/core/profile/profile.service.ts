@@ -103,6 +103,17 @@ export class ProfileService {
         !this.syncService.canSync())
   )
   /**
+   * A new device's first round is still running (docs/features/loading.md rule 4): the shell
+   * shows its loader until every page has arrived, so the first numbers seen are the whole ones.
+   */
+  firstPull = computed(
+    () =>
+      this.offlineService.isOpen() &&
+      this.syncService.lastSyncedAt() === null &&
+      this.syncService.canSync() &&
+      !this.roundEnded()
+  )
+  /**
    * Rule 10: the device's own data is always writable, offline too (offline-sync rule 1). Only a
    * database kept in memory (browser storage refused) writes online and while the server answers
    * (rule 11), since its rows live in memory until they're pushed.

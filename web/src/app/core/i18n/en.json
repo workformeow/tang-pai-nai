@@ -665,7 +665,9 @@
     "tabledebts": "Debt",
     "tableevents": "Events",
     "tabledebt_entries": "Debt row",
-    "withDebts": "{{count}} debts"
+    "withDebts": "{{count}} debts",
+    "firstLoad": "Loading your data",
+    "firstLoadCount": "{{count}} items received"
   },
   "colors": {
     "label": "Colour {{number}}"
@@ -704,7 +706,6 @@
     "editItem": "Edit {{name}}",
     "limit": "You have 20 profiles. Delete one you don’t use to add another.",
     "deletedElsewhere": "Profile “{{name}}” was deleted on another device",
-    "loading": "Loading profiles",
     "dragItem": "Move {{name}} (press and hold, then drag, or use the arrow keys)",
     "orderHint": "Press and hold a handle, then drag to reorder",
     "iconHeading": "Icon and colour",
