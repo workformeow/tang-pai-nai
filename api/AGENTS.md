@@ -303,6 +303,27 @@ await notifier.send({ channel: NotificationChannel.SMS, to: '+66812345678', text
   service that offers SMTP needs no new code, only `EMAIL_PROVIDER=smtp` + `SMTP_URL`.
 - Features import only `notifier` (and the types), never an adapter.
 
+### Live sync (`src/core/live/`, `src/features/live/`, #20)
+
+Spec: [`live-sync.md`](../docs/features/live-sync.md). After a push, the API **pokes** other
+devices (`{ seq, deviceId }`, never data) so they run the round they already know.
+
+- `LIVE_PROVIDER` picks the provider like the notifier (`live.registry.ts`): `disabled`
+  (default), `local` (in-memory SSE listeners: one process, dev / Docker), `ably` (needs
+  `ABLY_API_KEY`). Add one the same way: a value in `LiveProviderName` (`@/shared/types`), a
+  `live.<provider>.ts` implementing `LiveProvider`, an entry in the registry.
+- `features/sync` gets `livePublisher` (`createLivePublisher`): each poke within 1 s,
+  failures only `logger.warn`, never thrown. The push awaits it before answering (Vercel may
+  freeze the function after the response). A new table whose rows sit in a shared wallet pokes
+  its profile through `SyncPushHandler.shared.walletOf`.
+- Who may hear `profile:<id>` (rule 3) and a wallet's shared profile live in
+  `@/core/database/live-access` (they read the sharing tables).
+- `features/live`: `POST /live/token`, `GET /live/events` (SSE: `res.write`, a comment
+  heartbeat, closed after `LIVE_STREAM.MAX_AGE_MS`).
+- **Testing**: `createMemoryLiveProvider()` keeps `published` and `grants`; pass
+  `createLivePublisher(fake)` as the sync service's `live`. A stream test listens on a real port
+  and reads the body with `fetch` (`live.controller.test.ts`).
+
 ### Deploy (Vercel, #17)
 
 `api/api/index.js` is Vercel's function entry: it default-exports `createApp()` from `dist/` (built by `npm run build`), and `api/vercel.json` rewrites every path to it. `src/main.ts` (which listens) is for local runs only, and `PORT` defaults to 3000. Files the app reads at runtime that `tsc` doesn't emit (the OpenAPI spec) need `includeFiles` there. Scheduled jobs are `GET` routes behind `requireCronSecret` (`CRON_SECRET` as a bearer; 404 when unset), listed under `crons` in `vercel.json`: `/auth/cleanup` and `/sync/cleanup` run the same service methods as the `auth:cleanup` / `sync:cleanup` scripts. The owner's setup steps are in `docs/deploy.md`.

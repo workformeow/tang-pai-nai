@@ -1,7 +1,8 @@
 # Live sync
 
-> Status: **Spec** (#20). Nothing built yet. API: `src/core/live/` (providers) and
-> `src/features/live/` (routes); web: `core/live/`. Builds on [offline-sync.md](offline-sync.md)
+> Status: **Built** (#20). API: `src/core/live/` (providers, publisher) and
+> `src/features/live/` (routes); who may hear a profile in `src/core/database/live-access.ts`;
+> web: `core/live/`. Builds on [offline-sync.md](offline-sync.md)
 > rules 9–11 and [sharing.md](sharing.md) rules 9–11.
 
 ## Purpose
@@ -130,10 +131,22 @@ listeners live in memory.
 - **Cost**: Ably's free plan (6 million messages a month, 200 connections at once). A family
   stays far below it: one poke per push per channel, times the devices listening.
 
-## Open questions
+## Decisions (owner, 2026-11, at the start of #20)
 
-1. **Timed rounds while live** (proposal: unchanged in this version). Later, a device with a live
-   connection could stretch the shared profile's 1-minute refresh to 5 minutes.
-2. **The sync sheet line** (proposal: show it). Or hide live sync from the user entirely.
-3. **Background tabs** (proposal: stop listening, rule 10). Listening in the background would use
-   an Ably connection per open tab for no visible gain.
+1. **Timed rounds while live**: unchanged in this version. Later, a device with a live
+   connection could stretch the shared profile's 1-minute refresh to 5 minutes (backlog).
+2. **The sync sheet line**: shown ("อัปเดตทันที: …"), hidden with `disabled`.
+3. **Background tabs**: stop listening (rule 10).
+
+## Built notes
+
+- A poke is published only for ops this request **newly** applied: a retried `opId` (its stored
+  result), an `overridden` or `rejected` op, and a delete of a row already deleted poke nobody.
+  A transaction moved between wallets pokes the shared profile of both.
+- `local`: the stream carries every channel the user may hear (the API checks rule 3 on each
+  `profile:` poke); the device keeps the channels it listens to. The API ends a stream after
+  10 minutes (a comment line every 25 s keeps proxies open) and the device opens a new one at
+  once, with a fresh access token, so a signed-out session stops hearing soon after.
+- `ably`: the token request lists `user:<id>` and the profiles of rule 3 at that moment. A
+  profile shared after the token was made fails to attach; the device then asks for a new token
+  and attaches again.

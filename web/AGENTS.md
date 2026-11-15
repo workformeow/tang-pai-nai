@@ -602,6 +602,23 @@ type` is all the shell has of it. `AppShell.gate()` shows `layout/shared-profile
   promise settle (`setTimeout`) before checking signals. A fake `OfflineService` for a service
   that reaches `ProfileService` gives it `sharedActive` and `leaveShared`.
 
+### Live sync (`core/live`, #20)
+
+Spec: [live-sync.md](../docs/features/live-sync.md).
+
+- `LiveService` owns the connection and imports neither sync nor sharing: they listen
+  (`listenUser` / `listenProfile(id, { deviceId, cursor, onPoke })`, each answers a stop
+  function; call them from an `effect` with `onCleanup`). It connects only while signed in,
+  online, in the foreground and someone listens; it drops own-device and not-newer pokes and
+  runs `onPoke` once per 300 ms burst. Failures are quiet (no toast): `provider()` and
+  `connected()` feed only the sync sheet's line.
+- `local` reads `/api/live/events` with `fetch` (bearer header, `ngsw-bypass`), parsed by
+  `readEventStream`; `ably` loads the SDK with `import('ably')` so it stays a lazy chunk. Never
+  import `ably` statically.
+- Specs: `provideNoLive()` for any spec whose TestBed builds `SyncService` or `SharingService`
+  for real (else the real service asks `/live/token`); `fakeLive()` exposes `listeners` to
+  drive `onPoke` (`sync.service.spec`, `sharing-testing.ts`).
+
 ### Inside a feature
 
 ```
