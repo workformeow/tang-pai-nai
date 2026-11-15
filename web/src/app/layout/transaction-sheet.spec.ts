@@ -261,6 +261,26 @@ describe('TransactionSheet', () => {
     expect(toastState.toasts().map((toast) => toast.title)).toContain(th.transactions.deleted)
   })
 
+  it('saves an edit without a toast: the list shows the change (DESIGN.md §6)', async () => {
+    putRow(db, 'transactions', {
+      ...base,
+      id: 't1',
+      profileId: 'p1',
+      walletId: 'Cash',
+      categoryId: 'Coffee',
+      amount: 6500,
+      occurredOn: '2026-11-02',
+      note: '',
+      excludeFromReport: false,
+    })
+    changes.update((n) => n + 1)
+    await open({ mode: 'edit', id: 't1' })
+    await submit()
+    expect(listOps(db, 'pending')).toHaveLength(1)
+    expect(transactions.sheet()).toBeNull()
+    expect(toastState.toasts()).toEqual([])
+  })
+
   it('opens the folded options by itself for a row left out of reports', async () => {
     putRow(db, 'transactions', {
       ...base,

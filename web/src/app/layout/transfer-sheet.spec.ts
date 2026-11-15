@@ -186,6 +186,8 @@ describe('TransferSheet', () => {
       note: '',
     })
     expect(transfers.sheet()).toBeNull()
+    // The list already shows it: no toast (DESIGN.md §6).
+    expect(toastState.toasts()).toEqual([])
   })
 
   it('needs a wallet to send to and an amount above 0', async () => {
