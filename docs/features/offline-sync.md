@@ -26,17 +26,18 @@ and so does a reading app like Meb.
 - **Offline for wallets shared with you.** Only their owner has them offline. A member can queue
   _new_ transactions offline, and nothing else (rule 14).
 - Real-time push between devices (websockets). Devices sync when they come online, when the app
-  opens, and every few minutes while it's open.
+  opens, and every few minutes while it's open. A poke that starts a round at once is specced in
+  [live-sync.md](live-sync.md) (#20); the data still comes only through pull.
 - Receipt photos and other attachments (backlog).
 
 ## Layers
 
-| Layer          | Offline?                                                    | How                                                                                                                                                                         |
-| -------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| App shell      | ✅ always                                                   | Angular service worker (`@angular/pwa`) caches HTML/JS/CSS/icons. It does **not** cache API responses, because data comes from the local DB, not the SW cache. Built in #3. |
-| Data           | ✅ on every signed-in device                                | An encrypted local database in the browser (rules 4–6), plus an outbox of pending changes (rule 8).                                                                         |
-| Auth           | Sign-in online; reopening works offline                     | The app opens on its local data, behind an optional PIN (rules 2–3). The server stays the authority whenever the device is online (rule 7).                                 |
-| Shared wallets | Owner offline; members online only                          | Rules 13–16.                                                                                                                                                                |
+| Layer          | Offline?                                | How                                                                                                                                                                         |
+| -------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| App shell      | ✅ always                               | Angular service worker (`@angular/pwa`) caches HTML/JS/CSS/icons. It does **not** cache API responses, because data comes from the local DB, not the SW cache. Built in #3. |
+| Data           | ✅ on every signed-in device            | An encrypted local database in the browser (rules 4–6), plus an outbox of pending changes (rule 8).                                                                         |
+| Auth           | Sign-in online; reopening works offline | The app opens on its local data, behind an optional PIN (rules 2–3). The server stays the authority whenever the device is online (rule 7).                                 |
+| Shared wallets | Owner offline; members online only      | Rules 13–16.                                                                                                                                                                |
 
 ## Data model
 
