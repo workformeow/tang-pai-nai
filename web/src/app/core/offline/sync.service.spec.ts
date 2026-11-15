@@ -8,6 +8,7 @@ import { toastState } from '@spartan-ng/brain/sonner'
 import { AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
 import th from '@/core/i18n/th.json'
+import { provideNoLive } from '@/core/live/live-testing'
 import { NetworkStatusService } from '@/core/network'
 import { OfflineService, SHARED_TABLES } from './offline.service'
 import { countOps, findPending, listOps, queueWrite } from './outbox'
@@ -134,6 +135,7 @@ describe('SyncService', () => {
         }),
       ],
       providers: [
+        provideNoLive(),
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: OfflineService, useValue: offline },

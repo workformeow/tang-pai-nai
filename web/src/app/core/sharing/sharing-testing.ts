@@ -8,6 +8,7 @@ import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
 import th from '@/core/i18n/th.json'
+import { provideNoLive } from '@/core/live/live-testing'
 import { NetworkStatusService } from '@/core/network'
 import { OfflineService, putRow, SHARED_TABLES, SyncService } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
@@ -84,6 +85,7 @@ export const setUpSharing = async (routes: Routes = []) => {
       }),
     ],
     providers: [
+      provideNoLive(),
       provideRouter(routes),
       provideHttpClient(),
       provideHttpClientTesting(),

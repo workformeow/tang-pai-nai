@@ -632,6 +632,8 @@
     "open": "สถานะ sync: {{status}} แตะเพื่อดูรายละเอียด",
     "heading": "สถานะ sync",
     "lastSynced": "sync ล่าสุด {{time}}",
+    "liveConnected": "อัปเดตทันที: เชื่อมต่อแล้ว",
+    "liveDisconnected": "อัปเดตทันที: ไม่ได้เชื่อมต่อ",
     "neverSynced": "ยังไม่ได้ sync บนเครื่องนี้",
     "syncNow": "sync ตอนนี้",
     "syncingNow": "กำลัง sync",

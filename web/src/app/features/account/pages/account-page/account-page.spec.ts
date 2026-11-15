@@ -6,6 +6,7 @@ import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthService, AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
 import th from '@/core/i18n/th.json'
+import { provideNoLive } from '@/core/live/live-testing'
 import { OfflineService, SyncService } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
 import { DeviceStorageService } from '@/core/pwa'
@@ -49,6 +50,7 @@ describe('AccountPage', () => {
         }),
       ],
       providers: [
+        provideNoLive(),
         provideRouter([]),
         { provide: AuthService, useValue: authService },
         { provide: OfflineService, useValue: offlineService },
@@ -60,6 +62,7 @@ describe('AccountPage', () => {
             current: signal({ id: 'p1', name: 'ส่วนตัว' }),
             currentId: signal('p1'),
             isShared: signal(false),
+            shared: signal(null),
             profiles: signal([{}, {}]),
             ruleCount: () => 2,
           },

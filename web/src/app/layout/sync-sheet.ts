@@ -9,6 +9,7 @@ import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { AuthStore } from '@/core/auth'
 import { CategoryService } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
+import { LiveService } from '@/core/live'
 import { NetworkStatusService } from '@/core/network'
 import { SyncService } from '@/core/offline'
 import type { OutboxOp, SyncRow } from '@/core/offline'
@@ -63,6 +64,16 @@ const FIX_ROUTES: Readonly<Record<string, string>> = {
                   {{ 'sync.neverSynced' | transloco }}
                 }
               </p>
+              <!-- Live sync (live-sync.md → Web screens): hidden while the API has it off. -->
+              @let live = liveService.provider();
+              @if (live && live !== 'disabled') {
+                <p class="text-sm text-muted-foreground" data-testid="live-status">
+                  {{
+                    (liveService.connected() ? 'sync.liveConnected' : 'sync.liveDisconnected')
+                      | transloco
+                  }}
+                </p>
+              }
               <p class="text-sm text-muted-foreground">
                 @if (syncService.pendingCount() > 0) {
                   {{ 'sync.pendingText' | transloco: { count: syncService.pendingCount() } }}
@@ -221,6 +232,7 @@ export class SyncSheet {
   private categoryService = inject(CategoryService)
   private languageService = inject(LanguageService)
   protected syncService = inject(SyncService)
+  protected liveService = inject(LiveService)
   private profileService = inject(ProfileService)
   private transloco = inject(TranslocoService)
   protected networkStatusService = inject(NetworkStatusService)
