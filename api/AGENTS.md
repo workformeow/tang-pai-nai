@@ -129,7 +129,7 @@ Turso `libsql://` URL + `DATABASE_AUTH_TOKEN` in prod. Foreign keys are enforced
 | `index.ts`              | `db` (Drizzle), `client` (closed via `onShutdown`), column helpers, `Database` / `Executor` (db or a transaction) types |
 | `columns.ts`            | `id()` (UUIDv7 text PK), `epochMs()`, `timestamps` (`createdAt`/`updatedAt`, epoch ms), `syncColumns` (below)           |
 | `schema/<feature>.ts`   | that feature's tables; re-export it from `schema/index.ts`                                                              |
-| `migrate.ts`, `seed.ts` | run by `npm run db:migrate` / `npm run db:seed`                                                                         |
+| `migrate.ts`, `seed.ts` | run by `npm run db:migrate` (`:staging` for staging's Turso) / `npm run db:seed`                                        |
 | `api/drizzle/`          | generated SQL migrations (`npm run db:generate`), **committed**, see below                                              |
 
 - Column names are written in camelCase in TS and stored as snake_case (`casing: 'snake_case'` on
