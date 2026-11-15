@@ -13,6 +13,8 @@ export type Wallet = {
   /** `#rrggbb`. */
   color: string
   excludeFromTotal: boolean
+  /** docs/features/credit-card.md: out of the total, counted in "all wallets". */
+  isCreditCard: boolean
   isArchived: boolean
   sortOrder: number
   /** Category ids this wallet doesn't use (category rule 13). */

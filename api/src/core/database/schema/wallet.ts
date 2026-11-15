@@ -29,6 +29,8 @@ export const wallets = sqliteTable(
     icon: text().notNull(),
     color: text().notNull(),
     excludeFromTotal: integer({ mode: 'boolean' }).notNull(),
+    /** A credit card (credit-card rule 1: then `excludeFromTotal` too). */
+    isCreditCard: integer({ mode: 'boolean' }).notNull().default(false),
     isArchived: integer({ mode: 'boolean' }).notNull(),
     sortOrder: integer().notNull(),
     /**

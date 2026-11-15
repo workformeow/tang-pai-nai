@@ -24,4 +24,5 @@ export const WALLET_MESSAGE = {
   CURRENCY_FIXED: 'A wallet with transactions cannot change its currency',
   NAME_TAKEN: 'A wallet with this name already exists in this profile',
   TOO_MANY: `A profile can have at most ${WALLET_LIMITS.PER_PROFILE} wallets`,
+  CARD_IN_TOTAL: 'A credit card must be excluded from the total',
 } as const

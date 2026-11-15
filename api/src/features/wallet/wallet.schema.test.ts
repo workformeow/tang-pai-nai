@@ -20,7 +20,13 @@ describe('validateWallet', () => {
   it('accepts a wallet, trims the name and defaults deletedAt to null', () => {
     expect(validateWallet(valid)).toEqual({
       ok: true,
-      row: { ...valid, name: 'เงินสด', hiddenCategoryIds: [], deletedAt: null },
+      row: {
+        ...valid,
+        name: 'เงินสด',
+        isCreditCard: false,
+        hiddenCategoryIds: [],
+        deletedAt: null,
+      },
     })
   })
 
@@ -48,6 +54,7 @@ describe('validateWallet', () => {
       'id',
       'initialBalance',
       'isArchived',
+      'isCreditCard',
       'name',
       'profileId',
       'sortOrder',
@@ -55,13 +62,14 @@ describe('validateWallet', () => {
     ])
   })
 
-  it('accepts the limits: a 50-character name, ±10¹⁵ minor units, a lucide icon, a tombstone', () => {
+  it('accepts the limits: a 50-character name, ±10¹⁵ minor units, a lucide icon, a tombstone, a card', () => {
     for (const change of [
       { name: 'x'.repeat(50) },
       { initialBalance: 1_000_000_000_000_000 },
       { initialBalance: -1_000_000_000_000_000 },
       { icon: 'lucideWallet' },
       { deletedAt: 2000 },
+      { isCreditCard: true, excludeFromTotal: true },
     ]) {
       expect(validateWallet({ ...valid, ...change }).ok).toBe(true)
     }
@@ -82,6 +90,12 @@ describe('validateWallet', () => {
     ['a missing archive flag', { isArchived: undefined }, 'Is archived must be of type boolean'],
     ['a negative sort order', { sortOrder: -1 }, 'Invalid sortOrder format'],
     ['an id that is not a UUID', { id: 'abc' }, 'Invalid id format'],
+    ['a credit-card flag that is not a boolean', { isCreditCard: 1 }, 'Is credit card must be'],
+    [
+      'a credit card counted in the total (credit-card rule 1)',
+      { isCreditCard: true, excludeFromTotal: false },
+      'A credit card must be excluded from the total',
+    ],
     ['hidden ids that are not UUIDs', { hiddenCategoryIds: ['abc'] }, 'Invalid hiddenCategoryIds'],
     ['hidden ids that are not an array', { hiddenCategoryIds: 'x' }, 'Invalid hiddenCategoryIds'],
     ['null hidden ids', { hiddenCategoryIds: null }, 'Invalid hiddenCategoryIds'],

@@ -40,6 +40,7 @@ const wallet = (
   icon: 'lucideWallet',
   color: '#16a34a',
   excludeFromTotal: false,
+  isCreditCard: false,
   isArchived: false,
   sortOrder: 0,
   hiddenCategoryIds: [] as string[],
@@ -95,10 +96,18 @@ describe('walletSyncHandler', () => {
   it('writes a wallet with its booleans and replaces it on the next write, without userId', async () => {
     const written = await push.write(db, 'alice', wallet('w1', 'Cash', 15, { initialBalance: -5 }))
     expect(written).toEqual(wallet('w1', 'Cash', 15, { initialBalance: -5 }))
-    await push.write(db, 'alice', wallet('w1', 'Card', 16, { isArchived: true }))
+    await push.write(
+      db,
+      'alice',
+      wallet('w1', 'Card', 16, { isArchived: true, excludeFromTotal: true, isCreditCard: true })
+    )
     expect(await push.find(db, 'w1')).toEqual({
       ownerId: 'alice',
-      row: wallet('w1', 'Card', 16, { isArchived: true }),
+      row: wallet('w1', 'Card', 16, {
+        isArchived: true,
+        excludeFromTotal: true,
+        isCreditCard: true,
+      }),
     })
     expect(await push.find(db, 'nope')).toBeNull()
   })

@@ -404,6 +404,8 @@ export const createSharingService = ({
       ...row,
       initialBalance: Number(row['initialBalance']) + (other.get(String(row['id'])) ?? 0),
       excludeFromTotal: false,
+      // Credit-card rule 9: the flag is the owner's; a member has nothing to pay.
+      isCreditCard: false,
     }))
     const found = await sharingRepo.transactionRows(ids, since, limit + 1)
     const page = found.slice(0, limit)

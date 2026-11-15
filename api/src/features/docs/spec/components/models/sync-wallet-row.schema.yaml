@@ -7,7 +7,8 @@ description: >-
   while the wallet has live transactions; name is unique
   (case-insensitive) among the profile's live, non-archived wallets; a profile holds at most 20
   of those. A tombstone runs none of them. hiddenCategoryIds (category rule 13) is checked for
-  its shape only; a push without it means none hidden.
+  its shape only; a push without it means none hidden. isCreditCard (docs/features/credit-card.md)
+  requires excludeFromTotal (`VALIDATION`); a push without it means not a card.
 required:
   [
     id,
@@ -18,6 +19,7 @@ required:
     icon,
     color,
     excludeFromTotal,
+    isCreditCard,
     isArchived,
     sortOrder,
     hiddenCategoryIds,
@@ -57,6 +59,12 @@ properties:
     pattern: '^#[0-9a-f]{6}$'
   excludeFromTotal:
     type: boolean
+  isCreditCard:
+    type: boolean
+    default: false
+    description: >-
+      A credit card: out of the total (needs excludeFromTotal) but counted in "all wallets"
+      (credit-card rules 1–2).
   isArchived:
     type: boolean
   sortOrder:
@@ -92,7 +100,8 @@ example:
   initialBalance: -1825075
   icon: tpnCardChip
   color: '#dc2626'
-  excludeFromTotal: false
+  excludeFromTotal: true
+  isCreditCard: true
   isArchived: false
   sortOrder: 0
   hiddenCategoryIds: [0199b000-0000-7000-8000-000000000301]

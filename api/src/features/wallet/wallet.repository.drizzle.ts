@@ -185,6 +185,7 @@ export const walletSyncHandler: SyncTableHandler = {
             icon: String(row.icon),
             color: String(row.color),
             excludeFromTotal: row.excludeFromTotal === true,
+            isCreditCard: row.isCreditCard === true,
             isArchived: row.isArchived === true,
             sortOrder: Number(row.sortOrder),
             // `validate` made it an array of UUIDs.

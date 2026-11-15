@@ -141,6 +141,13 @@
       "when": 1794252074018,
       "tag": "0019_transactions_added_by",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1794713515905,
+      "tag": "0020_wallets_credit_card",
+      "breakpoints": true
     }
   ]
 }

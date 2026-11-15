@@ -1,0 +1,1 @@
+ALTER TABLE `wallets` ADD `is_credit_card` integer DEFAULT false NOT NULL;
