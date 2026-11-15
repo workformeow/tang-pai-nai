@@ -28,3 +28,9 @@ export interface PhoneCodeFormControls {
   code: FormControl<string>
 }
 export type PhoneCodeFormGroup = FormGroup<PhoneCodeFormControls>
+
+/** Privacy rule 6: the account's email, typed to confirm a deletion. */
+export interface DeleteAccountFormControls {
+  email: FormControl<string>
+}
+export type DeleteAccountFormGroup = FormGroup<DeleteAccountFormControls>

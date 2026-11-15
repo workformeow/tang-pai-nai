@@ -20,6 +20,7 @@ import {
   lucideMonitor,
   lucideSmartphone,
   lucideTablet,
+  lucideTrash2,
 } from '@ng-icons/lucide'
 import { toast } from '@spartan-ng/brain/sonner'
 import { HlmButton } from '@spartan-ng/helm/button'
@@ -105,6 +106,7 @@ const DAY = 24 * HOUR
       lucideMonitor,
       lucideSmartphone,
       lucideTablet,
+      lucideTrash2,
     }),
     ReauthFlow,
   ],
@@ -524,6 +526,31 @@ const DAY = 24 * HOUR
             }
           </div>
         }
+      </section>
+
+      <!-- Privacy rule 5: the last row, in destructive red. -->
+      <section class="flex flex-col gap-3" aria-labelledby="delete-heading">
+        <h2 id="delete-heading" class="text-sm font-medium text-muted-foreground">
+          {{ 'security.deleteHeading' | transloco }}
+        </h2>
+        <a
+          routerLink="/account/delete"
+          class="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-destructive focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+          <span
+            class="flex size-10 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-xl"
+            aria-hidden="true"
+          >
+            <ng-icon name="lucideTrash2" />
+          </span>
+          <span class="flex min-w-0 flex-1 flex-col">
+            <span class="text-base">{{ 'security.deleteAccount' | transloco }}</span>
+            <span class="text-sm text-muted-foreground">
+              {{ 'security.deleteAccountHint' | transloco }}
+            </span>
+          </span>
+          <ng-icon name="lucideChevronRight" size="20" aria-hidden="true" />
+        </a>
       </section>
     </div>
   `,

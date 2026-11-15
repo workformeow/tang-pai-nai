@@ -32,7 +32,9 @@
     "debts": "Loans",
     "events": "Events / trips",
     "export": "Export CSV",
-    "sharing": "Share wallets"
+    "sharing": "Share wallets",
+    "privacy": "Privacy notice",
+    "deleteAccount": "Delete account"
   },
   "status": {
     "online": "Online",
@@ -417,7 +419,8 @@
     "group": {
       "data": "My data",
       "security": "Account and security",
-      "settings": "Settings"
+      "settings": "Settings",
+      "about": "About"
     },
     "quickAmounts": "Quick amount buttons",
     "quickAmountsHint": "A row of 20 · 50 · 100 · 500 · 1,000 above the keypad when adding a transaction; each tap adds",
@@ -428,7 +431,9 @@
     "sharing": "Share wallets",
     "sharingHint": "Of profile {{name}}",
     "sharingHintCount": "Of profile {{name}} · shared with {{count}} people",
-    "sharingHintCountOne": "Of profile {{name}} · shared with {{count}} person"
+    "sharingHintCountOne": "Of profile {{name}} · shared with {{count}} person",
+    "privacy": "Privacy notice",
+    "privacyHint": "What is kept, where, and how to delete it"
   },
   "auth": {
     "signInHeading": "Sign in",
@@ -498,7 +503,10 @@
       "email": "Email",
       "password": "Password",
       "phone": "Phone"
-    }
+    },
+    "accountDeleted": "Account deleted. This device’s copy is cleared too.",
+    "testVersion": "Test version: data may be wiped, and the service may go down without notice.",
+    "acceptsNotice": "Signing in means you accept the"
   },
   "security": {
     "offline": "You're offline. Ways to sign in and devices need an internet connection",
@@ -538,7 +546,10 @@
     "pinOff": "Off · the app opens straight away, your device's own lock protects it",
     "turnOn": "Turn on",
     "turnOff": "Turn off",
-    "changePin": "Change PIN"
+    "changePin": "Change PIN",
+    "deleteHeading": "Account",
+    "deleteAccount": "Delete account",
+    "deleteAccountHint": "Delete the account and all its data for good"
   },
   "form": {
     "invalid": "This value isn't valid",
@@ -1428,5 +1439,40 @@
     "addedBy": "Added by {{name}}",
     "member": "a member",
     "viewerReadOnly": "You're a viewer of this profile: read only"
+  },
+  "privacy": {
+    "intro": "Tang Pai Nai is a personal income and expense tracker. This page says what it keeps about you, where, who can see it and how to delete it.",
+    "testVersion": "Test version: data may be wiped, and the service may go down without notice.",
+    "heading": {
+      "kept": "What is kept",
+      "where": "Where it is kept",
+      "who": "Who can see it",
+      "delete": "How to delete it"
+    },
+    "kept1": "Your email, display name and password (if set, stored as a one-way hash that can’t be read back)",
+    "kept2": "Each device’s sign-in: the device and browser name, and the IP address at sign-in",
+    "kept3": "What you record: profiles, wallets, categories, transactions, transfers, debts, events and recurring rules",
+    "where1": "The database is on Turso, the app and API on Vercel; sign-in mail goes through Resend, and Cloudflare Turnstile checks for bots at sign-in",
+    "where2": "Each signed-in device keeps an encrypted copy of your data so the app works offline",
+    "who1": "Only you, and the people you share wallets with (they see only those wallets)",
+    "who2": "Your data is never sold or passed on; there are no ads and no usage tracking",
+    "delete1": "Settings › Security › Delete account deletes the account and all its data at once, and clears this device",
+    "delete2": "The providers’ backups and logs (Turso, Vercel, Resend) expire on their own schedules",
+    "updated": "Last updated November 2026"
+  },
+  "deleteAccount": {
+    "heading": "Delete the account for good",
+    "whatGoes": "Every profile, wallet, category and transaction of this account is deleted from the server and from every device",
+    "noUndo": "This can’t be undone",
+    "shared": "Wallets shared with {{count}} people disappear for them too",
+    "unsynced": "{{count}} changes not synced yet are lost too",
+    "exportFirst": "To keep a copy first, use",
+    "offline": "Deleting the account needs the internet",
+    "typeEmail": "Type the account’s email ({{email}}) to confirm",
+    "confirm": "Delete account for good",
+    "deleting": "Deleting the account",
+    "emailMismatch": "The email doesn’t match this account",
+    "emailRequired": "Type the account’s email",
+    "failed": "Couldn’t delete the account. Try again"
   }
 }

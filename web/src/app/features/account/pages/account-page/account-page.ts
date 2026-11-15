@@ -9,6 +9,7 @@ import {
   lucideLogOut,
   lucidePalette,
   lucideRepeat,
+  lucideScrollText,
   lucideShapes,
   lucideShare2,
   lucideShieldCheck,
@@ -46,6 +47,7 @@ interface AccountItem {
       lucideLogOut,
       lucidePalette,
       lucideRepeat,
+      lucideScrollText,
       lucideShapes,
       lucideShare2,
       lucideShieldCheck,
@@ -297,6 +299,17 @@ export class AccountPage {
                     : 'account.persistentUnknownHint'
               ),
             ].join(' · '),
+          },
+        ],
+      },
+      {
+        key: 'about',
+        items: [
+          {
+            link: '/account/privacy',
+            icon: 'lucideScrollText',
+            label: 'account.privacy',
+            hint: t('account.privacyHint'),
           },
         ],
       },

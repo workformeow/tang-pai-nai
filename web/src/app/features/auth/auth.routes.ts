@@ -46,6 +46,15 @@ export default [
         loadComponent: async () =>
           import('./pages/install-guide-page/install-guide-page').then((m) => m.InstallGuidePage),
       },
+      {
+        // The privacy notice before signing in (privacy.md rules 1 and 3).
+        path: 'privacy',
+        title: 'title.privacy',
+        loadComponent: async () =>
+          import('./pages/privacy-notice-page/privacy-notice-page').then(
+            (m) => m.PrivacyNoticePage
+          ),
+      },
       // Old addresses of the password and phone tabs, now on the sign-in page.
       { path: 'password', redirectTo: signInTab('password') },
       { path: 'phone', redirectTo: signInTab('phone') },
