@@ -250,9 +250,9 @@ must be able to read what is kept and delete their account themselves (PDPA mini
 - Tests: API 661 (service, Drizzle cascade on SQLite, HTTP), web 722 (`delete-page.spec`,
   `privacy-page.spec`). Checked in Chromium at 375 px: sign-in lines, the notice, the delete
   flow to "ลบบัญชีแล้ว" and the mail in the API log.
-- **Known**: the initial bundle is 763 kB, over the 760 kB warning budget; `develop` was already
-  at 762.1 kB before this (the notice's text adds 0.9 kB). Not raised here: decide whether to
-  raise the budget or move long texts to a lazy translation scope.
+- **Bundle budget** (owner, 2026-11): the initial bundle is 763 kB (`develop` was already at
+  762.1 kB; the notice's text adds 0.9 kB), so the warning budget goes 760 → **800 kB**
+  (`web/angular.json`; the error stays at 1 MB).
 
 ---
 
@@ -390,7 +390,8 @@ One PR, no behaviour change. The owner's rule: components that do the same job m
 
 Known, for later:
 
-- The initial bundle is **750.6 kB** after the one profile switcher (2026-11; warning budget
+- The initial bundle is **763 kB** after #22 (warning budget 760 → 800 kB, owner 2026-11). It
+  was **750.6 kB** after the one profile switcher (2026-11; warning budget
   750 → 760 kB: the Wallets tab header took the three-column layout). It was 737.4 kB after
   16.2: 16.1's Thai translations
   (`th.json` is an initial chunk) and 16.2's shell pieces (switcher group, shared-profile step,
