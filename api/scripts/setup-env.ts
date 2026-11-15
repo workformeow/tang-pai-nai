@@ -111,9 +111,15 @@ function setupEnv(): void {
   }
 
   try {
-    createEnvFile(envExamplePath, envDevPath, { NODE_ENV: 'development', ...generatedSecrets() })
+    createEnvFile(envExamplePath, envDevPath, {
+      NODE_ENV: 'development',
+      TEST_VERSION: 'true',
+      ...generatedSecrets(),
+    })
+    // Staging is the app's test copy (privacy rule 2): it says so on sign-in.
     createEnvFile(envExamplePath, envStagingPath, {
       NODE_ENV: 'production',
+      TEST_VERSION: 'true',
       ...generatedSecrets(),
     })
 

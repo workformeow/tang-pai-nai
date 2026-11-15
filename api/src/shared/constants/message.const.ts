@@ -46,6 +46,7 @@ export const LOG = {
     otherSessionsRevoked: '[Auth] Other sessions revoked',
     credentialMailSkipped: (reason: string) =>
       `[Auth] ⚠️ Credential change mail not sent: ${reason}`,
+    accountDeleted: '[Auth] Account deleted',
     breachCheckUnavailable: '[Auth] ⚠️ Breached-password check unavailable: allowed (fail open)',
     botCheckUnavailable: '[Auth] ⚠️ Bot check unavailable: allowed (fail open)',
     botCheckFailed: '[Auth] Bot check failed',

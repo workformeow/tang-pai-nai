@@ -935,6 +935,10 @@ are on, so don't disable them.
     (`features/account/reauth-flow.ts`), calls `reauth.refused(action, error, hasPassword)` on a
     failure and sends the pending action again once confirmed. `deviceLabel()` turns a session's
     user agent into "Chrome · Android".
+  - Privacy (#22, [privacy.md](../docs/features/privacy.md)): `PrivacyPage`
+    (`features/account`, exported for `/auth/privacy`) reads `providers().testVersion`; the delete
+    page (`/account/delete`) runs `ReauthFlow`, `AuthService.deleteAccount(email, lang)`, then
+    `OfflineService.wipe()` and `/auth/sign-in?deleted=1`.
   - Phone (4.4b): `providers().phone` decides whether the sign-in page's phone tab and adding a
     number show. All of it is also held back by `PHONE_FEATURE`
     (`core/auth/phone-feature.ts`, `false` until the feature is finished: no sign-in tab, no

@@ -98,6 +98,7 @@ describe('AccountPage', () => {
       th.account.group.data,
       th.account.group.security,
       th.account.group.settings,
+      th.account.group.about,
     ])
     const links = [...page().querySelectorAll('a')].map((a) => a.getAttribute('href'))
     expect(links).toEqual([
@@ -110,6 +111,7 @@ describe('AccountPage', () => {
       '/account/appearance',
       '/account/install',
       '/account/device',
+      '/account/privacy',
     ])
     const text = page().textContent
     expect(text).toContain('ของโปรไฟล์ ส่วนตัว')

@@ -99,6 +99,8 @@ export enum AuthErrorCode {
   PHONE_IN_USE = 'PHONE_IN_USE',
   /** Rule 32: the bot check's token is missing or Cloudflare refused it. */
   BOT_CHECK_FAILED = 'BOT_CHECK_FAILED',
+  /** Privacy rule 8: the typed email isn't the account's. */
+  ACCOUNT_EMAIL_MISMATCH = 'ACCOUNT_EMAIL_MISMATCH',
 }
 
 export const AUTH_MESSAGE = {
@@ -126,6 +128,9 @@ export const AUTH_MESSAGE = {
   PASSWORD_MATCHES_EMAIL: 'The password must not be your email',
   PASSWORD_BREACHED: 'This password has appeared in a data breach. Choose another one',
   PROVIDERS: 'Sign-in providers',
+  ACCOUNT_DELETION: 'What deleting the account takes with it',
+  ACCOUNT_DELETED: 'Account deleted',
+  ACCOUNT_EMAIL_MISMATCH: 'The email does not match this account',
   GOOGLE: 'Google sign-in',
   GOOGLE_CANCELLED: 'Google sign-in was cancelled',
   GOOGLE_FAILED: 'Google sign-in failed. Try again',

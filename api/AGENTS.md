@@ -540,6 +540,7 @@ REAUTH_REQUIRED`. Revoking sessions needs an active session but no recent auth (
   | `JWT_SECRET`                                | access-token key, ≥ 32 chars                                   | — (required)                     |
   | `OTP_PEPPER`                                | HMAC key for codes, ≥ 32 chars                                 | — (required)                     |
   | `SIGNUP_ENABLED`                            | `false` closes sign-up; existing users still sign in           | `true`                           |
+  | `TEST_VERSION`                              | `true`: "test version" on sign-in (privacy rule 2), staging    | `false`                          |
   | `EMAIL_DAILY_LIMIT`                         | global cap on sign-in emails per day                           | `100`                            |
   | `SMS_DAILY_LIMIT`                           | global cap on SMS (phone codes) per day                        | `100`                            |
   | `PASSWORD_BREACH_CHECK`                     | `hibp` checks new passwords against HIBP, `off` skips it       | `hibp`                           |
@@ -555,6 +556,12 @@ REAUTH_REQUIRED`. Revoking sessions needs an active session but no recent auth (
   `createTurnstileVerifier` (`core/security/turnstile.ts`) answers `true` / `false` / `null`
   like the breach checker. Tests pass `botCheck: { siteKey, verify }` with a fake `verify`.
 
+- **Deleting an account** (#22, privacy spec rules 6–10): `DELETE /auth/account` checks the typed
+  email, then recent auth, then `authRepo.deleteUser` in a transaction: the FK cascade from
+  `users` takes every table, and the rows that hold the address without a user id (email
+  challenges, `wallet_invites.email`) are deleted by address. A new table that references
+  `users` needs `onDelete: 'cascade'`, or deleting an account fails. Mails that report something
+  done go through `sendNoticeMail` (never fails what it reports).
 - **Cleanup**: `npm run auth:cleanup` deletes challenges, sessions and buckets that ended over 7
   days ago (a Vercel Cron endpoint replaces it at deploy, #17).
 - **Testing auth**: services use `createMemoryAuthRepository()` and `breachChecker:

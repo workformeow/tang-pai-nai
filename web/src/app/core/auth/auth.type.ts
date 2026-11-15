@@ -43,6 +43,14 @@ export interface AuthProviders {
   phone: boolean
   /** Rule 32: the Turnstile site key for the bot check; `null` while the API has it off. */
   botCheckSiteKey: string | null
+  /** Privacy rule 2: the API is a test copy (staging); the sign-in and privacy pages say so. */
+  testVersion: boolean
+}
+
+/** `GET /auth/account/deletion` (privacy rule 10). */
+export interface DeletionSummary {
+  /** People the user's shared wallets reach: their view goes with the account. */
+  sharedWith: number
 }
 
 /** `/auth/callback?error=…` after Google sign-in (auth spec rule 14). */

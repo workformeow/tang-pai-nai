@@ -66,6 +66,11 @@ const METHODS: readonly SignInMethod[] = ['email', 'password', 'phone']
         </p>
       }
 
+      @if (deleted) {
+        <p role="status" class="rounded-xl bg-muted px-4 py-3 text-sm">
+          {{ 'auth.accountDeleted' | transloco }}
+        </p>
+      }
       @if (localOwner(); as name) {
         <p class="rounded-xl bg-muted px-4 py-3 text-sm">
           {{ 'auth.localData' | transloco: { name } }}
@@ -116,6 +121,18 @@ const METHODS: readonly SignInMethod[] = ['email', 'password', 'phone']
         </div>
       }
 
+      <div class="flex flex-col items-center gap-2 text-center text-sm text-muted-foreground">
+        @if (testVersion()) {
+          <p>{{ 'auth.testVersion' | transloco }}</p>
+        }
+        <p>
+          {{ 'auth.acceptsNotice' | transloco }}
+          <a routerLink="/auth/privacy" class="text-foreground underline underline-offset-4">
+            {{ 'title.privacy' | transloco }}
+          </a>
+        </p>
+      </div>
+
       @if (!deviceStorageService.isInstalled()) {
         <!-- Install first, then sign in inside the app (install.md: iPhone keeps them apart). -->
         <a
@@ -151,6 +168,10 @@ export class SignInPage {
    */
   protected localOwner = computed(() => this.offlineService.meta()?.displayName ?? null)
   protected googleEnabled = signal(false)
+  /** Privacy rule 2: the API is a test copy (staging). */
+  protected testVersion = signal(false)
+  /** Back from deleting the account (privacy rule 11). */
+  protected deleted = this.route.snapshot.queryParamMap.get('deleted') === '1'
   /** Off until phone sign-in is finished (`PHONE_FEATURE`). */
   private phoneFeature = inject(PHONE_FEATURE)
   /** The phone tab shows once the API says it can send SMS (4.4b, rule 21). */
@@ -194,6 +215,7 @@ export class SignInPage {
       if (this.networkStatusService.isOnline()) {
         void this.authService.providers().then((providers) => {
           this.googleEnabled.set(providers.google)
+          this.testVersion.set(providers.testVersion)
           this.phoneEnabled.set(this.phoneFeature && providers.phone)
           this.providersKnown.set(true)
         })

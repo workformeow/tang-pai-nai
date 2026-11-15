@@ -1,0 +1,53 @@
+delete:
+  tags:
+    - Auth
+  summary: Delete the account and all its data
+  description: >-
+    Privacy spec rules 6–9. The typed `email` must be the account's (`422
+    ACCOUNT_EMAIL_MISMATCH`, checked first), then recent authentication as for the password
+    routes (`403 REAUTH_REQUIRED`). Deletes at once, no undo: the user and every row that
+    references it (sessions, profiles, wallets, transactions, …), plus sign-in codes and invites
+    addressed to the email. Then one mail says so; a failed send doesn't undo anything. Other
+    devices are refused on their next refresh.
+  operationId: accountDelete
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/models/auth-account-delete.schema.yaml'
+  responses:
+    '200':
+      description: Deleted
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/message-response.schema.yaml'
+    '400':
+      description: '`CURRENT_PASSWORD_INVALID`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '401':
+      description: Access token invalid, or its session was revoked or expired
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '403':
+      description: '`REAUTH_REQUIRED`, or `USER_DISABLED`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '422':
+      description: Invalid body, or `ACCOUNT_EMAIL_MISMATCH`
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '429':
+      $ref: '../../components/responses/too-many-requests.response.yaml'

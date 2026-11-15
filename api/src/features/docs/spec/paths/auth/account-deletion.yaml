@@ -1,0 +1,23 @@
+get:
+  tags:
+    - Auth
+  summary: What deleting the account takes with it
+  description: >-
+    Read by the delete page before anything can be pressed (privacy spec rules 5 and 10): how
+    many people the caller's shared wallets reach.
+  operationId: accountDeletion
+  security:
+    - bearerAuth: []
+  responses:
+    '200':
+      description: The summary
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/auth-account-deletion-response.schema.yaml'
+    '401':
+      description: Access token invalid, or its session was revoked or expired
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'

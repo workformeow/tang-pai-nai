@@ -67,6 +67,14 @@ export const createAuthRouter = (
   router.post('/refresh', sameOrigin, authController.refresh)
   router.post('/sign-out', sameOrigin, authController.signOut)
   router.get('/me', authenticate, authController.me)
+  // Privacy rules 5–10: what deleting takes with it, and deleting (recent auth + typed email).
+  router.get('/account/deletion', authenticate, authController.accountDeletion)
+  router.delete(
+    '/account',
+    authenticate,
+    validate(authSchema.accountDelete),
+    authController.accountDelete
+  )
   router.get('/providers', authController.providers)
   // Top-level navigations (no Origin check): the browser comes and goes through Google (rule 14).
   router.get('/google/start', validate(authSchema.googleStart), authController.googleStart)

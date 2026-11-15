@@ -1,0 +1,20 @@
+type: object
+required: [email]
+properties:
+  email:
+    type: string
+    format: email
+    description: >-
+      Typed by the user to confirm; must be the account's email (trimmed, any case), otherwise
+      `422 ACCOUNT_EMAIL_MISMATCH`
+    example: friend@example.com
+  currentPassword:
+    type: string
+    description: >-
+      Proves recent authentication when the session's last credential check is older than 10
+      minutes (only for a user who has a password); good for this one request.
+  lang:
+    type: string
+    enum: [th, en]
+    default: th
+    description: Language of the "account deleted" mail (privacy spec rule 9)

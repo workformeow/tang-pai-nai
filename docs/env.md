@@ -90,6 +90,7 @@ chats and commits.
 | `JWT_SECRET`            | yes      | —                                | **secret**, ≥ 32 characters                                             |
 | `OTP_PEPPER`            | yes      | —                                | **secret**, ≥ 32 characters                                             |
 | `SIGNUP_ENABLED`        | no       | `true`                           | `false` closes sign-up; existing users still sign in                    |
+| `TEST_VERSION`          | no       | `false`                          | `true` says "test version" on sign-in and the privacy notice (staging)  |
 | `EMAIL_DAILY_LIMIT`     | no       | `100`                            | global cap on sign-in mails per day                                     |
 | `SMS_DAILY_LIMIT`       | no       | `100`                            | global cap on SMS per day                                               |
 | `PASSWORD_BREACH_CHECK` | no       | `hibp`                           | `hibp` or `off`                                                         |

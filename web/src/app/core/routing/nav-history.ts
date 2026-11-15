@@ -12,7 +12,7 @@ import { NavigationEnd, NavigationStart, Router } from '@angular/router'
 export const parentOf = (url: string): string | null => {
   const path = url.split(/[?#]/)[0]
   // Opened from Account › Security, so they go back there.
-  if (/^\/account\/(password|phone|pin)$/.test(path)) {
+  if (/^\/account\/(password|phone|pin|delete)$/.test(path)) {
     return '/account/security'
   }
   if (/^\/account\/[^/]+/.test(path)) {

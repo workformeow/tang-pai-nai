@@ -6,6 +6,7 @@ import { AuthStore } from './auth.store'
 import type {
   AuthDeviceSession,
   AuthProviders,
+  DeletionSummary,
   AuthSession,
   AuthStatus,
   AuthUser,
@@ -15,7 +16,12 @@ import type {
 /** Shared by every tab, so two tabs never rotate the same refresh token at once. */
 const REFRESH_LOCK = 'tpn-auth-refresh'
 
-const NO_PROVIDERS: AuthProviders = { google: false, phone: false, botCheckSiteKey: null }
+const NO_PROVIDERS: AuthProviders = {
+  google: false,
+  phone: false,
+  botCheckSiteKey: null,
+  testVersion: false,
+}
 
 /** Rule 32: the bot check's token travels in the body, and only when there is one. */
 const withBotToken = <T extends object>(body: T, botToken: string | undefined) =>
@@ -181,6 +187,22 @@ export class AuthService {
     if (response.data) {
       this.authStore.user.set(response.data)
     }
+  }
+
+  /** Privacy rule 10: what deleting the account takes with it. */
+  async deletionSummary(): Promise<DeletionSummary> {
+    const response = await this.api.get<DeletionSummary>('/auth/account/deletion')
+    return response.data ?? { sharedWith: 0 }
+  }
+
+  /**
+   * Privacy rules 6–8: delete the account at once. `email` is what the user typed; the API checks
+   * it again (`ACCOUNT_EMAIL_MISMATCH`) and asks for recent auth (`REAUTH_REQUIRED`). The caller
+   * wipes this device afterwards; the store is cleared here.
+   */
+  async deleteAccount(email: string, lang: string, currentPassword?: string): Promise<void> {
+    await this.api.delete('/auth/account', { email, ...recentAuthBody(lang, currentPassword) })
+    this.authStore.clear()
   }
 
   /**

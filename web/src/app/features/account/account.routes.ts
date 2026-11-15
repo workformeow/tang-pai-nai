@@ -73,6 +73,19 @@ export default [
       import('./pages/install-page/install-page').then((m) => m.InstallPage),
   },
   {
+    // Privacy rule 1; also open before sign-in at /auth/privacy.
+    path: 'privacy',
+    title: 'title.privacy',
+    loadComponent: async () =>
+      import('./pages/privacy-page/privacy-page').then((m) => m.PrivacyPage),
+  },
+  {
+    // Privacy rules 4–11, from Account › Security.
+    path: 'delete',
+    title: 'title.deleteAccount',
+    loadComponent: async () => import('./pages/delete-page/delete-page').then((m) => m.DeletePage),
+  },
+  {
     path: 'device',
     title: 'title.device',
     loadComponent: async () => import('./pages/device-page/device-page').then((m) => m.DevicePage),

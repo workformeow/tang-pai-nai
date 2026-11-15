@@ -25,7 +25,7 @@ AI can understand a feature without reading its code. These docs are the shared 
 | Loading                    | [loading.md](loading.md)                 | Building (web only) |
 | Live sync                  | [live-sync.md](live-sync.md)             | Spec (#20)          |
 | Shared activity            | [shared-activity.md](shared-activity.md) | Spec (#21)          |
-| Privacy & account deletion | [privacy.md](privacy.md)                 | Spec (#22)          |
+| Privacy & account deletion | [privacy.md](privacy.md)                 | Built (#22)         |
 
 Order of work and project-wide decisions live in [`../../ROADMAP.md`](../../ROADMAP.md), not here.
 
