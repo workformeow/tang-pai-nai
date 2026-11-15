@@ -3,8 +3,11 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import type { TestRequest } from '@angular/common/http/testing'
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
+import { TranslocoTestingModule } from '@jsverse/transloco'
+import { toastState } from '@spartan-ng/brain/sonner'
 import { AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
+import th from '@/core/i18n/th.json'
 import { NetworkStatusService } from '@/core/network'
 import { OfflineService, SHARED_TABLES } from './offline.service'
 import { countOps, findPending, listOps, queueWrite } from './outbox'
@@ -123,6 +126,13 @@ describe('SyncService', () => {
     offline = fakeOffline(db)
     pullData = emptyPull
     TestBed.configureTestingModule({
+      imports: [
+        TranslocoTestingModule.forRoot({
+          langs: { th },
+          translocoConfig: { availableLangs: ['th'], defaultLang: 'th' },
+          preloadLangs: true,
+        }),
+      ],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
@@ -519,9 +529,13 @@ describe('SyncService', () => {
       const broken = (_ops: PushedOp[], req: TestRequest) =>
         req.flush({ message: 'Internal server error' }, { status: 500, statusText: 'Error' })
 
+      const toasts = () => toastState.toasts().map((toast) => toast.title)
+      toastState.dismiss()
       await drive(service.sync(), broken)
       expect(service.failed()).toBe(true)
       expect(service.status()).toBe('failed')
+      // One toast for the streak, whoever shows the pill.
+      expect(toasts()).toEqual([th.sync.failedToast])
       // The server answered: writes aren't blocked as when it's unreachable.
       expect(network.serverReachable()).toBe(true)
       expect(listOps(db, 'pending')).toHaveLength(1)
@@ -533,12 +547,20 @@ describe('SyncService', () => {
       await drive(service.sync(), broken)
       expect(service.status()).toBe('failed')
       expect(retries().length).toBeGreaterThan(1)
+      expect(toasts()).toEqual([th.sync.failedToast])
 
       fireRetry()
       await drive(service.sync())
       expect(service.failed()).toBe(false)
       expect(service.status()).toBe('synced')
       expect(listOps(db, 'pending')).toEqual([])
+
+      // A new streak toasts again.
+      toastState.dismiss()
+      offline.write((tx) => queueWrite(tx, 'profiles', 'upsert', profile('p2', 'B')))
+      await drive(service.sync(), broken)
+      expect(toasts()).toEqual([th.sync.failedToast])
+      toastState.dismiss()
     })
 
     it('stops retrying offline, and the offline pill wins', async () => {

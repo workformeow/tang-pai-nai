@@ -67,21 +67,10 @@ describe('SyncStatus', () => {
     expect(show('failed', 2)).toBe('sync ไม่สำเร็จ · รอ 2')
   })
 
-  it('toasts once when the server fails a round, not again on each retry', () => {
-    const toasts = () => toastState.toasts().map((toast) => toast.title)
-    show('synced')
-    expect(toasts()).toEqual([])
-
+  it('never toasts itself, so a pill re-created on navigation adds none (SyncService does)', () => {
     show('failed', 1)
-    expect(toasts()).toEqual([th.sync.failedToast])
-    show('failed', 2)
-    expect(toasts()).toEqual([th.sync.failedToast])
-
-    // Through again, then a new streak: one more toast.
-    show('synced')
-    toastState.dismiss()
-    show('failed', 1)
-    expect(toasts()).toEqual([th.sync.failedToast])
+    TestBed.createComponent(SyncStatus).detectChanges()
+    expect(toastState.toasts()).toEqual([])
   })
 
   it('shows the state as an icon: green when synced, red with a count when something is wrong', () => {

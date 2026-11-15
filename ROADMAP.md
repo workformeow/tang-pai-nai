@@ -112,8 +112,7 @@ staging.
 
 Decisions (owner, #17):
 
-- **Bot check: Cloudflare Turnstile** (owner, 2026-11, [auth.md](docs/features/auth.md) rule
-  32) on the three sign-in calls that send mail / SMS or check a password, so a bot can't spend
+- **Bot check: Cloudflare Turnstile** (owner, 2026-11, [auth.md](docs/features/auth.md) rule 32) on the three sign-in calls that send mail / SMS or check a password, so a bot can't spend
   the daily mail cap for the whole family. Invisible unless Cloudflare asks for a click; off
   without `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY`, fails open when Cloudflare is down (the
   DB limits stay). Not on verify, Google, or anything behind a session. The domain's DNS stays
@@ -222,6 +221,22 @@ Branch `feat/web-loading`, built and tested 2026-11-15. Web only, no API change.
 
 ---
 
+## Done: Fewer toasts (2026-11)
+
+Web only, no API change. Owner: the toast after adding a transaction covered the header, and the
+"sync ไม่สำเร็จ" toast came back on every tab change.
+
+- **Sync failed**: the toast moved from the sync pill to `SyncService.markFailed`, once per streak.
+  `app-header` renders the pill in three branches, so a navigation re-created it and each new
+  pill toasted again. Sync itself never ran on a navigation; offline and server down still show
+  only the pill.
+- **Frequent saves**: adding or editing a transaction or a transfer, or paying a card, no longer
+  toasts (the list shows the row); "บันทึกแล้วเพิ่มต่อ" still does. Saves done now and then
+  (wallet, category, profile, debt, event, security) keep theirs (owner's choice). The rule is in
+  DESIGN.md §6.
+
+---
+
 ## Done: Account › ติดตั้งลงหน้าจอ (2026-11)
 
 Web only, no API change. [spec](docs/features/install.md). Owner: people didn't know how to put the
@@ -309,7 +324,7 @@ Web only, no API change. Owner's choices after trying the app on a phone.
   (`touch-action: manipulation`).
 - **Sync failures shown**: a round the API answers with an error (a 500, e.g. a local database
   missing a migration) sets `SyncService.failed()`: the pill shows "sync ไม่สำเร็จ" (red), a toast
-  says so once per streak, the sheet explains, and it retries like an unreachable server. Before,
+  says so once per streak (from `SyncService` since "Fewer toasts"), the sheet explains, and it retries like an unreachable server. Before,
   it only logged to the console and looked synced.
 - **Known**: two `sync.service.spec.ts` retry tests ("while the server is unreachable") fail now
   and then, on `develop` before this change too (timer timing); not fixed yet.

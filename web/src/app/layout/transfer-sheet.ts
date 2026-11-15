@@ -891,7 +891,10 @@ export class TransferSheet {
       excludeFromReport: false,
       startOn: values.occurredOn,
     })
-    let done = state.mode === 'create' ? 'transfers.created' : 'transfers.saved'
+    // A plain save closes the sheet onto the list that already shows the row, so it gets no
+    // toast (owner 2026-11: it only covered the header). "Save and add" keeps the sheet open,
+    // so that one still says the row was saved. Rules and due bills aren't on the list: toast.
+    let done: string | null = addAnother && state.mode === 'create' ? 'transfers.created' : null
     if (state.mode === 'rule' || state.mode === 'fixRule') {
       this.recurringService.update(
         state.id,
@@ -914,12 +917,12 @@ export class TransferSheet {
       this.recurringService.create(ruleValues(repeat))
       done = 'recurring.created'
     } else {
+      // A card's payment too: the Wallets tab shows what's left owed.
       this.transferService.save(this.editingId(), values)
-      if (this.paying()) {
-        done = 'transfers.paid'
-      }
     }
-    toast.success(this.transloco.translate(done))
+    if (done) {
+      toast.success(this.transloco.translate(done))
+    }
     if (addAnother && state.mode === 'create') {
       this.form.reset({ ...value, amount: '', note: '' })
       this.keypad.set(true)

@@ -234,6 +234,9 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
   `?fix=<opId>` (a wallet goes to `/wallets` and calls `WalletService.openFix(opId)` itself,
   because the Wallets tab may be showing the first-wallet step); saving queues a new op and
   deletes the rejected one.
+- A round the server answers with an error (`failed`) toasts **once per streak from
+  `SyncService.markFailed`**, never from the pill: `app-header` renders the pill in more than one
+  branch, so a navigation re-creates it.
 - The header's sync status is `layout/sync-status.ts`, one 44px icon on every tab (#9); its
   sheet (`layout/sync-sheet.ts`, spartan drawer) is `@defer`red until first opened. A new synced
   table needs its `sync.table<name>` key there (the sheet labels items by table).
