@@ -1,14 +1,26 @@
 import { signal } from '@angular/core'
 import type { Provider } from '@angular/core'
 import { LiveService } from './live.service'
+import type { LiveListener } from './live.type'
 
-/** Specs: a `LiveService` that never connects, so it asks the API for nothing. */
-export const provideNoLive = (): Provider => ({
-  provide: LiveService,
-  useValue: {
+/** Specs: a `LiveService` that never connects; `listeners` holds who listens, by channel key. */
+export const fakeLive = () => {
+  const listeners = new Map<string, LiveListener>()
+  const listen = (key: string, listener: LiveListener) => {
+    listeners.set(key, listener)
+    return () => {
+      listeners.delete(key)
+    }
+  }
+  const value = {
     provider: signal(null),
     connected: signal(false),
-    listenUser: () => () => undefined,
-    listenProfile: () => () => undefined,
-  } satisfies Pick<LiveService, 'provider' | 'connected' | 'listenUser' | 'listenProfile'>,
-})
+    listenUser: (listener: LiveListener) => listen('user', listener),
+    listenProfile: (profileId: string, listener: LiveListener) =>
+      listen(`profile:${profileId}`, listener),
+  } satisfies Pick<LiveService, 'provider' | 'connected' | 'listenUser' | 'listenProfile'>
+  return { listeners, provider: { provide: LiveService, useValue: value } satisfies Provider }
+}
+
+/** Specs that don't exercise live sync: it asks the API for nothing. */
+export const provideNoLive = (): Provider => fakeLive().provider

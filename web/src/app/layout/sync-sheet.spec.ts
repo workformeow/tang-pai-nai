@@ -6,6 +6,8 @@ import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthStore } from '@/core/auth'
 import { CategoryService } from '@/core/category'
 import th from '@/core/i18n/th.json'
+import { LiveService } from '@/core/live'
+import type { LiveProvider } from '@/core/live'
 import { NetworkStatusService } from '@/core/network'
 import { SyncService } from '@/core/offline'
 import type { OutboxOp, SyncNotice, SyncStatus } from '@/core/offline'
@@ -72,6 +74,8 @@ describe('SyncSheet', () => {
     discardRefused: vi.fn(),
   }
 
+  const live = { provider: signal<LiveProvider | null>(null), connected: signal(false) }
+
   const text = () => document.body.textContent
   const button = (label: string) =>
     [...document.body.querySelectorAll('button')].find((b) => b.textContent.trim() === label)
@@ -93,6 +97,8 @@ describe('SyncSheet', () => {
     sync.lastSyncedAt.set(null)
     sync.status.set('synced')
     sync.failed.set(false)
+    live.provider.set(null)
+    live.connected.set(false)
     TestBed.configureTestingModule({
       imports: [
         TranslocoTestingModule.forRoot({
@@ -106,6 +112,7 @@ describe('SyncSheet', () => {
         { provide: WalletService, useValue: wallets },
         { provide: ProfileService, useValue: profiles },
         { provide: CategoryService, useValue: { byId: () => null } },
+        { provide: LiveService, useValue: live },
       ],
     })
     TestBed.inject(AuthStore).status.set('signedIn')
@@ -119,6 +126,20 @@ describe('SyncSheet', () => {
     expect(text()).toContain(th.sync.allSynced)
     button(th.sync.syncNow)?.click()
     expect(sync.sync).toHaveBeenCalledOnce()
+  })
+
+  it('says whether live updates are connected, and nothing when they are off (live-sync)', async () => {
+    live.provider.set('ably')
+    live.connected.set(true)
+    await open()
+    expect(text()).toContain(th.sync.liveConnected)
+    live.connected.set(false)
+    fixture.detectChanges()
+    expect(text()).toContain(th.sync.liveDisconnected)
+    live.provider.set('disabled')
+    fixture.detectChanges()
+    expect(text()).not.toContain(th.sync.liveDisconnected)
+    expect(text()).not.toContain(th.sync.liveConnected)
   })
 
   it('never says "all synced" before a round got through, or while it fails', async () => {

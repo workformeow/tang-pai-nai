@@ -327,6 +327,25 @@ describe('SharingService › a shared profile in use (sharing rules 9–16)', ()
     setup.http.expectOne('/api/sharing/with-me').flush(envelope(NOTHING))
   })
 
+  it('listens to the shared profile in use from its read cursor, and reads on a poke (live-sync)', async () => {
+    expect(setup.live.has('profile:pz')).toBe(false)
+    await openIt()
+    const listener = setup.live.get('profile:pz')
+    expect(listener?.cursor()).toBe(3)
+    expect(listener?.deviceId()).toBe('d1')
+    listener?.onPoke()
+    // A poke during the read runs one more read after it.
+    listener?.onPoke()
+    setup.http.expectOne(rowsUrl(3)).flush(envelope(page([tx('t3', 4)], 4)))
+    await settle()
+    setup.http.expectOne(rowsUrl(4)).flush(envelope(page([], 4)))
+    await settle()
+    expect(listener?.cursor()).toBe(4)
+    profileService.leaveShared()
+    TestBed.tick()
+    expect(setup.live.has('profile:pz')).toBe(false)
+  })
+
   it('goes back to an own profile when a read answers 404', async () => {
     await openIt()
     const read = service.refreshShared()
