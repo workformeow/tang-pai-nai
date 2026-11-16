@@ -94,7 +94,7 @@ merging.
 | 17  | Deploy (Vercel)                | ✅  | ✅  | **staging only** (`develop`), the app's show-and-test copy; production waits until the family uses it for real (owner, 2026-11). [steps](docs/deploy.md)                                                                                                |
 | 18  | Credit card                    | ✅  | ✅  | `wallets.isCreditCard`: out of the total, counted in "ทุกกระเป๋า"; paid by one transfer (pay sheet, Wallets tab card section). [spec](docs/features/credit-card.md)                                                                                     |
 | 19  | Loading                        | —   | ✅  | splash in `index.html` until the first page, a creeping bar for slow page changes, a new device waits for its whole first pull. [spec](docs/features/loading.md)                                                                                        |
-| 20  | Live sync                      | ✅  | ✅  | a poke `{ seq, deviceId }` after a push that applied something; `user:` → a sync round, `book:` → a shared read; `local` SSE in dev, Ably on Vercel (key pending). [spec](docs/features/live-sync.md)                                                |
+| 20  | Live sync                      | ✅  | ✅  | a poke `{ seq, deviceId }` after a push that applied something; `user:` → a sync round, `book:` → a shared read; `local` SSE in dev, Ably on Vercel (staging on, 2026-11). [spec](docs/features/live-sync.md)                                         |
 | 21  | **Shared activity** ← next     | ⬜  | ⬜  | who added, edited or deleted which transaction in a shared book (latest action per row, 90 days), under ⋮; names on rows when not you. Web only. [spec](docs/features/shared-activity.md)                                                            |
 | 22  | Privacy & account deletion     | ✅  | ✅  | a privacy notice open without sign-in (`/auth/privacy`, Account › เกี่ยวกับแอป), "test version" from `TEST_VERSION`, "signing in accepts the notice"; delete the account at once (recent auth + typed email + button). [spec](docs/features/privacy.md) |
 
@@ -264,10 +264,9 @@ line shown, nothing in the background (spec → Decisions).
   0.5 s instead of 2 s (offline-sync rule 11; one action's writes still go in one push), so
   another device sees it about 1.5 s sooner. "sync ตอนนี้" closes the sync sheet when the round
   leaves nothing to look at, with no toast. Tests: web 739.
-- **Owner, to do**: create the staging Ably app (free plan), then set `LIVE_PROVIDER=ably` and
-  `ABLY_API_KEY` on the API's Vercel Preview and in `api/.env.staging`
-  ([deploy.md](docs/deploy.md) step 3c), and check step 7.5 on two devices. Until then staging
-  runs with live sync off.
+- **Ably on staging** (owner, 2026-11): the staging Ably app (free plan) is set up, with
+  `LIVE_PROVIDER=ably` and `ABLY_API_KEY` on the API's Vercel Preview and in `api/.env.staging`
+  ([deploy.md](docs/deploy.md) step 3c), so staging runs with live sync on.
 
 ---
 
@@ -497,6 +496,15 @@ Known, for later:
   the same, so it's the test browser's line breaking, not our markup.
 - The API's sign-in only accepts `Origin: http://localhost:4200` (`WEB_ORIGIN`): a local server
   for Playwright on `npm run build` output must listen on 4200, or `/auth/refresh` answers 403.
+- **Old service worker on a tunnel** (2026-11): a phone that once opened a `npm run build` copy
+  on a tunnel host keeps that build's service worker, which serves the old app even when the
+  host now runs `ng serve` (no worker there). It goes by itself after a while (`ngsw.json`
+  answers 404, so the worker drops its caches and unregisters), or at once by deleting the
+  host's Website Data in Safari's settings. Use different hosts for build and `ng serve`
+  (a quick `*.trycloudflare.com` for builds).
+- **API tests on Windows from Git Bash** (2026-11): with a lowercase drive in the path (`d:\…`,
+  as Git Bash gives) Vitest loads two copies of itself and every file fails ("failed to find the
+  runner", "reading 'config'"). Run `npm test` from PowerShell or another terminal on `D:\…`.
 
 ---
 
@@ -1694,3 +1702,13 @@ Agreed with the user. Do not re-propose alternatives unless asked.
 - **Live updates of sharing** (after #20): poke the `user:` channel when an invite arrives or a
   member's role or wallets change, so the Account tab's dot and the switcher update at once.
   Invites are rare, so the next app open is enough for now.
+- **End-to-end tests (Playwright)** (owner, 2026-11: start once the wanted features are done):
+  `@playwright/test` in `web/`, starting the API on an empty database and `ng serve`. A few smoke
+  paths first: sign up with an email code (read from the `console` email provider), first book
+  and wallet, a transaction that syncs, edit profile, sign out. Chromium and WebKit (closest to
+  Safari) at phone size; into CI once they are steady. Today Playwright is only a manual check
+  per feature ("How we build a feature" step 3) and nothing tests the web against the real API.
+- **Copy categories into a new book**: not wanted (owner, 2026-11). A new book gets only the
+  default set, in the language the app has when the book is made (category rule 8); books stay
+  apart, so one book's own categories ("เกม Genshin") never follow into another. A new wallet
+  in the same book sees all of its book's categories (hide some per wallet, rule 13).
