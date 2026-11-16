@@ -147,6 +147,10 @@ listeners live in memory.
   `profile:` poke); the device keeps the channels it listens to. The API ends a stream after
   10 minutes (a comment line every 25 s keeps proxies open) and the device opens a new one at
   once, with a fresh access token, so a signed-out session stops hearing soon after.
+- `ably`: the API uses `@ably/pubsub-server` (a server, with the API key: not counted as a
+  monthly active user) and the web `@ably/pubsub-device` (a device). The old `ably` package
+  (2.x) is refused by an account billed by MAU (Ably error 40168). A device connection on such an
+  account must carry a client ID, so the token request sets `clientId` to the user's id.
 - `ably`: the token request lists `user:<id>` and the profiles of rule 3 at that moment. A
   profile shared after the token was made fails to attach; the device then asks for a new token
   and attaches again.
