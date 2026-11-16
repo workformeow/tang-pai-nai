@@ -180,7 +180,7 @@ describe('ProfileSheet', () => {
     await open({ mode: 'edit', id: 'p2' })
     button(th.profiles.delete)?.click()
     await settle()
-    expect(body().textContent).toContain('ลบโปรไฟล์ “Work” ใช่ไหม')
+    expect(body().textContent).toContain('ลบสมุด “Work” ใช่ไหม')
     button(th.sheet.back)?.click()
     await settle()
     expect(profiles.profiles()).toHaveLength(2)
@@ -252,9 +252,7 @@ describe('ProfileSheet', () => {
     await open({ mode: 'edit', id: 'p1' })
     button(th.profiles.delete)?.click()
     await settle()
-    expect(body().textContent).toContain(
-      'หมวดหมู่ 3 รายการ ในโปรไฟล์นี้จะถูกลบไปด้วย และเลิกทำไม่ได้'
-    )
+    expect(body().textContent).toContain('หมวดหมู่ 3 รายการ ในสมุดนี้จะถูกลบไปด้วย และเลิกทำไม่ได้')
     putRow(db, 'wallets', {
       id: 'w1',
       profileId: 'p1',
@@ -275,7 +273,7 @@ describe('ProfileSheet', () => {
     changes.update((n) => n + 1)
     await settle()
     expect(body().textContent).toContain(
-      'กระเป๋าเงิน 1 ใบและหมวดหมู่ 3 รายการ ในโปรไฟล์นี้จะถูกลบไปด้วย'
+      'กระเป๋าเงิน 1 ใบและหมวดหมู่ 3 รายการ ในสมุดนี้จะถูกลบไปด้วย'
     )
   })
 

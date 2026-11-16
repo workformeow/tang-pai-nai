@@ -123,7 +123,7 @@ describe('AccountPage', () => {
       '/account/privacy',
     ])
     const text = page().textContent
-    expect(text).toContain('ของโปรไฟล์ ส่วนตัว')
+    expect(text).toContain('ของสมุด ส่วนตัว')
     // Recurring (#12): how many rules the profile holds.
     expect(text).toContain('2 รายการใน ส่วนตัว')
     // Debts and events are data, not settings (owner, 2026-11): reached from their tabs.

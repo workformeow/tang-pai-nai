@@ -200,7 +200,7 @@ describe('ProfileService', () => {
     TestBed.tick()
     expect(service.current()?.id).toBe('p1')
     expect(toastState.toasts().map((toast) => toast.title)).toEqual([
-      'โปรไฟล์ “Work” ถูกลบจากเครื่องอื่น',
+      'สมุด “Work” ถูกลบจากเครื่องอื่น',
     ])
   })
 

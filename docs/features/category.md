@@ -220,7 +220,7 @@ Online `GET`s for members of shared wallets arrive with #16 if needed.
 Glossary: หมวดหมู่ / Category, หมวดหมู่ย่อย / Sub-category, รายจ่าย / รายรับ (DESIGN.md §11).
 
 - **Account › หมวดหมู่** `/account/categories` (decided at the start of #7), a row under
-  "โปรไฟล์": the current profile's categories. At the top, the current profile (icon + name),
+  "สมุด": the current profile's categories. At the top, the current profile (icon + name),
   tapping it opens the profile switch sheet. Tabs รายจ่าย / รายรับ, then the list: parents (40px
   badge, name, "รอ sync" on a pending row) with their children indented under them, "เพิ่ม
   หมวดหมู่" (hidden at 200 with a line saying why), then a folded "เก็บถาวร (n)" group. Tap a row

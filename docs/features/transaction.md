@@ -249,7 +249,7 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
   with a line once it has transactions.
 - **Wallets tab**: balances are real (rule 12).
 - **Profile delete confirm**: counts transactions too ("กระเป๋าเงิน 1 ใบ หมวดหมู่ 27 รายการ
-  และธุรกรรม 5 รายการ ในโปรไฟล์นี้…", `Intl.ListFormat`).
+  และธุรกรรม 5 รายการ ในสมุดนี้…", `Intl.ListFormat`).
 - **Sync sheet**: a refused transaction reads as its category, amount and note; "แก้" opens it.
 - There is no separate detail screen: a row opens the form, whose header holds delete (undo in
   the toast).

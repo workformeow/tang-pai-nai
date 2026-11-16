@@ -177,7 +177,7 @@ export class ProfileSwitchSheet {
     this.open.set(false)
   }
 
-  /** "เพิ่มโปรไฟล์" adds an own profile: what an own one could write. */
+  /** "เพิ่มสมุด" adds an own profile: what an own one could write. */
   protected ownCanWrite = computed(
     () => this.profileService.isShared() || this.profileService.canWrite()
   )

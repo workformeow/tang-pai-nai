@@ -13,7 +13,7 @@ import { EmptyState } from '@/shared/components/empty-state'
 import { IconBadge } from '@/shared/components/icon-badge'
 
 /**
- * Account › โปรไฟล์ (docs/features/profile.md → Web screens): the list in order, edit (in the
+ * Account › สมุด (docs/features/profile.md → Web screens): the list in order, edit (in the
  * profile sheet, which also deletes), and an order mode with up / down buttons.
  */
 @Component({

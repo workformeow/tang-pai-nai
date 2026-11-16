@@ -127,7 +127,7 @@ Push results for editors (16.2): `rejected` with `STALE` or `NOT_SHARED`.
 - **Profile switcher** (16.2): the own profiles, then "แชร์กับฉัน": one row per owner's profile
   (name · ของ <owner> · how many wallets · role). Picking one makes every tab show it:
   Transactions (the shared wallets), Wallets (their balances, no wallet actions or debts),
-  Reports ("รายงานดูได้เฉพาะโปรไฟล์ของคุณ"); ➕ and a row open the usual transaction sheet (no
+  Reports ("รายงานดูได้เฉพาะสมุดของคุณ"); ➕ and a row open the usual transaction sheet (no
   event or repeat rows: none are shared). Offline: the group is disabled, a shared profile in use
   shows "ใช้งานไม่ได้ขณะออฟไลน์" with a way back. 16.1's "แชร์กับฉัน" section of the Wallets tab
   and `/wallets/shared/:id` are gone.
