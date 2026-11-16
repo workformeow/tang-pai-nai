@@ -176,15 +176,15 @@ describe('OfflineService', () => {
     expect(service.isOpen()).toBe(false)
   })
 
-  it('forgets every current-profile choice on wipe, and nothing else (profile rule 6)', async () => {
+  it('forgets every current-book choice on wipe, and nothing else (book rule 6)', async () => {
     setUp()
     await service.enable(PIN)
-    localStorage.setItem('tpn-profile:u1', 'p1')
-    sessionStorage.setItem('tpn-profile:u2', 'p2')
+    localStorage.setItem('tpn-book:u1', 'p1')
+    sessionStorage.setItem('tpn-book:u2', 'p2')
     localStorage.setItem('tpn-theme', 'dark')
     await service.wipe()
-    expect(localStorage.getItem('tpn-profile:u1')).toBeNull()
-    expect(sessionStorage.getItem('tpn-profile:u2')).toBeNull()
+    expect(localStorage.getItem('tpn-book:u1')).toBeNull()
+    expect(sessionStorage.getItem('tpn-book:u2')).toBeNull()
     expect(localStorage.getItem('tpn-theme')).toBe('dark')
     localStorage.clear()
   })
@@ -375,13 +375,13 @@ describe('OfflineService', () => {
   })
 })
 
-describe('OfflineService › a shared profile in use (sharing rule 15)', () => {
+describe('OfflineService › a shared book in use (sharing rule 15)', () => {
   let service: OfflineService
   let vault: ReturnType<typeof memoryVault>
 
   const tx = (id: string) => ({
     id,
-    profileId: 'pz',
+    bookId: 'pz',
     walletId: 'zh',
     categoryId: 'zc',
     amount: 100,
@@ -450,7 +450,7 @@ describe('OfflineService › a shared profile in use (sharing rule 15)', () => {
   it('fills the TEMP tables without an op, and ends with a lock', async () => {
     service.enterShared()
     service.fillShared((db) =>
-      db.exec(`INSERT INTO categories (id, profile_id, type, name, icon, color, is_archived,
+      db.exec(`INSERT INTO categories (id, book_id, type, name, icon, color, is_archived,
           sort_order, created_at, updated_at) VALUES ('zc', 'pz', 'expense', 'Food', 'x', '#000',
           0, 0, 1, 1)`)
     )

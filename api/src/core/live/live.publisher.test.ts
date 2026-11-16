@@ -23,8 +23,8 @@ describe('createLivePublisher', () => {
         return Promise.resolve()
       },
     })
-    await publisher.publish([message('user:alice'), message('profile:pa')])
-    expect(sent.map((m) => m.channel)).toEqual(['user:alice', 'profile:pa'])
+    await publisher.publish([message('user:alice'), message('book:pa')])
+    expect(sent.map((m) => m.channel)).toEqual(['user:alice', 'book:pa'])
   })
 
   it('logs a failed publish as a warning and still resolves (live-sync rule 7)', async () => {
@@ -35,7 +35,7 @@ describe('createLivePublisher', () => {
         m.channel === 'user:alice' ? Promise.reject(new Error('down')) : Promise.resolve(),
     })
     await expect(
-      publisher.publish([message('user:alice'), message('profile:pa')])
+      publisher.publish([message('user:alice'), message('book:pa')])
     ).resolves.toBeUndefined()
     expect(warn).toHaveBeenCalledTimes(1)
     expect(warn.mock.calls[0][1]).toEqual({ channel: 'user:alice', cause: 'down' })

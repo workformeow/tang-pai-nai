@@ -50,7 +50,7 @@ themselves (a pull request's preview must not change the staging database).
 
 - Cloudflare dashboard → Turnstile → Add widget, **one per environment** (staging, production).
   Hostnames: the web's host for that environment (e.g. `<project>-git-develop-<team>.vercel.app`
-  for staging, plus `localhost` so the Docker `staging` profile works; your own domain for
+  for staging, plus `localhost` so the Docker `staging` book works; your own domain for
   production). Widget mode **Managed**. No DNS change and no
   Cloudflare proxy (orange cloud) is needed: keep the web's DNS record **DNS only**, Vercel
   serves it.
@@ -77,7 +77,7 @@ themselves (a pull request's preview must not change the staging database).
   the server side and can't pass Vercel's login; the API has its own auth.
 - Environment variables (Production and Preview, each with its own values). **Preview** =
   import `api/.env.staging` (Settings → Environment Variables → Import .env, branch `develop`)
-  once it works with `docker compose --profile staging` ([env.md](env.md) → Environments).
+  once it works with `docker compose --book staging` ([env.md](env.md) → Environments).
   **Production**: type or import them from your password manager; they never sit in a file in
   the repo folder.
 
@@ -122,7 +122,7 @@ from `WEB_ORIGIN`, so a pull request's own preview URL can't stay signed in: tes
 ## 7. First check on staging
 
 1. `https://<web>/api/health` answers `Operation successful` (the middleware reaches the API).
-2. Sign in with your email: the code arrives from Resend; set the PIN, create a profile and a
+2. Sign in with your email: the code arrives from Resend; set the PIN, create a book and a
    wallet, add a transaction, reload: the data comes back after the PIN. With Turnstile on,
    `https://<web>/api/auth/providers` shows `botCheckSiteKey`, and the sign-in shows no
    "bot check failed" line.

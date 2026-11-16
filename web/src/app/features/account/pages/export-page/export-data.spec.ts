@@ -23,7 +23,7 @@ describe('export data (docs/features/export.md rules 2–6)', () => {
   let db: LocalDatabase
   let setup: Awaited<ReturnType<typeof setUpDebts>>
   const all: ExportQuery = {
-    profileId: 'p1',
+    bookId: 'p1',
     from: null,
     to: null,
     walletIds: null,
@@ -36,7 +36,7 @@ describe('export data (docs/features/export.md rules 2–6)', () => {
     db = setup.db
     setup.pulled('categories', {
       id: 'food',
-      profileId: 'p1',
+      bookId: 'p1',
       type: 'expense',
       parentId: 'shop',
       name: 'อาหาร',
@@ -47,7 +47,7 @@ describe('export data (docs/features/export.md rules 2–6)', () => {
     })
     setup.pulled('events', {
       id: 'cm',
-      profileId: 'p1',
+      bookId: 'p1',
       name: 'เชียงใหม่',
       icon: 'lucidePlane',
       color: '#7c3aed',
@@ -73,7 +73,7 @@ describe('export data (docs/features/export.md rules 2–6)', () => {
     setup.transaction('gone', { deletedAt: 5 })
     setup.pulled('transfers', {
       id: 'r1',
-      profileId: 'p1',
+      bookId: 'p1',
       fromWalletId: 'bank',
       toWalletId: 'cash',
       amount: 100000,

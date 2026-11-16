@@ -3,7 +3,7 @@ import { validateWallet } from './wallet.schema'
 
 const valid = {
   id: '0199a000-0000-7000-8000-000000000101',
-  profileId: '0199a000-0000-7000-8000-000000000001',
+  bookId: '0199a000-0000-7000-8000-000000000001',
   name: '  เงินสด ',
   currencyCode: 'THB',
   initialBalance: -150050,
@@ -44,6 +44,7 @@ describe('validateWallet', () => {
   it('ignores server columns a device sends', () => {
     const result = validateWallet({ ...valid, changeSeq: 99, updatedBy: 'x', userId: 'y' })
     expect(result.ok && Object.keys(result.row).sort()).toEqual([
+      'bookId',
       'color',
       'createdAt',
       'currencyCode',
@@ -56,7 +57,6 @@ describe('validateWallet', () => {
       'isArchived',
       'isCreditCard',
       'name',
-      'profileId',
       'sortOrder',
       'updatedAt',
     ])
@@ -78,7 +78,7 @@ describe('validateWallet', () => {
   it.each([
     ['an empty name', { name: '   ' }, 'Name is required'],
     ['a name over 50 characters', { name: 'x'.repeat(51) }, 'Name must be at most 50'],
-    ['a profile id that is not a UUID', { profileId: 'abc' }, 'Invalid profileId format'],
+    ['a book id that is not a UUID', { bookId: 'abc' }, 'Invalid bookId format'],
     ['a lowercase currency', { currencyCode: 'thb' }, 'Invalid currencyCode format'],
     ['a fractional balance', { initialBalance: 1.5 }, 'Initial balance must be of type integer'],
     ['a balance over 10¹⁵', { initialBalance: 1_000_000_000_000_001 }, 'Invalid initialBalance'],

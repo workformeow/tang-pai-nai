@@ -4,7 +4,7 @@ import { validateRecurringRule } from './recurring.schema'
 
 const valid = {
   id: '0199a000-0000-7000-8000-000000000501',
-  profileId: '0199a000-0000-7000-8000-000000000001',
+  bookId: '0199a000-0000-7000-8000-000000000001',
   kind: 'transaction',
   walletId: '0199a000-0000-7000-8000-000000000101',
   categoryId: '0199a000-0000-7000-8000-000000000201',

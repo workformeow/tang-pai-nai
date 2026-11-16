@@ -37,8 +37,8 @@ describe('WalletService', () => {
     rejectedOp: (opId: string) => findOp(db, opId),
   }
 
-  const profile = (id: string, sortOrder: number, deletedAt: number | null = null) =>
-    putRow(db, 'profiles', {
+  const book = (id: string, sortOrder: number, deletedAt: number | null = null) =>
+    putRow(db, 'books', {
       id,
       name: id,
       icon: 'lucideHouse',
@@ -52,7 +52,7 @@ describe('WalletService', () => {
     })
   const wallet = (id: string, extra: object = {}) => ({
     id,
-    profileId: 'p1',
+    bookId: 'p1',
     name: id,
     currencyCode: 'THB',
     initialBalance: 0,
@@ -89,8 +89,8 @@ describe('WalletService', () => {
   beforeEach(async () => {
     db = await openTestDatabase()
     localStorage.clear()
-    profile('p1', 0)
-    profile('p2', 1)
+    book('p1', 0)
+    book('p2', 1)
     // As pulled: THB active (sortOrder 0), JPY not (currency.md seed).
     for (const [code, minorUnit, isActive, sortOrder] of [
       ['THB', 2, true, 0],
@@ -130,20 +130,20 @@ describe('WalletService', () => {
 
   afterEach(() => db.close())
 
-  it("lists the current profile's live wallets in order, archived ones apart (rule 10)", () => {
+  it("lists the current book's live wallets in order, archived ones apart (rule 10)", () => {
     pulled(wallet('b', { sortOrder: 1 }))
     pulled(wallet('a', { sortOrder: 1, createdAt: 500 }))
     pulled(wallet('c', { sortOrder: 0, isArchived: true }))
     pulled(wallet('gone', { deletedAt: 5 }))
-    pulled(wallet('other', { profileId: 'p2' }))
+    pulled(wallet('other', { bookId: 'p2' }))
     expect(names()).toEqual(['c', 'a', 'b'])
     expect(service.openWallets().map((item) => item.id)).toEqual(['a', 'b'])
     expect(service.archived().map((item) => item.id)).toEqual(['c'])
     expect(service.hasWallet()).toBe(true)
   })
 
-  it('has no wallet in a profile that has none, so the first-wallet step shows (rule 12)', () => {
-    pulled(wallet('other', { profileId: 'p2' }))
+  it('has no wallet in a book that has none, so the first-wallet step shows (rule 12)', () => {
+    pulled(wallet('other', { bookId: 'p2' }))
     expect(service.hasWallet()).toBe(false)
   })
 
@@ -196,11 +196,11 @@ describe('WalletService', () => {
     expect(service.activeCurrencies().map((currency) => currency.code)).toEqual(['THB'])
   })
 
-  it('creates a wallet last in the current profile and queues it', () => {
+  it('creates a wallet last in the current book and queues it', () => {
     pulled(wallet('a', { sortOrder: 4 }))
     const id = service.save(null, values)
     expect(service.byId(id)).toMatchObject({
-      profileId: 'p1',
+      bookId: 'p1',
       name: 'Card',
       initialBalance: -1825075,
       isArchived: false,
@@ -209,11 +209,11 @@ describe('WalletService', () => {
     expect(ops()).toMatchObject([{ table: 'wallets', rowId: id, op: 'upsert', baseSeq: null }])
   })
 
-  it('edits a wallet in place: its profile, archive flag, order and baseSeq stay', () => {
-    pulled(wallet('a', { profileId: 'p2', sortOrder: 3, isArchived: true }))
+  it('edits a wallet in place: its book, archive flag, order and baseSeq stay', () => {
+    pulled(wallet('a', { bookId: 'p2', sortOrder: 3, isArchived: true }))
     service.save('a', values, null, 'p1')
     expect(service.byId('a')).toMatchObject({
-      profileId: 'p2',
+      bookId: 'p2',
       name: 'Card',
       isArchived: true,
       sortOrder: 3,
@@ -224,7 +224,7 @@ describe('WalletService', () => {
   it('saves hiddenCategoryIds cleaned, and the outbox row carries the array (category rule 13)', () => {
     putRow(db, 'categories', {
       id: 'gone',
-      profileId: 'p1',
+      bookId: 'p1',
       type: 'expense',
       parentId: null,
       name: 'Gone',
@@ -246,28 +246,28 @@ describe('WalletService', () => {
     expect(service.byId('old')?.hiddenCategoryIds).toEqual([])
   })
 
-  it("lists any profile's open wallets (the category form's wallets)", () => {
+  it("lists any book's open wallets (the category form's wallets)", () => {
     pulled(wallet('a'))
-    pulled(wallet('b', { profileId: 'p2' }))
-    pulled(wallet('c', { profileId: 'p2', isArchived: true }))
+    pulled(wallet('b', { bookId: 'p2' }))
+    pulled(wallet('c', { bookId: 'p2', isArchived: true }))
     expect(service.openOf('p1').map((item) => item.id)).toEqual(['a'])
     expect(service.openOf('p2').map((item) => item.id)).toEqual(['b'])
   })
 
-  it('saves a fix into the given profile and drops the rejected op', () => {
+  it('saves a fix into the given book and drops the rejected op', () => {
     db.transaction((tx) => queueWrite(tx, 'wallets', 'upsert', wallet('w9', { name: 'Cash' })))
     db.exec(`UPDATE outbox SET status = 'rejected', code = 'CONFLICT'`)
     db.exec(`DELETE FROM wallets`)
     const opId = listOps(db, 'rejected')[0].opId
     service.save('w9', { ...values, name: 'Cash 2' }, opId, 'p2')
     expect(listOps(db, 'rejected')).toHaveLength(0)
-    expect(service.byId('w9')).toMatchObject({ profileId: 'p2', name: 'Cash 2' })
+    expect(service.byId('w9')).toMatchObject({ bookId: 'p2', name: 'Cash 2' })
   })
 
-  it("opens a fix with the refused values, in the current profile when the wallet's is gone", () => {
-    profile('dead', 2, 5)
+  it("opens a fix with the refused values, in the current book when the wallet's is gone", () => {
+    book('dead', 2, 5)
     db.transaction((tx) =>
-      queueWrite(tx, 'wallets', 'upsert', wallet('w9', { profileId: 'dead', name: 'Cash' }))
+      queueWrite(tx, 'wallets', 'upsert', wallet('w9', { bookId: 'dead', name: 'Cash' }))
     )
     db.exec(`UPDATE outbox SET status = 'rejected', code = 'CONFLICT'`)
     const opId = listOps(db, 'rejected')[0].opId
@@ -276,7 +276,7 @@ describe('WalletService', () => {
       mode: 'fix',
       opId,
       id: 'w9',
-      profileId: 'p1',
+      bookId: 'p1',
       values: {
         name: 'Cash',
         icon: 'lucideWallet',
@@ -292,10 +292,10 @@ describe('WalletService', () => {
     expect(service.sheet()).toMatchObject({ opId })
   })
 
-  it("knows a taken name among the profile's open wallets only (rule 3)", () => {
+  it("knows a taken name among the book's open wallets only (rule 3)", () => {
     pulled(wallet('a', { name: 'Cash' }))
     pulled(wallet('b', { name: 'Old', isArchived: true }))
-    pulled(wallet('c', { name: 'Shop', profileId: 'p2' }))
+    pulled(wallet('c', { name: 'Shop', bookId: 'p2' }))
     expect(service.nameTaken(' CASH ', null)).toBe(true)
     expect(service.nameTaken('Cash', 'a')).toBe(false)
     expect(service.nameTaken('Old', null)).toBe(false)
@@ -330,7 +330,7 @@ describe('WalletService', () => {
   const txRow = (id: string, extra: object = {}) => {
     putRow(db, 'transactions', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       walletId: 'w',
       categoryId: 'c',
       amount: 1000,
@@ -352,7 +352,7 @@ describe('WalletService', () => {
     pulled(wallet('card'))
     putRow(db, 'categories', {
       id: 'food',
-      profileId: 'p1',
+      bookId: 'p1',
       type: 'expense',
       parentId: null,
       name: 'Food',
@@ -368,7 +368,7 @@ describe('WalletService', () => {
     })
     putRow(db, 'categories', {
       id: 'pay',
-      profileId: 'p1',
+      bookId: 'p1',
       type: 'income',
       parentId: null,
       name: 'Pay',

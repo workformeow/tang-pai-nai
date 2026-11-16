@@ -22,14 +22,14 @@ export const NOTHING: SharedWithMe = { invites: [], shares: [] }
 export const NO_ONE: OwnerSharing = { members: [], invites: [], unsharedWalletIds: [] }
 
 /**
- * A test database with profile `p1` and open wallets `home` / `cash` (plus archived `old`), the
+ * A test database with book `p1` and open wallets `home` / `cash` (plus archived `old`), the
  * HTTP testing backend, a signed-in `u1` and network signals to flip (spec helper for sharing).
  */
 export const setUpSharing = async (routes: Routes = []) => {
   const db: LocalDatabase = await openTestDatabase()
   const changes = signal(0)
   const base = { createdAt: 1, updatedAt: 1, deletedAt: null, changeSeq: 1, updatedBy: 'u1' }
-  putRow(db, 'profiles', {
+  putRow(db, 'books', {
     ...base,
     id: 'p1',
     name: 'ครอบครัว',
@@ -54,7 +54,7 @@ export const setUpSharing = async (routes: Routes = []) => {
     putRow(db, 'wallets', {
       ...base,
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       name,
       currencyCode: 'THB',
       initialBalance: 0,

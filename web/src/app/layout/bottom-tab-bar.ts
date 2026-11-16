@@ -9,7 +9,7 @@ import {
   lucideReceiptText,
   lucideWallet,
 } from '@ng-icons/lucide'
-import { ProfileService } from '@/core/profile'
+import { BookService } from '@/core/book'
 import { NavHistory } from '@/core/routing'
 import { TransactionService } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
@@ -77,25 +77,25 @@ export class BottomTabBar {
   /** Invitations to me are waiting (sharing.md → Web screens). */
   accountDot = input(false)
   /**
-   * ➕ opens the transaction form over the current tab; with no profile or no wallet yet it
-   * leads to the create step or the first-wallet step on the Transactions tab (profile rule 5,
+   * ➕ opens the transaction form over the current tab; with no book or no wallet yet it
+   * leads to the create step or the first-wallet step on the Transactions tab (book rule 5,
    * wallet rule 12).
    */
   private walletService = inject(WalletService)
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
   private transactionService = inject(TransactionService)
   private router = inject(Router)
   private window = inject(DOCUMENT).defaultView
   /** The lit tab: a page opened from another tab keeps that one lit (NavHistory). */
   protected navHistory = inject(NavHistory)
 
-  /** A shared profile I can't write now: a viewer, offline, still loading (sharing rule 10). */
+  /** A shared book I can't write now: a viewer, offline, still loading (sharing rule 10). */
   protected sharedReadOnly = computed(
-    () => this.profileService.isShared() && !this.profileService.canWrite()
+    () => this.bookService.isShared() && !this.bookService.canWrite()
   )
 
   protected add(): void {
-    if (this.profileService.current() && this.walletService.hasWallet()) {
+    if (this.bookService.current() && this.walletService.hasWallet()) {
       this.transactionService.open({ mode: 'create' })
       return
     }

@@ -5,11 +5,11 @@ export const TRANSFER_LIMITS = {
 } as const
 
 export const TRANSFER_MESSAGE = {
-  PROFILE_GONE: 'The profile does not exist or was deleted',
-  PROFILE_FIXED: 'A transfer cannot move to another profile',
+  BOOK_GONE: 'The book does not exist or was deleted',
+  BOOK_FIXED: 'A transfer cannot move to another book',
   FROM_GONE: 'The wallet to transfer from does not exist or was deleted',
   TO_GONE: 'The wallet to transfer to does not exist or was deleted',
   SAME_WALLET: 'A transfer needs two different wallets',
-  OTHER_PROFILE: 'Both wallets must belong to the transfer’s profile',
+  OTHER_BOOK: 'Both wallets must belong to the transfer’s book',
   OTHER_CURRENCY: 'Both wallets must have the same currency',
 } as const

@@ -1,4 +1,4 @@
-import type { ProfileRef, RowData, ShareRole } from './sharing.entity'
+import type { BookRef, RowData, ShareRole } from './sharing.entity'
 
 // Response `data` shapes (docs/features/sharing.md → Endpoints).
 
@@ -21,11 +21,11 @@ export interface SharingInvite {
   lastSentAt: number
 }
 
-/** GET /sharing/profiles/:profileId */
+/** GET /sharing/books/:bookId */
 export interface OwnerSharing {
   members: SharingMember[]
   invites: SharingInvite[]
-  /** Open wallets of the profile shared with nobody (rule 2). */
+  /** Open wallets of the book shared with nobody (rule 2). */
   unsharedWalletIds: string[]
 }
 
@@ -48,24 +48,24 @@ export interface SharedWithMe {
     expiresAt: number
   }[]
   shares: {
-    profileId: string
-    profile: ProfileRef
+    bookId: string
+    book: BookRef
     role: ShareRole
     owner: { id: string; displayName: string; email: string }
     wallets: SharedWalletView[]
   }[]
 }
 
-/** GET /sharing/with-me/:profileId/rows (rule 9) */
-export interface SharedProfileRows {
-  profile: ProfileRef
+/** GET /sharing/with-me/:bookId/rows (rule 9) */
+export interface SharedBookRows {
+  book: BookRef
   role: ShareRole
   owner: { id: string; displayName: string; email: string }
-  /** The owner and the profile's members: the names behind `addedBy`. */
+  /** The owner and the book's members: the names behind `addedBy`. */
   people: { id: string; displayName: string }[]
   /** The shared wallets, transfers and debt entries folded into `initialBalance`. */
   wallets: RowData[]
-  /** The owner's live categories of the profile (archived too). */
+  /** The owner's live categories of the book (archived too). */
   categories: RowData[]
   /**
    * The wallets' transactions with `changeSeq > since`, tombstones included, in order; one array

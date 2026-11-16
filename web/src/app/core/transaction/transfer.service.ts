@@ -1,15 +1,15 @@
 import { DOCUMENT } from '@angular/common'
 import { effect, inject, Service, signal, untracked } from '@angular/core'
+import { BookService } from '@/core/book'
 import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
-import { ProfileService } from '@/core/profile'
 import { WALLET_TABLE, WalletService } from '@/core/wallet'
 import { toTransfer } from './transaction.service'
 import { TRANSACTION_PREF_PREFIX, TRANSFER_TABLE } from './transaction.type'
 import type { Transfer, TransferSheetState, TransferValues } from './transaction.type'
 
 /**
- * Transfers between the current profile's wallets (docs/features/transfer.md): one row per
+ * Transfers between the current book's wallets (docs/features/transfer.md): one row per
  * transfer, written through the outbox like a transaction. The Transactions tab reads them with
  * its transactions (`TransactionService.entries`), balances read them in `WalletService`.
  */
@@ -17,12 +17,12 @@ import type { Transfer, TransferSheetState, TransferValues } from './transaction
 export class TransferService {
   private offlineService = inject(OfflineService)
   private syncService = inject(SyncService)
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
   private walletService = inject(WalletService)
   private window = inject(DOCUMENT).defaultView
 
-  canWrite = this.profileService.canWrite
-  serverDown = this.profileService.serverDown
+  canWrite = this.bookService.canWrite
+  serverDown = this.bookService.serverDown
 
   /** The open transfer sheet (layout/transfer-sheet), if any. */
   sheet = signal<TransferSheetState | null>(null)
@@ -48,7 +48,7 @@ export class TransferService {
     })
   }
 
-  /** A live transfer of any profile on this device. */
+  /** A live transfer of any book on this device. */
   byId(id: string): Transfer | null {
     return this.read((db) => {
       const row = this.find(db, id)
@@ -57,14 +57,14 @@ export class TransferService {
   }
 
   /**
-   * Creates (`id` null) or updates a transfer in the current profile (a fix: the op's profile);
+   * Creates (`id` null) or updates a transfer in the current book (a fix: the op's book);
    * a fix also drops the rejected op. Remembers the to wallet for the from wallet (Q7).
    */
   save(
     id: string | null,
     values: TransferValues,
     fixOpId: string | null = null,
-    profileId = this.profileService.current()?.id ?? ''
+    bookId = this.bookService.current()?.id ?? ''
   ): string {
     const now = Date.now()
     const rowId = id ?? uuidv7(now)
@@ -73,7 +73,7 @@ export class TransferService {
       queueWrite(db, TRANSFER_TABLE, 'upsert', {
         ...current,
         id: rowId,
-        profileId: current?.profileId ?? profileId,
+        bookId: current?.bookId ?? bookId,
         fromWalletId: values.fromWalletId,
         toWalletId: values.toWalletId,
         amount: values.amount,
@@ -87,7 +87,7 @@ export class TransferService {
         deleteOp(db, fixOpId)
       }
     })
-    this.remember(`from:${profileId}`, values.fromWalletId)
+    this.remember(`from:${bookId}`, values.fromWalletId)
     this.remember(`to:${values.fromWalletId}`, values.toWalletId)
     if (this.walletService.byId(values.toWalletId)?.isCreditCard) {
       // Credit-card rule 4: the pay sheet starts on the wallet this card was last paid from.
@@ -118,17 +118,17 @@ export class TransferService {
   }
 
   /** The from wallet a new transfer starts on: the last one used, if still open. */
-  defaultFromId(profileId = this.profileService.current()?.id ?? ''): string | null {
-    const open = this.walletService.openOf(profileId)
-    const last = this.recall(`from:${profileId}`)
+  defaultFromId(bookId = this.bookService.current()?.id ?? ''): string | null {
+    const open = this.walletService.openOf(bookId)
+    const last = this.recall(`from:${bookId}`)
     return open.find((wallet) => wallet.id === last)?.id ?? open.at(0)?.id ?? null
   }
 
   /** Q7: the to wallet last used from `fromId`, while it's still open and fits. */
-  lastToId(fromId: string, profileId = this.profileService.current()?.id ?? ''): string | null {
+  lastToId(fromId: string, bookId = this.bookService.current()?.id ?? ''): string | null {
     const from = this.walletService.byId(fromId)
     const last = this.recall(`to:${fromId}`)
-    const to = this.walletService.openOf(profileId).find((wallet) => wallet.id === last)
+    const to = this.walletService.openOf(bookId).find((wallet) => wallet.id === last)
     return to && from && to.id !== from.id && to.currencyCode === from.currencyCode ? to.id : null
   }
 
@@ -143,7 +143,7 @@ export class TransferService {
       return null
     }
     const fits = this.walletService
-      .openOf(card.profileId)
+      .openOf(card.bookId)
       .filter((wallet) => wallet.id !== card.id && wallet.currencyCode === card.currencyCode)
     const last = this.recall(`pay:${cardId}`)
     return (
@@ -171,14 +171,12 @@ export class TransferService {
     }
     const row = op.row
     const text = (key: string) => (typeof row[key] === 'string' ? row[key] : '')
-    const profileId = text('profileId')
+    const bookId = text('bookId')
     this.open({
       mode: 'fix',
       opId,
       id: op.rowId,
-      profileId: this.profileService.byId(profileId)
-        ? profileId
-        : (this.profileService.current()?.id ?? profileId),
+      bookId: this.bookService.byId(bookId) ? bookId : (this.bookService.current()?.id ?? bookId),
       values: {
         fromWalletId: text('fromWalletId'),
         toWalletId: text('toWalletId'),
@@ -227,7 +225,7 @@ export class TransferService {
     }
   }
 
-  /** Lasting on a trusted device, for the tab's life on an untrusted one (like the profile). */
+  /** Lasting on a trusted device, for the tab's life on an untrusted one (like the book). */
   private storage(): Storage | null {
     try {
       return this.offlineService.isTrusted()

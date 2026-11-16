@@ -20,11 +20,11 @@ properties:
         table:
           type: string
           description: >-
-            A pushable table: `profiles`, `wallets`, `categories`, `transactions`, `transfers`,
-            `recurring_rules`, `debts`, `debt_entries` or `events` (row as in SyncProfileRow,
+            A pushable table: `books`, `wallets`, `categories`, `transactions`, `transfers`,
+            `recurring_rules`, `debts`, `debt_entries` or `events` (row as in SyncBookRow,
             SyncWalletRow, SyncCategoryRow, SyncTransactionRow, SyncTransferRow,
             SyncRecurringRuleRow, SyncDebtRow, SyncDebtEntryRow, SyncEventRow)
-          example: profiles
+          example: books
         op:
           type: string
           enum: [upsert, delete]

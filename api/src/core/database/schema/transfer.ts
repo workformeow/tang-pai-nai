@@ -1,7 +1,7 @@
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { syncColumns } from '@/core/database/columns'
 import { users } from '@/core/database/schema/auth'
-import { profiles } from '@/core/database/schema/profile'
+import { books } from '@/core/database/schema/book'
 import { wallets } from '@/core/database/schema/wallet'
 
 // docs/features/transfer.md → Data model. One row per transfer (both sides), synced like
@@ -14,10 +14,10 @@ export const transfers = sqliteTable(
     userId: text()
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    // Cascades: purging a profile's or a wallet's old tombstone takes its transfers' with it.
-    profileId: text()
+    // Cascades: purging a book's or a wallet's old tombstone takes its transfers' with it.
+    bookId: text()
       .notNull()
-      .references(() => profiles.id, { onDelete: 'cascade' }),
+      .references(() => books.id, { onDelete: 'cascade' }),
     fromWalletId: text()
       .notNull()
       .references(() => wallets.id, { onDelete: 'cascade' }),
@@ -37,7 +37,7 @@ export const transfers = sqliteTable(
   (table) => [
     index('transfers_user_seq_idx').on(table.userId, table.changeSeq),
     index('transfers_change_seq_idx').on(table.changeSeq),
-    index('transfers_profile_idx').on(table.profileId),
+    index('transfers_book_idx').on(table.bookId),
     index('transfers_from_wallet_idx').on(table.fromWalletId),
     index('transfers_to_wallet_idx').on(table.toWalletId),
   ]

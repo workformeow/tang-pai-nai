@@ -2,10 +2,10 @@
 
 > Status: **Built** in #7: 7.1 (categories, the default set, Account › หมวดหมู่) and 7.2
 > (hiding per wallet, rule 13, from the wallet form and the category form). Revised at the start
-> of #7 (one set per profile, the default set written with the profile, a wallet can hide
+> of #7 (one set per book, the default set written with the book, a wallet can hide
 > categories). API: `api/src/features/category/` (sync handler only), `wallets.hiddenCategoryIds`
 > in `features/wallet`. Web: `core/category` (`CategoryService`),
-> `core/profile/default-categories.ts`, `core/wallet/hidden-categories.ts`,
+> `core/book/default-categories.ts`, `core/wallet/hidden-categories.ts`,
 > `layout/category-sheet`, `layout/wallet-sheet`, `features/account/pages/categories-page`.
 > #8.1 made rules 4 and 6's "has transactions" real (type: device + server check) and built the
 > transaction form's picker; sub-categories show in their parent's tinted panel (DESIGN.md §6).
@@ -17,15 +17,15 @@
 
 Categories classify each transaction as income or expense ("อาหาร", "เงินเดือน", …), with one level
 of sub-categories ("อาหาร → กาแฟ"), the way Money Lover does. Reports and budgets group by them.
-Each **profile** ([profile.md](profile.md)) has its own set, so "ร้านกาแฟ" and "ส่วนตัว" never mix
+Each **book** ([book.md](book.md)) has its own set, so "ร้านกาแฟ" and "ส่วนตัว" never mix
 their categories.
 
 ## Out of scope
 
 - More than two levels.
 - Debt/loan categories. Debt (#13) gets its own types when it's built.
-- Global or shared categories. Each profile owns its copy, so editing one never affects another
-  profile or user. Categories of a wallet shared with you are the owner's, read online ([sharing.md](sharing.md)).
+- Global or shared categories. Each book owns its copy, so editing one never affects another
+  book or user. Categories of a wallet shared with you are the owner's, read online ([sharing.md](sharing.md)).
 - (Built in #8.1: the transaction form's picker and the "has transactions" rules.)
 
 ## Data model
@@ -33,13 +33,13 @@ their categories.
 `api/src/core/database/schema/category.ts`
 
 - **categories** (synced, like `wallets`): `id` (UUIDv7 from the device), `userId` (the owner),
-  `profileId` (FK profiles, cascade), `type` (`income` | `expense`), `parentId?` (FK categories,
+  `bookId` (FK books, cascade), `type` (`income` | `expense`), `parentId?` (FK categories,
   cascade; null for a top-level category), `name`, `icon` (rule 9), `color` (`#rrggbb`),
   `isArchived` (default `false`), `sortOrder`, plus the sync columns (`createdAt`, `updatedAt`,
   `deletedAt?`, `changeSeq`, `updatedBy`; see [offline-sync.md](offline-sync.md)). Indexes
-  (`userId`, `changeSeq`), (`changeSeq`), (`profileId`), (`parentId`).
+  (`userId`, `changeSeq`), (`changeSeq`), (`bookId`), (`parentId`).
 - The device keeps `categories` (snake_case, a new local schema step + `SYNC_TABLES` entry) and
-  lists it in `PROFILE_CHILD_TABLES` (`core/profile`).
+  lists it in `BOOK_CHILD_TABLES` (`core/book`).
 - **Hidden per wallet** (7.2, decided at the start of #7): a column on wallets,
   `wallets.hiddenCategoryIds` (a JSON array of category ids, default `[]`), not a table of its own:
   it travels with the wallet row and needs no handler (rule 13).
@@ -48,21 +48,21 @@ their categories.
   live row's is always null. Device: `merged_into_id`, an `ALTER TABLE` step.
 
 Names live in the DB because users edit them. The default set is written in the language the app
-shows when the profile is created (rule 8).
+shows when the book is created (rule 8).
 
 ## Business rules
 
 1. Categories are synced own data, scoped to the owner (another user's id is `ID_TAKEN` on push,
    never visible on pull). There is no REST endpoint; the web app writes them locally and they
-   travel through `/sync/push` and `/sync/pull`. **Profile**: `profileId` must be one of the
-   owner's live profiles when the category is created or edited (server check, `CONFLICT`), and a
-   category never moves to another profile.
+   travel through `/sync/push` and `/sync/pull`. **Book**: `bookId` must be one of the
+   owner's live books when the category is created or edited (server check, `CONFLICT`), and a
+   category never moves to another book.
 2. `name` is 1–40 characters after trimming, unique among its **non-archived siblings** (same
-   profile, `type` and `parentId`; case-insensitive; server check, `CONFLICT`). The same name may
+   book, `type` and `parentId`; case-insensitive; server check, `CONFLICT`). The same name may
    sit under another parent ("อื่น ๆ" under several). An archived category holds no name, so
    unarchiving it into a clash is refused, as for wallets.
 3. **One level only**: a category with a `parentId` can't be a parent. The parent must be a live,
-   non-archived, top-level category of the same profile and `type` (server check, `CONFLICT`). A
+   non-archived, top-level category of the same book and `type` (server check, `CONFLICT`). A
    category with live children can't take a parent (server check).
 4. A child's `type` always equals its parent's. A top-level category's `type` may change only
    while it has no live children (server check), and only while it has no live transactions
@@ -81,15 +81,15 @@ shows when the profile is created (rule 8).
    unarchiving a parent unarchives its children. A child can't be unarchived while its parent is
    archived (server check: a non-archived child needs a non-archived parent, `CONFLICT`).
 8. **Default set** (decided at the start of #6): written **by the device that creates the
-   profile, in the same local write** as the profile, never seeded by the server, so two devices
-   never seed one profile twice. Names in the app's language at that moment (decided at the start
+   book, in the same local write** as the book, never seeded by the server, so two devices
+   never seed one book twice. Names in the app's language at that moment (decided at the start
    of #7; Thai below, English in the web's default-set file), each with an icon and colour:
    - Expense: อาหารและเครื่องดื่ม (กาแฟ, ร้านอาหาร), การเดินทาง (น้ำมัน, ขนส่งสาธารณะ, แท็กซี่),
      ที่อยู่อาศัย (ค่าเช่า, ค่าน้ำ, ค่าไฟ, อินเทอร์เน็ต), ช้อปปิ้ง, บันเทิง, สุขภาพ, การศึกษา,
      ครอบครัว, ของขวัญและบริจาค, ประกัน, ท่องเที่ยว, อื่น ๆ
    - Income: เงินเดือน, โบนัส, ดอกเบี้ยและเงินปันผล, ขายของ, ได้รับเงิน, อื่น ๆ
 
-   Profiles made before #7 exist only in dev data and get the set from a one-off script in
+   Books made before #7 exist only in dev data and get the set from a one-off script in
    `api/scripts/` (Thai names, server writes with `changeSeq`).
 
 9. **Icons** follow wallet rule 8: a curated lucide name or one of our `tpn` SVGs (lucide's
@@ -99,24 +99,24 @@ shows when the profile is created (rule 8).
    giving, insurance, travel and income groups, as `tpn` where lucide has no clear picture. A new
    category starts with a default icon (`lucideShapes`) and colour; a name the web doesn't know
    shows the default.
-10. **Order**: `sortOrder` ascending, then `createdAt`, then `id`, among siblings (same profile,
+10. **Order**: `sortOrder` ascending, then `createdAt`, then `id`, among siblings (same book,
     `type`, `parentId`). A new category goes last among its siblings. Reordering uses the order
-    mode and grip handle of profiles (DESIGN.md §8): parents move with their children, a child
+    mode and grip handle of books (DESIGN.md §8): parents move with their children, a child
     moves only within its parent.
-11. A profile holds at most **200 non-archived categories** (server check, `CONFLICT`; the web
+11. A book holds at most **200 non-archived categories** (server check, `CONFLICT`; the web
     hides "add" at 200). Archiving frees a place.
-12. **Profile delete** tombstones its categories in the same local write (profile rule 8, through
-    `PROFILE_CHILD_TABLES`), and a device that pulls a profile's tombstone tombstones that
-    profile's live categories it holds (wallet rule 11's sweep). The confirm says how many
+12. **Book delete** tombstones its categories in the same local write (book rule 8, through
+    `BOOK_CHILD_TABLES`), and a device that pulls a book's tombstone tombstones that
+    book's live categories it holds (wallet rule 11's sweep). The confirm says how many
     wallets and categories go with it (categories counted from 7.2, owner's request).
-    **A refused profile create** (e.g. a name clash with a profile another device made first)
+    **A refused book create** (e.g. a name clash with a book another device made first)
     refuses its default categories and first wallet too: the sync sheet shows **one** item for
-    the profile ("และหมวดหมู่ n รายการ"); fixing it re-queues the profile and its child rows in one
+    the book ("และหมวดหมู่ n รายการ"); fixing it re-queues the book and its child rows in one
     write, discarding it discards them all (decided at the start of #7; applies to every
-    `PROFILE_CHILD_TABLES` table).
+    `BOOK_CHILD_TABLES` table).
 13. **Hidden per wallet** (7.2): a wallet lists the categories it doesn't use in
     `hiddenCategoryIds`; the transaction form's picker (#8) leaves them out for that wallet. Ids
-    the device doesn't know (deleted, another profile's) are ignored, so the server checks only
+    the device doesn't know (deleted, another book's) are ignored, so the server checks only
     the shape (an array of UUIDs, at most 200; a push without the field means `[]`). Settled at
     the start of 7.2 (owner):
     - **Hiding a parent stores the parent's id only** and hides its children too, including
@@ -130,16 +130,16 @@ shows when the profile is created (rule 8).
       then says so and points to the wallet's "หมวดหมู่ที่ใช้".
     - The row is in the wallet form when **creating and editing**.
     - **The category form chooses its wallets too** (decided while building 7.2, owner's idea):
-      saving a category writes the profile's open wallets whose list changes (its own id added
+      saving a category writes the book's open wallets whose list changes (its own id added
       or removed) in the same local write.
 
     Two devices editing the same wallet follow the usual later-edit-wins for the whole row.
 
 14. Categories are written offline like everything else. Only a device whose browser storage refused the local database (offline-sync rule 1) creates, edits,
-    archives, deletes and merges them only while online, as for profiles.
+    archives, deletes and merges them only while online, as for books.
 15. **Merge** (7.3): move a category's transactions to another category, then delete it. It is
     the way to retire a category that has transactions (rule 6) without moving them one by one.
-    - **Into any category of the same profile and `type`** (owner, at the start of 7.3, as in
+    - **Into any category of the same book and `type`** (owner, at the start of 7.3, as in
       Money Lover: "อาหาร" with "ค่าข้าว" and "ค่าน้ำ": "ค่าน้ำ" may go into "ค่าข้าว" or into
       "อาหาร"), top-level or sub-category, **except itself and its own children** (they go
       with it). Income merges only with income, expense only with expense: a transaction's
@@ -160,7 +160,7 @@ shows when the profile is created (rule 8).
       tombstoned, the merged ids leave every wallet's `hiddenCategoryIds` (rule 13; the target
       keeps its own state), and the source is tombstoned with `mergedIntoId` = the target (a
       merged child points at the category it went into). The form asks first in a confirm view
-      ("ย้ายธุรกรรม n รายการไปที่ X", "เลิกทำไม่ได้"), like a profile or wallet delete
+      ("ย้ายธุรกรรม n รายการไปที่ X", "เลิกทำไม่ได้"), like a book or wallet delete
       (DESIGN.md §6).
     - **Who moves the transactions** (owner, at the start of 7.3): the **server**, and a merge
       **doesn't need the network**: the device merges locally and queues one op. A
@@ -178,7 +178,7 @@ shows when the profile is created (rule 8).
       Later-edit-wins (offline-sync rule 12) can't settle that, since they are different rows,
       and without it transaction rule 10 would delete B's row. With both devices online the
       other one pulls the merge within a sync round and this doesn't happen.
-    - **Follow-ups only follow a valid target**: a live category of the same profile and type
+    - **Follow-ups only follow a valid target**: a live category of the same book and type
       (if the target is itself a merged tombstone, follow its `mergedIntoId`, at most 5 hops).
       Otherwise the tombstone is a plain one (rule 6, transaction rule 10). Deletes still run
       no check (offline-sync rule 10): the server checks only the shape of `mergedIntoId` (a
@@ -205,7 +205,7 @@ shows when the profile is created (rule 8).
 
 ## Endpoints
 
-None of its own (decided at the start of #7, like profiles and wallets). Rows travel through the
+None of its own (decided at the start of #7, like books and wallets). Rows travel through the
 sync endpoints as table `categories` (OpenAPI `SyncCategoryRow`):
 
 | Method | Path         | Auth   | What                                            |
@@ -220,8 +220,8 @@ Online `GET`s for members of shared wallets arrive with #16 if needed.
 Glossary: หมวดหมู่ / Category, หมวดหมู่ย่อย / Sub-category, รายจ่าย / รายรับ (DESIGN.md §11).
 
 - **Account › หมวดหมู่** `/account/categories` (decided at the start of #7), a row under
-  "สมุด": the current profile's categories. At the top, the current profile (icon + name),
-  tapping it opens the profile switch sheet. Tabs รายจ่าย / รายรับ, then the list: parents (40px
+  "สมุด": the current book's categories. At the top, the current book (icon + name),
+  tapping it opens the book switch sheet. Tabs รายจ่าย / รายรับ, then the list: parents (40px
   badge, name, "รอ sync" on a pending row) with their children indented under them, "เพิ่ม
   หมวดหมู่" (hidden at 200 with a line saying why), then a folded "เก็บถาวร (n)" group. Tap a row
   to edit it. "จัดลำดับ" switches to the order mode (rule 10).
@@ -237,10 +237,10 @@ Glossary: หมวดหมู่ / Category, หมวดหมู่ย่อ
   non-archived categories of the chosen type, children in their parent's tinted panel (the same
   panel in Account › หมวดหมู่ and the wallet's "หมวดหมู่ที่ใช้", owner's choice "3+4").
 - **Wallet form** (7.2): a "หมวดหมู่ที่ใช้" row under "ไม่รวมในยอดรวม" (create and edit), drawn
-  like "หมวดหมู่หลัก": the label left, "ทั้งหมด" or "ซ่อน n" right (n = the profile's open
+  like "หมวดหมู่หลัก": the label left, "ทั้งหมด" or "ซ่อน n" right (n = the book's open
   categories hidden here, children of a hidden parent included), a ›. It opens a view in the
   same sheet (‹ back, no bottom button, no explanation line): tabs รายจ่าย / รายรับ, then the
-  wallet's profile's open categories, parents with their children indented, a switch each (on =
+  wallet's book's open categories, parents with their children indented, a switch each (on =
   used; a child of a hidden parent shows off, locked, "ซ่อนตามหมวดหมู่หลัก"). The choice is part
   of the form, saved with its one button.
 - **Merge** (7.3, rule 15; mock-up: [mockups/category-merge.html](mockups/category-merge.html)): a header icon
@@ -258,14 +258,14 @@ Glossary: หมวดหมู่ / Category, หมวดหมู่ย่อ
     "หมวดหมู่ย่อย m รายการย้ายไปไว้ใต้ “X” (k รายการรวมกับชื่อเดียวกัน)" or "หมวดหมู่ย่อย m
     รายการรวมเข้า “X” ด้วย"; "“กาแฟ” จะถูกลบ เลิกทำไม่ได้". After the write the sheet closes
     and the toast says "ผสาน “กาแฟ” เข้ากับ “ร้านอาหาร” แล้ว" (no undo).
-- **Category form** (7.2): row 4 "ใช้ในกระเป๋า" (shown while the profile has an open wallet):
-  "ทุกกระเป๋า" or "n จาก m กระเป๋า", opening a view of the profile's open wallets with a switch
+- **Category form** (7.2): row 4 "ใช้ในกระเป๋า" (shown while the book has an open wallet):
+  "ทุกกระเป๋า" or "n จาก m กระเป๋า", opening a view of the book's open wallets with a switch
   each (a wallet that hides the chosen parent shows off, locked). Saved with the category.
 
 ## Interactions
 
-- **Profile**: `categories.profileId`; the default set comes with a new profile (rule 8); deleting
-  a profile takes its categories (rule 12).
+- **Book**: `categories.bookId`; the default set comes with a new book (rule 8); deleting
+  a book takes its categories (rule 12).
 - **Wallet**: `wallets.hiddenCategoryIds` (7.2, rule 13).
 - **Transaction (#8)** requires `categoryId`; the category's `type` decides whether the amount
   counts as income or expense. Reports and budgets group by category; a parent's total includes
@@ -275,7 +275,7 @@ Glossary: หมวดหมู่ / Category, หมวดหมู่ย่อ
 
 Settled at the start of 7.3 (owner; mock-up of the views:
 [mockups/category-merge.html](mockups/category-merge.html)): a category merges into **any**
-category of the same profile and type (top-level or sub-category, except itself and its own
+category of the same book and type (top-level or sub-category, except itself and its own
 children), as in Money Lover; the **server** moves the transactions when the merged tombstone
 lands (one op, no network needed to merge, rule 15); shared wallets (#16) stay on the roadmap,
 since a merge only meets an unmoved row when one user's two devices are both offline.
@@ -288,7 +288,7 @@ wallet's transactions to another category (and hiding the old one there) is not 
 is #15's move ([export.md](export.md) rules 7–10).
 
 Settled at the start of 7.2 (owner): rule 13's details (a parent's id only, archived ids kept,
-a type may be hidden entirely, the row in create and edit), and the profile delete confirm
+a type may be hidden entirely, the row in create and edit), and the book delete confirm
 counts categories too (rule 12). Settled while building 7.2 (owner, from mock-ups): no
 explanation line in the categories view, the category form chooses its wallets too, the buffet
 icon became a chafing dish (the other drawings kept as icons of their own).
@@ -298,8 +298,8 @@ Settled while building 7.1 (owner, from mock-ups): white glyphs on every user co
 them. The default set's colours are the darker palette.
 
 Settled at the start of #7 (owner): split into 7.1 / 7.2; the default set follows the app's
-language at creation; manage screen at Account › หมวดหมู่ with the current profile at its top;
-hiding per wallet is a `wallets` column; a refused profile create groups its child rows under one
+language at creation; manage screen at Account › หมวดหมู่ with the current book at its top;
+hiding per wallet is a `wallets` column; a refused book create groups its child rows under one
 sync-sheet item. Proposed with the revision (change on request): archived categories hold no
-name (rule 2), 200 per profile (rule 11), a pulled parent tombstone takes its children (rule 6),
+name (rule 2), 200 per book (rule 11), a pulled parent tombstone takes its children (rule 6),
 unarchiving a parent brings its children back (rule 7).

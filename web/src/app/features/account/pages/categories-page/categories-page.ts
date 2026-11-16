@@ -14,16 +14,16 @@ import {
   lucideShapes,
 } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
+import { BookService } from '@/core/book'
 import { CATEGORY_DEFAULT_ICON, CategoryService } from '@/core/category'
 import type { Category, CategoryType } from '@/core/category'
-import { ProfileService } from '@/core/profile'
 import { EmptyState } from '@/shared/components/empty-state'
 import { IconBadge, userColor } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
 
 /**
- * Account › หมวดหมู่ (docs/features/category.md → Web screens): the current profile's categories
- * (the profile shown on top opens the switch sheet), รายจ่าย / รายรับ tabs, parents with their
+ * Account › หมวดหมู่ (docs/features/category.md → Web screens): the current book's categories
+ * (the book shown on top opens the switch sheet), รายจ่าย / รายรับ tabs, parents with their
  * sub-categories, an order mode (rule 10) and the archived ones folded away.
  */
 @Component({
@@ -51,20 +51,20 @@ import type { UserIcon } from '@/shared/components/icon-badge'
   ],
   template: `
     <div class="flex flex-col gap-4 p-4">
-      @if (profileService.current(); as profile) {
+      @if (bookService.current(); as book) {
         <button
           type="button"
           class="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 py-2 text-left text-card-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           aria-haspopup="dialog"
-          [attr.aria-label]="'categories.switchProfile' | transloco: { name: profile.name }"
-          (click)="profileService.switchSheet.set(true)"
+          [attr.aria-label]="'categories.switchBook' | transloco: { name: book.name }"
+          (click)="bookService.switchSheet.set(true)"
         >
-          <app-icon-badge [icon]="profile.icon" [color]="profile.color" [size]="28" />
+          <app-icon-badge [icon]="book.icon" [color]="book.color" [size]="28" />
           <span class="flex min-w-0 flex-1 flex-col">
             <span class="text-sm text-muted-foreground">
-              {{ 'categories.profileLabel' | transloco }}
+              {{ 'categories.bookLabel' | transloco }}
             </span>
-            <span class="truncate font-semibold">{{ profile.name }}</span>
+            <span class="truncate font-semibold">{{ book.name }}</span>
           </span>
           <ng-icon
             name="lucideChevronDown"
@@ -315,7 +315,7 @@ import type { UserIcon } from '@/shared/components/icon-badge'
 export class CategoriesPage {
   private route = inject(ActivatedRoute)
   private router = inject(Router)
-  protected profileService = inject(ProfileService)
+  protected bookService = inject(BookService)
   protected categoryService = inject(CategoryService)
 
   protected tabs: readonly CategoryType[] = ['expense', 'income']

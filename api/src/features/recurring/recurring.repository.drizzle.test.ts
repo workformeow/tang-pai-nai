@@ -6,10 +6,10 @@ import { env } from '@/core/config'
 import type { Database } from '@/core/database'
 import { createDatabase } from '@/core/database/client'
 import { users } from '@/core/database/schema/auth'
+import { books } from '@/core/database/schema/book'
 import { categories } from '@/core/database/schema/category'
 import { currencies } from '@/core/database/schema/currency'
 import { debts } from '@/core/database/schema/debt'
-import { profiles } from '@/core/database/schema/profile'
 import { wallets } from '@/core/database/schema/wallet'
 import type { SyncPushHandler, SyncRowWrite } from '@/core/sync'
 import { makeTempDir, removeTempDir } from '@/shared/testing/temp-dir'
@@ -23,7 +23,7 @@ const push = recurringSyncHandler.push as SyncPushHandler
 
 const rule = (id: string, changeSeq: number, extra: Partial<SyncRowWrite> = {}) => ({
   id,
-  profileId: 'pa',
+  bookId: 'pa',
   kind: 'transaction',
   walletId: 'bank',
   categoryId: 'rent',
@@ -54,7 +54,7 @@ const sync = (userId: string, deletedAt: number | null = null) => ({
   changeSeq: 1,
   updatedBy: userId,
 })
-const profile = (id: string, userId: string, deletedAt: number | null = null) => ({
+const book = (id: string, userId: string, deletedAt: number | null = null) => ({
   id,
   userId,
   name: id,
@@ -66,12 +66,12 @@ const profile = (id: string, userId: string, deletedAt: number | null = null) =>
 const wallet = (
   id: string,
   userId: string,
-  profileId: string,
+  bookId: string,
   extra: Partial<typeof wallets.$inferInsert> = {}
 ) => ({
   id,
   userId,
-  profileId,
+  bookId,
   name: id,
   currencyCode: 'THB',
   initialBalance: 0,
@@ -86,12 +86,12 @@ const wallet = (
 const category = (
   id: string,
   userId: string,
-  profileId: string,
+  bookId: string,
   extra: Partial<typeof categories.$inferInsert> = {}
 ) => ({
   id,
   userId,
-  profileId,
+  bookId,
   type: 'expense' as const,
   parentId: null,
   name: id,
@@ -113,12 +113,12 @@ beforeEach(async () => {
     { id: 'bob', email: 'b@example.com', displayName: 'b' },
   ])
   await created.db
-    .insert(profiles)
+    .insert(books)
     .values([
-      profile('pa', 'alice'),
-      profile('pa2', 'alice'),
-      profile('gone', 'alice', 500),
-      profile('pb', 'bob'),
+      book('pa', 'alice'),
+      book('pa2', 'alice'),
+      book('gone', 'alice', 500),
+      book('pb', 'bob'),
     ])
   await created.db
     .insert(wallets)
@@ -168,7 +168,7 @@ describe('recurringSyncHandler', () => {
       db,
       'bob',
       rule('r2', 16, {
-        profileId: 'pb',
+        bookId: 'pb',
         walletId: 'bobs',
         categoryId: null,
         kind: 'transfer',
@@ -182,10 +182,10 @@ describe('recurringSyncHandler', () => {
     expect((await recurringSyncHandler.pull(db, 'bob', 0, 10)).map((row) => row.id)).toEqual(['r2'])
   })
 
-  it("needs the user's live profile, which never changes", async () => {
-    for (const profileId of ['pb', 'gone', 'nope']) {
-      expect(await push.check(db, 'alice', rule('r9', 0, { profileId }))).toBe(
-        RECURRING_MESSAGE.PROFILE_GONE
+  it("needs the user's live book, which never changes", async () => {
+    for (const bookId of ['pb', 'gone', 'nope']) {
+      expect(await push.check(db, 'alice', rule('r9', 0, { bookId }))).toBe(
+        RECURRING_MESSAGE.BOOK_GONE
       )
     }
     await push.write(db, 'alice', rule('r1', 15))
@@ -193,12 +193,12 @@ describe('recurringSyncHandler', () => {
       await push.check(
         db,
         'alice',
-        rule('r1', 0, { profileId: 'pa2', walletId: 'other', categoryId: 'elsewhere' })
+        rule('r1', 0, { bookId: 'pa2', walletId: 'other', categoryId: 'elsewhere' })
       )
-    ).toBe(RECURRING_MESSAGE.PROFILE_FIXED)
+    ).toBe(RECURRING_MESSAGE.BOOK_FIXED)
   })
 
-  it('needs live wallets and category of the profile; archived ones are fine (rule 12)', async () => {
+  it('needs live wallets and category of the book; archived ones are fine (rule 12)', async () => {
     const check = async (extra: Partial<SyncRowWrite>) =>
       push.check(db, 'alice', rule('r9', 0, extra))
     expect(await check({})).toBeNull()
@@ -206,22 +206,22 @@ describe('recurringSyncHandler', () => {
     for (const walletId of ['dead', 'bobs', 'nope']) {
       expect(await check({ walletId })).toBe(RECURRING_MESSAGE.WALLET_GONE)
     }
-    expect(await check({ walletId: 'other' })).toBe(RECURRING_MESSAGE.OTHER_PROFILE)
+    expect(await check({ walletId: 'other' })).toBe(RECURRING_MESSAGE.OTHER_BOOK)
     expect(await check({ categoryId: 'gonecat' })).toBe(RECURRING_MESSAGE.CATEGORY_GONE)
-    expect(await check({ categoryId: 'elsewhere' })).toBe(RECURRING_MESSAGE.OTHER_PROFILE)
+    expect(await check({ categoryId: 'elsewhere' })).toBe(RECURRING_MESSAGE.OTHER_BOOK)
   })
 
-  it('checks a transfer rule’s second wallet: live, same profile and currency', async () => {
+  it('checks a transfer rule’s second wallet: live, same book and currency', async () => {
     const check = async (toWalletId: string) =>
       push.check(db, 'alice', rule('r9', 0, { kind: 'transfer', categoryId: null, toWalletId }))
     expect(await check('save')).toBeNull()
     expect(await check('dead')).toBe(RECURRING_MESSAGE.TO_WALLET_GONE)
-    expect(await check('other')).toBe(RECURRING_MESSAGE.OTHER_PROFILE)
+    expect(await check('other')).toBe(RECURRING_MESSAGE.OTHER_BOOK)
     expect(await check('usd')).toBe(RECURRING_MESSAGE.OTHER_CURRENCY)
   })
 
-  it('holds at most 100 live rules per profile; a stored one and a tombstone pass', async () => {
-    for (let i = 0; i < RECURRING_LIMITS.PER_PROFILE; i++) {
+  it('holds at most 100 live rules per book; a stored one and a tombstone pass', async () => {
+    for (let i = 0; i < RECURRING_LIMITS.PER_BOOK; i++) {
       await push.write(db, 'alice', rule(`f${i}`, 20 + i))
     }
     expect(await push.check(db, 'alice', rule('r9', 0))).toBe(RECURRING_MESSAGE.LIMIT)
@@ -263,11 +263,11 @@ describe('recurringSyncHandler', () => {
     expect(await push.find(db, 'r4')).toBeNull()
   })
 
-  it('checks a debt rule’s or an instalment rule’s debt: live, the profile, the currency', async () => {
-    const debtRow = (id: string, profileId: string, extra: object = {}) => ({
+  it('checks a debt rule’s or an instalment rule’s debt: live, the book, the currency', async () => {
+    const debtRow = (id: string, bookId: string, extra: object = {}) => ({
       id,
       userId: 'alice',
-      profileId,
+      bookId,
       direction: 'borrowed',
       person: id,
       note: '',
@@ -293,7 +293,7 @@ describe('recurringSyncHandler', () => {
       push.check(db, 'alice', rule('r9', 0, { kind: 'debt', categoryId: null, debtId, ...extra }))
     expect(await repay('mom')).toBeNull()
     expect(await repay('gone')).toBe(RECURRING_MESSAGE.DEBT_GONE)
-    expect(await repay('far')).toBe(RECURRING_MESSAGE.DEBT_OTHER_PROFILE)
+    expect(await repay('far')).toBe(RECURRING_MESSAGE.DEBT_OTHER_BOOK)
     expect(await repay('mom', { walletId: 'usd' })).toBe(RECURRING_MESSAGE.DEBT_OTHER_CURRENCY)
     expect(await push.check(db, 'alice', rule('r9', 0, { debtId: 'mom' }))).toBeNull()
     expect(

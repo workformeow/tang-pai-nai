@@ -43,8 +43,8 @@ const withMe: SharedWithMe = {
   ],
   shares: [
     {
-      profileId: 'pz',
-      profile: { id: 'pz', name: 'งานบ้าน', icon: 'lucideHouse', color: '#000' },
+      bookId: 'pz',
+      book: { id: 'pz', name: 'งานบ้าน', icon: 'lucideHouse', color: '#000' },
       role: 'viewer',
       owner: { id: 'z', displayName: 'Zed', email: 'zed@example.com' },
       wallets: [
@@ -79,9 +79,9 @@ describe('SharingPage', () => {
     fixture.detectChanges()
   }
   /** Answers every pending read of what is shared. */
-  const answer = (mine: SharedWithMe = withMe, profile: OwnerSharing = owner) => {
+  const answer = (mine: SharedWithMe = withMe, book: OwnerSharing = owner) => {
     setup.http.match('/api/sharing/with-me').forEach((req) => req.flush(envelope(mine)))
-    setup.http.match('/api/sharing/profiles/p1').forEach((req) => req.flush(envelope(profile)))
+    setup.http.match('/api/sharing/books/p1').forEach((req) => req.flush(envelope(book)))
   }
 
   beforeEach(async () => {
@@ -97,7 +97,7 @@ describe('SharingPage', () => {
     fixture.destroy()
   })
 
-  it('shows invites to me, the profile’s members, pending invites, unshared wallets and what I get', async () => {
+  it('shows invites to me, the book’s members, pending invites, unshared wallets and what I get', async () => {
     answer()
     await settle()
     expect(text()).toContain('Alice เชิญคุณเป็นผู้แก้ไขของกระเป๋า')
@@ -139,7 +139,7 @@ describe('SharingPage', () => {
     email.dispatchEvent(new Event('input'))
     await settle()
     button(th.sharing.send)?.click()
-    const req = setup.http.expectOne('/api/sharing/profiles/p1/invites')
+    const req = setup.http.expectOne('/api/sharing/books/p1/invites')
     expect(req.request.body).toEqual({
       email: 'dan@example.com',
       role: 'editor',

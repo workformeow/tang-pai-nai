@@ -8,10 +8,10 @@ import {
   lucideCloudOff,
   lucideRefreshCw,
 } from '@ng-icons/lucide'
+import { BookService } from '@/core/book'
 import { LanguageService } from '@/core/i18n'
 import { SyncService } from '@/core/offline'
 import type { SyncStatus as Status } from '@/core/offline'
-import { ProfileService } from '@/core/profile'
 import { SyncSheet } from './sync-sheet'
 
 /**
@@ -67,7 +67,7 @@ export class SyncStatus {
   private languageService = inject(LanguageService)
   private transloco = inject(TranslocoService)
   private syncService = inject(SyncService)
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
 
   protected sheetOpen = signal(false)
   private isAlert = computed(() =>
@@ -97,7 +97,7 @@ export class SyncStatus {
   /** Ops waiting, or refused items while there are errors. */
   protected count = computed(() =>
     this.status() === 'errors'
-      ? this.profileService.rejectedItems().length
+      ? this.bookService.rejectedItems().length
       : this.status() === 'synced'
         ? 0
         : this.syncService.pendingCount()
@@ -110,7 +110,7 @@ export class SyncStatus {
     this.languageService.language() // re-translate on a language switch
     const pending = this.syncService.pendingCount()
     const keys: Record<Status, [string, object]> = {
-      errors: ['sync.errors', { count: this.profileService.rejectedItems().length }],
+      errors: ['sync.errors', { count: this.bookService.rejectedItems().length }],
       offline: pending > 0 ? ['sync.offlinePending', { count: pending }] : ['sync.offline', {}],
       unreachable:
         pending > 0 ? ['sync.unreachablePending', { count: pending }] : ['sync.unreachable', {}],

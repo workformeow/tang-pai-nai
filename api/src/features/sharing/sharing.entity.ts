@@ -3,7 +3,7 @@ export type ShareRole = 'editor' | 'viewer'
 /** A pending invitation (`wallet_invites`); times are epoch ms. */
 export interface Invite {
   id: string
-  profileId: string
+  bookId: string
   ownerId: string
   email: string
   role: ShareRole
@@ -26,7 +26,7 @@ export interface UserRef {
 /** A live wallet as sharing needs it. */
 export interface WalletRef {
   id: string
-  profileId: string
+  bookId: string
   ownerId: string
   name: string
   icon: string
@@ -37,7 +37,7 @@ export interface WalletRef {
   sortOrder: number
 }
 
-/** One `wallet_members` row of a profile, with the member's name. */
+/** One `wallet_members` row of a book, with the member's name. */
 export interface MemberRow {
   userId: string
   displayName: string
@@ -47,14 +47,14 @@ export interface MemberRow {
   addedAt: number
 }
 
-/** One wallet shared with the caller (live, open, on a live profile). */
+/** One wallet shared with the caller (live, open, on a live book). */
 export interface ShareRow {
   role: ShareRole
   wallet: WalletRef
 }
 
-/** A profile as the switcher shows it. */
-export interface ProfileRef {
+/** A book as the switcher shows it. */
+export interface BookRef {
   id: string
   name: string
   icon: string

@@ -46,7 +46,7 @@ describe('TransactionService', () => {
   const wallet = (id: string, extra: object = {}) =>
     pulled('wallets', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       name: id,
       currencyCode: 'THB',
       initialBalance: 0,
@@ -60,7 +60,7 @@ describe('TransactionService', () => {
   const category = (id: string, type: string, extra: object = {}) =>
     pulled('categories', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       type,
       parentId: null,
       name: id,
@@ -73,7 +73,7 @@ describe('TransactionService', () => {
   const transaction = (id: string, extra: object = {}) =>
     pulled('transactions', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       walletId: 'cash',
       categoryId: 'food',
       amount: 1000,
@@ -96,7 +96,7 @@ describe('TransactionService', () => {
     db = await openTestDatabase()
     localStorage.clear()
     for (const id of ['p1', 'p2']) {
-      putRow(db, 'profiles', {
+      putRow(db, 'books', {
         ...base,
         id,
         name: id,
@@ -152,7 +152,7 @@ describe('TransactionService', () => {
     transaction('c', { occurredOn: '2026-11-02', createdAt: 9, categoryId: 'salary' })
     transaction('october', { occurredOn: '2026-10-31' })
     transaction('gone', { deletedAt: 5 })
-    transaction('other', { profileId: 'p2' })
+    transaction('other', { bookId: 'p2' })
     const items = service.list(november)
     expect(items.map((item) => item.id)).toEqual(['c', 'b', 'a'])
     expect(items[0]).toMatchObject({
@@ -194,11 +194,11 @@ describe('TransactionService', () => {
     ])
   })
 
-  it('creates a transaction in the current profile, trims the note and remembers the wallet', () => {
+  it('creates a transaction in the current book, trims the note and remembers the wallet', () => {
     const id = service.save(null, values)
     const row = getRow(db, 'transactions', id)
     expect(row).toMatchObject({
-      profileId: 'p1',
+      bookId: 'p1',
       walletId: 'card',
       amount: 6500,
       note: 'ลาเต้เย็น',
@@ -208,13 +208,13 @@ describe('TransactionService', () => {
     expect(service.defaultWalletId()).toBe('card')
   })
 
-  it('edits in place, keeping createdAt, profile and baseSeq', () => {
+  it('edits in place, keeping createdAt, book and baseSeq', () => {
     transaction('t1', { createdAt: 77, changeSeq: 9 })
     service.save('t1', { ...values, amount: 99 })
     expect(getRow(db, 'transactions', 't1')).toMatchObject({
       amount: 99,
       createdAt: 77,
-      profileId: 'p1',
+      bookId: 'p1',
     })
     expect(listOps(db, 'pending')[0].baseSeq).toBe(9)
   })
@@ -231,7 +231,7 @@ describe('TransactionService', () => {
 
   it('starts a new one on the first open wallet when none was used here', () => {
     expect(service.defaultWalletId()).toBe('cash')
-    localStorage.setItem('tpn-profile:tx:p1', 'gone')
+    localStorage.setItem('tpn-book:tx:p1', 'gone')
     expect(service.defaultWalletId()).toBe('cash')
   })
 
@@ -246,14 +246,14 @@ describe('TransactionService', () => {
     transaction('t5', { categoryId: 'fuel', occurredOn: '2026-08-01' }) // older than 90 days
     transaction('t6', { categoryId: 'food', deletedAt: 20 })
     transaction('t7', { categoryId: 'salary' })
-    transaction('t8', { categoryId: 'food', profileId: 'p2' })
+    transaction('t8', { categoryId: 'food', bookId: 'p2' })
     expect(service.frequentCategoryIds('p1', 'expense')).toEqual(['coffee', 'fuel', 'food'])
     expect(service.frequentCategoryIds('p1', 'income')).toEqual(['salary'])
     expect(service.frequentCategoryIds('p1', 'expense', 90, 1)).toEqual(['coffee'])
     expect(service.frequentCategoryIds('', 'expense')).toEqual([])
   })
 
-  it('remembers the type of the last one added, per profile', () => {
+  it('remembers the type of the last one added, per book', () => {
     expect(service.lastType()).toBe('expense')
     service.rememberType('income')
     expect(service.lastType()).toBe('income')
@@ -292,7 +292,7 @@ describe('TransactionService', () => {
     expect(service.viewWalletIds().sort()).toEqual(['card', 'cash', 'old'])
     service.selectWallet('kid')
     expect(service.viewWalletIds()).toEqual(['kid'])
-    expect(JSON.parse(localStorage.getItem('tpn-profile:tx:view:p1') ?? '{}')).toEqual({
+    expect(JSON.parse(localStorage.getItem('tpn-book:tx:view:p1') ?? '{}')).toEqual({
       walletId: 'kid',
       unit: 'month',
     })
@@ -315,7 +315,7 @@ describe('TransactionService', () => {
     expect(service.range()).toEqual({ from: '2026-01-01', to: '2026-12-31' })
   })
 
-  it('keeps the chosen period and wallet after a write or a pull (the profile row is read again)', () => {
+  it('keeps the chosen period and wallet after a write or a pull (the book row is read again)', () => {
     service.today.set('2026-11-02')
     transaction('old', { occurredOn: '2026-08-20' })
     TestBed.tick()
@@ -323,7 +323,7 @@ describe('TransactionService', () => {
     service.tab.set(-1)
     service.save(null, values)
     TestBed.tick()
-    pulled('profiles', {
+    pulled('books', {
       id: 'p1',
       name: 'renamed',
       icon: 'lucideHouse',
@@ -363,7 +363,7 @@ describe('TransactionService', () => {
     expect(service.sheet()).toMatchObject({
       mode: 'fix',
       opId: op.opId,
-      profileId: 'p1',
+      bookId: 'p1',
       values: { walletId: 'card', amount: 6500 },
     })
     expect(TestBed.inject(WalletService).byId('card')).not.toBeNull()

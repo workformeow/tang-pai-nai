@@ -14,9 +14,9 @@ import {
   lucidePlus,
 } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
+import { BookService } from '@/core/book'
 import { DEBTS_ROUTE, DebtService } from '@/core/debt'
 import { LanguageService } from '@/core/i18n'
-import { ProfileService } from '@/core/profile'
 import { TransactionService, TransferService } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
@@ -24,9 +24,9 @@ import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import { formatMoney } from '@/shared/utils'
 
 /**
- * The Wallets tab (docs/features/wallet.md → Web screens): the current profile's total per
+ * The Wallets tab (docs/features/wallet.md → Web screens): the current book's total per
  * currency, its wallets in order (with an order mode), and the archived ones folded away. The
- * shell shows the first-wallet step instead while the profile has none (rule 12).
+ * shell shows the first-wallet step instead while the book has none (rule 12).
  */
 @Component({
   selector: 'app-wallets-page',
@@ -236,7 +236,7 @@ import { formatMoney } from '@/shared/utils'
         }
       </div>
 
-      <!-- A shared profile (sharing rule 10): its balances only, no wallet actions or debts. -->
+      <!-- A shared book (sharing rule 10): its balances only, no wallet actions or debts. -->
       @if (!shared()) {
         @if (walletService.atLimit()) {
           <p class="text-sm text-muted-foreground">{{ 'wallets.limit' | transloco }}</p>
@@ -446,11 +446,11 @@ export class WalletsPage {
   protected hasDebts = computed(() => this.debtLines().some((line) => line.count > 0))
 
   protected defaultIcon = WALLET_DEFAULT_ICON
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
   private transactionService = inject(TransactionService)
   private router = inject(Router)
-  /** A profile shared with me is in use (sharing rule 10). */
-  protected shared = this.profileService.isShared
+  /** A book shared with me is in use (sharing rule 10). */
+  protected shared = this.bookService.isShared
   protected ordering = signal(false)
   protected showArchived = signal(false)
 

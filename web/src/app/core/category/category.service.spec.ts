@@ -37,8 +37,8 @@ describe('CategoryService', () => {
     rejectedOp: (opId: string) => findOp(db, opId),
   }
 
-  const profile = (id: string, sortOrder: number) =>
-    putRow(db, 'profiles', {
+  const book = (id: string, sortOrder: number) =>
+    putRow(db, 'books', {
       id,
       name: id,
       icon: 'lucideHouse',
@@ -52,7 +52,7 @@ describe('CategoryService', () => {
     })
   const category = (id: string, extra: object = {}) => ({
     id,
-    profileId: 'p1',
+    bookId: 'p1',
     type: 'expense',
     parentId: null,
     name: id,
@@ -88,8 +88,8 @@ describe('CategoryService', () => {
   beforeEach(async () => {
     db = await openTestDatabase()
     localStorage.clear()
-    profile('p1', 0)
-    profile('p2', 1)
+    book('p1', 0)
+    book('p2', 1)
     TestBed.configureTestingModule({
       imports: [
         TranslocoTestingModule.forRoot({
@@ -114,7 +114,7 @@ describe('CategoryService', () => {
 
   afterEach(() => db.close())
 
-  it("builds the current profile's tree per type, in order, archived apart (rule 10)", () => {
+  it("builds the current book's tree per type, in order, archived apart (rule 10)", () => {
     pulled(category('Food', { sortOrder: 1 }))
     pulled(category('Home', { sortOrder: 0 }))
     pulled(category('Tea', { parentId: 'Food', sortOrder: 1 }))
@@ -122,7 +122,7 @@ describe('CategoryService', () => {
     pulled(category('Old', { parentId: 'Food', isArchived: true }))
     pulled(category('Salary', { type: 'income' }))
     pulled(category('Gone', { deletedAt: 5 }))
-    pulled(category('Elsewhere', { profileId: 'p2' }))
+    pulled(category('Elsewhere', { bookId: 'p2' }))
     expect(tree()).toEqual([
       ['Home', []],
       ['Food', ['Coffee', 'Tea']],
@@ -139,7 +139,7 @@ describe('CategoryService', () => {
     const id = service.save(null, { ...values, parentId: 'Food' })
     expect(service.byId(id)).toMatchObject({
       name: 'Tea',
-      profileId: 'p1',
+      bookId: 'p1',
       parentId: 'Food',
       sortOrder: 5,
       isArchived: false,
@@ -151,7 +151,7 @@ describe('CategoryService', () => {
     const wallet = (id: string, extra: object = {}) =>
       putRow(db, 'wallets', {
         id,
-        profileId: 'p1',
+        bookId: 'p1',
         name: id,
         currencyCode: 'THB',
         initialBalance: 0,
@@ -172,7 +172,7 @@ describe('CategoryService', () => {
     wallet('bank', { hiddenCategoryIds: ['Food', 'x'] })
     wallet('card')
     wallet('old', { isArchived: true })
-    wallet('other', { profileId: 'p2' })
+    wallet('other', { bookId: 'p2' })
     pulled(category('Food'))
     expect(service.hiddenIn('Food', 'p1')).toEqual(['bank'])
 
@@ -194,10 +194,10 @@ describe('CategoryService', () => {
     expect(all()).toEqual(before)
   })
 
-  it("builds any profile's tree, the current one's from the signal", () => {
+  it("builds any book's tree, the current one's from the signal", () => {
     pulled(category('Food'))
-    pulled(category('Elsewhere', { profileId: 'p2' }))
-    pulled(category('Child', { profileId: 'p2', parentId: 'Elsewhere' }))
+    pulled(category('Elsewhere', { bookId: 'p2' }))
+    pulled(category('Child', { bookId: 'p2', parentId: 'Elsewhere' }))
     expect(service.treeOf('p1', 'expense').map((node) => node.category.id)).toEqual(['Food'])
     expect(
       service.treeOf('p2', 'expense').map((node) => [node.category.id, node.children.length])
@@ -284,7 +284,7 @@ describe('CategoryService', () => {
   const txRow = (id: string, extra: object = {}) => {
     putRow(db, 'transactions', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       walletId: 'w',
       categoryId: 'c',
       amount: 1000,
@@ -351,7 +351,7 @@ describe('CategoryService', () => {
       mode: 'fix',
       opId: op.opId,
       id: 'Tea',
-      profileId: 'p1',
+      bookId: 'p1',
       values: {
         name: 'Tea',
         icon: 'lucideShapes',
@@ -382,7 +382,7 @@ describe('CategoryService', () => {
     const walletRow = (id: string, hiddenCategoryIds: string[]) =>
       putRow(db, 'wallets', {
         id,
-        profileId: 'p1',
+        bookId: 'p1',
         name: id,
         currencyCode: 'THB',
         initialBalance: 0,
@@ -419,7 +419,7 @@ describe('CategoryService', () => {
       const rule = (id: string, categoryId: string) =>
         putRow(db, 'recurring_rules', {
           id,
-          profileId: 'p1',
+          bookId: 'p1',
           kind: 'transaction',
           walletId: 'w',
           categoryId,
@@ -476,7 +476,7 @@ describe('CategoryService', () => {
         db.transaction((tdb) =>
           queueWrite(tdb, 'transactions', 'upsert', {
             id: 't3',
-            profileId: 'p1',
+            bookId: 'p1',
             walletId: 'w',
             categoryId: 'Water',
             amount: 1000,

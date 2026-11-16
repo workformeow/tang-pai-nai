@@ -56,7 +56,7 @@ const MIGRATIONS: readonly string[] = [
     created_at INTEGER NOT NULL,
     seen_at INTEGER
   ) STRICT`,
-  // #6.1: profiles (docs/features/profile.md).
+  // #6.1: profiles, books since step 16 (docs/features/book.md).
   `CREATE TABLE profiles (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -253,6 +253,37 @@ const MIGRATIONS: readonly string[] = [
   `ALTER TABLE transactions ADD COLUMN added_by TEXT`,
   // Credit card (docs/features/credit-card.md): out of the total, counted in "all wallets".
   `ALTER TABLE wallets ADD COLUMN is_credit_card INTEGER NOT NULL DEFAULT 0`,
+  // 2026-11: profiles are books (สมุด), as on the server (0021_rename_profile_to_book). Queued
+  // ops and notices name the table and carry `profileId` in their JSON, so they follow too.
+  `ALTER TABLE profiles RENAME TO books;
+  ALTER TABLE wallets RENAME COLUMN profile_id TO book_id;
+  DROP INDEX wallets_profile;
+  CREATE INDEX wallets_book ON wallets (book_id);
+  ALTER TABLE categories RENAME COLUMN profile_id TO book_id;
+  DROP INDEX categories_profile;
+  CREATE INDEX categories_book ON categories (book_id);
+  ALTER TABLE transactions RENAME COLUMN profile_id TO book_id;
+  DROP INDEX transactions_profile_day;
+  CREATE INDEX transactions_book_day ON transactions (book_id, occurred_on);
+  ALTER TABLE transfers RENAME COLUMN profile_id TO book_id;
+  DROP INDEX transfers_profile_day;
+  CREATE INDEX transfers_book_day ON transfers (book_id, occurred_on);
+  ALTER TABLE recurring_rules RENAME COLUMN profile_id TO book_id;
+  DROP INDEX recurring_rules_profile;
+  CREATE INDEX recurring_rules_book ON recurring_rules (book_id);
+  ALTER TABLE debts RENAME COLUMN profile_id TO book_id;
+  DROP INDEX debts_profile;
+  CREATE INDEX debts_book ON debts (book_id);
+  ALTER TABLE debt_entries RENAME COLUMN profile_id TO book_id;
+  DROP INDEX debt_entries_profile_day;
+  CREATE INDEX debt_entries_book_day ON debt_entries (book_id, occurred_on);
+  ALTER TABLE events RENAME COLUMN profile_id TO book_id;
+  DROP INDEX events_profile;
+  CREATE INDEX events_book ON events (book_id);
+  UPDATE outbox SET tbl = 'books' WHERE tbl = 'profiles';
+  UPDATE outbox SET row = replace(row, '"profileId":', '"bookId":');
+  UPDATE sync_notices SET tbl = 'books' WHERE tbl = 'profiles';
+  UPDATE sync_notices SET previous = replace(previous, '"profileId":', '"bookId":')`,
 ]
 
 let sqlitePromise: Promise<Sqlite3Static> | null = null
@@ -313,7 +344,7 @@ export class LocalDatabase {
   /**
    * TEMP copies of `tables` (same columns, keys and indexes) that shadow the saved ones for every
    * unqualified query until `dropShadows`; `export()` (the `main` schema) never holds them.
-   * docs/features/sharing.md → Web screens: a shared profile's rows while it is in use.
+   * docs/features/sharing.md → Web screens: a shared book's rows while it is in use.
    */
   createShadows(tables: readonly string[]): void {
     this.dropShadows(tables)

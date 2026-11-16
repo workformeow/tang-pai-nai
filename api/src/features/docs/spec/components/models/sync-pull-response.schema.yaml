@@ -20,8 +20,8 @@ properties:
           properties:
             table:
               type: string
-              description: e.g. `currencies`, `profiles`, `wallets`, `categories`, `transactions`, `transfers`, `recurring_rules`, `debts`, `debt_entries`, `events` (rows as in SyncProfileRow, SyncWalletRow, SyncCategoryRow, SyncTransactionRow, SyncTransferRow, SyncRecurringRuleRow, SyncDebtRow, SyncDebtEntryRow, SyncEventRow)
-              example: profiles
+              description: e.g. `currencies`, `books`, `wallets`, `categories`, `transactions`, `transfers`, `recurring_rules`, `debts`, `debt_entries`, `events` (rows as in SyncBookRow, SyncWalletRow, SyncCategoryRow, SyncTransactionRow, SyncTransferRow, SyncRecurringRuleRow, SyncDebtRow, SyncDebtEntryRow, SyncEventRow)
+              example: books
             row:
               $ref: './sync-row.schema.yaml'
       notices:
@@ -43,4 +43,4 @@ properties:
         description: Tables this server syncs
         items:
           type: string
-        example: [currencies, profiles, wallets]
+        example: [currencies, books, wallets]

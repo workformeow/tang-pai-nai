@@ -2,8 +2,8 @@ export const CATEGORY_LIMITS = {
   NAME_MAX: 40,
   ICON_MAX: 40,
   SORT_ORDER_MAX: 1_000_000,
-  /** Non-archived categories per profile (category rule 11). */
-  PER_PROFILE: 200,
+  /** Non-archived categories per book (category rule 11). */
+  PER_BOOK: 200,
 } as const
 
 export const CATEGORY_TYPES = ['income', 'expense'] as const
@@ -15,14 +15,14 @@ export const CATEGORY_PATTERN = {
 } as const
 
 export const CATEGORY_MESSAGE = {
-  PROFILE_GONE: 'The profile does not exist or was deleted',
-  PROFILE_FIXED: 'A category cannot move to another profile',
+  BOOK_GONE: 'The book does not exist or was deleted',
+  BOOK_FIXED: 'A category cannot move to another book',
   PARENT_GONE: 'The parent category does not exist or was deleted',
-  PARENT_INVALID: 'The parent must be a top-level category of the same profile and type',
+  PARENT_INVALID: 'The parent must be a top-level category of the same book and type',
   PARENT_ARCHIVED: 'The parent category is archived',
   HAS_CHILDREN: 'A category with sub-categories cannot have a parent',
   TYPE_FIXED: 'A category with sub-categories cannot change its type',
   TYPE_USED: 'A category with transactions cannot change its type',
   NAME_TAKEN: 'A category with this name already exists here',
-  TOO_MANY: `A profile can have at most ${CATEGORY_LIMITS.PER_PROFILE} categories`,
+  TOO_MANY: `A book can have at most ${CATEGORY_LIMITS.PER_BOOK} categories`,
 } as const

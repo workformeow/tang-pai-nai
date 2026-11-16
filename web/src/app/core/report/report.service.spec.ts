@@ -3,12 +3,12 @@ import { TestBed } from '@angular/core/testing'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
+import { BookService } from '@/core/book'
 import th from '@/core/i18n/th.json'
 import { NetworkStatusService } from '@/core/network'
 import { findOp, OfflineService, putRow, SyncService } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
-import { ProfileService } from '@/core/profile'
 import { TransactionService } from '@/core/transaction'
 import { ReportService } from './report.service'
 
@@ -46,7 +46,7 @@ describe('ReportService', () => {
   const wallet = (id: string, extra: object = {}) =>
     pulled('wallets', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       name: id,
       currencyCode: 'THB',
       initialBalance: 0,
@@ -60,7 +60,7 @@ describe('ReportService', () => {
   const category = (id: string, type: string, extra: object = {}) =>
     pulled('categories', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       type,
       parentId: null,
       name: id,
@@ -74,7 +74,7 @@ describe('ReportService', () => {
   const transaction = (occurredOn: string, categoryId: string, amount: number, extra = {}) =>
     pulled('transactions', {
       id: `t${++seq}`,
-      profileId: 'p1',
+      bookId: 'p1',
       walletId: 'cash',
       categoryId,
       amount,
@@ -86,7 +86,7 @@ describe('ReportService', () => {
   const transfer = (occurredOn: string, from: string, to: string, amount: number) =>
     pulled('transfers', {
       id: `r${++seq}`,
-      profileId: 'p1',
+      bookId: 'p1',
       fromWalletId: from,
       toWalletId: to,
       amount,
@@ -98,7 +98,7 @@ describe('ReportService', () => {
     db = await openTestDatabase()
     localStorage.clear()
     for (const id of ['p1', 'p2']) {
-      putRow(db, 'profiles', {
+      putRow(db, 'books', {
         ...base,
         id,
         name: id,
@@ -312,23 +312,23 @@ describe('ReportService', () => {
     expect(service.previousRange()).toEqual({ from: '2026-10-01', to: '2026-10-10' })
   })
 
-  it('remembers its unit per profile, apart from the Transactions tab, and never a custom range', () => {
+  it('remembers its unit per book, apart from the Transactions tab, and never a custom range', () => {
     service.selectUnit('year')
-    expect(localStorage.getItem('tpn-profile:report:unit:p1')).toBe('year')
+    expect(localStorage.getItem('tpn-book:report:unit:p1')).toBe('year')
     expect(transactions.unit()).toBe('month')
-    TestBed.inject(ProfileService).select('p2')
+    TestBed.inject(BookService).select('p2')
     TestBed.tick()
     expect(service.unit()).toBe('month')
-    TestBed.inject(ProfileService).select('p1')
+    TestBed.inject(BookService).select('p1')
     TestBed.tick()
     expect(service.unit()).toBe('year')
     expect(service.tab()).toBe(0)
     service.selectCustom({ from: '2026-10-11', to: '2026-10-20' })
-    expect(localStorage.getItem('tpn-profile:report:unit:p1')).toBe('year')
+    expect(localStorage.getItem('tpn-book:report:unit:p1')).toBe('year')
   })
 
-  it('keeps the chosen period when a write or a pull reads the profile again', () => {
-    pulled('profiles', {
+  it('keeps the chosen period when a write or a pull reads the book again', () => {
+    pulled('books', {
       id: 'p1',
       name: 'renamed',
       icon: 'lucideHouse',

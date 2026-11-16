@@ -2,7 +2,7 @@ import { and, asc, eq, gt, inArray, isNull, lte, sql } from 'drizzle-orm'
 import type { Database, Executor } from '@/core/database'
 import {
   categories,
-  profiles,
+  books,
   rateLimitBuckets,
   transactions,
   users,
@@ -34,15 +34,15 @@ const toUser = (row: UserRow): UserRef => ({
 
 const toInvite = (row: InviteRow): Invite => ({ ...row, walletIds: [...row.walletIds] })
 
-// A wallet a member may see (rule 8): live, open, on a live profile.
-const WALLET_COLUMNS = sql`w.id AS id, w.profile_id AS profileId, w.user_id AS ownerId,
+// A wallet a member may see (rule 8): live, open, on a live book.
+const WALLET_COLUMNS = sql`w.id AS id, w.book_id AS bookId, w.user_id AS ownerId,
   w.name AS name, w.icon AS icon, w.color AS color, w.currency_code AS currencyCode,
   w.initial_balance AS initialBalance, w.is_archived AS isArchived, w.sort_order AS sortOrder`
 const VISIBLE = sql`w.deleted_at IS NULL AND w.is_archived = 0 AND p.deleted_at IS NULL`
 
 const toWallet = (row: Record<string, unknown>): WalletRef => ({
   id: String(row['id']),
-  profileId: String(row['profileId']),
+  bookId: String(row['bookId']),
   ownerId: String(row['ownerId']),
   name: String(row['name']),
   icon: String(row['icon']),
@@ -120,18 +120,18 @@ export const createDrizzleSharingRepository = (db: Database | Executor): Sharing
         return row ? toUser(row) : null
       }),
 
-    ownsProfile: async (userId, profileId) =>
-      run('ownsProfile', async () => {
-        const rows = await all(sql`SELECT 1 FROM profiles
-          WHERE id = ${profileId} AND user_id = ${userId} AND deleted_at IS NULL`)
+    ownsBook: async (userId, bookId) =>
+      run('ownsBook', async () => {
+        const rows = await all(sql`SELECT 1 FROM books
+          WHERE id = ${bookId} AND user_id = ${userId} AND deleted_at IS NULL`)
         return rows.length > 0
       }),
 
-    profileWallets: async (profileId) =>
-      run('profileWallets', async () =>
+    bookWallets: async (bookId) =>
+      run('bookWallets', async () =>
         (
           await all(sql`SELECT ${WALLET_COLUMNS} FROM wallets w
-            WHERE w.profile_id = ${profileId} AND w.deleted_at IS NULL
+            WHERE w.book_id = ${bookId} AND w.deleted_at IS NULL
             ORDER BY w.sort_order, w.created_at`)
         ).map(toWallet)
       ),
@@ -142,13 +142,13 @@ export const createDrizzleSharingRepository = (db: Database | Executor): Sharing
           ? []
           : (
               await all(sql`SELECT ${WALLET_COLUMNS} FROM wallets w
-                JOIN profiles p ON p.id = w.profile_id
+                JOIN books p ON p.id = w.book_id
                 WHERE w.id IN (${idList(ids)}) AND ${VISIBLE}
                 ORDER BY w.sort_order, w.created_at`)
             ).map(toWallet)
       ),
 
-    membersOf: async (profileId) =>
+    membersOf: async (bookId) =>
       run('membersOf', async () =>
         (
           await all(sql`SELECT m.user_id AS userId, u.display_name AS displayName,
@@ -156,7 +156,7 @@ export const createDrizzleSharingRepository = (db: Database | Executor): Sharing
             FROM wallet_members m
             JOIN wallets w ON w.id = m.wallet_id
             JOIN users u ON u.id = m.user_id
-            WHERE w.profile_id = ${profileId} AND w.deleted_at IS NULL
+            WHERE w.book_id = ${bookId} AND w.deleted_at IS NULL
             ORDER BY m.added_at, u.display_name`)
         ).map((row): MemberRow => ({
           userId: String(row['userId']),
@@ -168,15 +168,15 @@ export const createDrizzleSharingRepository = (db: Database | Executor): Sharing
         }))
       ),
 
-    setMembership: async (profileId, userId, role, walletIds, at) =>
+    setMembership: async (bookId, userId, role, walletIds, at) =>
       run('setMembership', async () => {
-        const inProfile = sql`${walletMembers.walletId} IN (SELECT id FROM wallets WHERE profile_id = ${profileId})`
+        const inBook = sql`${walletMembers.walletId} IN (SELECT id FROM wallets WHERE book_id = ${bookId})`
         const kept = await db
           .select({ walletId: walletMembers.walletId, addedAt: walletMembers.addedAt })
           .from(walletMembers)
-          .where(and(eq(walletMembers.userId, userId), inProfile))
+          .where(and(eq(walletMembers.userId, userId), inBook))
         const since = new Map(kept.map((row) => [row.walletId, row.addedAt]))
-        await db.delete(walletMembers).where(and(eq(walletMembers.userId, userId), inProfile))
+        await db.delete(walletMembers).where(and(eq(walletMembers.userId, userId), inBook))
         if (walletIds.length > 0) {
           await db.insert(walletMembers).values(
             walletIds.map((walletId) => ({
@@ -195,7 +195,7 @@ export const createDrizzleSharingRepository = (db: Database | Executor): Sharing
           await all(sql`SELECT m.role AS role, ${WALLET_COLUMNS}
             FROM wallet_members m
             JOIN wallets w ON w.id = m.wallet_id
-            JOIN profiles p ON p.id = w.profile_id
+            JOIN books p ON p.id = w.book_id
             WHERE m.user_id = ${userId} AND ${VISIBLE}
             ORDER BY m.added_at, w.sort_order`)
         ).map((row): ShareRow => ({ role: row['role'] as ShareRole, wallet: toWallet(row) }))
@@ -206,21 +206,19 @@ export const createDrizzleSharingRepository = (db: Database | Executor): Sharing
         const rows = await all(sql`SELECT m.role AS role, ${WALLET_COLUMNS}
           FROM wallet_members m
           JOIN wallets w ON w.id = m.wallet_id
-          JOIN profiles p ON p.id = w.profile_id
+          JOIN books p ON p.id = w.book_id
           WHERE m.user_id = ${userId} AND m.wallet_id = ${walletId} AND ${VISIBLE}`)
         const row = rows.at(0)
         return row ? { role: row['role'] as ShareRole, wallet: toWallet(row) } : null
       }),
 
-    invitesOf: async (profileId, now) =>
+    invitesOf: async (bookId, now) =>
       run('invitesOf', async () =>
         (
           await db
             .select()
             .from(walletInvites)
-            .where(
-              and(eq(walletInvites.profileId, profileId), sql`${walletInvites.expiresAt} > ${now}`)
-            )
+            .where(and(eq(walletInvites.bookId, bookId), sql`${walletInvites.expiresAt} > ${now}`))
             .orderBy(walletInvites.createdAt)
         ).map(toInvite)
       ),
@@ -242,10 +240,10 @@ export const createDrizzleSharingRepository = (db: Database | Executor): Sharing
         return row && row.expiresAt > now ? toInvite(row) : null
       }),
 
-    findInviteTo: async (profileId, email, now) =>
+    findInviteTo: async (bookId, email, now) =>
       run('findInviteTo', async () => {
         const row = await db.query.walletInvites.findFirst({
-          where: and(eq(walletInvites.profileId, profileId), eq(walletInvites.email, email)),
+          where: and(eq(walletInvites.bookId, bookId), eq(walletInvites.email, email)),
         })
         return row && row.expiresAt > now ? toInvite(row) : null
       }),
@@ -298,18 +296,18 @@ export const createDrizzleSharingRepository = (db: Database | Executor): Sharing
         return result
       }),
 
-    findProfile: async (profileId) =>
-      run('findProfile', async () => {
+    findBook: async (bookId) =>
+      run('findBook', async () => {
         const row = (
           await db
             .select({
-              id: profiles.id,
-              name: profiles.name,
-              icon: profiles.icon,
-              color: profiles.color,
+              id: books.id,
+              name: books.name,
+              icon: books.icon,
+              color: books.color,
             })
-            .from(profiles)
-            .where(and(eq(profiles.id, profileId), isNull(profiles.deletedAt)))
+            .from(books)
+            .where(and(eq(books.id, bookId), isNull(books.deletedAt)))
         ).at(0)
         return row ?? null
       }),
@@ -327,13 +325,13 @@ export const createDrizzleSharingRepository = (db: Database | Executor): Sharing
             ).map(withoutOwner)
       ),
 
-    categoryRows: async (profileId) =>
+    categoryRows: async (bookId) =>
       run('categoryRows', async () =>
         (
           await db
             .select()
             .from(categories)
-            .where(and(eq(categories.profileId, profileId), isNull(categories.deletedAt)))
+            .where(and(eq(categories.bookId, bookId), isNull(categories.deletedAt)))
             .orderBy(asc(categories.sortOrder), asc(categories.createdAt))
         ).map(withoutOwner)
       ),

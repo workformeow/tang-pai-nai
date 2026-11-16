@@ -1,7 +1,7 @@
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { syncColumns } from '@/core/database/columns'
 import { users } from '@/core/database/schema/auth'
-import { profiles } from '@/core/database/schema/profile'
+import { books } from '@/core/database/schema/book'
 
 // docs/features/event.md → Data model. A trip or event that transactions point at
 // (`transactions.eventId`); its totals are computed from them, never stored.
@@ -12,10 +12,10 @@ export const events = sqliteTable(
     userId: text()
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    // Cascade: purging a profile's old tombstone takes its events' tombstones with it.
-    profileId: text()
+    // Cascade: purging a book's old tombstone takes its events' tombstones with it.
+    bookId: text()
       .notNull()
-      .references(() => profiles.id, { onDelete: 'cascade' }),
+      .references(() => books.id, { onDelete: 'cascade' }),
     /** 1–50 characters. */
     name: text().notNull(),
     /** A lucide export name or one of our own `tpn` icons (as wallets). */
@@ -33,6 +33,6 @@ export const events = sqliteTable(
   (table) => [
     index('events_user_seq_idx').on(table.userId, table.changeSeq),
     index('events_change_seq_idx').on(table.changeSeq),
-    index('events_profile_idx').on(table.profileId),
+    index('events_book_idx').on(table.bookId),
   ]
 )

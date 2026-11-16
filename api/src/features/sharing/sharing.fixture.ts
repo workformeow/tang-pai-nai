@@ -7,7 +7,7 @@ import {
   categories,
   debtEntries,
   debts,
-  profiles,
+  books,
   transactions,
   transfers,
   users,
@@ -48,10 +48,10 @@ const sync = (changeSeq: number) => ({
   updatedBy: 'device',
 })
 
-const wallet = (id: string, profileId: string, userId: string, name: string, extra = {}) => ({
+const wallet = (id: string, bookId: string, userId: string, name: string, extra = {}) => ({
   id,
   userId,
-  profileId,
+  bookId,
   name,
   currencyCode: 'THB',
   initialBalance: 100_000,
@@ -71,7 +71,7 @@ const seed = async (db: Database) => {
     // Carol never verified her email: invitations don't match her (rule 6).
     { id: ID.carol, email: EMAIL.carol, displayName: 'Carol' },
   ])
-  await db.insert(profiles).values([
+  await db.insert(books).values([
     {
       id: ID.pa,
       userId: ID.alice,
@@ -103,7 +103,7 @@ const seed = async (db: Database) => {
   const category = (id: string, type: 'income' | 'expense', name: string) => ({
     id,
     userId: ID.alice,
-    profileId: ID.pa,
+    bookId: ID.pa,
     type,
     parentId: null,
     name,
@@ -119,7 +119,7 @@ const seed = async (db: Database) => {
   const tx = (id: string, categoryId: string, amount: number, occurredOn: string, extra = {}) => ({
     id,
     userId: ID.alice,
-    profileId: ID.pa,
+    bookId: ID.pa,
     walletId: ID.home,
     categoryId,
     amount,
@@ -139,7 +139,7 @@ const seed = async (db: Database) => {
   await db.insert(transfers).values({
     id: 'tr1',
     userId: ID.alice,
-    profileId: ID.pa,
+    bookId: ID.pa,
     fromWalletId: ID.home,
     toWalletId: ID.cash,
     amount: 10_000,
@@ -150,7 +150,7 @@ const seed = async (db: Database) => {
   await db.insert(debts).values({
     id: 'd1',
     userId: ID.alice,
-    profileId: ID.pa,
+    bookId: ID.pa,
     direction: 'borrowed',
     person: 'Mom',
     note: '',
@@ -161,7 +161,7 @@ const seed = async (db: Database) => {
   await db.insert(debtEntries).values({
     id: 'de1',
     userId: ID.alice,
-    profileId: ID.pa,
+    bookId: ID.pa,
     debtId: 'd1',
     kind: 'principal',
     walletId: ID.home,

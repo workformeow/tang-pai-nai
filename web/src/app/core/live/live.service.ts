@@ -53,7 +53,7 @@ export class LiveService {
   /** Whether pokes can reach this device right now. */
   connected = signal(false)
 
-  /** `user` (own data) and `profile:<id>` (a shared profile in use), each with its listener. */
+  /** `user` (own data) and `book:<id>` (a shared book in use), each with its listener. */
   private listeners = signal<ReadonlyMap<string, LiveListener>>(new Map())
   private visible = signal(this.window?.document.visibilityState !== 'hidden')
   private userId = computed(() => this.authStore.user()?.id ?? null)
@@ -103,9 +103,9 @@ export class LiveService {
     return this.listen(USER, listener)
   }
 
-  /** Pokes of a shared profile in use (rule 10). Answers how to stop. */
-  listenProfile(profileId: string, listener: LiveListener): () => void {
-    return this.listen(`profile:${profileId}`, listener)
+  /** Pokes of a shared book in use (rule 10). Answers how to stop. */
+  listenBook(bookId: string, listener: LiveListener): () => void {
+    return this.listen(`book:${bookId}`, listener)
   }
 
   private listen(key: string, listener: LiveListener): () => void {
@@ -312,7 +312,7 @@ export class LiveService {
       channel
         .subscribe('poke', (message) => this.receive(name, message.data))
         .catch(async () => {
-          // A profile shared after the token was made: a new token carries it (rule 8).
+          // A book shared after the token was made: a new token carries it (rule 8).
           await realtime.auth.authorize().catch(() => undefined)
           await channel.attach().catch(() => undefined)
         })

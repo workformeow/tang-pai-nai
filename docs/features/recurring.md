@@ -34,7 +34,7 @@ any other. Occurrences still to come show as "not recorded yet" so the month ahe
 `api/src/core/database/schema/recurring.ts`
 
 - **recurring_rules** (synced, like `transactions`): `id` (UUIDv7 from the device), `userId`,
-  `profileId` (FK profiles, cascade), `kind` (`transaction` | `transfer`),
+  `bookId` (FK books, cascade), `kind` (`transaction` | `transfer`),
   - the template: `walletId` (FK wallets, cascade; the from wallet of a transfer),
     `categoryId` (FK categories, cascade; `null` for a transfer), `toWalletId` (FK wallets,
     cascade; `null` for a transaction), `amount` (integer minor units > 0), `note` (≤ 500,
@@ -49,17 +49,17 @@ any other. Occurrences still to come show as "not recorded yet" so the month ahe
 - **transactions.recurringId** and **transfers.recurringId** (nullable text, no FK: a rule may
   be deleted while its rows stay): the rule an occurrence came from (the form's "จากรายการซ้ำ"
   line, the list's ↻ mark, the server's duplicate rule 9).
-- Server indexes: (`userId`, `changeSeq`), (`changeSeq`), (`profileId`), (`walletId`),
+- Server indexes: (`userId`, `changeSeq`), (`changeSeq`), (`bookId`), (`walletId`),
   (`categoryId`), (`toWalletId`).
 - **The device** keeps `recurring_rules` (a new local schema step, `SYNC_TABLES`,
-  `PROFILE_CHILD_TABLES`) with (`profile_id`), (`wallet_id`), (`category_id`),
+  `BOOK_CHILD_TABLES`) with (`book_id`), (`wallet_id`), (`category_id`),
   (`to_wallet_id`), and `recurring_id` columns on `transactions` / `transfers` (an
   `ALTER TABLE` step with a `NULL` default).
 - **An occurrence's id is deterministic** (Q2): a UUID (version 8) made from a
   SHA-256 of `ruleId + ':' + date`. Two devices that record the same occurrence produce the
   **same row**, never two.
 
-One table for both kinds rather than two: a rule is few columns, few rows (tens per profile),
+One table for both kinds rather than two: a rule is few columns, few rows (tens per book),
 and one list, one sheet and one sweep serve both.
 
 ## Business rules
@@ -68,10 +68,10 @@ and one list, one sheet and one sweep serve both.
 
 1. **Own data, synced.** Like transaction rule 1: no REST endpoint, table `recurring_rules`
    through `/sync/push` and `/sync/pull`. **Server check** (`CONFLICT`) for a live rule: its
-   profile is the owner's live profile and never changes; `walletId` (and `toWalletId`) are the
-   owner's live wallets of that profile, `toWalletId` ≠ `walletId` with the same currency; a
-   transaction rule's `categoryId` is the owner's live category of that profile; at most
-   **100** live rules per profile.
+   book is the owner's live book and never changes; `walletId` (and `toWalletId`) are the
+   owner's live wallets of that book, `toWalletId` ≠ `walletId` with the same currency; a
+   transaction rule's `categoryId` is the owner's live category of that book; at most
+   **100** live rules per book.
 2. **Fields** follow the occurrence they make: amount as transaction rule 3, note rule 6,
    `startOn` as rule 4 (2000-01-01 to a year after today), `endOn` ≥ `startOn`, `interval`
    1–99, `endCount` 1–999. Validation: `kind` decides which of `categoryId` / `toWalletId` is
@@ -99,7 +99,7 @@ and one list, one sheet and one sweep serve both.
 7. **The device records them** (Q1, choice ก): whenever the app is unlocked or the shell opens
    (after the first sync round, or at once while offline / the server doesn't answer), when the
    date changes while it is open, and right after a rule is saved. For each live, open
-   (rule 12), not paused rule of **every** profile of the user (not only the one on screen), it
+   (rule 12), not paused rule of **every** book of the user (not only the one on screen), it
    walks from `nextOn` to **today** (the device's local date):
    - `confirm = false`: writes each occurrence (a transaction or transfer with the
      deterministic id, `recurringId`, the rule's template and the occurrence's date) and
@@ -158,8 +158,8 @@ and one list, one sheet and one sweep serve both.
 15. **A wallet with live rules keeps its currency** and **a category with live rules keeps its
     type** (device + server check), as with transactions: the rule's amount and sign would
     change meaning.
-16. **Profile delete** tombstones its rules in the same write (`PROFILE_CHILD_TABLES`); the
-    confirm counts them. A refused profile create refuses its rules too.
+16. **Book delete** tombstones its rules in the same write (`BOOK_CHILD_TABLES`); the
+    confirm counts them. A refused book create refuses its rules too.
 
 **Upcoming**
 
@@ -170,7 +170,7 @@ and one list, one sheet and one sweep serve both.
 
 ## Volume
 
-Rules are tens per profile, so every rule query reads the whole (indexed) profile list. A pass
+Rules are tens per book, so every rule query reads the whole (indexed) book list. A pass
 of rule 7 is one local write however many occurrences it records, and **no write at all** when
 nothing changes (a due ask-first rule writes nothing: the pass runs after every write, so an
 empty write would run it again forever). Whether an occurrence exists is a primary-key lookup
@@ -220,9 +220,9 @@ Mock-up: [mockups/recurring.html](mockups/recurring.html) (frame numbers below).
 - **Sync sheet**: a refused rule reads as its category, amount and note (a transfer rule as
   "โอนเงิน กสิกร → ออมทรัพย์ · 5,000.00"); "แก้" opens the rules page, which opens the rule's
   sheet with the refused values (`FIX_ROUTES`).
-- **Wallet, category and profile delete confirms** count the rules that go with them
+- **Wallet, category and book delete confirms** count the rules that go with them
   ("รายการซ้ำ n รายการที่ใช้กระเป๋านี้จะถูกลบด้วย"). Account › ข้อมูลของฉัน has the row
-  "รายการซ้ำ · n รายการใน <profile>".
+  "รายการซ้ำ · n รายการใน <book>".
 
 Glossary: รายการซ้ำ / Recurring, ทำซ้ำ / Repeat, ถึงกำหนด / Due, ข้าม / Skip,
 หยุดชั่วคราว / Pause.
@@ -236,7 +236,7 @@ Glossary: รายการซ้ำ / Recurring, ทำซ้ำ / Repeat, ถ
   instalments). A closed debt stops its rules (shown as stopped), a deleted one takes them.
 - **Wallet / Category**: rules point at them; archive, merge, delete and the currency / type
   locks (rules 12–15).
-- **Profile**: `PROFILE_CHILD_TABLES` (rule 16).
+- **Book**: `BOOK_CHILD_TABLES` (rule 16).
 - **Reports**: read recorded rows only (projected ones never count).
 
 ## Open questions
@@ -264,7 +264,7 @@ Glossary: รายการซ้ำ / Recurring, ทำซ้ำ / Repeat, ถ
 - **Q8 Upcoming horizon.** 3 months in "อนาคต"; not in "เดือนนี้" (its days after
   today) and never in totals.
 - **Extras** (also proposed and taken): the toast after a pass, "save and add another"
-  hidden while "ทำซ้ำ" is set, at most 100 live rules per profile. **Not** taken in round 1
+  hidden while "ทำซ้ำ" is set, at most 100 live rules per book. **Not** taken in round 1
   (offered as options): a projected-total line on the "อนาคต" summary card, and "make this
   repeat" on an existing transaction (a copy with "ทำซ้ำ" does the same).
 

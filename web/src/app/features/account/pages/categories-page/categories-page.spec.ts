@@ -5,15 +5,15 @@ import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angul
 import type { ParamMap } from '@angular/router'
 import { BehaviorSubject } from 'rxjs'
 import { TranslocoTestingModule } from '@jsverse/transloco'
+import { BookService } from '@/core/book'
 import { CategoryService } from '@/core/category'
 import type { Category, CategoryNode, CategoryType } from '@/core/category'
 import th from '@/core/i18n/th.json'
-import { ProfileService } from '@/core/profile'
 import { CategoriesPage } from './categories-page'
 
 const category = (id: string, extra: Partial<Category> = {}): Category => ({
   id,
-  profileId: 'p1',
+  bookId: 'p1',
   type: 'expense',
   parentId: null,
   name: id,
@@ -57,7 +57,7 @@ describe('CategoriesPage', () => {
     openFix: vi.fn(),
     moveTo: vi.fn(),
   }
-  const profiles = {
+  const books = {
     current: signal({ id: 'p1', name: 'ส่วนตัว', icon: 'lucideUser', color: '#2563eb' }),
     switchSheet: signal(false),
   }
@@ -105,7 +105,7 @@ describe('CategoriesPage', () => {
       providers: [
         provideRouter([]),
         { provide: CategoryService, useValue: categories },
-        { provide: ProfileService, useValue: profiles },
+        { provide: BookService, useValue: books },
         { provide: ActivatedRoute, useValue: { queryParamMap: query } },
       ],
     })
@@ -143,9 +143,9 @@ describe('CategoriesPage', () => {
     expect(page().textContent).not.toContain('ใต้ Old')
   })
 
-  it('opens the profile switch sheet from the profile on top', () => {
+  it('opens the book switch sheet from the book on top', () => {
     button('เปลี่ยนสมุด ตอนนี้ ส่วนตัว')?.click()
-    expect(profiles.switchSheet()).toBe(true)
+    expect(books.switchSheet()).toBe(true)
   })
 
   it('moves a parent or a child among its siblings with the arrow keys in order mode', async () => {

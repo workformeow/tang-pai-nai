@@ -8,7 +8,7 @@ import { IconBadge } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
 
 /**
- * A sheet view listing a profile's open categories of one type, children in their parent's
+ * A sheet view listing a book's open categories of one type, children in their parent's
  * tinted panel (DESIGN.md §6 Category tree): the instalments', interest's or forgiven rest's.
  */
 @Component({
@@ -61,14 +61,14 @@ export class DebtCategoryPick {
   private categoryService = inject(CategoryService)
   protected icon = CATEGORY_DEFAULT_ICON as UserIcon
 
-  profileId = input.required<string>()
+  bookId = input.required<string>()
   type = input.required<CategoryType>()
   chosen = input<string | null>(null)
   picked = output<string>()
 
   protected tree = computed(() =>
     this.categoryService
-      .treeOf(this.profileId(), this.type())
+      .treeOf(this.bookId(), this.type())
       .filter((node) => !node.category.isArchived)
       .map((node) => ({
         category: node.category,

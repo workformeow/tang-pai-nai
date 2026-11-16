@@ -3,7 +3,7 @@ import type { CategoryType } from '@/core/category'
 /** A transaction as the device stores it (docs/features/transaction.md → Data model). */
 export interface Transaction {
   id: string
-  profileId: string
+  bookId: string
   walletId: string
   categoryId: string
   /** Minor units, always > 0; the sign comes from the category's type. */
@@ -44,7 +44,7 @@ export interface TransactionItem extends Transaction {
 /** A transfer as the device stores it (docs/features/transfer.md → Data model). */
 export interface Transfer {
   id: string
-  profileId: string
+  bookId: string
   fromWalletId: string
   toWalletId: string
   /** Minor units, always > 0. */
@@ -122,7 +122,7 @@ export type TransferSheetState =
       pay?: string
     }
   | { mode: 'edit'; id: string }
-  | { mode: 'fix'; opId: string; id: string; profileId: string; values: TransferValues }
+  | { mode: 'fix'; opId: string; id: string; bookId: string; values: TransferValues }
   /** A transfer recurring rule (docs/features/recurring.md → Web screens). */
   | { mode: 'rule'; id: string }
   | { mode: 'fixRule'; opId: string; id: string }
@@ -191,7 +191,7 @@ export type TransactionSheetState =
       eventId?: string
     }
   | { mode: 'edit'; id: string }
-  | { mode: 'fix'; opId: string; id: string; profileId: string; values: TransactionValues }
+  | { mode: 'fix'; opId: string; id: string; bookId: string; values: TransactionValues }
   /** A transaction recurring rule (docs/features/recurring.md → Web screens). */
   | { mode: 'rule'; id: string }
   /** "Fix" of a rejected recurring rule op, with the refused values. */
@@ -220,5 +220,5 @@ export const TRANSACTION_LIMITS = {
   FIRST_DAY: '2000-01-01',
 } as const
 
-/** Where the device keeps per-profile choices: the last wallet used (a wipe removes it). */
-export const TRANSACTION_PREF_PREFIX = 'tpn-profile:tx:'
+/** Where the device keeps per-book choices: the last wallet used (a wipe removes it). */
+export const TRANSACTION_PREF_PREFIX = 'tpn-book:tx:'

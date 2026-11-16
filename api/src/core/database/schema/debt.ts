@@ -1,9 +1,9 @@
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { syncColumns } from '@/core/database/columns'
 import { users } from '@/core/database/schema/auth'
+import { books } from '@/core/database/schema/book'
 import { categories } from '@/core/database/schema/category'
 import { currencies } from '@/core/database/schema/currency'
-import { profiles } from '@/core/database/schema/profile'
 import { wallets } from '@/core/database/schema/wallet'
 
 // docs/features/debt.md → Data model. A debt borrowed from or lent to someone; what is left is
@@ -15,10 +15,10 @@ export const debts = sqliteTable(
     userId: text()
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    // Cascades: purging a profile's or category's old tombstone takes the debt's.
-    profileId: text()
+    // Cascades: purging a book's or category's old tombstone takes the debt's.
+    bookId: text()
       .notNull()
-      .references(() => profiles.id, { onDelete: 'cascade' }),
+      .references(() => books.id, { onDelete: 'cascade' }),
     /** `borrowed` | `lent`; never changes. */
     direction: text().notNull(),
     /** Who or where, free text (1–50). */
@@ -40,7 +40,7 @@ export const debts = sqliteTable(
   (table) => [
     index('debts_user_seq_idx').on(table.userId, table.changeSeq),
     index('debts_change_seq_idx').on(table.changeSeq),
-    index('debts_profile_idx').on(table.profileId),
+    index('debts_book_idx').on(table.bookId),
     index('debts_category_idx').on(table.categoryId),
   ]
 )
@@ -53,9 +53,9 @@ export const debtEntries = sqliteTable(
     userId: text()
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    profileId: text()
+    bookId: text()
       .notNull()
-      .references(() => profiles.id, { onDelete: 'cascade' }),
+      .references(() => books.id, { onDelete: 'cascade' }),
     debtId: text()
       .notNull()
       .references(() => debts.id, { onDelete: 'cascade' }),
@@ -76,7 +76,7 @@ export const debtEntries = sqliteTable(
   (table) => [
     index('debt_entries_user_seq_idx').on(table.userId, table.changeSeq),
     index('debt_entries_change_seq_idx').on(table.changeSeq),
-    index('debt_entries_profile_idx').on(table.profileId),
+    index('debt_entries_book_idx').on(table.bookId),
     index('debt_entries_debt_idx').on(table.debtId),
     index('debt_entries_wallet_idx').on(table.walletId),
   ]

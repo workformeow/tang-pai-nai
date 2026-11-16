@@ -15,6 +15,9 @@ If anything here conflicts with the actual code, the code wins — update this f
 
 ---
 
+> **Naming:** a set of wallets and categories is a **book** (`books`, `bookId`, `features/book`),
+> never a profile; "profile" means the user (`UserProfile`). See the root `CLAUDE.md` → Naming.
+
 ## 1. What this project is
 
 A feature-based REST API **starter**: **Node.js (ESM) + Express 5 + TypeScript 6**. Environment is validated with Zod, logging uses Winston, and errors flow through a single error middleware. It ships as a clean base for new projects to build on top of.
@@ -154,13 +157,13 @@ Offline sync (spec: [`offline-sync.md`](../docs/features/offline-sync.md) rules 
 write their own data locally and send it through `POST /sync/push`; they read other devices'
 changes with `GET /sync/pull`. Features can't import each other, so **each synced feature
 registers a table handler** in `syncRegistry` (`@/core/sync`) from its own `index.ts`, and
-`features/sync` reads the registry. Reference: `features/profile` (pushable user data, the
+`features/sync` reads the registry. Reference: `features/book` (pushable user data, the
 first real one; sync-only, no REST routes), `features/wallet` (pushable, with checks that read
-other tables: the user's live profile, an active currency), `features/category` (pushable, a
+other tables: the user's live book, an active currency), `features/category` (pushable, a
 self-referencing parent: checks on other rows of its own table), `features/transaction`
-(pushable, pointing at three tables: profile, wallet and category of one profile; it compares
+(pushable, pointing at three tables: book, wallet and category of one book; it compares
 the stored row for "no move to another currency"), `features/transfer` (pushable, two wallet
-columns of one profile and currency; a wallet's currency rule reads it too),
+columns of one book and currency; a wallet's currency rule reads it too),
 `features/recurring` (pushable, a kind with nullable columns per kind, the `resolve` /
 `sameChange` hooks; its rows fix a wallet's currency and a category's type),
 `features/debt` (two tables in one feature, registered as two handlers; an entry pushed after
@@ -190,10 +193,10 @@ transactions) reads that table from `@/core/database/schema`, never the other fe
   `UPDATE … FROM` can move thousands). The merge lookup both read is
   `@/core/database/category-merge` (`findMergeTarget`), not either feature. Likewise a row's
   `debtId` (transactions, recurring rules, debt entries) is checked by
-  `@/core/database/debt-link` (`checkDebtLink`: gone / other profile / other currency); a
+  `@/core/database/debt-link` (`checkDebtLink`: gone / other book / other currency); a
   transaction's link to a gone debt is cleared in `resolve`, never refused (debt rule 8); a
   transaction's `eventId` the same way through `@/core/database/event-link` (`checkEventLink`:
-  gone / other profile; event rule 3).
+  gone / other book; event rule 3).
   Two pure optional hooks (#12, recurring rule 9): `keepsStored(row)` makes a **create**
   (`baseSeq` null) of an id the server already has keep the server's row, answered
   `overridden` with **no notice** (two devices record one recurring occurrence under one
@@ -207,17 +210,16 @@ transactions) reads that table from `@/core/database/schema`, never the other fe
   clock clamp, the conflict rules (later edit wins, tie keeps the server row, delete beats edit)
   and `change_history` for the losing version. A feature never stamps `changeSeq` itself.
 - **The import that registers it**: a sync-only feature has no router, so `routes.ts` and
-  `features/sync/sync.cleanup.ts` import it for its side effect (`import '@/features/profile'`);
+  `features/sync/sync.cleanup.ts` import it for its side effect (`import '@/features/book'`);
   add a new synced feature to both.
 - **Rules about other rows** (`check`) cover a live row only: a delete runs no check, so a rule
-  like "can't delete a profile with wallets" is kept by the device writing the dependent
-  tombstones in the same local write (profile rule 8). A row that keeps a parent alive the
-  server can't check (a wallet's profile, a category's parent) gets an `onDelete: 'cascade'` FK,
+  like "can't delete a book with wallets" is kept by the device writing the dependent
+  tombstones in the same local write (book rule 8). A row that keeps a parent alive the
+  server can't check (a wallet's book, a category's parent) gets an `onDelete: 'cascade'` FK,
   so purging the parent's old tombstone takes the children's with it. A device pushes a parent
   before the rows that point at it (outbox order), so `check` can require it.
 - **One-off data scripts** for dev data live in `scripts/` and talk to the database with
-  `@libsql/client` directly, taking `sync_state.last_seq` per row in one transaction (see
-  `seed-default-categories.ts`).
+  `@libsql/client` directly, taking `sync_state.last_seq` per row in one transaction.
 - **An array column** (e.g. `wallets.hiddenCategoryIds`): a `text({ mode: 'json' })` column
   typed `string[]`, not null with a `'[]'` SQL default (see `schema/wallet.ts`); in the Zod
   schema an array with `.max()` and `.default([])`, so a device from before the column still
@@ -236,25 +238,25 @@ transactions) reads that table from `@/core/database/schema`, never the other fe
   raises `purgedSeq` (a pull below it answers `410 CURSOR_EXPIRED`).
 - **Testing**: the service on `createMemorySyncRepository()` (any table name; `checks` and
   `shared` options) with a local `createSyncRegistry()`; handlers on a temporary SQLite file with
-  the committed migrations (`profile.repository.drizzle.test.ts`; `wallet.repository.drizzle.test.ts`
-  and `category.repository.drizzle.test.ts` insert the profiles their checks read;
+  the committed migrations (`book.repository.drizzle.test.ts`; `wallet.repository.drizzle.test.ts`
+  and `category.repository.drizzle.test.ts` insert the books their checks read;
   `transaction.repository.drizzle.test.ts` also inserts wallets and categories, and activates
   USD for the currency rule, as do `transfer.repository.drizzle.test.ts`,
   `recurring.repository.drizzle.test.ts` and `debt.repository.drizzle.test.ts`;
-  `event.repository.drizzle.test.ts` inserts profiles only); the quiet hooks in `sync.service.test.ts` (`setup`'s
+  `event.repository.drizzle.test.ts` inserts books only); the quiet hooks in `sync.service.test.ts` (`setup`'s
   second argument); HTTP with `accessTokens`
   for the Bearer header (`sync.controller.test.ts`).
 
 ### Sharing (`src/features/sharing/`, #16.1, #16.2)
 
 Spec: [`sharing.md`](../docs/features/sharing.md). The first **REST** feature over synced data:
-online endpoints for invitations, members and a shared profile's rows
-(`GET /sharing/with-me/:profileId/rows`, pull-like, transactions as `columns` + `rows`), no sync
+online endpoints for invitations, members and a shared book's rows
+(`GET /sharing/with-me/:bookId/rows`, pull-like, transactions as `columns` + `rows`), no sync
 handler. **Editors write through sync** (below).
 
-- Its Drizzle adapter reads other features' tables (`wallets`, `profiles`, `categories`,
+- Its Drizzle adapter reads other features' tables (`wallets`, `books`, `categories`,
   `transactions`, `transfers`, `debts`, `debt_entries`, `users`) through `@/core/database/schema`
-  and raw `sql` for the joins; a wallet a member may see is live, open and on a live profile
+  and raw `sql` for the joins; a wallet a member may see is live, open and on a live book
   (`VISIBLE` in the adapter). A balance is computed there like the web's `WalletService`.
 - `wallet_invites` and `wallet_members` are server only. Invites match the verified
   `users.email` when read; expired rows are ignored by every query and deleted on the next
@@ -317,8 +319,8 @@ devices (`{ seq, deviceId }`, never data) so they run the round they already kno
 - `features/sync` gets `livePublisher` (`createLivePublisher`): each poke within 1 s,
   failures only `logger.warn`, never thrown. The push awaits it before answering (Vercel may
   freeze the function after the response). A new table whose rows sit in a shared wallet pokes
-  its profile through `SyncPushHandler.shared.walletOf`.
-- Who may hear `profile:<id>` (rule 3) and a wallet's shared profile live in
+  its book through `SyncPushHandler.shared.walletOf`.
+- Who may hear `book:<id>` (rule 3) and a wallet's shared book live in
   `@/core/database/live-access` (they read the sharing tables).
 - `features/live`: `POST /live/token`, `GET /live/events` (SSE: `res.write`, a comment
   heartbeat, closed after `LIVE_STREAM.MAX_AGE_MS`).

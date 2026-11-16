@@ -79,7 +79,7 @@ merging.
 | 4   | Auth                           | ✅  | ✅  | email code + link, password, Google, Security page, phone OTP. [spec](docs/features/auth.md)                                                                                                                                                            |
 | 4a  | Offline sync foundation        | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md)                                                                                                                               |
 | 5   | Currency                       | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                                                                                                                     |
-| 6   | Profile + Wallet               | ✅  | ✅  | 6.1 profiles; 6.2 wallets (`wallet_members`, `tpn` icons, near-full sheets, `sync_probes` gone). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md)                                                                                |
+| 6   | Book + Wallet               | ✅  | ✅  | 6.1 books; 6.2 wallets (`wallet_members`, `tpn` icons, near-full sheets, `sync_probes` gone). [book](docs/features/book.md) · [wallet](docs/features/wallet.md)                                                                                |
 | 7   | Category                       | ✅  | ✅  | 7.1 categories, default set, Account › หมวดหมู่; 7.2 hide per wallet (both forms); 7.3 merge. [spec](docs/features/category.md)                                                                                                                         |
 | 8   | Transaction                    | ✅  | ✅  | 8.1 table, form + keypad, Money Lover tab, real balances; 8.2 quick amounts, toasts on top. [spec](docs/features/transaction.md)                                                                                                                        |
 | 9   | Transfer                       | ✅  | ✅  | two linked rows of one `transfers` row, outside income / expense; ⋮ menu, Wallets tab button. [spec](docs/features/transfer.md)                                                                                                                         |
@@ -87,15 +87,15 @@ merging.
 | 11  | Budget                         | ⏸   | ⏸   | moved to the backlog after #10 (owner: not used in Money Lover; reports cover it); see Backlog                                                                                                                                                          |
 | 12  | Recurring transactions         | ✅  | ✅  | rules recorded on the device when due (or asked first), deterministic ids, "อนาคต" shows what comes. [spec](docs/features/recurring.md)                                                                                                                 |
 | 13  | Debt / loan                    | ✅  | ✅  | borrowed / lent, entries outside income / expense, counted once per debt, instalments as rules, "หนี้สิน" card. [spec](docs/features/debt.md)                                                                                                           |
-| 14  | Event / trip                   | ✅  | ✅  | events per profile, one per transaction, totals computed, default by date, close / reopen; under `/transactions/events`. [spec](docs/features/event.md)                                                                                                 |
+| 14  | Event / trip                   | ✅  | ✅  | events per book, one per transaction, totals computed, default by date, close / reopen; under `/transactions/events`. [spec](docs/features/event.md)                                                                                                 |
 | 15  | CSV export + move transactions | —   | ✅  | owner cut search and filters; Account › ส่งออก CSV, "ย้ายรายการ" in the category sheet, no API change. [spec](docs/features/export.md)                                                                                                                  |
-| 16  | Family sharing                 | ✅  | ✅  | 16.1 invites per person, Account › แชร์กระเป๋า; 16.2 shared profiles in the switcher, online only, editors write. [spec](docs/features/sharing.md)                                                                                                      |
+| 16  | Family sharing                 | ✅  | ✅  | 16.1 invites per person, Account › แชร์กระเป๋า; 16.2 shared books in the switcher, online only, editors write. [spec](docs/features/sharing.md)                                                                                                      |
 | 16R | Shared components              | —   | ✅  | `date-row` (4 sheets) and `wallet-pick` (3 sheets) moved to `shared/components`; same look, same initial bundle                                                                                                                                         |
 | 17  | Deploy (Vercel)                | ✅  | ✅  | **staging only** (`develop`), the app's show-and-test copy; production waits until the family uses it for real (owner, 2026-11). [steps](docs/deploy.md)                                                                                                |
 | 18  | Credit card                    | ✅  | ✅  | `wallets.isCreditCard`: out of the total, counted in "ทุกกระเป๋า"; paid by one transfer (pay sheet, Wallets tab card section). [spec](docs/features/credit-card.md)                                                                                     |
 | 19  | Loading                        | —   | ✅  | splash in `index.html` until the first page, a creeping bar for slow page changes, a new device waits for its whole first pull. [spec](docs/features/loading.md)                                                                                        |
-| 20  | Live sync                      | ✅  | ✅  | a poke `{ seq, deviceId }` after a push that applied something; `user:` → a sync round, `profile:` → a shared read; `local` SSE in dev, Ably on Vercel (key pending). [spec](docs/features/live-sync.md)                                                |
-| 21  | **Shared activity** ← next     | ⬜  | ⬜  | who added, edited or deleted which transaction in a shared profile (latest action per row, 90 days), under ⋮; names on rows when not you. Web only. [spec](docs/features/shared-activity.md)                                                            |
+| 20  | Live sync                      | ✅  | ✅  | a poke `{ seq, deviceId }` after a push that applied something; `user:` → a sync round, `book:` → a shared read; `local` SSE in dev, Ably on Vercel (key pending). [spec](docs/features/live-sync.md)                                                |
+| 21  | **Shared activity** ← next     | ⬜  | ⬜  | who added, edited or deleted which transaction in a shared book (latest action per row, 90 days), under ⋮; names on rows when not you. Web only. [spec](docs/features/shared-activity.md)                                                            |
 | 22  | Privacy & account deletion     | ✅  | ✅  | a privacy notice open without sign-in (`/auth/privacy`, Account › เกี่ยวกับแอป), "test version" from `TEST_VERSION`, "signing in accepts the notice"; delete the account at once (recent auth + typed email + button). [spec](docs/features/privacy.md) |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
@@ -143,7 +143,7 @@ Decisions (owner, #17):
   Cron jobs (production only; on staging by hand).
 - **Local check before a deploy: Docker** (owner, 2026-11). A root `docker-compose.yml` builds
   both apps as they ship (`api/Dockerfile`, `web/Dockerfile` with nginx standing in for
-  `middleware.js`) and runs them with one command, no npm: profile `dev` (`.env.dev`, mail in the
+  `middleware.js`) and runs them with one command, no npm: book `dev` (`.env.dev`, mail in the
   log, `:8080`) and `staging` (`.env.staging`: staging's real Turso, Resend and Turnstile, the
   same file imported into Vercel Preview, `:8081`; owner 2026-11). `dev` has its own SQLite
   volume of test users only. Migrations run at container start (on `staging`: the staging
@@ -172,7 +172,7 @@ web: `npm run db:migrate:staging` (migration 0020).
 - **Decided while building**: a report's start / end balances include the cards (money − card
   debt), so end − start = net + transfers still holds; the pay sheet is the transfer sheet in a
   `pay` mode (to fixed, the amount owed filled in, no ⇅, no repeat, no save-and-add) and
-  remembers the source per card (`tpn-profile:tx:transfer:pay:<cardId>`); a member of a shared
+  remembers the source per card (`tpn-book:tx:transfer:pay:<cardId>`); a member of a shared
   wallet always gets `isCreditCard: false`.
 - **API**: migration `0020_wallets_credit_card`; `wallet.schema.ts` refuses a card counted in the
   total (`VALIDATION`, credit-card rule 1); a push without the field means `false`; OpenAPI
@@ -215,14 +215,14 @@ Branch `feat/web-loading`, built and tested 2026-11-15. Web only, no API change.
 - **Web**: the splash markup, CSS and timers in `index.html`; `BootSplash` (`core/boot`):
   `AuthService.restore()` sets `auth`, `shellGuard` `data`, `App` removes it after the first
   navigation; `NavProgress` (`layout/nav-progress.ts`, `transform` only);
-  `ProfileService.firstPull` + `SyncService.pulledRows` for the shell's `loading` gate.
+  `BookService.firstPull` + `SyncService.pulledRows` for the shell's `loading` gate.
 - **Verified**: web `npm run fix`, typecheck, `npm test` (713), `npm run build` (initial
   762.3 kB, +3.9 kB); Playwright on `ng serve`: a slowed `/auth/refresh` (splash steps, the 10 s
   line, gone at once after), a slowed lazy chunk (bar 20 % → 86 %, then 100 % and gone; a fast
   page change shows nothing), a wiped local database with a slowed second pull page ("ได้รับแล้ว
   48 รายการ", then the whole data).
 - **Tests**: `NavProgress` (fake timers), `BootSplash`, `AuthService.restore` step,
-  `ProfileService.firstPull`, `SyncService.pulledRows`.
+  `BookService.firstPull`, `SyncService.pulledRows`.
 - **Known**: over the dev tunnel a cached old `main.js` with the new `index.html` leaves the
   splash up (the old script never removes it); Ctrl+F5 fixes it. Production can't mix them
   (hashed file names, `index.html` not cached, the service worker serves one version).
@@ -232,21 +232,21 @@ Branch `feat/web-loading`, built and tested 2026-11-15. Web only, no API change.
 ## Done: Live sync (#20)
 
 API + web. [spec](docs/features/live-sync.md). Another open device of the same user, or a
-member viewing a shared profile, sees a change within about a second instead of the next timed
+member viewing a shared book, sees a change within about a second instead of the next timed
 round (5 min own, 1 min shared). Decisions at the start: timed rounds unchanged, the sync sheet
 line shown, nothing in the background (spec → Decisions).
 
 - **API**: `core/live` (port `LiveProvider`: `disabled` / `local` / `ably` by `LIVE_PROVIDER`,
   like the notifier; `livePublisher` sends each poke within 1 s and only logs a warning).
   `SyncService.push` collects the rows it newly applied and, after their transactions, awaits
-  one poke per channel: `user:<owner>` and `profile:<id>` for a shared wallet (old and new
+  one poke per channel: `user:<owner>` and `book:<id>` for a shared wallet (old and new
   wallet on a move). `features/live`: `POST /live/token` (Ably token request, subscribe only,
   1 h, the channels of rule 3 from `core/database/live-access`), `GET /live/events` (`local`
   SSE, rule 3 per poke, ends after 10 min). `ABLY_API_KEY` is required with `ably`;
   `setup-env` writes `LIVE_PROVIDER=local` into `.env.dev`, `disabled` elsewhere. No migration.
 - **Web**: `core/live` `LiveService` owns the connection (signed in, online, foreground, someone
   listening); `SyncService` listens on `user:` while the local DB is open, `SharingService` on
-  `profile:<id>` while that shared profile is in use (a poke during a read reads once more).
+  `book:<id>` while that shared book is in use (a poke during a read reads once more).
   Own and old pokes are ignored, a 300 ms burst runs one round, failures are quiet. The `local`
   stream is `fetch` with the bearer (and `ngsw-bypass`); Ably's SDK is a dynamic `import()`
   (211 kB lazy chunk), the initial bundle 763 → 768 kB. Sync
@@ -298,6 +298,27 @@ must be able to read what is kept and delete their account themselves (PDPA mini
 
 ---
 
+## Done: Profiles are books (2026-11)
+
+Owner: "โปรไฟล์" read as "me" (name, email) as in most apps, but here it was a set of wallets and
+categories. The UI says สมุด / Book, and the code, API and docs follow, so "profile" is free for
+the user (next: editing the display name). Naming table: `CLAUDE.md` → Naming.
+
+- **UI**: every โปรไฟล์ / Profile became สมุด / Book; Account › สมุด is `/account/books`.
+- **API**: `features/book`, tables and columns (`books`, `book_id`), sync table `books`, `bookId`
+  on the wire, `/sharing/books/:bookId`, live channel `book:<id>`, error codes (`BOOK_GONE`, …).
+  Migration `0021_rename_profile_to_book` renames in place (`ALTER TABLE … RENAME`, indexes made
+  again); its snapshot is the old one renamed, and `drizzle-kit generate` sees no changes.
+- **Web**: `core/book` (`BookService`), the book sheet, switcher and create step, i18n keys
+  `books.*`, device choices under `tpn-book:`. Device schema step 16 renames the local tables,
+  columns and indexes and rewrites queued ops and notices.
+- **Data**: staging and local were emptied first (beta, nobody else used them), with a one-off
+  wipe script that was deleted after use; `scripts/seed-default-categories.ts` went too.
+- **Kept as "profile"**: what means the user (`UserProfile`, auth's `profileOf`, Google's
+  `openid email profile` scope) and the shipped migrations.
+
+---
+
 ## Done: Sign-out asks first (2026-11)
 
 Web only, no API change. Owner: "ออกจากระบบ" on the Account tab signed out at once, and sign-out
@@ -322,7 +343,7 @@ Web only, no API change. Owner: the toast after adding a transaction covered the
   only the pill.
 - **Frequent saves**: adding or editing a transaction or a transfer, or paying a card, no longer
   toasts (the list shows the row); "บันทึกแล้วเพิ่มต่อ" still does. Saves done now and then
-  (wallet, category, profile, debt, event, security) keep theirs (owner's choice). The rule is in
+  (wallet, category, book, debt, event, security) keep theirs (owner's choice). The rule is in
   DESIGN.md §6.
 - **Sync sheet wording**: "ทุกรายการ sync แล้ว" shows only after a round got through and while
   nothing is wrong. Never synced, failing, offline or server down, it says "ไม่มีรายการค้างส่งจาก
@@ -367,7 +388,7 @@ Web only, no API change. Owner's choices after trying the app on a phone.
   is owed, so 20 wallets never push it out of sight. The section is called **ยืม-คืน / Loans**
   everywhere (it was หนี้สิน, หนี้ / เงินกู้ and ยืมมา | ให้ยืม at once); one item is still หนี้,
   and adding one says which way ("เพิ่มรายการยืม" / "เพิ่มรายการให้ยืม").
-- **The account tab is ตั้งค่า / Settings**: not โปรไฟล์ (already a data set) nor บัญชี (a bank
+- **The account tab is ตั้งค่า / Settings**: not โปรไฟล์ (then a data set, now สมุด) nor บัญชี (a bank
   account). Its icon is still `lucideCircleUser`.
 - **Number keypad** (transaction.md → Web screens): `app-calc-keypad` lost ÷ × − + and "=":
   7 8 9 ⌫ / 4 5 6 C / 1 2 3 ✓ / 000 0 . in 44px rows, in every sheet that uses it
@@ -412,7 +433,7 @@ Web only, no API change. Owner's choices after trying the app on a phone.
   needs the PIN on; the interceptor goes to sign-in on any refused refresh. Removed: the trust
   page and `trustGuard`, `layout/session-banner`, `AuthStore.freshSignIn` / `keepsLocalSession`,
   `openUntrusted()`, Security's offline row. `/account/pin` turns the PIN on, changes it, or
-  (`?off=1`) turns it off. "Needs online" notices (now only a shared profile's) no longer
+  (`?off=1`) turns it off. "Needs online" notices (now only a shared book's) no longer
   mention offline mode. The PIN pad and the amount keypad no longer zoom on a fast double tap
   (`touch-action: manipulation`).
 - **Sync failures shown**: a round the API answers with an error (a 500, e.g. a local database
@@ -446,10 +467,10 @@ One PR, no behaviour change. The owner's rule: components that do the same job m
 Known, for later:
 
 - The initial bundle is **763 kB** after #22 (warning budget 760 → 800 kB, owner 2026-11). It
-  was **750.6 kB** after the one profile switcher (2026-11; warning budget
+  was **750.6 kB** after the one book switcher (2026-11; warning budget
   750 → 760 kB: the Wallets tab header took the three-column layout). It was 737.4 kB after
   16.2: 16.1's Thai translations
-  (`th.json` is an initial chunk) and 16.2's shell pieces (switcher group, shared-profile step,
+  (`th.json` is an initial chunk) and 16.2's shell pieces (switcher group, shared-book step,
   TEMP tables). Keep new screens lazy and their services out of
   the shell (#12 loads `RecurringService` and 16.1 `SharingService` with a dynamic `import()`
   after the shell's first render; `DebtService` and `EventService` are injected only by their
@@ -466,14 +487,14 @@ Known, for later:
 ## Done: Family sharing 16.2 (#16)
 
 - **Decided at the start** (owner, two mock-up rounds, `docs/features/mockups/sharing-16.2.html`):
-  a profile shared with you is a **"แชร์กับฉัน" group in the profile switcher** and works like an
-  own profile (the same tabs, one ➕, the same transaction sheet), **online only**: offline (or
-  the server down) the group is disabled and a shared profile in use shows a blocked screen.
+  a book shared with you is a **"แชร์กับฉัน" group in the book switcher** and works like an
+  own book (the same tabs, one ➕, the same transaction sheet), **online only**: offline (or
+  the server down) the group is disabled and a shared book in use shows a blocked screen.
   This replaced 16.1's Wallets tab section and `/wallets/shared/:id`, and offline-sync rule 14's
   offline adds (no member outbox, no "รอ sync"). Editors add, edit and delete any income /
   expense row of the shared wallets; a viewer reads. The owner wins even over an editor's delete
-  (the row comes back). Reports and the profile's own setup pages (categories, rules, debts,
-  events, export, sharing) show a note in a shared profile.
+  (the row comes back). Reports and the book's own setup pages (categories, rules, debts,
+  events, export, sharing) show a note in a shared book.
 - **Decided while building**: an editor's write goes through `POST /sync/push` at once (the
   feature's own validation, as the owner), `STALE` / `NOT_SHARED` refusals; `addedBy` is set by
   the server only; transfers and debt entries aren't listed for a member, their money is folded
@@ -483,17 +504,17 @@ Known, for later:
   `SyncPushHandler.shared` hook (transactions) and the editor / owner-wins rules in
   `sync.service`; 16.1's `/sharing/wallets/*` routes gone. **Web**: schema step 14; TEMP shadow
   tables (`LocalDatabase.createShadows`, `OfflineService.enterShared` / `fillShared` /
-  `leaveShared`, own sync paused, `SyncService.pushShared`); `ProfileService.shared`;
-  `SharingService.openShared` / `refreshShared`; `layout/shared-profile-step`; "เพิ่มโดย …".
+  `leaveShared`, own sync paused, `SyncService.pushShared`); `BookService.shared`;
+  `SharingService.openShared` / `refreshShared`; `layout/shared-book-step`; "เพิ่มโดย …".
 - **Checked**: Playwright at 375×812 on `npm run build`, owner th/light and member en/dark, a
-  shared profile of 20,000 rows (open ≈ 2.4 s, another month ≈ 0.3 s): editor add / edit of the
+  shared book of 20,000 rows (open ≈ 2.4 s, another month ≈ 0.3 s): editor add / edit of the
   owner's row / delete stored as the owner's with `addedBy` / `updatedBy`; owner offline vs editor
   on one row (owner wins); a stale editor edit (`STALE`, reload); editor delete vs owner offline
   edit (row back); two owner devices on one row (later edit wins, notice); member removed while
-  the profile is open (`NOT_SHARED`, back to own); viewer read only; offline blocked; own sync
+  the book is open (`NOT_SHARED`, back to own); viewer read only; offline blocked; own sync
   after leaving. Tests: API 631, web 648.
 - **Known**: a row the owner moves out of the shared wallets stays in the member's view until the
-  profile is opened again (incremental reads go by wallet); a shared profile in use is read again
+  book is opened again (incremental reads go by wallet); a shared book in use is read again
   every minute, on coming back online and after a refusal; a trusted device's service worker
   serves the previous build once after a deploy (the usual update banner).
 
@@ -502,21 +523,21 @@ Known, for later:
 ## Done: Family sharing 16.1 (#16)
 
 - **Decided at the start** (owner, two mock-up rounds, `docs/features/mockups/sharing.html`):
-  #16 in two parts. Sharing is managed in **Account › แชร์กระเป๋า** for the **current profile**
+  #16 in two parts. Sharing is managed in **Account › แชร์กระเป๋า** for the **current book**
   (not in the wallet sheet or a ⋮ menu): an invite is per **person**, with **one role** for all
   the wallets shared with them and every open wallet switched on by default; a new wallet is
   **not** shared automatically (the page shows a card for wallets shared with nobody). The
-  member answers invites and leaves (all of one owner's profile) on the same page, and sees
+  member answers invites and leaves (all of one owner's book) on the same page, and sees
   balances in a "แชร์กับฉัน · ของ …" section of the Wallets tab, then `/wallets/shared/:id`.
   Shared wallets count in **no** total or report of the member. In 16.1 every member is
   read-only; the role is stored and shown.
 - **Decided while building**: invites match the verified `users.email` when read (no attach
   step at sign-in); `wallet_invites` is server only, its expired rows are ignored everywhere
   and deleted on the next invite (no cleanup job); one invite holds a set of wallets; a member
-  sees a wallet while it is live, open and on a live profile (archived = gone for them); the
+  sees a wallet while it is live, open and on a live book (archived = gone for them); the
   entries hide the other wallet of a transfer and the debt of a debt entry; the mail's link only
-  fills the email in on sign-in (`?email=`); a shared wallet's page has no profile switcher and
-  skips the first-wallet step (`isProfileTab` / `isWalletTab` leave `/wallets/shared/` out).
+  fills the email in on sign-in (`?email=`); a shared wallet's page has no book switcher and
+  skips the first-wallet step (`isBookTab` / `isWalletTab` leave `/wallets/shared/` out).
 - **API**: `features/sharing` (REST only, Drizzle adapter reading other features' tables through
   the schema, its own `hitRateLimit` on `rate_limit_buckets`), migration `0018_wallet_invites`,
   11 routes in OpenAPI. **Web**: `core/sharing` (`SharingService`, memory only, cleared when the
@@ -564,29 +585,29 @@ Known, for later:
 
 - **Decided at the start of #14** (owner: "ตามเสนอ" on Q1–Q12, event.md): its own `events`
   table and `transactions.eventId`, one event per row (Q1); name, icon / colour, start and an
-  optional end, "จบทริป" / "เปิดอีกครั้ง" (Q2); per profile, across wallets, totals per
+  optional end, "จบทริป" / "เปิดอีกครั้ง" (Q2); per book, across wallets, totals per
   currency (Q3); income and expense only, not transfers or debt entries (Q4); totals of every
   tagged row, report or not (Q5); pages under `/transactions/events` from the ⋮ menu and
   Account, an "อีเวนต์" row in the form, a tag on the list's rows (Q6); the default is the open
   event whose dates hold the form's date, nothing stored for an "active" event (Q7); rules carry
   no event (Q8); delete asks first, rows stay (Q9); no event filter until #15 (Q10); 50 open
-  per profile (Q11); a Thai / dark mock-up `docs/features/mockups/event.html` (Q12; built
+  per book (Q11); a Thai / dark mock-up `docs/features/mockups/event.html` (Q12; built
   without the owner's review of it, see Next).
 - **Decided while building** (owner: confirmed from the screenshots): **delete writes only the
   event's tombstone**. Untagging its rows in the same write lost another device's offline edit
   of one of them (later edit wins the whole row: a note was gone); now rows keep `eventId`, no
   screen reads a gone event, and the server clears the link when such a row is pushed again.
 - **API**: migration `0017_events` (`events`, `transactions.event_id` without a FK);
-  `features/event` (one handler: live profile, profile fixed, end not before start, 50 open);
+  `features/event` (one handler: live book, book fixed, end not before start, 50 open);
   `core/database/event-link.ts` (`checkEventLink`, read by the transaction handler: other
-  profile refused, gone cleared in `resolve`); OpenAPI `SyncEventRow`, `eventId`.
+  book refused, gone cleared in `resolve`); OpenAPI `SyncEventRow`, `eventId`.
 - **Web**: local schema step 13; `core/event` (`EventService`); `core/transaction` reads `events`
   by name (`eventOptions`, `defaultEventId`, `liveEventId`, `eventName`, `ListFilter.eventId`);
   `features/events` (list, event page with rows 100 at a time, sheet); the form's event row and
-  picker; the ⋮ menu and Account rows; the profile delete confirm counts events; sync sheet
+  picker; the ⋮ menu and Account rows; the book delete confirm counts events; sync sheet
   name and fix route.
 - **Checked**: an HTTP script on `/sync/push` + `/pull` (shapes, an end before the start, the
-  limit, other profile, a gone event cleared). Playwright at 375×812 in th/light and en/dark on
+  limit, other book, a gone event cleared). Playwright at 375×812 in th/light and en/dark on
   `npm run build`: totals (10,090 = 8,400 + 450 + 1,000 + 240), "เพิ่มรายการ" tagged, the
   default by date (today → เชียงใหม่, 15 Oct → งานแต่ง, × kept across date changes), finishing
   the trip moves the default, create and delete; `setOffline` (an event and a tagged row made
@@ -609,7 +630,7 @@ Known, for later:
   on the Wallets tab, a "หนี้" line on the summary card, reports' balances only (Q8); the Wallets
   tab card, the ⋮ menu and Account rows, pages under `/wallets/debts` (Q9); locks, merge and
   sweeps (Q10); delete asks first, entries and rules go, counted rows stay (Q11); 100 open
-  debts per profile, due dates with overdue in red (Q12).
+  debts per book, due dates with overdue in red (Q12).
 - **Decided while building** (owner: "ยืนยัน", from the screenshots): a forgiven rest is **two
   rows in one wallet** (an uncounted repayment that settles + the counted transaction), since a
   single counted row would take the money out of the wallet twice, so only a repaid debt's
@@ -618,7 +639,7 @@ Known, for later:
   the usual "มีธุรกรรมแล้ว" line.
 - **API**: migration `0016_debts` (`debts`, `debt_entries`, `transactions.debt_id`,
   `recurring_rules.debt_id`); `features/debt` (two handlers: fixed direction / countAs /
-  currency, an expense category for repaid, 100 open per profile, an entry's wallet in the debt's
+  currency, an expense category for repaid, 100 open per book, an entry's wallet in the debt's
   currency and none only on a repaid debt; `resolve`: a merged category, an entry of a deleted
   debt goes with it; `keepsStored` for recorded repayments); `core/database/debt-link.ts`
   (`checkDebtLink`, read by transactions, rules and entries); a transaction's link to a gone debt
@@ -665,12 +686,12 @@ Known, for later:
   an edit changes what isn't recorded, delete of an occurrence = skip (Q6); an archived wallet
   or category stops a rule (no catch-up), a merge moves it, a delete takes it, a live rule fixes
   currency and type (Q7); 3 months of upcoming, never counted (Q8). Extras: the toast after a
-  pass, no "save and add" while repeating, 100 rules per profile.
+  pass, no "save and add" while repeating, 100 rules per book.
 - **Decided while building** (owner, from screenshots): no undo on a due item's "บันทึก" /
   "ข้าม"; one device's skip beats another's record of the same due item (one notice); the rules
   page's add buttons under the list; the transfer form's "ทำซ้ำ" in its own card.
 - **API**: migration `0015_recurring` (`recurring_rules`, `recurring_id` on transactions and
-  transfers); `features/recurring` (checks, 100 per profile, `resolve`: a merged category and
+  transfers); `features/recurring` (checks, 100 per book, `resolve`: a merged category and
   `nextOn` only forward, `sameChange`); the sync service's optional hooks `keepsStored` (a
   create of an id the server has keeps its row, answered `overridden` with no notice) and
   `sameChange` (no notice between versions that are the same change); a category merge's
@@ -682,7 +703,7 @@ Known, for later:
   `describe.ts`); the shell loads it with a dynamic `import()`; `layout/repeat-view`,
   `layout/repeat-row` and the `rule` / `fixRule` modes of both sheets; Account › รายการซ้ำ; the
   due card and `components/due-sheet`, upcoming rows and the ↻ mark on the Transactions tab;
-  wallet / category / profile delete take or count rules; the sync sheet's fix route.
+  wallet / category / book delete take or count rules; the sync sheet's fix route.
 - **Found and fixed while building**: the recording pass opened a write for a due ask-first
   rule though it wrote nothing; the write re-ran the pass, so the page hung in a loop (a spec
   hangs without the fix).
@@ -705,7 +726,7 @@ Known, for later:
   `docs/features/mockups/report.html`; report.md → Open questions): by category as a thin
   split bar over a ranked list with bars (Q1-B), drawn with our own elements, **no chart
   library**; month (default) / quarter / year / custom through the ⋮ "ดูตาม", its own choice
-  kept per profile, trend 6 months / 4 quarters / 5 years (Q2); the Transactions tab's wallet
+  kept per book, trend 6 months / 4 quarters / 5 years (Q2); the Transactions tab's wallet
   switcher and chosen wallet (Q3); money on a parent itself as "ไม่ระบุหมวดย่อย" (Q4); drill-down
   pages in the tab, rows open the transaction sheet (Q5); one currency at a time with chips
   only when needed (Q6); no API (Q7); extras ยอดเริ่มต้น / ยอดสุดท้าย (owner's wording),
@@ -718,8 +739,8 @@ Known, for later:
   rows; no "อื่น ๆ" fold; the chips stay on the report pages.
 - **Found and fixed**: the Transactions tab jumped back to "เดือนนี้" (and its remembered
   wallet) after any save or pull while another period was chosen (since 8.1):
-  `ProfileService.current()` is a new object after every write or pull, which re-ran the
-  effect that restores the view. `ProfileService.currentId()` now feeds it (and the report's);
+  `BookService.current()` is a new object after every write or pull, which re-ran the
+  effect that restores the view. `BookService.currentId()` now feeds it (and the report's);
   a spec fails without it.
 - **Web** (no API change): `core/report` (`ReportService`: unit / tab / custom / type /
   currency, `summaries`, `breakdown`, `byCategory`, `categoryTotal`, `trend`,
@@ -755,7 +776,7 @@ delete, views in the same sheet).
 
 - **Decided at the start of 7.3** (owner; category.md rule 15, mock-up
   `docs/features/mockups/category-merge.html`): a category merges into **any** category of the
-  same profile and type, top-level or sub-category, except itself and its own children (as in
+  same book and type, top-level or sub-category, except itself and its own children (as in
   Money Lover: "ค่าน้ำ" into "ค่าข้าว" or into "อาหาร"); a parent's children move under the
   target (or the target's parent) with a name clash merging, or all merge in; a confirm view,
   no undo; merged ids leave `hiddenCategoryIds`; the "can't delete" line offers the merge.
@@ -772,7 +793,7 @@ delete, views in the same sheet).
   - API: migration `0014_category_merged_into`; the sync service's optional handler hooks
     `resolve` (a pushed row adjusted before its checks) and `followUp` (rows a written row
     implies, with a block of `changeSeq`s from `takeSeqs(n)`); `core/database/category-merge.ts`
-    `findMergeTarget` (≤ 5 hops, same owner, profile and type); a merged tombstone moves its
+    `findMergeTarget` (≤ 5 hops, same owner, book and type); a merged tombstone moves its
     transactions (one `UPDATE … FROM`) and merges leftover children; a late transaction, or a
     child pushed under a merged parent, follows the merge instead of being refused.
   - Web: local schema step 10 (`categories.merged_into_id`), `core/category/category-merge.ts`,
@@ -803,18 +824,18 @@ delete, views in the same sheet).
   join), and from the Wallets tab (Q4); two rows, the outgoing one first, **red − / green +**
   with "โอนไปยัง" / "ได้รับจาก" (Q5, replacing DESIGN.md §5's neutral transfers); editing or
   deleting either row changes the whole transfer (Q6); the to wallet remembered per from wallet
-  (Q7); a "โอน" summary line when the view's transfers don't cancel out; the profile delete
+  (Q7); a "โอน" summary line when the view's transfers don't cancel out; the book delete
   counts transfers with transactions.
 - **Decided while building** (owner): the sync status is the **icon on every tab** (it was a
   word pill outside the Transactions tab); the Wallets tab's "โอนเงิน" is tinted gold so it
   doesn't look like the outline "เพิ่มกระเป๋าเงิน" (maia's `secondary` looked the same);
   "Transactions" stays the English tab label.
-- **API**: migration `0013_transfers` (profile and both wallet FKs with cascade),
-  `features/transfer` (sync handler; `check`: the user's live profile with no move, two
+- **API**: migration `0013_transfers` (book and both wallet FKs with cascade),
+  `features/transfer` (sync handler; `check`: the user's live book with no move, two
   different live wallets of it, archived accepted, the same currency); a wallet on either side
   of a live transfer keeps its currency; `isEntryDay` in `shared/utils` (transactions and
   transfers); OpenAPI `SyncTransferRow`.
-- **Web**: local schema step 9, `SYNC_TABLES`, `PROFILE_CHILD_TABLES`; `core/transaction`
+- **Web**: local schema step 9, `SYNC_TABLES`, `BOOK_CHILD_TABLES`; `core/transaction`
   `TransferService`, `TransactionService.entries` / `transferSides`, `MoneySummary.transfer`;
   balances and `hasTransactions` count both sides, a pulled wallet tombstone takes its
   transfers; `layout/transfer-sheet`; the ⋮ menu's two levels; the Wallets tab button; the sync
@@ -877,23 +898,23 @@ delete, views in the same sheet).
   the wallet's badge on the category badge on "ทุกกระเป๋า" (ก); sub-categories in a panel tinted
   with the parent's colour (3+4, also in Account › หมวดหมู่ and "หมวดหมู่ที่ใช้"); the initial
   bundle warning budget 680 → 750 kB (694 kB; features after #8 are lazy).
-- **API**: migration `0012_transactions` (profile, wallet, category FKs with cascade),
-  `features/transaction` (sync handler; `check`: the user's live profile with no move, live
-  wallet and category of that profile, no move to another currency); wallets keep their
+- **API**: migration `0012_transactions` (book, wallet, category FKs with cascade),
+  `features/transaction` (sync handler; `check`: the user's live book with no move, live
+  wallet and category of that book, no move to another currency); wallets keep their
   currency and categories their type while they have live transactions; OpenAPI
   `SyncTransactionRow`.
-- **Web**: local schema step 8 (+ `(profile_id, occurred_on)`, wallet, category indexes),
-  `SYNC_TABLES`, `PROFILE_CHILD_TABLES`; `core/transaction` (`TransactionService`, `period.ts`);
+- **Web**: local schema step 8 (+ `(book_id, occurred_on)`, wallet, category indexes),
+  `SYNC_TABLES`, `BOOK_CHILD_TABLES`; `core/transaction` (`TransactionService`, `period.ts`);
   real `balance()`, `hasTransactions` / `canChangeCurrency` / no delete in `WalletService` and
   `CategoryService`; `layout/transactions-header`, `view-wallet-sheet`, `custom-range-sheet`,
   `transaction-sheet`; `features/transactions`; shared `calc.ts`, `day.ts`, `formatAmount`,
   `app-calc-keypad`, `app-calc-amount-field`, `.tpn-tree`; ➕ opens the sheet.
 - **Checked**: curl-style scripts on `/sync/push` + `/pull` (amount and date limits, foreign /
-  deleted / other-profile wallet or category, archived accepted, currency move with USD switched
+  deleted / other-book wallet or category, archived accepted, currency move with USD switched
   on for the test, currency and type locks, two devices: the later edit wins). Playwright at
   375×812 in th/en × light/dark on `npm run build`: add with the keypad (`120+65` → 185), income,
   past dates, edit, delete + undo, ⋮ units, custom range, wallet switcher, the empty picker of a
-  wallet hiding all income, wallet / category locks, the profile delete count; `setOffline` and
+  wallet hiding all income, wallet / category locks, the book delete count; `setOffline` and
   the API really stopped (syncs by itself when back); an untrusted device offline can't save;
   two trusted devices (the later edit wins, the loser's notice); A deletes an empty wallet
   offline while B adds to it → B's row goes too; 20,000 rows (pull ≈ 5.5 s, month ≈ 0.17 s,
@@ -905,7 +926,7 @@ delete, views in the same sheet).
   parent's id only (children follow, also later ones; their switches show off and locked), an
   archived category's id stays, ids of known tombstones and duplicates are dropped on save, a
   wallet may hide every category of a type, and the row is in the wallet form when creating and
-  editing. The profile delete confirm counts categories too (rule 12, owner's request).
+  editing. The book delete confirm counts categories too (rule 12, owner's request).
 - **Decided while building** (owner, from HTML mock-ups): no explanation line in the categories
   view; the form rows look like "หมวดหมู่หลัก" (label left, value right, ›); **the category form
   also chooses its wallets** ("ใช้ในกระเป๋า", owner's idea: a new category used only on a credit
@@ -918,15 +939,15 @@ delete, views in the same sheet).
   the handler writes / pulls the array, OpenAPI `SyncWalletRow.hiddenCategoryIds`.
 - **Web**: local schema step 7 + `SYNC_TABLES.wallets.json` (JSON columns: `putRow` writes
   `[]` when absent, `fromSql` parses); `core/wallet/hidden-categories.ts` (`isHiddenIn`,
-  `cleanHidden`, `toWallet`, `findWallet`); `WalletService.openOf(profileId)`;
+  `cleanHidden`, `toWallet`, `findWallet`); `WalletService.openOf(bookId)`;
   `CategoryService.treeOf()`, `hiddenIn()`, `save(..., hiddenIn)`; the shared
   `app-toggle-list-field`; wallet sheet view `categories`, category sheet view `wallets`;
-  `ProfileService.categoryCount()`.
+  `BookService.categoryCount()`.
 - **Checked**: curl (no field → `[]`, two ids, 200 ok, 201 / not a UUID / not an array / null
   refused, pull, two devices from one `baseSeq`: the later edit wins and the loser's array is
   in `change_history`). Playwright at 375×812 in th/en × light/dark on `npm run build`: hide a
   parent (children locked, "ซ่อน 7" counts them), the income tab, save and reopen, the category
-  form's "ใช้ในกระเป๋า" (a wallet hiding the parent is locked), the profile delete confirm
+  form's "ใช้ในกระเป๋า" (a wallet hiding the parent is locked), the book delete confirm
   ("กระเป๋าเงิน 2 ใบ หมวดหมู่ 27 รายการ"), the icon picker. Two devices: A offline edits first,
   B online later → B wins and A shows B's list; B first, A offline later → A wins the whole row.
   Server really stopped: a new category used only in one wallet queues 2 ops and syncs once the
@@ -944,7 +965,7 @@ delete, views in the same sheet).
   say the server is down rather than "go online".
 - **Web**: `NetworkStatusService.serverReachable`, `SyncService` retries (`RETRY_DELAYS_MS`,
   also for a session check that couldn't reach the API when the app opened),
-  `SyncStatus` `'unreachable'`, `ProfileService.canWrite` / `serverDown`.
+  `SyncStatus` `'unreachable'`, `BookService.canWrite` / `serverDown`.
 - **Checked** (Playwright on `npm run build`, th and en, the API process really stopped): a
   trusted device writing while down shows "เซิร์ฟเวอร์ไม่ตอบ · รอ 1" within a second and syncs by
   itself 14–27 s after the API is back; a device opened (PIN) while down gets its session back and
@@ -954,27 +975,27 @@ delete, views in the same sheet).
 ## Done: Category 7.1 (#7)
 
 - **Decided at the start of #7** (owner, category.md → Open questions): split 7.1 / 7.2; the
-  default set follows the app's language when the profile is created; the manage screen is
-  Account › หมวดหมู่ with the current profile on top (tap to switch); hiding per wallet is a
-  `wallets` column; a refused profile create groups its refused child rows (categories, first
+  default set follows the app's language when the book is created; the manage screen is
+  Account › หมวดหมู่ with the current book on top (tap to switch); hiding per wallet is a
+  `wallets` column; a refused book create groups its refused child rows (categories, first
   wallet) under one sync-sheet item, fixed or discarded together. Proposed in the revision and
-  kept: archived categories hold no name, at most 200 open per profile, a pulled parent
+  kept: archived categories hold no name, at most 200 open per book, a pulled parent
   tombstone takes its children, unarchiving a parent brings its children back.
 - **Decided while building** (owner, from HTML mock-ups): **white glyphs on every user colour**:
   five palette colours went one step darker so white reaches 4.5:1 on all ten (`userColor` draws
   a row's old colour as its new one; DESIGN.md §3). The **Account tab is grouped rows that open
-  pages** (option A1: ข้อมูลของฉัน — โปรไฟล์, หมวดหมู่; บัญชีและความปลอดภัย — ความปลอดภัย;
+  pages** (option A1: ข้อมูลของฉัน — สมุด, หมวดหมู่; บัญชีและความปลอดภัย — ความปลอดภัย;
   การตั้งค่า — การแสดงผล, เครื่องนี้), and a page inside it has a ‹ in the header. The buffet
   icon doesn't read well yet; the owner is fine to redraw icons later.
-- **API**: `categories` (migration `0010_categories`; `profileId` and self `parentId` FKs with
-  cascade), `features/category` (pushable handler; `check`: the user's live profile and no move,
-  a live top-level parent of the same profile and type, open for an open child, a parent with
+- **API**: `categories` (migration `0010_categories`; `bookId` and self `parentId` FKs with
+  cascade), `features/category` (pushable handler; `check`: the user's live book and no move,
+  a live top-level parent of the same book and type, open for an open child, a parent with
   live children stays top-level and keeps its type, a unique name among open siblings, 200
-  open), OpenAPI `SyncCategoryRow`, `scripts/seed-default-categories.ts` (one-off, Thai, for
-  profiles with no category rows).
-- **Web**: local schema step 6 (`categories`) + `SYNC_TABLES`, joined `PROFILE_CHILD_TABLES`;
-  `core/category` (`CategoryService`); `ProfileService.save` writes the default set
-  (`core/profile/default-categories.ts`) with a new profile, `rejectedItems()` /
+  open), OpenAPI `SyncCategoryRow`, `scripts/seed-default-categories.ts` (one-off, Thai, removed in 2026-11, for
+  books with no category rows).
+- **Web**: local schema step 6 (`categories`) + `SYNC_TABLES`, joined `BOOK_CHILD_TABLES`;
+  `core/category` (`CategoryService`); `BookService.save` writes the default set
+  (`core/book/default-categories.ts`) with a new book, `rejectedItems()` /
   `discardRefused()` and the fix re-sending refused child rows, `switchSheet` (the switch sheet
   moved to the shell); `outbox.moveOpLast` (a category put under a parent made after it is pushed
   after it); `layout/category-sheet` + `app-segmented-field`; `features/account` pages
@@ -983,52 +1004,52 @@ delete, views in the same sheet).
   warning budget went 640 → 680 kB (the header's icon badge now carries the category icons;
   662 kB).
 - **Checked**: curl (create, every parent rule, sibling clash in any case, other type / parent /
-  profile free, archived name free and its unarchive refused, archive with children, child of
-  an archived parent refused, the 201st open, another user's profile and id, a move between
-  profiles, a deleted profile or parent, pull scoping, the one-off script twice, `sync:cleanup`
+  book free, archived name free and its unarchive refused, archive with children, child of
+  an archived parent refused, the 201st open, another user's book and id, a move between
+  books, a deleted book or parent, pull scoping, the one-off script twice, `sync:cleanup`
   cascade). Playwright at 375×812 in th/en × light/dark on `npm run build`: the default set,
   tabs, add a sub-category through the icon and parent views, name clash, discard, a parent
   with children (type and delete locked), archive + undo, the archived fold, a child refused
   while its parent is archived, unarchive brings children back, delete confirm, order mode by
   mouse drag (parents and children), arrow keys and touch long-press (a quick swipe does
-  nothing); device B (untrusted) sees A's set; A offline adds a category and a profile whose
-  names B takes first → back online, two items in the sync sheet (the profile "with 27
-  categories"), both fixed → synced, B sees the fixed profile with its 27; deleting a profile
+  nothing); device B (untrusted) sees A's set; A offline adds a category and a book whose
+  names B takes first → back online, two items in the sync sheet (the book "with 27
+  categories"), both fixed → synced, B sees the fixed book with its 27; deleting a book
   tombstones its 29 categories on the server; a **really offline** reopen (both servers
   stopped) adds a category that syncs once back; untrusted offline blocks adding. Found and
-  fixed while checking: fixing a refused profile left its children rejected, and the pill
+  fixed while checking: fixing a refused book left its children rejected, and the pill
   counted them one by one. Tests: API 491, web 366.
-- **Known**: the profile delete confirm counted wallets only (fixed in 7.2). Same local-proxy limits as before (20 sign-in mails per hour, the 60 s cooldown
+- **Known**: the book delete confirm counted wallets only (fixed in 7.2). Same local-proxy limits as before (20 sign-in mails per hour, the 60 s cooldown
   per email).
 
-## Done: Profile + Wallet (#6)
+## Done: Book + Wallet (#6)
 
-Specs: [profile.md](docs/features/profile.md), [wallet.md](docs/features/wallet.md). **Decided at
+Specs: [book.md](docs/features/book.md), [wallet.md](docs/features/wallet.md). **Decided at
 the start of #6**: two parts, one session and PR each, because wallets, categories and
-transactions all carry a `profileId`, so `profiles` must exist first.
+transactions all carry a `bookId`, so `books` must exist first.
 
 | Part | What                                                                                                               | Status |
 | ---- | ------------------------------------------------------------------------------------------------------------------ | ------ |
-| 6.1  | `profiles` (API table + sync handler; device table), create step, profile form, header switcher, Account › โปรไฟล์ | ✅     |
+| 6.1  | `books` (API table + sync handler; device table), create step, book form, header switcher, Account › สมุด | ✅     |
 | 6.2  | `wallets` + `wallet_members`, Wallets tab, wallet form + icons, first-wallet step, **remove `sync_probes`**        | ✅     |
 
 Decided with the owner (don't re-ask):
 
-- **Profiles are made by the user.** No automatic profile or wallet (replaces wallet rule 7).
-  Onboarding = create a profile → its first wallet. The app reopens on the device's last
-  profile (`tpn-profile:<userId>`, profile rule 6).
-- **Profile look** (6.1): a lucide icon from a curated set on a user colour. The switcher
+- **Books are made by the user.** No automatic book or wallet (replaces wallet rule 7).
+  Onboarding = create a book → its first wallet. The app reopens on the device's last
+  book (`tpn-book:<userId>`, book rule 6).
+- **Book look** (6.1): a lucide icon from a curated set on a user colour. The switcher
   replaces the page title on the Transactions, Wallets and Reports tabs. Delete asks in a sheet
-  (no undo, takes the profile's wallets and transactions with it from 6.2); the last profile may
+  (no undo, takes the book's wallets and transactions with it from 6.2); the last book may
   be deleted.
-- **Categories**: one set per profile, and a wallet can hide categories it doesn't use. The
-  default set (category rule 8) comes with #7, written by the device that creates the profile
+- **Categories**: one set per book, and a wallet can hide categories it doesn't use. The
+  default set (category rule 8) comes with #7, written by the device that creates the book
   in the same local write; 6.1 writes no categories.
 - **For 6.2** (wallet.md revised before it): wallets have **no type** (drop `type`); icons are
   lucide **plus our own `tpn` SVGs** in lucide's style where lucide lacks a clear picture, chosen
   to say what the thing is (several bank and card drawings instead of bank logos; **no letter
   badges**, dropped before 6.2), so DESIGN.md §7's "lucide only" changes with it; a new wallet
-  gets a default icon the user can change; names are unique within the profile; archive is
+  gets a default icon the user can change; names are unique within the book; archive is
   built in 6.2; the currency can change only while the wallet has no transactions, and the form
   says why when it can't.
 - **For #8** (owner's direction): the Transactions tab's wallet switcher sits at the header
@@ -1041,43 +1062,43 @@ Decided with the owner (don't re-ask):
 6.2 in detail (✅ done, API + web):
 
 - **Decided at its start** (owner, wallet.md → Open questions): at most **20 open wallets per
-  profile** (archiving frees a place); a **+/− button** for a negative starting balance (phone
-  keypads have no minus); a device that pulls a profile's tombstone **tombstones that profile's
+  book** (archiving frees a place); a **+/− button** for a negative starting balance (phone
+  keypads have no minus); a device that pulls a book's tombstone **tombstones that book's
   wallets it holds** (a wallet another device synced survives a delete made where it wasn't
   known). The revised spec had been pushed after 6.1's PR merged, so 6.2 cherry-picked it.
 - **Decided while building** (owner, from HTML mock-ups): **every sheet is 92dvh** with a header
   bar (X / ‹ left, title centred, icon actions right) and **one main button pinned at the
-  bottom** (no "ปิด"); the wallet and profile forms are **compact** (icon + name on one row, the
+  bottom** (no "ปิด"); the wallet and book forms are **compact** (icon + name on one row, the
   icon opening an "ไอคอนและสี" view, no labels or hints); archive and delete are header icons,
   delete and discard are confirm views, **archiving offers undo** in its toast; the Wallets
   tab's total sits 12px above the list. The currency stays per wallet (locked decision): the form
   shows "THB" and becomes a picker only when a second currency is active. DESIGN.md §6–8 hold the
   rules.
-- **API**: `wallets` + empty `wallet_members` (migration `0007_wallets`; `profileId` FK with
-  cascade, so purging a profile's old tombstone takes its wallets'), `features/wallet` (pushable
-  handler; `check`: the user's live profile, no move between profiles, an active currency for a
-  new or changed one, a unique name among the profile's open wallets, 20 open), OpenAPI
+- **API**: `wallets` + empty `wallet_members` (migration `0007_wallets`; `bookId` FK with
+  cascade, so purging a book's old tombstone takes its wallets'), `features/wallet` (pushable
+  handler; `check`: the user's live book, no move between books, an active currency for a
+  new or changed one, a unique name among the book's open wallets, 20 open), OpenAPI
   `SyncWalletRow`. `sync_probes` removed: feature, schema, `0008` drops the table, custom `0009`
   deletes its `change_history` rows.
 - **Web**: local schema step 4 (`wallets`) and step 5 (drop `sync_probes` with its ops and
   notices); `core/wallet` (`WalletService`); `features/wallets` (Wallets tab: totals per
   currency, list, order mode, folded "เก็บถาวร"); `layout/wallet-sheet` + `wallet-first-step`
-  (the shell's gate on the Transactions and Wallets tabs, ➕ follows); `ProfileService` deletes a
-  profile's wallets in the same write, counts them for the confirm and sweeps orphans
-  (`PROFILE_CHILD_TABLES`); `shared/components/sheet` (`app-sheet-frame`, now under all four
+  (the shell's gate on the Transactions and Wallets tabs, ➕ follows); `BookService` deletes a
+  book's wallets in the same write, counts them for the confirm and sweeps orphans
+  (`BOOK_CHILD_TABLES`); `shared/components/sheet` (`app-sheet-frame`, now under all four
   sheets), `app-name-icon-field`, `app-amount-field`, the grouped `app-icon-field`, the first
   `tpn` SVG set + `WALLET_ICON_GROUPS`, `shared/utils/money`. Account › Sync test is gone. The
   initial bundle warning budget went 620 → 640 kB (the header's icon badge carries every user
   icon; now 623 kB).
-- **Checked**: curl (create, every validation, `ID_TAKEN`, another user's profile, a deleted
-  profile, a move, inactive / unknown currency, a case-insensitive name clash, an archived
+- **Checked**: curl (create, every validation, `ID_TAKEN`, another user's book, a deleted
+  book, a move, inactive / unknown currency, a case-insensitive name clash, an archived
   duplicate allowed and its unarchive refused, the 21st wallet, `overridden`, pull scoping,
   `sync:cleanup` cascade; after removal `tables` has no probe and a probe push is
   `UNKNOWN_TABLE`). Playwright at 375×812 in th/en × light/dark on `npm run build`: create step
-  → profile → first-wallet step → wallets (negative, excluded, archived, every `tpn` icon), totals,
+  → book → first-wallet step → wallets (negative, excluded, archived, every `tpn` icon), totals,
   order mode by mouse drag, touch long-press (a quick swipe does nothing) and arrow keys, kept
   after reload; device B (untrusted) sees A's wallets; A offline adds a name B adds online first
-  → rejected → fix from the sync sheet → synced on both; deleting a profile with wallets (the
+  → rejected → fix from the sync sheet → synced on both; deleting a book with wallets (the
   confirm counts them; B's wallet A never saw is swept); untrusted offline blocks writing; a
   **really offline** reopen (both servers stopped) adds a wallet that syncs once back; archive +
   undo, unarchive refused, delete and discard confirms, the icon view. Tests: API 468, web 320.
@@ -1091,37 +1112,37 @@ Decided with the owner (don't re-ask):
 6.1 in detail (✅ done, API + web):
 
 - **Decided at its start** (owner): split #6 into 6.1 / 6.2; the category default set waits for
-  #7 (written with the profile on the device); profile look = curated lucide icon on a user
+  #7 (written with the book on the device); book look = curated lucide icon on a user
   colour; the switcher replaces the page title on the three data tabs; delete asks in a sheet and
-  the last profile may go. **While building**: up to 20 profiles and a name unique among live
-  ones (both server checks, `CONFLICT`); the current profile lives in `localStorage` on a trusted
+  the last book may go. **While building**: up to 20 books and a name unique among live
+  ones (both server checks, `CONFLICT`); the current book lives in `localStorage` on a trusted
   device and `sessionStorage` on an untrusted one, and a wipe forgets it; reorder = an order mode
   with **one grip handle per row** (press and hold ~0.3 s on touch, ↑ / ↓ for keyboards; owner's
   choice over up / down buttons); a fixed refused create becomes current again; closing a sheet
   never asks, even with unsaved input (it once asked "ทิ้งที่แก้ไว้ใช่ไหม"; dropped by the owner
   in 2026-11 as more annoying than useful); the **tab bar shows the active tab by
   colour alone** (no pill; owner picked option B of four mock-ups).
-- **API**: `profiles` (migration `0006_profiles`), `features/profile` registers a pushable sync
+- **API**: `books` (migration `0006_profiles`), `features/book` registers a pushable sync
   handler (validate / find / check / write / purge, like `sync-probe`), no REST routes; OpenAPI
-  `SyncProfileRow`.
-- **Web**: local schema step 3 (`profiles`) + `SYNC_TABLES`; `core/profile` (`ProfileService`:
+  `SyncBookRow`.
+- **Web**: local schema step 3 (`books`) + `SYNC_TABLES`; `core/book` (`BookService`:
   list, `current()`, `ready()`, `canWrite()`, `save` / `remove` / `moveTo`, sheet state,
-  `openFix`); `layout/` gained the header switcher + switch sheet, the profile sheet (deferred),
-  the create step the shell shows on the data tabs while there is no profile (a spinner until a
-  new device's first pull) and the ➕ redirect; `features/account/pages/profiles-page`;
-  `shared/components/icon-badge` (`app-icon-badge`, `PROFILE_ICONS`, `USER_COLORS`,
+  `openFix`); `layout/` gained the header switcher + switch sheet, the book sheet (deferred),
+  the create step the shell shows on the data tabs while there is no book (a spinner until a
+  new device's first pull) and the ➕ redirect; `features/account/pages/books-page`;
+  `shared/components/icon-badge` (`app-icon-badge`, `BOOK_ICONS`, `USER_COLORS`,
   `glyphColor`) and the shared `app-icon-field` / `app-color-field`. The initial bundle warning
-  budget went 600 → 620 kB (the header needs the profile icon set at start).
+  budget went 600 → 620 kB (the header needs the book icon set at start).
 - **Checked**: curl (create, case-insensitive name clash, every validation, another user's id,
-  the 21st profile, delete then reuse the name, an older edit `overridden`, pull scoping,
+  the 21st book, delete then reuse the name, an older edit `overridden`, pull scoping,
   `sync:cleanup`). Playwright at 375×812 in th/en × light/dark on `npm run build`: create step →
-  sheet (errors, icon, colour) → no-wallet step; device B (untrusted) sees A's profile; A adds
-  from the switcher and it becomes current; reopen (PIN) lands on the last profile, also after
-  switching; B keeps its own current profile; A offline adds a name B adds online first →
+  sheet (errors, icon, colour) → no-wallet step; device B (untrusted) sees A's book; A adds
+  from the switcher and it becomes current; reopen (PIN) lands on the last book, also after
+  switching; B keeps its own current book; A offline adds a name B adds online first →
   rejected → fix from the sync sheet → renamed and synced; order mode by mouse drag, touch
   long-press (a quick swipe does nothing) and arrow keys, kept after sync and reload; delete
   with confirm, B told "ถูกลบจากเครื่องอื่น"; delete all → create step, ➕ follows; a **really
-  offline** reopen (both servers stopped) keeps the last profile and queues an add that syncs
+  offline** reopen (both servers stopped) keeps the last book and queues an add that syncs
   once back; untrusted offline blocks editing. Tests: API 454, web 279.
 - **Known**: a mouse "swipe" on the sheet in headless Chromium doesn't close it, so the swipe
   path was only checked through Escape / backdrop (same handler); try it on a phone. Through one
@@ -1220,7 +1241,7 @@ migrations dropping `sync_probes` and its history).
   page group); API unchanged (374).
 - **Known**: Playwright's `setOffline` doesn't cut the service worker's network, so offline checks
   stop the servers instead. Each tab holds its own unlocked copy, so taking over in another tab
-  asks for the PIN again. (Untrusted devices open the in-memory database since 4a.2.) Someone with DevTools on an unlocked browser profile can still use the
+  asks for the PIN again. (Untrusted devices open the in-memory database since 4a.2.) Someone with DevTools on an unlocked browser book can still use the
   refresh cookie online; the PIN protects the local data, not the session (spec rule 4's honest
   limit). Each unlock costs ~0.3 s of PBKDF2 on a laptop, more on an old phone.
 
@@ -1599,8 +1620,8 @@ Agreed with the user. Do not re-propose alternatives unless asked.
   losing version is kept in `change_history` and the loser is told. In a shared wallet **the
   owner always wins**, even over an editor's delete, and the editor isn't told (16.2).
 - **Shared wallets**: owner = full offline. Editor = add / edit / delete transactions **online
-  only** (16.2: no offline adds). Viewer = online, read only. Shared per **person and profile**:
-  one role over the wallets the owner switches on (16.1); the member picks the owner's profile
+  only** (16.2: no offline adds). Viewer = online, read only. Shared per **person and book**:
+  one role over the wallets the owner switches on (16.1); the member picks the owner's book
   in the switcher and uses it like their own, online only (16.2,
   [sharing](docs/features/sharing.md)).
 
@@ -1652,7 +1673,7 @@ Agreed with the user. Do not re-propose alternatives unless asked.
   nothing (shared-activity.md → Out of scope). Restoring a row someone else deleted could come
   with it.
 - **Longer shared refresh while live** (live-sync decision 1): a device with a live connection
-  could stretch the shared profile's 1-minute read to 5 minutes. Not before Ably runs on
+  could stretch the shared book's 1-minute read to 5 minutes. Not before Ably runs on
   staging for a while.
 - **Live updates of sharing** (after #20): poke the `user:` channel when an invite arrives or a
   member's role or wallets change, so the Account tab's dot and the switcher update at once.

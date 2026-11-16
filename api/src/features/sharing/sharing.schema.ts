@@ -14,8 +14,8 @@ const role = z.enum(['editor', 'viewer'], { error: ERRORS.invalidField('role') }
 const uuid = (name: string) => z.uuid({ error: ERRORS.invalidField(name) })
 const walletIds = z.array(uuid('wallet id')).max(SHARING_LIMITS.WALLETS_MAX)
 
-const profileParams = z.object({ profileId: uuid('profile id') })
-const memberParams = z.object({ profileId: uuid('profile id'), userId: uuid('user id') })
+const bookParams = z.object({ bookId: uuid('book id') })
+const memberParams = z.object({ bookId: uuid('book id'), userId: uuid('user id') })
 const inviteParams = z.object({ id: uuid('invite id') })
 
 const inviteBody = z.object({ email, role, walletIds: walletIds.min(1), lang })
@@ -36,17 +36,17 @@ const rowsQuery = z.object({
 })
 
 export const sharingSchema = {
-  ofProfile: { params: profileParams },
-  invite: { params: profileParams, body: inviteBody },
+  ofBook: { params: bookParams },
+  invite: { params: bookParams, body: inviteBody },
   resend: { params: inviteParams, body: langBody },
   byInvite: { params: inviteParams },
   member: { params: memberParams, body: memberBody },
   byMember: { params: memberParams },
-  leave: { params: profileParams },
-  rows: { params: profileParams, query: rowsQuery },
+  leave: { params: bookParams },
+  rows: { params: bookParams, query: rowsQuery },
 } as const
 
-export type ProfileParams = z.infer<typeof profileParams>
+export type BookParams = z.infer<typeof bookParams>
 export type MemberParams = z.infer<typeof memberParams>
 export type InviteParams = z.infer<typeof inviteParams>
 export type InviteBody = z.infer<typeof inviteBody>

@@ -226,13 +226,13 @@ export class SyncService {
     return this.running
   }
 
-  /** Waits for a running round, so a shared profile's TEMP tables never meet one. */
+  /** Waits for a running round, so a shared book's TEMP tables never meet one. */
   async idle(): Promise<void> {
     await this.running?.catch(() => undefined)
   }
 
   /**
-   * A shared profile's writes (sharing rule 11): the TEMP outbox pushed at once, results applied
+   * A shared book's writes (sharing rule 11): the TEMP outbox pushed at once, results applied
    * to the TEMP rows like any push. No pull: the shared view reads its rows itself.
    */
   async pushShared(): Promise<void> {

@@ -21,7 +21,7 @@ transactions as the Transactions tab and never stores a total (ROADMAP → Money
 
 ## Data model
 
-No table of its own and no new column. A report reads, for the current profile:
+No table of its own and no new column. A report reads, for the current book:
 
 - `transactions` (live, `excludeFromReport = 0`) joined to `categories` (`type`, `parentId`,
   name, icon, colour; archived ones included) and `wallets` (`currencyCode`);
@@ -35,7 +35,7 @@ No table of its own and no new column. A report reads, for the current profile:
    `excludeFromReport` rows and **transfers are left out** (transfer rule 5). Archived wallets
    and categories still count (wallet rule 6, category rule 7); categories hidden in a wallet
    too (hiding is for the picker only).
-2. **Wallets**: "ทุกกระเป๋า" = the profile's wallets without `excludeFromTotal`, and credit
+2. **Wallets**: "ทุกกระเป๋า" = the book's wallets without `excludeFromTotal`, and credit
    cards, archived ones included (transaction rule 11, [credit-card.md](credit-card.md) rule 2:
    so rule 9's balances include what the cards owe); one wallet can be chosen instead, an
    excluded one included.
@@ -86,7 +86,7 @@ No table of its own and no new column. A report reads, for the current profile:
 ## Volume
 
 Up to tens of thousands of rows (transaction.md → Volume). Every figure is **one aggregate
-query** through the (`profile_id`, `occurred_on`) index, never a scan of every row into memory:
+query** through the (`book_id`, `occurred_on`) index, never a scan of every row into memory:
 
 - summary: the existing `TransactionService.summary` (`GROUP BY currency, type`) plus one
   aggregate for the left-out rows and one per balance (`UNION ALL` of the transactions and both
@@ -112,9 +112,9 @@ None. The tab reads the local database only.
 Owner's choices in #10 (mock-up rounds 1–3; DESIGN.md → Reports):
 
 - **Reports tab** (`features/reports`, lazy):
-  - header: the Transactions tab's (profile icon, the **wallet switcher** in the centre, sync
+  - header: the Transactions tab's (book icon, the **wallet switcher** in the centre, sync
     icon, ⋮), the same chosen wallet (Q3); its ⋮ holds only "ดูตาม · เดือน ›" → เดือน / ไตรมาส /
-    ปี / กำหนดเอง… (Q2), its own choice kept per profile on the device; custom opens the
+    ปี / กำหนดเอง… (Q2), its own choice kept per book on the device; custom opens the
     tab's own range sheet;
   - the **period chips** (`09/2026 · เดือนที่แล้ว · เดือนนี้`, no "อนาคต"), a sideways swipe
     moves period;
@@ -172,7 +172,7 @@ Ending balance), หมวดหมู่หลัก / ย่อย (DESIGN.md 
   badge + name carry identity (user colours may repeat). Charts are **our own SVG**, no chart
   library.
 - **Q2** period: month (default), quarter, year, custom, with the Transactions tab's chips and
-  ⋮ "ดูตาม"; its own choice, remembered per profile. Trend: ~~the last 6 months, 4 quarters or
+  ⋮ "ดูตาม"; its own choice, remembered per book. Trend: ~~the last 6 months, 4 quarters or
   5 years ending at the chosen one; a tap on a bar chooses that period~~ (changed by the owner
   in 2026-11: data from outside the chosen period confused the month view, and a tap that
   moved the period shifted the bars under the finger): the chosen period's own months, none

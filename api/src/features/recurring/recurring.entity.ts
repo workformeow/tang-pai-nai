@@ -2,7 +2,7 @@
 // layer's `Record<string, unknown>` rows.
 export type RecurringRule = {
   id: string
-  profileId: string
+  bookId: string
   /** `transaction` | `transfer` | `debt`. */
   kind: string
   /** The transaction's wallet, or the wallet a transfer leaves. */

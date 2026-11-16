@@ -31,13 +31,13 @@ properties:
             expiresAt: { type: integer }
       shares:
         type: array
-        description: Wallets shared with the caller, one group per owner's profile
+        description: Wallets shared with the caller, one group per owner's book
         items:
           type: object
-          required: [profileId, profile, role, owner, wallets]
+          required: [bookId, book, role, owner, wallets]
           properties:
-            profileId: { type: string, format: uuid }
-            profile: { $ref: './sharing-profile.schema.yaml' }
+            bookId: { type: string, format: uuid }
+            book: { $ref: './sharing-book.schema.yaml' }
             role: { $ref: './sharing-role.schema.yaml' }
             owner:
               type: object

@@ -3,12 +3,12 @@ put:
     - Sharing
   summary: 'Change a member'
   description: >-
-    Sets the member’s role and wallets of the profile; an empty list removes them. Takes effect on their next request.
+    Sets the member’s role and wallets of the book; an empty list removes them. Takes effect on their next request.
   operationId: sharingUpdateMember
   security:
     - bearerAuth: []
   parameters:
-    - name: profileId
+    - name: bookId
       in: path
       required: true
       schema: { type: string, format: uuid }
@@ -38,7 +38,7 @@ put:
           schema:
             $ref: '../../components/models/error.schema.yaml'
     '422':
-      description: 'Invalid input; `SHARE_WALLETS_INVALID` for a wallet that is not an open wallet of the profile'
+      description: 'Invalid input; `SHARE_WALLETS_INVALID` for a wallet that is not an open wallet of the book'
       content:
         application/json:
           schema:
@@ -48,12 +48,12 @@ delete:
     - Sharing
   summary: 'Remove a member'
   description: >-
-    Removes the member from every wallet of the profile.
+    Removes the member from every wallet of the book.
   operationId: sharingRemoveMember
   security:
     - bearerAuth: []
   parameters:
-    - name: profileId
+    - name: bookId
       in: path
       required: true
       schema: { type: string, format: uuid }

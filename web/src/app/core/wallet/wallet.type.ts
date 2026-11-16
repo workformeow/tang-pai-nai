@@ -1,7 +1,7 @@
 /** A wallet as the device stores it (docs/features/wallet.md → Data model). */
 export interface Wallet {
   id: string
-  profileId: string
+  bookId: string
   name: string
   /** ISO 4217, e.g. `THB`. */
   currencyCode: string
@@ -45,7 +45,7 @@ export type WalletSheetState =
   | { mode: 'create' }
   /** `view: 'categories'` opens on "หมวดหมู่ที่ใช้" (from the transaction form's picker). */
   | { mode: 'edit'; id: string; view?: 'categories' }
-  | { mode: 'fix'; opId: string; id: string; profileId: string; values: WalletValues }
+  | { mode: 'fix'; opId: string; id: string; bookId: string; values: WalletValues }
 
 /** A currency the device pulled (docs/features/currency.md). */
 export interface Currency {
@@ -70,8 +70,8 @@ export const WALLET_TABLE = 'wallets'
 
 export const WALLET_LIMITS = {
   NAME_MAX: 50,
-  /** Non-archived wallets per profile (wallet rule 3). */
-  PER_PROFILE: 20,
+  /** Non-archived wallets per book (wallet rule 3). */
+  PER_BOOK: 20,
   /** Ids in `hiddenCategoryIds` (category rule 13). */
   HIDDEN_CATEGORIES_MAX: 200,
   /** ±10¹⁵ minor units (wallet rule 5). */

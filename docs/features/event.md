@@ -24,25 +24,25 @@ event's dates new rows take it by themselves.
 
 `api/src/core/database/schema/event.ts`.
 
-- **events** (synced): `id`, `userId`, `profileId` (FK profiles, cascade), `name` (1–50),
+- **events** (synced): `id`, `userId`, `bookId` (FK books, cascade), `name` (1–50),
   `icon` + `color` (as wallets: a `lucide…`/`tpn…` name, `#rrggbb`), `startOn` (`YYYY-MM-DD`),
   `endOn` (`YYYY-MM-DD` ≥ `startOn`, or `null` = not set), `isClosed` ("จบแล้ว"), plus the sync
-  columns. Indexes: (`userId`, `changeSeq`), (`changeSeq`), (`profileId`).
+  columns. Indexes: (`userId`, `changeSeq`), (`changeSeq`), (`bookId`).
 - **transactions.eventId** (Q1): nullable, **no FK** (a column added to an existing table,
   `api/AGENTS.md` → Sync), index (`eventId`). The device's `transactions.event_id` (local schema
-  step 13) has the same index; `events` is a `SYNC_TABLES` entry and in `PROFILE_CHILD_TABLES`.
+  step 13) has the same index; `events` is a `SYNC_TABLES` entry and in `BOOK_CHILD_TABLES`.
 - An event's totals are **computed** from its live transactions, never stored.
 
 ## Business rules
 
-1. **Own data, synced** (Q3). Events belong to a profile and span its wallets. No REST routes:
+1. **Own data, synced** (Q3). Events belong to a book and span its wallets. No REST routes:
    table `events` on `/sync/push` + `/pull`. Server check for a live row: the owner's live
-   profile, never moved to another profile; at most **50 open** (not closed) events per profile
+   book, never moved to another book; at most **50 open** (not closed) events per book
    (Q11; a stored open one already counts).
 2. `name` 1–50 characters after trimming; `startOn` a real date from 2000-01-01 up to a year
    after today (`isEntryDay`); `endOn` a real date (no upper bound), not before `startOn`, or
    `null`.
-3. **A transaction's `eventId`** (Q4): an event of the transaction's profile (`CONFLICT`
+3. **A transaction's `eventId`** (Q4): an event of the transaction's book (`CONFLICT`
    otherwise). An event that is **gone** (deleted on another device) is **cleared** by the
    server, never refused, like `debtId`. A closed event may stay on a row (an edit keeps it),
    but the picker offers only open ones.
@@ -61,7 +61,7 @@ event's dates new rows take it by themselves.
    is gone (tags, totals, the form's row), and the server clears it when such a row is pushed
    again (rule 3). Untagging the rows in the same write was tried first and dropped: another
    device's offline edit of one of them then lost the whole row to the delete (later edit wins).
-8. **Profile delete** tombstones its events (`PROFILE_CHILD_TABLES`); a pulled profile tombstone
+8. **Book delete** tombstones its events (`BOOK_CHILD_TABLES`); a pulled book tombstone
    sweeps them like wallets. Two devices editing one event: the later edit wins (offline-sync
    rule 12).
 9. **Recurring rules** (Q8) carry no event: the rows they record have none. Category merge moves
@@ -90,7 +90,7 @@ not settings); the plan is to show an event as a view of the Transactions tab.
 
 ## Volume
 
-Event totals for the list are **one** `GROUP BY event_id` query over the profile's events; the
+Event totals for the list are **one** `GROUP BY event_id` query over the book's events; the
 event page reads its rows through the `event_id` index and draws them 100 at a time
 ("แสดงเพิ่ม"). **Checked in #14** with 20,000 rows over 3 years, 600 of them in one event
 (Playwright, `npm run build`): the first pull ≈ 3.4 s, the events page ≈ 0.14 s, the event page
@@ -99,5 +99,5 @@ the event's totals ≈ 0.22 s.
 
 ## Interactions
 
-Transactions (`eventId`), profiles (sweep), the sync sheet (table name, fix route). Reports,
+Transactions (`eventId`), books (sweep), the sync sheet (table name, fix route). Reports,
 transfers, debts and recurring rules don't read it.

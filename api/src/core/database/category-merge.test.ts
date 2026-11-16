@@ -6,8 +6,8 @@ import { makeTempDir, removeTempDir } from '@/shared/testing/temp-dir'
 import { findMergeTarget } from './category-merge'
 import { createDatabase } from './client'
 import { users } from './schema/auth'
+import { books } from './schema/book'
 import { categories } from './schema/category'
-import { profiles } from './schema/profile'
 import type { Database } from './client'
 
 let dir: string
@@ -22,7 +22,7 @@ const category = (
 ): typeof categories.$inferInsert => ({
   id,
   userId: 'alice',
-  profileId: 'pa',
+  bookId: 'pa',
   type: 'expense',
   parentId: null,
   name: id,
@@ -47,7 +47,7 @@ beforeEach(async () => {
     { id: 'alice', email: 'a@example.com', displayName: 'a' },
     { id: 'bob', email: 'b@example.com', displayName: 'b' },
   ])
-  const profile = (id: string, userId: string) => ({
+  const book = (id: string, userId: string) => ({
     id,
     userId,
     name: id,
@@ -58,8 +58,8 @@ beforeEach(async () => {
     ...sync(userId),
   })
   await created.db
-    .insert(profiles)
-    .values([profile('pa', 'alice'), profile('pa2', 'alice'), profile('pb', 'bob')])
+    .insert(books)
+    .values([book('pa', 'alice'), book('pa2', 'alice'), book('pb', 'bob')])
   db = created.db
   close = () => created.client.close()
 })
@@ -107,12 +107,12 @@ describe('findMergeTarget', () => {
     }
   })
 
-  it("never leads to another owner's, profile's or type's category, or its own child", async () => {
+  it("never leads to another owner's, book's or type's category, or its own child", async () => {
     await db
       .insert(categories)
       .values([
-        category('bobs', { userId: 'bob', profileId: 'pb', ...sync('bob') }),
-        category('other', { profileId: 'pa2' }),
+        category('bobs', { userId: 'bob', bookId: 'pb', ...sync('bob') }),
+        category('other', { bookId: 'pa2' }),
         category('salary', { type: 'income' }),
         merged('toBob', 'bobs'),
         merged('toOther', 'other'),

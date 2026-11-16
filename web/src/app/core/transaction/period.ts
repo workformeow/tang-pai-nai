@@ -75,7 +75,7 @@ export const periodRange = (
 }
 
 /**
- * The tabs of `unit`, oldest first: back to the period holding `firstDay` (the profile's oldest
+ * The tabs of `unit`, oldest first: back to the period holding `firstDay` (the book's oldest
  * transaction), at least the previous one, then the current one; the month view ends with the
  * future. `all` and `custom` have one tab.
  */

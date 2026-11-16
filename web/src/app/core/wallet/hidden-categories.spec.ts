@@ -8,7 +8,7 @@ describe('hidden categories (category rule 13)', () => {
   const category = (id: string, extra: object = {}) =>
     putRow(db, 'categories', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       type: 'expense',
       parentId: null,
       name: id,
@@ -59,7 +59,7 @@ describe('hidden categories (category rule 13)', () => {
   it('reads a wallet with its list, [] when the column holds no array', () => {
     putRow(db, 'wallets', {
       id: 'w1',
-      profileId: 'p1',
+      bookId: 'p1',
       name: 'Cash',
       currencyCode: 'THB',
       initialBalance: 0,

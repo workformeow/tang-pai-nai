@@ -13,14 +13,14 @@ export interface LiveServiceDeps {
 export const createLiveService = ({ liveRepo, provider }: LiveServiceDeps) => {
   /** Rule 8: an Ably token for the channels the user may hear now; else just the provider. */
   const token = async (userId: string): Promise<LiveToken> => {
-    const profileIds =
-      provider.name === LiveProviderName.ABLY ? await liveRepo.listenableProfiles(userId) : []
-    return provider.token({ userId, profileIds })
+    const bookIds =
+      provider.name === LiveProviderName.ABLY ? await liveRepo.listenableBooks(userId) : []
+    return provider.token({ userId, bookIds })
   }
 
   /**
    * Rule 9 (`local` only, else 404): adds a listener for the user's stream. Rule 3 is asked again
-   * on each `profile:` poke. Answers the function that removes it.
+   * on each `book:` poke. Answers the function that removes it.
    */
   const listen = (userId: string, send: (message: LiveMessage) => void): (() => void) => {
     if (provider.name !== LiveProviderName.LOCAL || !provider.listen) {
@@ -29,8 +29,7 @@ export const createLiveService = ({ liveRepo, provider }: LiveServiceDeps) => {
     return provider.listen({
       userId,
       send,
-      mayListen: async (profileId) =>
-        (await liveRepo.listenableProfiles(userId)).includes(profileId),
+      mayListen: async (bookId) => (await liveRepo.listenableBooks(userId)).includes(bookId),
     })
   }
 

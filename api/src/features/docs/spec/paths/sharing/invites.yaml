@@ -8,7 +8,7 @@ post:
   security:
     - bearerAuth: []
   parameters:
-    - name: profileId
+    - name: bookId
       in: path
       required: true
       schema: { type: string, format: uuid }
@@ -34,13 +34,13 @@ post:
           schema:
             $ref: '../../components/models/error.schema.yaml'
     '409':
-      description: '`SHARE_SELF`, `SHARE_ALREADY_MEMBER`, `SHARE_INVITE_PENDING` or `SHARE_MEMBER_LIMIT` (10 people per profile)'
+      description: '`SHARE_SELF`, `SHARE_ALREADY_MEMBER`, `SHARE_INVITE_PENDING` or `SHARE_MEMBER_LIMIT` (10 people per book)'
       content:
         application/json:
           schema:
             $ref: '../../components/models/error.schema.yaml'
     '422':
-      description: 'Invalid input; `SHARE_WALLETS_INVALID` for a wallet that is not an open wallet of the profile'
+      description: 'Invalid input; `SHARE_WALLETS_INVALID` for a wallet that is not an open wallet of the book'
       content:
         application/json:
           schema:

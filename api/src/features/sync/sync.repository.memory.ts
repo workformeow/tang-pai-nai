@@ -13,7 +13,7 @@ interface MemoryState {
 type CheckRule = (rows: SyncRow[], userId: string, row: SyncRowInput) => string | null
 
 export interface MemorySyncOptions {
-  /** A feature rule per table (like a unique profile or wallet name): the message when broken. */
+  /** A feature rule per table (like a unique book or wallet name): the message when broken. */
   checks?: Record<string, CheckRule>
   /** Rows per table that every user may pull (master data). */
   shared?: Record<string, SyncRow[]>
@@ -23,8 +23,8 @@ export interface MemorySyncOptions {
   followUps?: Record<string, { seqs: (row: SyncRow) => number; run: FollowUpRule }>
   /** Who may write a wallet's rows (#16.2); no answer = no such wallet. */
   walletAccess?: (userId: string, walletId: string) => WalletAccess | null
-  /** The shared profile of a wallet (live-sync rule 6); none by default. */
-  sharedProfileOf?: (walletId: string) => string | null
+  /** The shared book of a wallet (live-sync rule 6); none by default. */
+  sharedBookOf?: (walletId: string) => string | null
 }
 
 type FollowUpRule = (row: SyncRow, firstSeq: number) => void
@@ -120,8 +120,7 @@ export const createMemorySyncRepository = (options: MemorySyncOptions = {}) => {
       ),
     walletAccess: async (userId, walletId) =>
       Promise.resolve(options.walletAccess?.(userId, walletId) ?? null),
-    sharedProfileOf: async (walletId) =>
-      Promise.resolve(options.sharedProfileOf?.(walletId) ?? null),
+    sharedBookOf: async (walletId) => Promise.resolve(options.sharedBookOf?.(walletId) ?? null),
     deleteOpsBefore: async (before) => {
       let removed = 0
       for (const [opId, op] of state.ops) {

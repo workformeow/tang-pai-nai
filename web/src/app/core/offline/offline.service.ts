@@ -33,7 +33,7 @@ export type SyncMetaKey = 'deviceId' | 'userId' | 'cursor' | 'lastSyncedAt' | 't
 
 export const LOCK_URL = '/auth/lock'
 
-/** The tables a shared profile's view shadows (sharing rule 15): what its screens read. */
+/** The tables a shared book's view shadows (sharing rule 15): what its screens read. */
 export const SHARED_TABLES = [
   'wallets',
   'categories',
@@ -49,8 +49,8 @@ export const SHARED_TABLES = [
 const OTHER_SHARED_OPS = `SELECT count(*) FROM temp.outbox WHERE tbl <> 'transactions'`
 export const OTHER_TAB_URL = '/auth/tab'
 
-/** Keys of per-user device choices that a wipe removes (`tpn-profile:<userId>`). */
-const DEVICE_PREF_PREFIX = 'tpn-profile:'
+/** Keys of per-user device choices that a wipe removes (`tpn-book:<userId>`). */
+const DEVICE_PREF_PREFIX = 'tpn-book:'
 
 /** Wrong PINs in a row before the local data is wiped (rule 3). */
 export const MAX_PIN_ATTEMPTS = 5
@@ -98,7 +98,7 @@ export class OfflineService {
   /** Bumped after every local write, so screens re-read the database (rule 8). */
   changes = signal(0)
   /**
-   * A shared profile is in use (docs/features/sharing.md → Web screens): its rows are in TEMP
+   * A shared book is in use (docs/features/sharing.md → Web screens): its rows are in TEMP
    * tables that shadow `SHARED_TABLES`, own sync waits, and nothing is saved meanwhile.
    */
   sharedActive = signal(false)
@@ -165,7 +165,7 @@ export class OfflineService {
 
   /**
    * A local write (rule 8): one SQLite transaction, then the snapshot is saved. While a shared
-   * profile is in use, only transactions may be queued (an editor's writes, sharing rule 11):
+   * book is in use, only transactions may be queued (an editor's writes, sharing rule 11):
    * any other op rolls the write back.
    */
   write<T>(work: (db: LocalDatabase) => T): T {
@@ -173,7 +173,7 @@ export class OfflineService {
     const result = this.db().transaction((db) => {
       const done = work(db)
       if (shared && Number(db.selectValue(OTHER_SHARED_OPS)) > 0) {
-        throw new Error('Only transactions are written while a shared profile is in use')
+        throw new Error('Only transactions are written while a shared book is in use')
       }
       return done
     })
@@ -184,14 +184,14 @@ export class OfflineService {
     return result
   }
 
-  /** Starts a shared profile's view: empty TEMP copies of `SHARED_TABLES` (sharing rule 15). */
+  /** Starts a shared book's view: empty TEMP copies of `SHARED_TABLES` (sharing rule 15). */
   enterShared(): void {
     this.db().createShadows(SHARED_TABLES)
     this.sharedActive.set(true)
     this.changes.update((n) => n + 1)
   }
 
-  /** Puts a shared profile's rows in its TEMP tables: no outbox, no save. */
+  /** Puts a shared book's rows in its TEMP tables: no outbox, no save. */
   fillShared(work: (db: LocalDatabase) => void): void {
     if (!this.sharedActive()) {
       return
@@ -212,7 +212,7 @@ export class OfflineService {
 
   /**
    * Only when browser storage refuses the local database (rule 1): the same database in memory,
-   * for this tab's life. Nothing is saved; writes need the server (`ProfileService.canWrite`).
+   * for this tab's life. Nothing is saved; writes need the server (`BookService.canWrite`).
    */
   async openInMemory(): Promise<void> {
     const user = this.authStore.user()
@@ -380,7 +380,7 @@ export class OfflineService {
     this.releaseTab = null
   }
 
-  /** Per-user device choices kept beside the database: the current profile (profile rule 6). */
+  /** Per-user device choices kept beside the database: the current book (book rule 6). */
   private forgetDevicePrefs(): void {
     for (const storage of [this.window?.localStorage, this.window?.sessionStorage]) {
       if (!storage) {

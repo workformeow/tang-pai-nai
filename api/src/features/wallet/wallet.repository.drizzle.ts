@@ -1,8 +1,8 @@
 import { and, asc, count, eq, gt, isNull, lt, max, ne, or, sql } from 'drizzle-orm'
 import type { Executor } from '@/core/database'
+import { books } from '@/core/database/schema/book'
 import { currencies } from '@/core/database/schema/currency'
 import { debtEntries } from '@/core/database/schema/debt'
-import { profiles } from '@/core/database/schema/profile'
 import { recurringRules } from '@/core/database/schema/recurring'
 import { transactions } from '@/core/database/schema/transaction'
 import { transfers } from '@/core/database/schema/transfer'
@@ -20,10 +20,10 @@ const toWallet = ({ userId: _userId, ...row }: WalletRow): Wallet => row
 const run = async <T>(operation: string, work: () => Promise<T>, metadata?: object) =>
   wrapUnexpected(work, { operation: `walletSync.${operation}`, metadata: { ...metadata } })
 
-/** The profile's other live, non-archived wallets matching `extra`. */
+/** The book's other live, non-archived wallets matching `extra`. */
 const countOpenOthers = async (
   executor: Executor,
-  profileId: string,
+  bookId: string,
   id: string,
   extra?: ReturnType<typeof sql>
 ) => {
@@ -32,7 +32,7 @@ const countOpenOthers = async (
     .from(wallets)
     .where(
       and(
-        eq(wallets.profileId, profileId),
+        eq(wallets.bookId, bookId),
         isNull(wallets.deletedAt),
         eq(wallets.isArchived, false),
         ne(wallets.id, id),
@@ -89,28 +89,26 @@ const checkWallet = async (
   if (row.deletedAt !== null) {
     return null
   }
-  const profileId = String(row.profileId)
+  const bookId = String(row.bookId)
   const currencyCode = String(row.currencyCode)
   const stored = (
     await executor
-      .select({ profileId: wallets.profileId, currencyCode: wallets.currencyCode })
+      .select({ bookId: wallets.bookId, currencyCode: wallets.currencyCode })
       .from(wallets)
       .where(eq(wallets.id, row.id))
   ).at(0)
-  // Rule 2: one of the owner's live profiles, and a wallet never moves.
-  if (stored && stored.profileId !== profileId) {
-    return WALLET_MESSAGE.PROFILE_FIXED
+  // Rule 2: one of the owner's live books, and a wallet never moves.
+  if (stored && stored.bookId !== bookId) {
+    return WALLET_MESSAGE.BOOK_FIXED
   }
-  const profile = (
+  const book = (
     await executor
-      .select({ id: profiles.id })
-      .from(profiles)
-      .where(
-        and(eq(profiles.id, profileId), eq(profiles.userId, userId), isNull(profiles.deletedAt))
-      )
+      .select({ id: books.id })
+      .from(books)
+      .where(and(eq(books.id, bookId), eq(books.userId, userId), isNull(books.deletedAt)))
   ).at(0)
-  if (!profile) {
-    return WALLET_MESSAGE.PROFILE_GONE
+  if (!book) {
+    return WALLET_MESSAGE.BOOK_GONE
   }
   // Rule 4: a new wallet, or a changed currency, needs an active currency. A wallet keeps a
   // currency that was switched off later (currency rule 3).
@@ -135,10 +133,10 @@ const checkWallet = async (
     return null
   }
   const sameName = sql`lower(${wallets.name}) = lower(${String(row.name)})`
-  if ((await countOpenOthers(executor, profileId, row.id, sameName)) > 0) {
+  if ((await countOpenOthers(executor, bookId, row.id, sameName)) > 0) {
     return WALLET_MESSAGE.NAME_TAKEN
   }
-  if ((await countOpenOthers(executor, profileId, row.id)) >= WALLET_LIMITS.PER_PROFILE) {
+  if ((await countOpenOthers(executor, bookId, row.id)) >= WALLET_LIMITS.PER_BOOK) {
     return WALLET_MESSAGE.TOO_MANY
   }
   return null
@@ -178,7 +176,7 @@ export const walletSyncHandler: SyncTableHandler = {
           const values = {
             id: row.id,
             userId,
-            profileId: String(row.profileId),
+            bookId: String(row.bookId),
             name: String(row.name),
             currencyCode: String(row.currencyCode),
             initialBalance: Number(row.initialBalance),

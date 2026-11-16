@@ -13,10 +13,10 @@ import {
 import { toast } from '@spartan-ng/brain/sonner'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
+import { BookService } from '@/core/book'
 import { CATEGORY_DEFAULT_ICON, CategoryService } from '@/core/category'
 import type { CategoryType } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
-import { ProfileService } from '@/core/profile'
 import { WALLET_LIMITS, WalletService } from '@/core/wallet'
 import type { UnarchiveRefusal, WalletSheetState, WalletValues } from '@/core/wallet'
 import {
@@ -350,7 +350,7 @@ export class WalletSheet {
   private languageService = inject(LanguageService)
   protected walletService = inject(WalletService)
   private categoryService = inject(CategoryService)
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
 
   protected iconGroups = WALLET_ICON_GROUPS
   protected defaultIcon = WALLET_DEFAULT_ICON
@@ -375,28 +375,26 @@ export class WalletSheet {
     return id ? this.walletService.byId(id) : null
   })
   protected editingName = computed(() => this.editing()?.name ?? '')
-  /** The profile the name must be unique in (wallet rule 3). */
-  private profileId = computed(() => {
+  /** The book the name must be unique in (wallet rule 3). */
+  private bookId = computed(() => {
     const state = this.state()
     if (state?.mode === 'fix') {
-      return this.editing()?.profileId ?? state.profileId
+      return this.editing()?.bookId ?? state.bookId
     }
-    return this.editing()?.profileId ?? null
+    return this.editing()?.bookId ?? null
   })
-  /** The profile whose categories the wallet picks from (category rule 13). */
-  private categoryProfileId = computed(
-    () => this.profileId() ?? this.profileService.current()?.id ?? null
-  )
+  /** The book whose categories the wallet picks from (category rule 13). */
+  private categoryBookId = computed(() => this.bookId() ?? this.bookService.current()?.id ?? null)
   /** The ids switched off in the categories view (signal copy of the control). */
   private hidden = signal<readonly string[]>([])
-  /** "ซ่อน n": the profile's open categories hidden here, children of a hidden parent too. */
+  /** "ซ่อน n": the book's open categories hidden here, children of a hidden parent too. */
   protected hiddenCount = computed(() => {
-    const profileId = this.categoryProfileId()
+    const bookId = this.categoryBookId()
     const hidden = this.hidden()
-    if (!profileId || hidden.length === 0) {
+    if (!bookId || hidden.length === 0) {
       return 0
     }
-    return CATEGORY_TABS.flatMap((type) => this.categoryService.treeOf(profileId, type)).flatMap(
+    return CATEGORY_TABS.flatMap((type) => this.categoryService.treeOf(bookId, type)).flatMap(
       (node) =>
         hidden.includes(node.category.id)
           ? [node.category, ...node.children]
@@ -404,15 +402,15 @@ export class WalletSheet {
     ).length
   })
   protected categoryItems = computed<ToggleListItem[]>(() => {
-    const profileId = this.categoryProfileId()
-    if (!profileId) {
+    const bookId = this.categoryBookId()
+    if (!bookId) {
       return []
     }
     const hidden = this.hidden()
     const note = this.transloco.translate('categories.hiddenWithParent')
     this.languageService.language()
     return this.categoryService
-      .treeOf(profileId, this.categoryTab())
+      .treeOf(bookId, this.categoryTab())
       .flatMap((node) => [
         this.categoryItem(node.category, false, null),
         ...node.children.map((child) =>
@@ -448,7 +446,7 @@ export class WalletSheet {
   private nameFree: ValidatorFn = (control) =>
     typeof control.value === 'string' &&
     this.editing()?.isArchived !== true &&
-    this.walletService.nameTaken(control.value, this.editingId(), this.profileId() ?? undefined)
+    this.walletService.nameTaken(control.value, this.editingId(), this.bookId() ?? undefined)
       ? { nameTaken: 'wallets.nameTaken' }
       : null
 
@@ -545,7 +543,7 @@ export class WalletSheet {
       hiddenCategoryIds: value.hiddenCategoryIds,
     }
     if (state.mode === 'fix') {
-      this.walletService.save(state.id, values, state.opId, state.profileId)
+      this.walletService.save(state.id, values, state.opId, state.bookId)
     } else {
       this.walletService.save(this.editingId(), values)
     }

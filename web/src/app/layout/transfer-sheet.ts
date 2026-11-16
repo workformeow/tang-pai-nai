@@ -19,9 +19,9 @@ import {
 import { toast } from '@spartan-ng/brain/sonner'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
+import { BookService } from '@/core/book'
 import { LanguageService } from '@/core/i18n'
 import { SyncService } from '@/core/offline'
-import { ProfileService } from '@/core/profile'
 import {
   describeRepeat,
   describeRest,
@@ -473,7 +473,7 @@ export class TransferSheet {
   protected transferService = inject(TransferService)
   protected transactionService = inject(TransactionService)
   protected walletService = inject(WalletService)
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
   private quickAmountsService = inject(QuickAmountsService)
   private recurringService = inject(RecurringService)
   private syncService = inject(SyncService)
@@ -630,19 +630,19 @@ export class TransferSheet {
   private t = (key: string, params?: Record<string, unknown>) =>
     this.transloco.translate(key, params)
 
-  /** The profile the transfer belongs to (rule 1: it never moves). */
-  private profileId = computed(() => {
+  /** The book the transfer belongs to (rule 1: it never moves). */
+  private bookId = computed(() => {
     const state = this.state()
     const rule = this.rule()
     if (rule) {
-      return rule.profileId
+      return rule.bookId
     }
     const id = this.editingId()
     const row = id ? this.transferService.byId(id) : null
     if (row) {
-      return row.profileId
+      return row.bookId
     }
-    return state?.mode === 'fix' ? state.profileId : (this.profileService.current()?.id ?? '')
+    return state?.mode === 'fix' ? state.bookId : (this.bookService.current()?.id ?? '')
   })
   /** The currency the transfer had when the sheet opened (an edit keeps it, rule 1). */
   private startCurrency = signal<string | null>(null)
@@ -789,9 +789,7 @@ export class TransferSheet {
       !this.form.controls.toWalletId.value &&
       this.state()?.mode === 'create'
     ) {
-      this.form.controls.toWalletId.setValue(
-        this.transferService.lastToId(id, this.profileId()) ?? ''
-      )
+      this.form.controls.toWalletId.setValue(this.transferService.lastToId(id, this.bookId()) ?? '')
     }
     this.view.set('form')
   }
@@ -903,7 +901,7 @@ export class TransferSheet {
       )
       done = 'recurring.saved'
     } else if (state.mode === 'fix') {
-      this.transferService.save(state.id, values, state.opId, state.profileId)
+      this.transferService.save(state.id, values, state.opId, state.bookId)
     } else if (state.mode === 'create' && state.occurrence) {
       this.recurringService.confirm(state.occurrence.ruleId, state.occurrence.on, {
         walletId: values.fromWalletId,
@@ -970,7 +968,7 @@ export class TransferSheet {
     except: string | null
   ): Wallet[] {
     const open = this.walletService
-      .openOf(this.profileId())
+      .openOf(this.bookId())
       .filter((item) => item.id !== except && (currency === null || item.currencyCode === currency))
     return current && current.id !== except && !open.some((item) => item.id === current.id)
       ? [current, ...open]

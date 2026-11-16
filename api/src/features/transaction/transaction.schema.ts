@@ -10,7 +10,7 @@ const epochMs = z.number().int().nonnegative()
 // `updatedBy`, `userId`) are ignored if sent.
 const row = z.object({
   id: z.uuid({ error: ERRORS.invalidField('id') }),
-  profileId: z.uuid({ error: ERRORS.invalidField('profileId') }),
+  bookId: z.uuid({ error: ERRORS.invalidField('bookId') }),
   walletId: z.uuid({ error: ERRORS.invalidField('walletId') }),
   categoryId: z.uuid({ error: ERRORS.invalidField('categoryId') }),
   amount: z

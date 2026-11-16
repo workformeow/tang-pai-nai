@@ -6,9 +6,9 @@ import { env } from '@/core/config'
 import type { Database } from '@/core/database'
 import { createDatabase } from '@/core/database/client'
 import { users } from '@/core/database/schema/auth'
+import { books } from '@/core/database/schema/book'
 import { categories } from '@/core/database/schema/category'
 import { debts } from '@/core/database/schema/debt'
-import { profiles } from '@/core/database/schema/profile'
 import { recurringRules } from '@/core/database/schema/recurring'
 import { transactions } from '@/core/database/schema/transaction'
 import { wallets } from '@/core/database/schema/wallet'
@@ -30,7 +30,7 @@ const category = (
   extra: Partial<SyncRowWrite> = {}
 ) => ({
   id,
-  profileId: 'pa',
+  bookId: 'pa',
   type: 'expense',
   parentId: null,
   name,
@@ -47,7 +47,7 @@ const category = (
   ...extra,
 })
 
-const profile = (id: string, userId: string, deletedAt: number | null = null) => ({
+const book = (id: string, userId: string, deletedAt: number | null = null) => ({
   id,
   userId,
   name: id,
@@ -70,12 +70,12 @@ beforeEach(async () => {
     { id: 'bob', email: 'b@example.com', displayName: 'b' },
   ])
   await created.db
-    .insert(profiles)
+    .insert(books)
     .values([
-      profile('pa', 'alice'),
-      profile('pa2', 'alice'),
-      profile('gone', 'alice', 500),
-      profile('pb', 'bob'),
+      book('pa', 'alice'),
+      book('pa2', 'alice'),
+      book('gone', 'alice', 500),
+      book('pb', 'bob'),
     ])
   db = created.db
   close = () => created.client.close()
@@ -102,7 +102,7 @@ describe('categorySyncHandler', () => {
 
   it("pulls only the user's categories after the cursor, tombstones included", async () => {
     await push.write(db, 'alice', category('c1', 'A', 15))
-    await push.write(db, 'bob', category('c2', 'B', 16, { profileId: 'pb', updatedBy: 'bob' }))
+    await push.write(db, 'bob', category('c2', 'B', 16, { bookId: 'pb', updatedBy: 'bob' }))
     await push.write(db, 'alice', category('c3', 'C', 17, { deletedAt: 1000 }))
     const rows = await categorySyncHandler.pull(db, 'alice', 15, 10)
     expect(rows.map((row) => row.id)).toEqual(['c3'])
@@ -110,32 +110,32 @@ describe('categorySyncHandler', () => {
     expect((await categorySyncHandler.pull(db, 'bob', 0, 10)).map((row) => row.id)).toEqual(['c2'])
   })
 
-  it("refuses a profile that isn't the user's live one, and a move to another profile", async () => {
-    for (const profileId of ['pb', 'gone', 'nope']) {
-      expect(await push.check(db, 'alice', category('c9', 'X', 0, { profileId }))).toBe(
-        CATEGORY_MESSAGE.PROFILE_GONE
+  it("refuses a book that isn't the user's live one, and a move to another book", async () => {
+    for (const bookId of ['pb', 'gone', 'nope']) {
+      expect(await push.check(db, 'alice', category('c9', 'X', 0, { bookId }))).toBe(
+        CATEGORY_MESSAGE.BOOK_GONE
       )
     }
     await push.write(db, 'alice', category('c1', 'Food', 15))
-    expect(await push.check(db, 'alice', category('c1', 'Food', 0, { profileId: 'pa2' }))).toBe(
-      CATEGORY_MESSAGE.PROFILE_FIXED
+    expect(await push.check(db, 'alice', category('c1', 'Food', 0, { bookId: 'pa2' }))).toBe(
+      CATEGORY_MESSAGE.BOOK_FIXED
     )
   })
 
-  it('needs a live, top-level parent of the same profile and type, open for an open child', async () => {
+  it('needs a live, top-level parent of the same book and type, open for an open child', async () => {
     await push.write(db, 'alice', category('food', 'Food', 15))
     await push.write(db, 'alice', category('coffee', 'Coffee', 16, { parentId: 'food' }))
     await push.write(db, 'alice', category('salary', 'Salary', 17, { type: 'income' }))
-    await push.write(db, 'alice', category('other', 'Other', 18, { profileId: 'pa2' }))
+    await push.write(db, 'alice', category('other', 'Other', 18, { bookId: 'pa2' }))
     await push.write(db, 'alice', category('old', 'Old', 19, { isArchived: true }))
     await push.write(db, 'alice', category('dead', 'Dead', 20, { deletedAt: 900 }))
-    await push.write(db, 'bob', category('bobs', 'Bob', 21, { profileId: 'pb' }))
+    await push.write(db, 'bob', category('bobs', 'Bob', 21, { bookId: 'pb' }))
     const under = async (parentId: string, extra: Partial<SyncRowWrite> = {}) =>
       push.check(db, 'alice', category('c9', 'New', 0, { parentId, ...extra }))
     expect(await under('food')).toBeNull()
     expect(await under('coffee')).toBe(CATEGORY_MESSAGE.PARENT_INVALID) // a child
     expect(await under('salary')).toBe(CATEGORY_MESSAGE.PARENT_INVALID) // another type
-    expect(await under('other')).toBe(CATEGORY_MESSAGE.PARENT_INVALID) // another profile
+    expect(await under('other')).toBe(CATEGORY_MESSAGE.PARENT_INVALID) // another book
     expect(await under('dead')).toBe(CATEGORY_MESSAGE.PARENT_GONE)
     expect(await under('bobs')).toBe(CATEGORY_MESSAGE.PARENT_GONE)
     expect(await under('nope')).toBe(CATEGORY_MESSAGE.PARENT_GONE)
@@ -182,7 +182,7 @@ describe('categorySyncHandler', () => {
     expect(await name('other', { parentId: 'food' })).toBe(CATEGORY_MESSAGE.NAME_TAKEN)
     expect(await name('Other')).toBeNull() // top level, not under Food
     expect(await name('Food', { type: 'income' })).toBeNull()
-    expect(await name('Food', { profileId: 'pa2' })).toBeNull()
+    expect(await name('Food', { bookId: 'pa2' })).toBeNull()
     expect(await name('Old')).toBeNull() // archived
     expect(await name('Food', { isArchived: true })).toBeNull()
     expect(await push.check(db, 'alice', category('food', 'Food', 0))).toBeNull() // itself
@@ -204,25 +204,23 @@ describe('categorySyncHandler', () => {
       await push.check(db, 'alice', category('c201', 'C201', 0, { isArchived: true }))
     ).toBeNull()
     expect(await push.check(db, 'alice', category('c200', 'Renamed', 0))).toBeNull()
-    expect(
-      await push.check(db, 'alice', category('c201', 'C201', 0, { profileId: 'pa2' }))
-    ).toBeNull()
+    expect(await push.check(db, 'alice', category('c201', 'C201', 0, { bookId: 'pa2' }))).toBeNull()
   })
 
   it('runs no check on a tombstone', async () => {
     expect(
-      await push.check(db, 'alice', category('c9', 'X', 0, { profileId: 'pb', deletedAt: 5 }))
+      await push.check(db, 'alice', category('c9', 'X', 0, { bookId: 'pb', deletedAt: 5 }))
     ).toBeNull()
   })
 
-  it('purges old tombstones, and its children go with a purged parent or profile', async () => {
+  it('purges old tombstones, and its children go with a purged parent or book', async () => {
     await push.write(db, 'alice', category('c1', 'A', 15, { deletedAt: 100 }))
     await push.write(db, 'alice', category('c2', 'B', 16, { deletedAt: 900 }))
     await push.write(db, 'alice', category('c3', 'C', 17, { parentId: 'c1', deletedAt: 900 }))
     expect(await push.purge(db, 500)).toEqual({ removed: 1, maxSeq: 15 })
     expect(await push.find(db, 'c3')).toBeNull()
-    await push.write(db, 'alice', category('c4', 'D', 18, { profileId: 'gone', deletedAt: 900 }))
-    await db.delete(profiles)
+    await push.write(db, 'alice', category('c4', 'D', 18, { bookId: 'gone', deletedAt: 900 }))
+    await db.delete(books)
     expect(await push.find(db, 'c4')).toBeNull()
   })
 
@@ -232,7 +230,7 @@ describe('categorySyncHandler', () => {
     await db.insert(wallets).values({
       id: 'cash',
       userId: 'alice',
-      profileId: 'pa',
+      bookId: 'pa',
       name: 'Cash',
       currencyCode: 'THB',
       initialBalance: 0,
@@ -253,7 +251,7 @@ describe('categorySyncHandler', () => {
     ) => ({
       id,
       userId: 'alice',
-      profileId: 'pa',
+      bookId: 'pa',
       amount: 100,
       occurredOn: '2026-11-02',
       note: '',
@@ -285,7 +283,7 @@ describe('categorySyncHandler', () => {
     await db.insert(wallets).values({
       id: 'cash',
       userId: 'alice',
-      profileId: 'pa',
+      bookId: 'pa',
       name: 'Cash',
       currencyCode: 'THB',
       initialBalance: 0,
@@ -303,7 +301,7 @@ describe('categorySyncHandler', () => {
     await db.insert(recurringRules).values({
       id: 'r1',
       userId: 'alice',
-      profileId: 'pa',
+      bookId: 'pa',
       kind: 'transaction',
       walletId: 'cash',
       categoryId: 'home',
@@ -345,7 +343,7 @@ describe('categorySyncHandler', () => {
       await db.insert(wallets).values({
         id: 'cash',
         userId: 'alice',
-        profileId: 'pa',
+        bookId: 'pa',
         name: 'Cash',
         currencyCode: 'THB',
         initialBalance: 0,
@@ -377,7 +375,7 @@ describe('categorySyncHandler', () => {
         ids.map((id) => ({
           id,
           userId: 'alice',
-          profileId: 'pa',
+          bookId: 'pa',
           walletId: 'cash',
           categoryId,
           amount: 100,
@@ -425,7 +423,7 @@ describe('categorySyncHandler', () => {
       const rule = (id: string, extra: object) => ({
         id,
         userId: 'alice',
-        profileId: 'pa',
+        bookId: 'pa',
         kind: 'transaction',
         walletId: 'cash',
         categoryId: null as string | null,
@@ -466,7 +464,7 @@ describe('categorySyncHandler', () => {
       await db.insert(debts).values({
         id: 'd1',
         userId: 'alice',
-        profileId: 'pa',
+        bookId: 'pa',
         direction: 'borrowed',
         person: 'KTC',
         note: '',

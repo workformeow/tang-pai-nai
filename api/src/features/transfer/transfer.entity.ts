@@ -2,7 +2,7 @@
 // layer's `Record<string, unknown>` rows.
 export type Transfer = {
   id: string
-  profileId: string
+  bookId: string
   fromWalletId: string
   toWalletId: string
   /** Minor units, always > 0. */

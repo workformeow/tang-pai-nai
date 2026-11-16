@@ -2,14 +2,14 @@ type: object
 description: >-
   A row of the `events` table (docs/features/event.md) as it travels in /sync/pull and in
   /sync/push: a trip or event that transactions are tagged to (SyncTransactionRow.eventId). Its
-  totals are computed from those rows, never stored. Rules (each answers `CONFLICT`): profileId
-  is one of the user's live profiles and never changes; endOn, when set, is not before startOn;
-  at most 50 open (not closed) events per profile. A tombstone runs none of them; deleting an
+  totals are computed from those rows, never stored. Rules (each answers `CONFLICT`): bookId
+  is one of the user's live books and never changes; endOn, when set, is not before startOn;
+  at most 50 open (not closed) events per book. A tombstone runs none of them; deleting an
   event leaves its rows' eventId, which the server clears when such a row is pushed again.
 required:
   [
     id,
-    profileId,
+    bookId,
     name,
     icon,
     color,
@@ -27,7 +27,7 @@ properties:
     type: string
     format: uuid
     description: UUIDv7 made on the device
-  profileId:
+  bookId:
     type: string
     format: uuid
   name:
@@ -65,7 +65,7 @@ properties:
     type: string
 example:
   id: 0199b000-0000-7000-8000-000000000801
-  profileId: 0199b000-0000-7000-8000-000000000001
+  bookId: 0199b000-0000-7000-8000-000000000001
   name: เชียงใหม่
   icon: lucidePlane
   color: '#0e7490'

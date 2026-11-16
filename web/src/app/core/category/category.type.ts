@@ -4,7 +4,7 @@ export type CategoryType = 'income' | 'expense'
 /** A category as the device stores it. */
 export interface Category {
   id: string
-  profileId: string
+  bookId: string
   type: CategoryType
   /** Null for a top-level category (one level only, rule 3). */
   parentId: string | null
@@ -43,7 +43,7 @@ export interface CategoryValues {
 export type CategorySheetState =
   | { mode: 'create'; type: CategoryType; parentId: string | null }
   | { mode: 'edit'; id: string }
-  | { mode: 'fix'; opId: string; id: string; profileId: string; values: CategoryValues }
+  | { mode: 'fix'; opId: string; id: string; bookId: string; values: CategoryValues }
 
 /** What a top-level category's children do in a merge (rule 15). */
 export type CategoryMergeMode = 'move' | 'all'
@@ -69,8 +69,8 @@ export const CATEGORY_TABLE = 'categories'
 
 export const CATEGORY_LIMITS = {
   NAME_MAX: 40,
-  /** Non-archived categories per profile (rule 11). */
-  PER_PROFILE: 200,
+  /** Non-archived categories per book (rule 11). */
+  PER_BOOK: 200,
 } as const
 
 /** A new category's icon (rule 9), also shown for an icon this build doesn't know. */

@@ -5,14 +5,14 @@ import { buildInviteMail } from './sharing.mail'
 import type {
   Invite,
   MemberRow,
-  ProfileRef,
+  BookRef,
   RowData,
   ShareRole,
   UserRef,
   WalletRef,
 } from './sharing.entity'
 import type { SharingRepository } from './sharing.repository'
-import type { OwnerSharing, SharedProfileRows, SharedWithMe, SharingMember } from './sharing.type'
+import type { OwnerSharing, SharedBookRows, SharedWithMe, SharingMember } from './sharing.type'
 
 type Lang = 'th' | 'en'
 
@@ -41,7 +41,7 @@ const unique = (ids: string[]) => [...new Set(ids)]
 const tooMany = (code: ShareErrorCode, message: string, retryAfterMs: number) =>
   new TooManyRequestsError(message, Math.max(1, Math.ceil(retryAfterMs / 1000))).withCode(code)
 
-/** Rows of one profile grouped per person (rule 1: one role per person). */
+/** Rows of one book grouped per person (rule 1: one role per person). */
 const groupMembers = (rows: MemberRow[]): SharingMember[] => {
   const people = new Map<string, SharingMember>()
   for (const row of rows) {
@@ -80,8 +80,8 @@ const toColumns = (rows: RowData[]): { columns: string[]; rows: unknown[][] } =>
   }
 }
 
-/** A profile gone between two reads: its id, nothing to show. */
-const noProfile = (id: string): ProfileRef => ({ id, name: '', icon: '', color: '' })
+/** A book gone between two reads: its id, nothing to show. */
+const noBook = (id: string): BookRef => ({ id, name: '', icon: '', color: '' })
 
 const walletView = (wallet: WalletRef, balance: number) => ({
   id: wallet.id,
@@ -106,16 +106,16 @@ export const createSharingService = ({
     return user
   }
 
-  const requireOwner = async (userId: string, profileId: string, operation: string) => {
-    if (!(await sharingRepo.ownsProfile(userId, profileId))) {
-      throw new NotFoundError('Profile', { profileId }).withOperation(operation)
+  const requireOwner = async (userId: string, bookId: string, operation: string) => {
+    if (!(await sharingRepo.ownsBook(userId, bookId))) {
+      throw new NotFoundError('Book', { bookId }).withOperation(operation)
     }
   }
 
-  /** Rule 2: the ids, without duplicates, must be open live wallets of the profile. */
-  const shareableWallets = async (profileId: string, ids: string[], operation: string) => {
+  /** Rule 2: the ids, without duplicates, must be open live wallets of the book. */
+  const shareableWallets = async (bookId: string, ids: string[], operation: string) => {
     const wanted = unique(ids)
-    const open = (await sharingRepo.openWallets(wanted)).filter((w) => w.profileId === profileId)
+    const open = (await sharingRepo.openWallets(wanted)).filter((w) => w.bookId === bookId)
     if (open.length !== wanted.length) {
       throw new BusinessRuleError(SHARING_MESSAGE.WALLETS_INVALID)
         .withCode(ShareErrorCode.WALLETS_INVALID)
@@ -161,26 +161,26 @@ export const createSharingService = ({
   }
 
   /** Rule 3: not yourself, not a member, no second pending invite, at most 10 people. */
-  const checkInvitee = async (owner: UserRef, profileId: string, email: string) => {
+  const checkInvitee = async (owner: UserRef, bookId: string, email: string) => {
     const operation = 'sharing.invite'
     if (email === owner.email) {
       throw new ConflictError(SHARING_MESSAGE.SELF)
         .withCode(ShareErrorCode.SELF)
         .withOperation(operation)
     }
-    const members = groupMembers(await sharingRepo.membersOf(profileId))
+    const members = groupMembers(await sharingRepo.membersOf(bookId))
     if (members.some((member) => member.email === email)) {
       throw new ConflictError(SHARING_MESSAGE.ALREADY_MEMBER)
         .withCode(ShareErrorCode.ALREADY_MEMBER)
         .withOperation(operation)
     }
-    const invites = await sharingRepo.invitesOf(profileId, now())
+    const invites = await sharingRepo.invitesOf(bookId, now())
     if (invites.some((invite) => invite.email === email)) {
       throw new ConflictError(SHARING_MESSAGE.INVITE_PENDING)
         .withCode(ShareErrorCode.INVITE_PENDING)
         .withOperation(operation)
     }
-    if (members.length + invites.length >= L.PEOPLE_PER_PROFILE) {
+    if (members.length + invites.length >= L.PEOPLE_PER_BOOK) {
       throw new ConflictError(SHARING_MESSAGE.MEMBER_LIMIT)
         .withCode(ShareErrorCode.MEMBER_LIMIT)
         .withOperation(operation)
@@ -189,15 +189,15 @@ export const createSharingService = ({
 
   // ---------- Owner ----------
 
-  const ofProfile = async (userId: string, profileId: string): Promise<OwnerSharing> => {
-    await requireOwner(userId, profileId, 'sharing.ofProfile')
-    const wallets = await sharingRepo.profileWallets(profileId)
+  const ofBook = async (userId: string, bookId: string): Promise<OwnerSharing> => {
+    await requireOwner(userId, bookId, 'sharing.ofBook')
+    const wallets = await sharingRepo.bookWallets(bookId)
     const open = new Set(wallets.filter((w) => !w.isArchived).map((w) => w.id))
-    const members = groupMembers(await sharingRepo.membersOf(profileId)).map((member) => ({
+    const members = groupMembers(await sharingRepo.membersOf(bookId)).map((member) => ({
       ...member,
       walletIds: member.walletIds.filter((id) => open.has(id)),
     }))
-    const invites = (await sharingRepo.invitesOf(profileId, now())).map((invite) => ({
+    const invites = (await sharingRepo.invitesOf(bookId, now())).map((invite) => ({
       ...publicInvite(invite),
       walletIds: invite.walletIds.filter((id) => open.has(id)),
     }))
@@ -211,18 +211,18 @@ export const createSharingService = ({
 
   const invite = async (
     userId: string,
-    profileId: string,
+    bookId: string,
     input: InviteInput,
     lang: Lang
   ): Promise<ReturnType<typeof publicInvite>> => {
-    await requireOwner(userId, profileId, 'sharing.invite')
+    await requireOwner(userId, bookId, 'sharing.invite')
     const owner = await requireUser(userId)
-    const wallets = await shareableWallets(profileId, input.walletIds, 'sharing.invite')
+    const wallets = await shareableWallets(bookId, input.walletIds, 'sharing.invite')
     await sharingRepo.deleteExpiredInvites(now())
-    await checkInvitee(owner, profileId, input.email)
+    await checkInvitee(owner, bookId, input.email)
     const at = now()
     const fresh = {
-      profileId,
+      bookId,
       ownerId: userId,
       email: input.email,
       role: input.role,
@@ -254,7 +254,7 @@ export const createSharingService = ({
       )
     }
     const wallets = (await sharingRepo.openWallets(found.walletIds)).filter(
-      (w) => w.profileId === found.profileId
+      (w) => w.bookId === found.bookId
     )
     await sendInviteMail(found, lang, wallets)
     await sharingRepo.markSent(found.id, now())
@@ -267,18 +267,18 @@ export const createSharingService = ({
 
   const updateMember = async (
     userId: string,
-    profileId: string,
+    bookId: string,
     memberId: string,
     change: { role: ShareRole; walletIds: string[] }
   ): Promise<void> => {
-    await requireOwner(userId, profileId, 'sharing.updateMember')
-    const rows = await sharingRepo.membersOf(profileId)
+    await requireOwner(userId, bookId, 'sharing.updateMember')
+    const rows = await sharingRepo.membersOf(bookId)
     if (!rows.some((row) => row.userId === memberId)) {
       throw new NotFoundError('Member', { memberId }).withOperation('sharing.updateMember')
     }
-    const wallets = await shareableWallets(profileId, change.walletIds, 'sharing.updateMember')
+    const wallets = await shareableWallets(bookId, change.walletIds, 'sharing.updateMember')
     await sharingRepo.setMembership(
-      profileId,
+      bookId,
       memberId,
       change.role,
       wallets.map((w) => w.id),
@@ -286,9 +286,9 @@ export const createSharingService = ({
     )
   }
 
-  const removeMember = async (userId: string, profileId: string, memberId: string) => {
-    await requireOwner(userId, profileId, 'sharing.removeMember')
-    await sharingRepo.setMembership(profileId, memberId, 'viewer', [], now())
+  const removeMember = async (userId: string, bookId: string, memberId: string) => {
+    await requireOwner(userId, bookId, 'sharing.removeMember')
+    await sharingRepo.setMembership(bookId, memberId, 'viewer', [], now())
   }
 
   // ---------- Member ----------
@@ -311,7 +311,7 @@ export const createSharingService = ({
     const invites = []
     for (const found of pending) {
       const wallets = (await sharingRepo.openWallets(found.walletIds)).filter(
-        (w) => w.profileId === found.profileId
+        (w) => w.bookId === found.bookId
       )
       const owner = await sharingRepo.findUser(found.ownerId)
       if (wallets.length > 0 && owner) {
@@ -332,12 +332,12 @@ export const createSharingService = ({
     const balances = await sharingRepo.balances(rows.map((row) => row.wallet.id))
     const groups = new Map<string, SharedWithMe['shares'][number]>()
     for (const { role, wallet } of rows) {
-      let group = groups.get(wallet.profileId)
+      let group = groups.get(wallet.bookId)
       if (!group) {
         const owner = await sharingRepo.findUser(wallet.ownerId)
         group = {
-          profileId: wallet.profileId,
-          profile: (await sharingRepo.findProfile(wallet.profileId)) ?? noProfile(wallet.profileId),
+          bookId: wallet.bookId,
+          book: (await sharingRepo.findBook(wallet.bookId)) ?? noBook(wallet.bookId),
           role,
           owner: {
             id: wallet.ownerId,
@@ -346,7 +346,7 @@ export const createSharingService = ({
           },
           wallets: [],
         }
-        groups.set(wallet.profileId, group)
+        groups.set(wallet.bookId, group)
       }
       group.wallets.push(walletView(wallet, balances.get(wallet.id) ?? wallet.initialBalance))
     }
@@ -356,7 +356,7 @@ export const createSharingService = ({
   const accept = async (userId: string, inviteId: string): Promise<void> => {
     const found = await inviteToMe(userId, inviteId, 'sharing.accept')
     const wallets = (await sharingRepo.openWallets(found.walletIds)).filter(
-      (w) => w.profileId === found.profileId
+      (w) => w.bookId === found.bookId
     )
     if (wallets.length === 0) {
       await sharingRepo.deleteInvite(found.id)
@@ -365,11 +365,11 @@ export const createSharingService = ({
         .withOperation('sharing.accept')
     }
     await sharingRepo.transaction(async (repo) => {
-      const kept = (await repo.membersOf(found.profileId))
+      const kept = (await repo.membersOf(found.bookId))
         .filter((row) => row.userId === userId)
         .map((row) => row.walletId)
       const ids = unique([...kept, ...wallets.map((w) => w.id)])
-      await repo.setMembership(found.profileId, userId, found.role, ids, now())
+      await repo.setMembership(found.bookId, userId, found.role, ids, now())
       await repo.deleteInvite(found.id)
     })
   }
@@ -379,24 +379,24 @@ export const createSharingService = ({
     await sharingRepo.deleteInvite(found.id)
   }
 
-  const leave = async (userId: string, profileId: string): Promise<void> => {
-    await sharingRepo.setMembership(profileId, userId, 'viewer', [], now())
+  const leave = async (userId: string, bookId: string): Promise<void> => {
+    await sharingRepo.setMembership(bookId, userId, 'viewer', [], now())
   }
 
-  /** Rule 9: a shared profile's rows for the member's in-memory view. */
+  /** Rule 9: a shared book's rows for the member's in-memory view. */
   const rows = async (
     userId: string,
-    profileId: string,
+    bookId: string,
     since: number,
     limit: number
-  ): Promise<SharedProfileRows> => {
+  ): Promise<SharedBookRows> => {
     const shares = (await sharingRepo.sharesOf(userId)).filter(
-      (row) => row.wallet.profileId === profileId
+      (row) => row.wallet.bookId === bookId
     )
     const first = shares.at(0)
-    const profile = first ? await sharingRepo.findProfile(profileId) : null
-    if (!first || !profile) {
-      throw new NotFoundError('Profile', { profileId }).withOperation('sharing.rows')
+    const book = first ? await sharingRepo.findBook(bookId) : null
+    if (!first || !book) {
+      throw new NotFoundError('Book', { bookId }).withOperation('sharing.rows')
     }
     const ids = shares.map((row) => row.wallet.id)
     const other = await sharingRepo.otherMoney(ids)
@@ -411,11 +411,11 @@ export const createSharingService = ({
     const page = found.slice(0, limit)
     const owner = await sharingRepo.findUser(first.wallet.ownerId)
     const people = new Map<string, string>([[first.wallet.ownerId, owner?.displayName ?? '']])
-    for (const member of await sharingRepo.membersOf(profileId)) {
+    for (const member of await sharingRepo.membersOf(bookId)) {
       people.set(member.userId, member.displayName)
     }
     return {
-      profile,
+      book,
       role: first.role,
       owner: {
         id: first.wallet.ownerId,
@@ -424,7 +424,7 @@ export const createSharingService = ({
       },
       people: [...people].map(([id, displayName]) => ({ id, displayName })),
       wallets,
-      categories: await sharingRepo.categoryRows(profileId),
+      categories: await sharingRepo.categoryRows(bookId),
       transactions: toColumns(page),
       cursor: Number(page.at(-1)?.['changeSeq'] ?? since),
       hasMore: found.length > limit,
@@ -432,7 +432,7 @@ export const createSharingService = ({
   }
 
   return {
-    ofProfile,
+    ofBook,
     invite,
     resend,
     cancel,

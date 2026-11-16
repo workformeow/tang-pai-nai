@@ -20,9 +20,9 @@ import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { AuthService, AuthStore, SIGN_IN_URL } from '@/core/auth'
+import { BookService } from '@/core/book'
 import { LanguageService } from '@/core/i18n'
 import { OfflineService, SyncService } from '@/core/offline'
-import { ProfileService } from '@/core/profile'
 import { DeviceStorageService } from '@/core/pwa'
 import { SharingService } from '@/core/sharing'
 import { ThemeService } from '@/core/theme'
@@ -200,7 +200,7 @@ interface AccountItem {
  * page (my data, account and security, settings), and sign-out.
  */
 export class AccountPage {
-  protected profileService = inject(ProfileService)
+  protected bookService = inject(BookService)
   private transloco = inject(TranslocoService)
   private themeService = inject(ThemeService)
   private languageService = inject(LanguageService)
@@ -223,56 +223,50 @@ export class AccountPage {
     this.languageService.language() // re-translate on a language switch
     const t = (key: string, params?: Record<string, unknown>) =>
       this.transloco.translate(key, params)
-    const profile = this.profileService.current()
-    const count = this.profileService.profiles().length
+    const book = this.bookService.current()
+    const count = this.bookService.books().length
     const persisted = this.deviceStorageService.isPersisted()
     return [
       {
         key: 'data',
         items: [
           {
-            link: '/account/profiles',
+            link: '/account/books',
             icon: 'lucideUsers',
-            label: 'account.profiles',
-            hint: profile
-              ? t('account.profilesHint', { name: profile.name, count })
-              : t('account.profilesNone'),
+            label: 'account.books',
+            hint: book
+              ? t('account.booksHint', { name: book.name, count })
+              : t('account.booksNone'),
           },
           {
             link: '/account/categories',
             icon: 'lucideShapes',
             label: 'account.categories',
-            hint: profile
-              ? t('account.categoriesHint', { name: profile.name })
-              : t('account.profilesNone'),
+            hint: book ? t('account.categoriesHint', { name: book.name }) : t('account.booksNone'),
           },
           {
             link: '/account/sharing',
             icon: 'lucideShare2',
             label: 'account.sharing',
-            hint: profile
-              ? this.sharingHint(profile.id, profile.name, t)
-              : t('account.profilesNone'),
+            hint: book ? this.sharingHint(book.id, book.name, t) : t('account.booksNone'),
             badge: this.sharingService.inviteCount(),
           },
           {
             link: '/account/recurring',
             icon: 'lucideRepeat',
             label: 'account.recurring',
-            hint: profile
+            hint: book
               ? t('account.recurringHint', {
-                  name: profile.name,
-                  count: this.profileService.ruleCount(profile.id),
+                  name: book.name,
+                  count: this.bookService.ruleCount(book.id),
                 })
-              : t('account.profilesNone'),
+              : t('account.booksNone'),
           },
           {
             link: '/account/export',
             icon: 'lucideFileSpreadsheet',
             label: 'account.export',
-            hint: profile
-              ? t('account.exportHint', { name: profile.name })
-              : t('account.profilesNone'),
+            hint: book ? t('account.exportHint', { name: book.name }) : t('account.booksNone'),
           },
         ],
       },
@@ -350,20 +344,20 @@ export class AccountPage {
     this.authService.loadMe().catch(() => undefined)
     // "แชร์กับ n คน" on the sharing row (sharing.md → Web screens): read online, kept in memory.
     effect(() => {
-      const id = this.profileService.current()?.id
-      // A shared profile is the owner's to share (sharing rule 1).
-      if (id && !this.profileService.isShared() && this.sharingService.canCall()) {
+      const id = this.bookService.current()?.id
+      // A shared book is the owner's to share (sharing rule 1).
+      if (id && !this.bookService.isShared() && this.sharingService.canCall()) {
         untracked(() => void this.sharingService.loadOwner(id).catch(() => undefined))
       }
     })
   }
 
   private sharingHint(
-    profileId: string,
+    bookId: string,
     name: string,
     t: (key: string, params?: Record<string, unknown>) => string
   ): string {
-    const count = this.sharingService.owner(profileId)?.members.length ?? 0
+    const count = this.sharingService.owner(bookId)?.members.length ?? 0
     if (count === 0) {
       return t('account.sharingHint', { name })
     }

@@ -6,8 +6,8 @@ import { env } from '@/core/config'
 import type { Database } from '@/core/database'
 import { createDatabase } from '@/core/database/client'
 import { users } from '@/core/database/schema/auth'
+import { books } from '@/core/database/schema/book'
 import { currencies } from '@/core/database/schema/currency'
-import { profiles } from '@/core/database/schema/profile'
 import { wallets } from '@/core/database/schema/wallet'
 import type { SyncPushHandler, SyncRowWrite } from '@/core/sync'
 import { makeTempDir, removeTempDir } from '@/shared/testing/temp-dir'
@@ -22,7 +22,7 @@ const push = transferSyncHandler.push as SyncPushHandler
 
 const transfer = (id: string, changeSeq: number, extra: Partial<SyncRowWrite> = {}) => ({
   id,
-  profileId: 'pa',
+  bookId: 'pa',
   fromWalletId: 'bank',
   toWalletId: 'cash',
   amount: 100000,
@@ -45,7 +45,7 @@ const sync = (userId: string, deletedAt: number | null = null) => ({
   updatedBy: userId,
 })
 
-const profile = (id: string, userId: string, deletedAt: number | null = null) => ({
+const book = (id: string, userId: string, deletedAt: number | null = null) => ({
   id,
   userId,
   name: id,
@@ -58,12 +58,12 @@ const profile = (id: string, userId: string, deletedAt: number | null = null) =>
 const wallet = (
   id: string,
   userId: string,
-  profileId: string,
+  bookId: string,
   extra: Partial<typeof wallets.$inferInsert> = {}
 ) => ({
   id,
   userId,
-  profileId,
+  bookId,
   name: id,
   currencyCode: 'THB',
   initialBalance: 0,
@@ -86,12 +86,12 @@ beforeEach(async () => {
     { id: 'bob', email: 'b@example.com', displayName: 'b' },
   ])
   await created.db
-    .insert(profiles)
+    .insert(books)
     .values([
-      profile('pa', 'alice'),
-      profile('pa2', 'alice'),
-      profile('gone', 'alice', 500),
-      profile('pb', 'bob'),
+      book('pa', 'alice'),
+      book('pa2', 'alice'),
+      book('gone', 'alice', 500),
+      book('pb', 'bob'),
     ])
   await created.db
     .insert(wallets)
@@ -133,7 +133,7 @@ describe('transferSyncHandler', () => {
     await push.write(
       db,
       'bob',
-      transfer('r2', 16, { profileId: 'pb', fromWalletId: 'bobs', toWalletId: 'bobs2' })
+      transfer('r2', 16, { bookId: 'pb', fromWalletId: 'bobs', toWalletId: 'bobs2' })
     )
     await push.write(db, 'alice', transfer('r3', 17, { deletedAt: 1000 }))
     expect((await transferSyncHandler.pull(db, 'alice', 15, 10)).map((row) => row.id)).toEqual([
@@ -143,10 +143,10 @@ describe('transferSyncHandler', () => {
     expect((await transferSyncHandler.pull(db, 'bob', 0, 10)).map((row) => row.id)).toEqual(['r2'])
   })
 
-  it("refuses a profile that isn't the user's live one, and a move to another profile", async () => {
-    for (const profileId of ['pb', 'gone', 'nope']) {
-      expect(await push.check(db, 'alice', transfer('r9', 0, { profileId }))).toBe(
-        TRANSFER_MESSAGE.PROFILE_GONE
+  it("refuses a book that isn't the user's live one, and a move to another book", async () => {
+    for (const bookId of ['pb', 'gone', 'nope']) {
+      expect(await push.check(db, 'alice', transfer('r9', 0, { bookId }))).toBe(
+        TRANSFER_MESSAGE.BOOK_GONE
       )
     }
     await push.write(db, 'alice', transfer('r1', 15))
@@ -154,12 +154,12 @@ describe('transferSyncHandler', () => {
       await push.check(
         db,
         'alice',
-        transfer('r1', 0, { profileId: 'pa2', fromWalletId: 'other', toWalletId: 'other2' })
+        transfer('r1', 0, { bookId: 'pa2', fromWalletId: 'other', toWalletId: 'other2' })
       )
-    ).toBe(TRANSFER_MESSAGE.PROFILE_FIXED)
+    ).toBe(TRANSFER_MESSAGE.BOOK_FIXED)
   })
 
-  it("needs the user's live wallets of the profile on both sides; archived ones are fine", async () => {
+  it("needs the user's live wallets of the book on both sides; archived ones are fine", async () => {
     const check = async (extra: Partial<SyncRowWrite>) =>
       push.check(db, 'alice', transfer('r9', 0, extra))
     expect(await check({})).toBeNull()
@@ -171,8 +171,8 @@ describe('transferSyncHandler', () => {
     for (const toWalletId of ['dead', 'bobs', 'nope']) {
       expect(await check({ toWalletId })).toBe(TRANSFER_MESSAGE.TO_GONE)
     }
-    expect(await check({ toWalletId: 'other' })).toBe(TRANSFER_MESSAGE.OTHER_PROFILE)
-    expect(await check({ fromWalletId: 'other' })).toBe(TRANSFER_MESSAGE.OTHER_PROFILE)
+    expect(await check({ toWalletId: 'other' })).toBe(TRANSFER_MESSAGE.OTHER_BOOK)
+    expect(await check({ fromWalletId: 'other' })).toBe(TRANSFER_MESSAGE.OTHER_BOOK)
   })
 
   it('refuses wallets of different currencies (rule 1, Q2)', async () => {
@@ -187,7 +187,7 @@ describe('transferSyncHandler', () => {
     ).toBeNull()
   })
 
-  it('purges old tombstones, and goes with a purged wallet on either side or profile', async () => {
+  it('purges old tombstones, and goes with a purged wallet on either side or book', async () => {
     await push.write(db, 'alice', transfer('r1', 15, { deletedAt: 100 }))
     await push.write(db, 'alice', transfer('r2', 16, { deletedAt: 900 }))
     expect(await push.purge(db, 500)).toEqual({ removed: 1, maxSeq: 15 })
@@ -197,7 +197,7 @@ describe('transferSyncHandler', () => {
     await db.delete(wallets).where(eq(wallets.id, 'old'))
     expect(await push.find(db, 'r3')).toBeNull()
     expect(await push.find(db, 'r4')).toBeNull()
-    await db.delete(profiles)
+    await db.delete(books)
     expect(await push.find(db, 'r2')).toBeNull()
   })
 

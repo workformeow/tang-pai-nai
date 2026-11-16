@@ -63,7 +63,7 @@ describe('invite', () => {
     expect(setup.sent).toHaveLength(1)
   })
 
-  it('answers 404 for a profile the caller does not own', async () => {
+  it('answers 404 for a book the caller does not own', async () => {
     const other = setup.service.invite(
       ID.bob,
       ID.pa,
@@ -74,7 +74,7 @@ describe('invite', () => {
   })
 
   it('counts members and pending invites together against the limit of 10 people', async () => {
-    for (let i = 0; i < SHARING_LIMITS.PEOPLE_PER_PROFILE; i++) {
+    for (let i = 0; i < SHARING_LIMITS.PEOPLE_PER_BOOK; i++) {
       await setup.service.invite(
         ID.alice,
         ID.pa,
@@ -155,8 +155,8 @@ describe('withMe / accept / decline', () => {
     expect(mine.invites).toEqual([])
     expect(mine.shares).toEqual([
       {
-        profileId: ID.pa,
-        profile: { id: ID.pa, name: 'Family', icon: 'lucideHouse', color: '#000' },
+        bookId: ID.pa,
+        book: { id: ID.pa, name: 'Family', icon: 'lucideHouse', color: '#000' },
         role: 'editor',
         owner: { id: ID.alice, displayName: 'Alice', email: EMAIL.alice },
         wallets: [
@@ -181,7 +181,7 @@ describe('withMe / accept / decline', () => {
     const invite = await inviteBob()
     await setup.service.decline(ID.bob, invite.id)
     expect(await setup.service.withMe(ID.bob)).toEqual({ invites: [], shares: [] })
-    expect((await setup.service.ofProfile(ID.alice, ID.pa)).invites).toEqual([])
+    expect((await setup.service.ofBook(ID.alice, ID.pa)).invites).toEqual([])
   })
 })
 
@@ -192,7 +192,7 @@ describe('owner view and members', () => {
   }
 
   it('lists people with one role, open wallets only, and the wallets shared with nobody', async () => {
-    expect(await setup.service.ofProfile(ID.alice, ID.pa)).toEqual({
+    expect(await setup.service.ofBook(ID.alice, ID.pa)).toEqual({
       members: [],
       invites: [],
       unsharedWalletIds: [ID.home, ID.cash],
@@ -208,13 +208,13 @@ describe('owner view and members', () => {
       role: 'viewer',
       walletIds: [ID.home],
     })
-    const view = await setup.service.ofProfile(ID.alice, ID.pa)
+    const view = await setup.service.ofBook(ID.alice, ID.pa)
     expect(view.members).toEqual([
       expect.objectContaining({ userId: ID.bob, role: 'viewer', walletIds: [ID.home] }),
     ])
     expect(view.invites.map((invite) => invite.email)).toEqual([EMAIL.carol])
     expect(view.unsharedWalletIds).toEqual([ID.cash])
-    expect(await failure(setup.service.ofProfile(ID.bob, ID.pa))).toBe(404)
+    expect(await failure(setup.service.ofBook(ID.bob, ID.pa))).toBe(404)
   })
 
   it('removes a member with an empty set, by remove, or when they leave', async () => {
@@ -236,11 +236,11 @@ describe('owner view and members', () => {
 
     await join()
     await setup.service.leave(ID.bob, ID.pa)
-    expect((await setup.service.ofProfile(ID.alice, ID.pa)).members).toEqual([])
+    expect((await setup.service.ofBook(ID.alice, ID.pa)).members).toEqual([])
   })
 })
 
-describe('rows of a shared profile', () => {
+describe('rows of a shared book', () => {
   beforeEach(async () => {
     const invite = await inviteBob()
     await setup.service.accept(ID.bob, invite.id)
@@ -252,10 +252,10 @@ describe('rows of a shared profile', () => {
       Object.fromEntries(table.columns.map((column, i) => [column, values.at(i)]))
     )
 
-  it('reads the profile, role, owner, people, folded wallets, categories and transactions', async () => {
+  it('reads the book, role, owner, people, folded wallets, categories and transactions', async () => {
     const data = await setup.service.rows(ID.bob, ID.pa, 0, 100)
     expect(data).toMatchObject({
-      profile: { id: ID.pa, name: 'Family', icon: 'lucideHouse', color: '#000' },
+      book: { id: ID.pa, name: 'Family', icon: 'lucideHouse', color: '#000' },
       role: 'editor',
       owner: { id: ID.alice, displayName: 'Alice', email: EMAIL.alice },
       cursor: 7,

@@ -3,18 +3,18 @@ import { TranslocoService } from '@jsverse/transloco'
 import { toast } from '@spartan-ng/brain/sonner'
 import { ApiClient, isUnreachable, toApiError } from '@/core/api'
 import { AuthStore } from '@/core/auth'
+import { BookService } from '@/core/book'
+import type { Book } from '@/core/book'
 import { LiveService } from '@/core/live'
 import { NetworkStatusService } from '@/core/network'
 import { deleteOp, listOps, OfflineService, putRow, SyncService } from '@/core/offline'
 import type { LocalDatabase, SyncRow } from '@/core/offline'
-import { ProfileService } from '@/core/profile'
-import type { Profile } from '@/core/profile'
 import { TransactionService } from '@/core/transaction'
 import type {
   OwnerSharing,
   ShareRole,
   ShareGroup,
-  SharedProfileRows,
+  SharedBookRows,
   SharedWithMe,
   SharingInvite,
 } from './sharing.type'
@@ -38,9 +38,9 @@ const KNOWN_CODES = new Set([
  * this service with a dynamic `import()` after its first render, so it stays out of the initial
  * bundle; pages inject it directly.
  */
-/** Rows per read of a shared profile, like a pull page. */
+/** Rows per read of a shared book, like a pull page. */
 const ROWS_PAGE = 5000
-/** How often a shared profile in use reads what changed (others' writes). */
+/** How often a shared book in use reads what changed (others' writes). */
 const REFRESH_MS = 60_000
 
 @Injectable({ providedIn: 'root' })
@@ -50,7 +50,7 @@ export class SharingService {
   private network = inject(NetworkStatusService)
   private offlineService = inject(OfflineService)
   private syncService = inject(SyncService)
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
   private transactionService = inject(TransactionService)
   private transloco = inject(TranslocoService)
   private liveService = inject(LiveService)
@@ -58,19 +58,17 @@ export class SharingService {
 
   /** Invites to me and wallets shared with me; `null` until read once. */
   withMe = signal<SharedWithMe | null>(null)
-  /** The owner's view per profile id. */
+  /** The owner's view per book id. */
   private owners = signal<ReadonlyMap<string, OwnerSharing>>(new Map())
-  /** The shared profile in use: its id and the last `changeSeq` read (sharing rule 9). */
-  private session: { profileId: string; cursor: number; walletIds: Set<string> } | null = null
+  /** The shared book in use: its id and the last `changeSeq` read (sharing rule 9). */
+  private session: { bookId: string; cursor: number; walletIds: Set<string> } | null = null
   private pushing: Promise<void> | null = null
   private refreshing: Promise<void> | null = null
   private refreshAgain = false
-  /** The shared profile in use, once its rows are in (live-sync rule 10). */
-  private liveProfileId = computed(() => {
-    const shared = this.profileService.shared()
-    return shared?.status === 'ready' && this.offlineService.sharedActive()
-      ? shared.profile.id
-      : null
+  /** The shared book in use, once its rows are in (live-sync rule 10). */
+  private liveBookId = computed(() => {
+    const shared = this.bookService.shared()
+    return shared?.status === 'ready' && this.offlineService.sharedActive() ? shared.book.id : null
   })
   /** When the data on screen was read (the offline notice says it). */
   readAt = signal<number | null>(null)
@@ -100,21 +98,21 @@ export class SharingService {
         untracked(() => void this.pushShared())
       }
     })
-    // Back online with a shared profile in use: read what changed meanwhile.
+    // Back online with a shared book in use: read what changed meanwhile.
     effect(() => {
       if (this.canCall() && this.offlineService.sharedActive()) {
         untracked(() => void this.refreshShared())
       }
     })
-    // Live sync (rules 10–11): another member's push pokes a read of the profile in use.
+    // Live sync (rules 10–11): another member's push pokes a read of the book in use.
     effect((onCleanup) => {
-      const profileId = this.liveProfileId()
-      if (!profileId) {
+      const bookId = this.liveBookId()
+      if (!bookId) {
         return
       }
-      const stop = this.liveService.listenProfile(profileId, {
+      const stop = this.liveService.listenBook(bookId, {
         deviceId: () => this.offlineService.syncMeta('deviceId'),
-        cursor: () => (this.session?.profileId === profileId ? this.session.cursor : 0),
+        cursor: () => (this.session?.bookId === bookId ? this.session.cursor : 0),
         onPoke: () => void this.refreshShared(),
       })
       onCleanup(stop)
@@ -127,37 +125,37 @@ export class SharingService {
     })
   }
 
-  // ---------- A shared profile in use (sharing rules 9–15) ----------
+  // ---------- A shared book in use (sharing rules 9–15) ----------
 
-  /** Switches to a profile shared with me: its rows go into the TEMP tables. */
+  /** Switches to a book shared with me: its rows go into the TEMP tables. */
   async openShared(group: ShareGroup): Promise<void> {
-    const profile: Profile = {
-      ...group.profile,
+    const book: Book = {
+      ...group.book,
       sortOrder: 0,
       createdAt: 0,
       updatedAt: 0,
       deletedAt: null,
       changeSeq: null,
     }
-    this.profileService.leaveShared()
-    this.profileService.shared.set({
-      profile,
+    this.bookService.leaveShared()
+    this.bookService.shared.set({
+      book,
       role: group.role,
       owner: { id: group.owner.id, displayName: group.owner.displayName },
       status: 'loading',
     })
     try {
       // Read the rows while a running own sync round ends: the TEMP tables wait for it.
-      const [pages] = await Promise.all([this.fetchRows(profile.id, 0), this.syncService.idle()])
-      if (this.profileService.shared()?.profile.id !== profile.id) {
-        return // another profile was picked meanwhile
+      const [pages] = await Promise.all([this.fetchRows(book.id, 0), this.syncService.idle()])
+      if (this.bookService.shared()?.book.id !== book.id) {
+        return // another book was picked meanwhile
       }
       this.offlineService.enterShared()
-      this.session = { profileId: profile.id, cursor: 0, walletIds: new Set() }
+      this.session = { bookId: book.id, cursor: 0, walletIds: new Set() }
       this.putPages(pages)
-      const shared = this.profileService.shared()
-      if (shared?.profile.id === profile.id) {
-        this.profileService.shared.set({ ...shared, status: 'ready' })
+      const shared = this.bookService.shared()
+      if (shared?.book.id === book.id) {
+        this.bookService.shared.set({ ...shared, status: 'ready' })
       }
     } catch (error) {
       this.endShared()
@@ -166,7 +164,7 @@ export class SharingService {
   }
 
   /**
-   * Reads what changed in the shared profile in use (others' writes, a removal). A call during a
+   * Reads what changed in the shared book in use (others' writes, a removal). A call during a
    * read runs one more after it (live-sync rule 11).
    */
   async refreshShared(): Promise<void> {
@@ -196,7 +194,7 @@ export class SharingService {
       return
     }
     try {
-      await this.readRows(session.profileId)
+      await this.readRows(session.bookId)
     } catch (error) {
       if (toApiError(error).status === 404) {
         this.removedFromShared()
@@ -204,23 +202,23 @@ export class SharingService {
     }
   }
 
-  private async readRows(profileId: string): Promise<void> {
-    const pages = await this.fetchRows(profileId, this.session?.cursor ?? 0)
-    if (this.session?.profileId === profileId && this.offlineService.sharedActive()) {
+  private async readRows(bookId: string): Promise<void> {
+    const pages = await this.fetchRows(bookId, this.session?.cursor ?? 0)
+    if (this.session?.bookId === bookId && this.offlineService.sharedActive()) {
       this.putPages(pages)
     }
   }
 
   /** Every page from `since` on (sharing rule 9). */
-  private async fetchRows(profileId: string, since: number): Promise<SharedProfileRows[]> {
-    const pages: SharedProfileRows[] = []
+  private async fetchRows(bookId: string, since: number): Promise<SharedBookRows[]> {
+    const pages: SharedBookRows[] = []
     let cursor = since
     for (;;) {
       const data = (
-        await this.api.get<SharedProfileRows>(
-          `/sharing/with-me/${profileId}/rows?since=${cursor}&limit=${ROWS_PAGE}`
+        await this.api.get<SharedBookRows>(
+          `/sharing/with-me/${bookId}/rows?since=${cursor}&limit=${ROWS_PAGE}`
         )
-      ).data as SharedProfileRows
+      ).data as SharedBookRows
       pages.push(data)
       cursor = data.cursor
       if (!data.hasMore) {
@@ -229,7 +227,7 @@ export class SharingService {
     }
   }
 
-  private putPages(pages: readonly SharedProfileRows[]): void {
+  private putPages(pages: readonly SharedBookRows[]): void {
     for (const data of pages) {
       this.putRows(data)
       if (this.session) {
@@ -239,7 +237,7 @@ export class SharingService {
   }
 
   /** Wallets and categories are read whole each time; transactions by `changeSeq`. */
-  private putRows(data: SharedProfileRows): void {
+  private putRows(data: SharedBookRows): void {
     const walletIds = new Set(data.wallets.map((row) => String(row['id'])))
     this.offlineService.fillShared((db) => {
       db.exec('DELETE FROM wallets')
@@ -271,12 +269,12 @@ export class SharingService {
       }
     })
     this.transactionService.addPeople(data.people)
-    const shared = this.profileService.shared()
+    const shared = this.bookService.shared()
     if (shared) {
-      this.profileService.shared.set({
+      this.bookService.shared.set({
         ...shared,
         role: data.role,
-        profile: { ...shared.profile, ...data.profile },
+        book: { ...shared.book, ...data.book },
       })
     }
   }
@@ -319,7 +317,7 @@ export class SharingService {
     await this.refreshShared()
   }
 
-  /** Sharing rule 16: told, then back to an own profile. */
+  /** Sharing rule 16: told, then back to an own book. */
   private removedFromShared(): void {
     toast.error(this.transloco.translate('sharing.removedFromShared'))
     this.endShared()
@@ -328,11 +326,11 @@ export class SharingService {
 
   private endShared(): void {
     this.session = null
-    this.profileService.leaveShared()
+    this.bookService.leaveShared()
   }
 
-  owner(profileId: string): OwnerSharing | null {
-    return this.owners().get(profileId) ?? null
+  owner(bookId: string): OwnerSharing | null {
+    return this.owners().get(bookId) ?? null
   }
 
   /** The translation key for a failed call. */
@@ -353,10 +351,9 @@ export class SharingService {
     return data
   }
 
-  async loadOwner(profileId: string): Promise<OwnerSharing> {
-    const data = (await this.api.get<OwnerSharing>(`/sharing/profiles/${profileId}`))
-      .data as OwnerSharing
-    this.owners.update((map) => new Map(map).set(profileId, data))
+  async loadOwner(bookId: string): Promise<OwnerSharing> {
+    const data = (await this.api.get<OwnerSharing>(`/sharing/books/${bookId}`)).data as OwnerSharing
+    this.owners.update((map) => new Map(map).set(bookId, data))
     // Sharing rule 15: the names behind "เพิ่มโดย …" on the owner's rows.
     this.transactionService.addPeople(
       data.members.map((member) => ({ id: member.userId, displayName: member.displayName }))
@@ -367,42 +364,42 @@ export class SharingService {
   // ---------- Owner ----------
 
   async invite(
-    profileId: string,
+    bookId: string,
     values: { email: string; role: ShareRole; walletIds: string[] },
     lang: string
   ): Promise<SharingInvite> {
     const data = (
-      await this.api.post<SharingInvite>(`/sharing/profiles/${profileId}/invites`, {
+      await this.api.post<SharingInvite>(`/sharing/books/${bookId}/invites`, {
         ...values,
         lang,
       })
     ).data as SharingInvite
-    await this.loadOwner(profileId)
+    await this.loadOwner(bookId)
     return data
   }
 
-  async resend(profileId: string, inviteId: string, lang: string): Promise<void> {
+  async resend(bookId: string, inviteId: string, lang: string): Promise<void> {
     await this.api.post(`/sharing/invites/${inviteId}/resend`, { lang })
-    await this.loadOwner(profileId)
+    await this.loadOwner(bookId)
   }
 
-  async cancel(profileId: string, inviteId: string): Promise<void> {
+  async cancel(bookId: string, inviteId: string): Promise<void> {
     await this.api.delete(`/sharing/invites/${inviteId}`)
-    await this.loadOwner(profileId)
+    await this.loadOwner(bookId)
   }
 
   async updateMember(
-    profileId: string,
+    bookId: string,
     userId: string,
     values: { role: ShareRole; walletIds: string[] }
   ): Promise<void> {
-    await this.api.put(`/sharing/profiles/${profileId}/members/${userId}`, values)
-    await this.loadOwner(profileId)
+    await this.api.put(`/sharing/books/${bookId}/members/${userId}`, values)
+    await this.loadOwner(bookId)
   }
 
-  async removeMember(profileId: string, userId: string): Promise<void> {
-    await this.api.delete(`/sharing/profiles/${profileId}/members/${userId}`)
-    await this.loadOwner(profileId)
+  async removeMember(bookId: string, userId: string): Promise<void> {
+    await this.api.delete(`/sharing/books/${bookId}/members/${userId}`)
+    await this.loadOwner(bookId)
   }
 
   // ---------- Member ----------
@@ -420,8 +417,8 @@ export class SharingService {
     await this.loadWithMe()
   }
 
-  async leave(profileId: string): Promise<void> {
-    await this.api.delete(`/sharing/with-me/${profileId}`)
+  async leave(bookId: string): Promise<void> {
+    await this.api.delete(`/sharing/with-me/${bookId}`)
     await this.loadWithMe()
   }
 

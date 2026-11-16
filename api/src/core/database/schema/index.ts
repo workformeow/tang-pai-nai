@@ -2,7 +2,7 @@
 // read the schema from here, so export each new feature file below.
 export * from './auth'
 export * from './currency'
-export * from './profile'
+export * from './book'
 export * from './sync'
 export * from './wallet'
 export * from './category'

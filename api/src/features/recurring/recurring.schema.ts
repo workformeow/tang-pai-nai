@@ -39,7 +39,7 @@ const kindFits = ({ kind, categoryId, toWalletId, debtId }: KindFields) => {
 const row = z
   .object({
     id: z.uuid({ error: ERRORS.invalidField('id') }),
-    profileId: z.uuid({ error: ERRORS.invalidField('profileId') }),
+    bookId: z.uuid({ error: ERRORS.invalidField('bookId') }),
     kind: z.enum(Object.values(RecurringKind), { error: ERRORS.invalidField('kind') }),
     walletId: z.uuid({ error: ERRORS.invalidField('walletId') }),
     categoryId: z

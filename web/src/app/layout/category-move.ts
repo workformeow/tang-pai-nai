@@ -310,11 +310,11 @@ export class CategoryMove {
   protected walletName = computed(
     () => this.sources().find((source) => source.walletId === this.walletId())?.walletName ?? ''
   )
-  /** Rule 8: open categories of the same type and profile, itself left out (its row is shown). */
+  /** Rule 8: open categories of the same type and book, itself left out (its row is shown). */
   protected targets = computed<CategoryNode[]>(() => {
     const category = this.category()
     return this.categoryService
-      .treeOf(category.profileId, category.type)
+      .treeOf(category.bookId, category.type)
       .filter((node) => node.category.id !== category.id || node.children.length > 0)
       .map((node) => ({
         ...node,

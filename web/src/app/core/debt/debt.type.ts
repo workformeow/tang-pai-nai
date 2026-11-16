@@ -9,7 +9,7 @@ export type DebtCountAs = 'spent' | 'repaid'
 /** A debt as the device stores it (docs/features/debt.md → Data model). */
 export interface Debt {
   id: string
-  profileId: string
+  bookId: string
   direction: DebtDirection
   person: string
   note: string
@@ -28,7 +28,7 @@ export interface Debt {
 /** Money of a debt that is not income or expense (debt rule 3). */
 export interface DebtEntry {
   id: string
-  profileId: string
+  bookId: string
   debtId: string
   kind: 'principal' | 'repayment'
   /** Null only on a `repaid` debt (its principal, a forgiven rest). */
@@ -154,12 +154,12 @@ export type EntrySheetState =
 export const DEBT_LIMITS = {
   PERSON_MAX: 50,
   NOTE_MAX: 500,
-  /** Open debts per profile (debt rule 1). */
-  OPEN_PER_PROFILE: 100,
+  /** Open debts per book (debt rule 1). */
+  OPEN_PER_BOOK: 100,
 } as const
 
 /** Where the debts live (debt → Web screens, Q9). */
 export const DEBTS_ROUTE = '/wallets/debts'
 
-/** Per profile on the device (the interest category per debt), wiped with it. */
-export const DEBT_PREF_PREFIX = 'tpn-profile:debt:'
+/** Per book on the device (the interest category per debt), wiped with it. */
+export const DEBT_PREF_PREFIX = 'tpn-book:debt:'

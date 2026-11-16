@@ -88,7 +88,7 @@ describe('TransferSheet', () => {
     putRow(db, 'wallets', {
       ...base,
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       name: id,
       currencyCode: 'THB',
       initialBalance: 0,
@@ -107,7 +107,7 @@ describe('TransferSheet', () => {
     trusted.set(true)
     online.set(true)
     toastState.dismiss()
-    putRow(db, 'profiles', {
+    putRow(db, 'books', {
       ...base,
       id: 'p1',
       name: 'Home',
@@ -179,7 +179,7 @@ describe('TransferSheet', () => {
     const [op] = listOps(db, 'pending')
     expect(op.table).toBe('transfers')
     expect(getRow(db, 'transfers', op.rowId)).toMatchObject({
-      profileId: 'p1',
+      bookId: 'p1',
       fromWalletId: 'Bank',
       toWalletId: 'Cash',
       amount: 100000,
@@ -281,7 +281,7 @@ describe('TransferSheet', () => {
     putRow(db, 'transfers', {
       ...base,
       id: 'r1',
-      profileId: 'p1',
+      bookId: 'p1',
       fromWalletId: 'Bank',
       toWalletId: 'Cash',
       amount: 100000,
@@ -304,7 +304,7 @@ describe('TransferSheet', () => {
     putRow(db, 'transfers', {
       ...base,
       id: 'r1',
-      profileId: 'p1',
+      bookId: 'p1',
       fromWalletId: 'Bank',
       toWalletId: 'Cash',
       amount: 2500,

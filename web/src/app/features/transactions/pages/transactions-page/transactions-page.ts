@@ -26,10 +26,10 @@ import {
   lucideUsers,
 } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
+import { BookService } from '@/core/book'
 import { CATEGORY_DEFAULT_ICON } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
-import { ProfileService } from '@/core/profile'
 import { RecurringService, ruleTitle, shortDate } from '@/core/recurring'
 import type { Occurrence } from '@/core/recurring'
 import { SharingService } from '@/core/sharing'
@@ -483,10 +483,10 @@ export class TransactionsPage {
     return { count: due.length, text }
   })
   private walletService = inject(WalletService)
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
   private sharingService = inject(SharingService)
   private networkStatusService = inject(NetworkStatusService)
-  /** Profiles whose members were asked for, for "เพิ่มโดย …" (sharing rule 15). */
+  /** Books whose members were asked for, for "เพิ่มโดย …" (sharing rule 15). */
   private askedPeople = new Set<string>()
   private languageService = inject(LanguageService)
   private transloco = inject(TranslocoService)
@@ -538,7 +538,7 @@ export class TransactionsPage {
     }))
   })
 
-  /** Credit-card rule 7: the card in view, while it owes money (and isn't a shared profile's). */
+  /** Credit-card rule 7: the card in view, while it owes money (and isn't a shared book's). */
   protected cardDue = computed(() => {
     const wallet = this.transactionService.viewWallet()
     const owed = wallet?.isCreditCard ? this.walletService.owed(wallet) : 0
@@ -727,22 +727,20 @@ export class TransactionsPage {
           )
     inject(DestroyRef).onDestroy(() => observer?.disconnect())
     // Sharing rule 15: the owner's rows added by an editor need the members' names, read online
-    // once per profile and session.
+    // once per book and session.
     effect(() => {
-      const profileId = this.profileService.currentId()
+      const bookId = this.bookService.currentId()
       const online = this.networkStatusService.isOnline()
       const people = this.transactionService.people()
       const unknown = this.transactionService
         .items()
         .some((item) => item.kind === 'transaction' && item.addedBy && !people.has(item.addedBy))
-      if (!profileId || !online || !unknown || this.profileService.isShared()) {
+      if (!bookId || !online || !unknown || this.bookService.isShared()) {
         return
       }
-      if (!this.askedPeople.has(profileId)) {
-        this.askedPeople.add(profileId)
-        void this.sharingService
-          .loadOwner(profileId)
-          .catch(() => this.askedPeople.delete(profileId))
+      if (!this.askedPeople.has(bookId)) {
+        this.askedPeople.add(bookId)
+        void this.sharingService.loadOwner(bookId).catch(() => this.askedPeople.delete(bookId))
       }
     })
     effect(() => {

@@ -32,10 +32,9 @@ export default [
       import('./pages/password-page/password-page').then((m) => m.PasswordPage),
   },
   {
-    path: 'profiles',
-    title: 'title.profiles',
-    loadComponent: async () =>
-      import('./pages/profiles-page/profiles-page').then((m) => m.ProfilesPage),
+    path: 'books',
+    title: 'title.books',
+    loadComponent: async () => import('./pages/books-page/books-page').then((m) => m.BooksPage),
   },
   {
     path: 'categories',

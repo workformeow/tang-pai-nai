@@ -23,11 +23,11 @@ import {
 import { toast } from '@spartan-ng/brain/sonner'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
+import { BookService } from '@/core/book'
 import { CATEGORY_DEFAULT_ICON, CategoryService } from '@/core/category'
 import type { Category, CategoryNode, CategoryType } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
 import { SyncService } from '@/core/offline'
-import { ProfileService } from '@/core/profile'
 import {
   describeRepeat,
   describeRest,
@@ -642,8 +642,8 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                         </li>
                       }
                     </ul>
-                    <!-- A shared profile's hidden categories are the owner's to change (sharing rule 11). -->
-                    @if (!profileService.isShared()) {
+                    <!-- A shared book's hidden categories are the owner's to change (sharing rule 11). -->
+                    @if (!bookService.isShared()) {
                       <p class="text-sm text-muted-foreground">
                         {{ 'transactions.categoryMissing' | transloco }}
                         <button
@@ -677,7 +677,7 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                     </p>
                   </div>
                 }
-                @if (tree().length === 0 && !profileService.isShared()) {
+                @if (tree().length === 0 && !bookService.isShared()) {
                   <div sheetFooter class="pt-3">
                     <button
                       hlmBtn
@@ -807,7 +807,7 @@ export class TransactionSheet {
   protected transactionService = inject(TransactionService)
   private walletService = inject(WalletService)
   private categoryService = inject(CategoryService)
-  protected profileService = inject(ProfileService)
+  protected bookService = inject(BookService)
   private recurringService = inject(RecurringService)
   private syncService = inject(SyncService)
 
@@ -839,7 +839,7 @@ export class TransactionSheet {
   protected eventIcon = 'lucidePlane' as UserIcon
   /** The open events the picker offers, and the row's own (closed) one. */
   protected eventChoices = computed<EventOption[]>(() =>
-    this.transactionService.eventOptions(this.profileId(), this.eventId())
+    this.transactionService.eventOptions(this.bookId(), this.eventId())
   )
   protected event = computed(() => {
     const id = this.eventId()
@@ -913,15 +913,15 @@ export class TransactionSheet {
   /** "ทำซ้ำ" shows when adding (not a due occurrence) and on a rule. */
   protected repeatable = computed(() => {
     const state = this.state()
-    // A shared profile has no recurring rules (sharing rule 11).
-    if (this.profileService.isShared()) {
+    // A shared book has no recurring rules (sharing rule 11).
+    if (this.bookService.isShared()) {
       return false
     }
     return (state?.mode === 'create' && !state.occurrence) || this.ruleMode()
   })
-  /** Why nothing can be saved: a viewer of a shared profile, else no network / server. */
+  /** Why nothing can be saved: a viewer of a shared book, else no network / server. */
   protected readOnlyKey = computed(() => {
-    const shared = this.profileService.shared()
+    const shared = this.bookService.shared()
     if (shared?.role === 'viewer') {
       return 'sharing.viewerReadOnly'
     }
@@ -988,19 +988,19 @@ export class TransactionSheet {
   private t = (key: string, params?: Record<string, unknown>) =>
     this.transloco.translate(key, params)
 
-  /** The profile the row belongs to (rule 1: it never moves). */
-  private profileId = computed(() => {
+  /** The book the row belongs to (rule 1: it never moves). */
+  private bookId = computed(() => {
     const state = this.state()
     const rule = this.rule()
     if (rule) {
-      return rule.profileId
+      return rule.bookId
     }
     const id = this.editingId()
     const row = id ? this.transactionService.byId(id) : null
     if (row) {
-      return row.profileId
+      return row.bookId
     }
-    return state?.mode === 'fix' ? state.profileId : (this.profileService.current()?.id ?? '')
+    return state?.mode === 'fix' ? state.bookId : (this.bookService.current()?.id ?? '')
   })
   /** The wallet the row had when the sheet opened (rule 5 keeps its currency). */
   private startWalletId = signal<string | null>(null)
@@ -1043,11 +1043,11 @@ export class TransactionSheet {
     const start = this.startWalletId()
     return start ? (this.walletService.byId(start)?.currencyCode ?? null) : null
   })
-  /** Rule 2: the profile's open wallets (and the one the row already has). */
+  /** Rule 2: the book's open wallets (and the one the row already has). */
   protected walletChoices = computed<Wallet[]>(() => {
     const currency = this.editingId() ? this.sameCurrencyOnly() : null
     const open = this.walletService
-      .openOf(this.profileId())
+      .openOf(this.bookId())
       .filter((item) => currency === null || item.currencyCode === currency)
     const current = this.wallet()
     return current && !open.some((item) => item.id === current.id) ? [current, ...open] : open
@@ -1069,7 +1069,7 @@ export class TransactionSheet {
     const type = this.pickTypeValue() as CategoryType
     const hidden = wallet?.hiddenCategoryIds ?? []
     return this.categoryService
-      .treeOf(this.profileId(), type)
+      .treeOf(this.bookId(), type)
       .filter((node) => !isHiddenIn(hidden, node.category))
       .map((node) => ({
         category: node.category,
@@ -1093,7 +1093,7 @@ export class TransactionSheet {
     }
     const type = this.pickTypeValue() as CategoryType
     return this.transactionService
-      .frequentCategoryIds(this.profileId(), type)
+      .frequentCategoryIds(this.bookId(), type)
       .flatMap((id) => offered.get(id) ?? [])
       .slice(0, 4)
   })
@@ -1122,11 +1122,11 @@ export class TransactionSheet {
     effect(() => {
       const state = this.state()
       const day = this.day()
-      const profileId = this.profileId()
+      const bookId = this.bookId()
       if (state?.mode !== 'create' || this.eventChosen()) {
         return
       }
-      this.eventId.set(untracked(() => this.transactionService.defaultEventId(profileId, day)))
+      this.eventId.set(untracked(() => this.transactionService.defaultEventId(bookId, day)))
     })
   }
 
@@ -1337,7 +1337,7 @@ export class TransactionSheet {
       )
       done = 'recurring.saved'
     } else if (state.mode === 'fix') {
-      this.transactionService.save(state.id, values, state.opId, state.profileId)
+      this.transactionService.save(state.id, values, state.opId, state.bookId)
     } else if (state.mode === 'create' && state.occurrence) {
       // Recurring rule 10: this month's bill, recorded as the due occurrence.
       this.recurringService.confirm(state.occurrence.ruleId, state.occurrence.on, values)

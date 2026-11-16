@@ -73,7 +73,7 @@ describe('EventService', () => {
       endOn: null,
     })
     expect(getRow(setup.db, 'events', id)).toMatchObject({
-      profileId: 'p1',
+      bookId: 'p1',
       name: 'ภูเก็ต',
       startOn: '2026-12-01',
       endOn: null,
@@ -132,10 +132,10 @@ describe('EventService', () => {
     expect(events.openFix('nope')).toBe(false)
     expect(events.openFix(opId)).toBe(true)
     expect(events.sheet()).toEqual({ mode: 'fix', opId, id })
-    expect(events.refused(opId)).toMatchObject({ id, name: 'x', profileId: 'p1' })
+    expect(events.refused(opId)).toMatchObject({ id, name: 'x', bookId: 'p1' })
     events.save(id, { ...values, name: 'ภูเก็ต' }, opId)
     expect(listOps(setup.db, 'rejected')).toEqual([])
-    expect(getRow(setup.db, 'events', id)).toMatchObject({ name: 'ภูเก็ต', profileId: 'p1' })
+    expect(getRow(setup.db, 'events', id)).toMatchObject({ name: 'ภูเก็ต', bookId: 'p1' })
   })
 })
 

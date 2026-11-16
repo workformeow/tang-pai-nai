@@ -12,7 +12,7 @@ const findCategory = async (executor: Executor, id: string): Promise<CategoryRow
 
 /**
  * Where rows of a merged category go (docs/features/category.md rule 15): the live category its
- * tombstone's `mergedIntoId` leads to, following later merges, of the same owner, profile and
+ * tombstone's `mergedIntoId` leads to, following later merges, of the same owner, book and
  * type, and not one of its own children. Null for a live category, a plain tombstone or a target
  * that is gone. Read by the category handler (its follow-ups) and the transaction handler (a
  * late push), so it lives here rather than in either feature.
@@ -32,7 +32,7 @@ export const findMergeTarget = async (
     const fits =
       next !== undefined &&
       next.userId === userId &&
-      next.profileId === source.profileId &&
+      next.bookId === source.bookId &&
       next.type === source.type &&
       next.id !== source.id
     if (!fits) {

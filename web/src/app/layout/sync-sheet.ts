@@ -7,20 +7,20 @@ import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { AuthStore } from '@/core/auth'
+import { BOOK_TABLE, BookService } from '@/core/book'
 import { CategoryService } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
 import { LiveService } from '@/core/live'
 import { NetworkStatusService } from '@/core/network'
 import { SyncService } from '@/core/offline'
 import type { OutboxOp, SyncRow } from '@/core/offline'
-import { PROFILE_TABLE, ProfileService } from '@/core/profile'
 import { WALLET_TABLE, WalletService } from '@/core/wallet'
 import { SheetFrame } from '@/shared/components/sheet'
 import { formatAmount } from '@/shared/utils'
 
 /** Where "fix" opens a rejected op's values, per table. */
 const FIX_ROUTES: Readonly<Record<string, string>> = {
-  profiles: '/account/profiles',
+  books: '/account/books',
   categories: '/account/categories',
   // The wallet sheet lives in the shell, so it opens on the tab itself (even its first-wallet step).
   [WALLET_TABLE]: '/wallets',
@@ -233,7 +233,7 @@ export class SyncSheet {
   private languageService = inject(LanguageService)
   protected syncService = inject(SyncService)
   protected liveService = inject(LiveService)
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
   private transloco = inject(TranslocoService)
   protected networkStatusService = inject(NetworkStatusService)
   protected authStore = inject(AuthStore)
@@ -241,16 +241,16 @@ export class SyncSheet {
   open = model(false)
 
   /**
-   * Rejected ops to show: a refused profile create carries its refused child rows (category rule
+   * Rejected ops to show: a refused book create carries its refused child rows (category rule
    * 12), which are listed under it rather than one by one.
    */
   /**
-   * Rejected ops to show: a refused profile create carries its refused child rows (category rule
+   * Rejected ops to show: a refused book create carries its refused child rows (category rule
    * 12), which are listed under it rather than one by one.
    */
   protected shown = computed<{ op: OutboxOp; withText: string | null }[]>(() => {
     this.languageService.language()
-    return this.profileService.rejectedItems().map(({ op, children }) => {
+    return this.bookService.rejectedItems().map(({ op, children }) => {
       if (children.length === 0) {
         return { op, withText: null }
       }
@@ -281,8 +281,8 @@ export class SyncSheet {
   })
 
   protected discard(opId: string, table: string): void {
-    if (table === PROFILE_TABLE) {
-      this.profileService.discardRefused(opId)
+    if (table === BOOK_TABLE) {
+      this.bookService.discardRefused(opId)
       return
     }
     this.syncService.discard(opId)

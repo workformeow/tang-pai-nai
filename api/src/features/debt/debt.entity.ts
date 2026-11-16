@@ -2,7 +2,7 @@
 // `Record<string, unknown>` rows.
 export type Debt = {
   id: string
-  profileId: string
+  bookId: string
   /** `borrowed` | `lent`. */
   direction: string
   person: string
@@ -22,7 +22,7 @@ export type Debt = {
 
 export type DebtEntry = {
   id: string
-  profileId: string
+  bookId: string
   debtId: string
   /** `principal` | `repayment`. */
   kind: string

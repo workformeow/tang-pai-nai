@@ -5,8 +5,8 @@ import { env } from '@/core/config'
 import type { Database } from '@/core/database'
 import { createDatabase } from '@/core/database/client'
 import { users } from '@/core/database/schema/auth'
+import { books } from '@/core/database/schema/book'
 import { events } from '@/core/database/schema/event'
-import { profiles } from '@/core/database/schema/profile'
 import type { SyncPushHandler, SyncRowWrite } from '@/core/sync'
 import { makeTempDir, removeTempDir } from '@/shared/testing/temp-dir'
 import { EVENT_LIMITS, EVENT_MESSAGE } from './event.const'
@@ -19,7 +19,7 @@ const push = eventSyncHandler.push as SyncPushHandler
 
 const event = (id: string, changeSeq: number, extra: Partial<SyncRowWrite> = {}) => ({
   id,
-  profileId: 'pa',
+  bookId: 'pa',
   name: 'เชียงใหม่',
   icon: 'lucidePlane',
   color: '#0e7490',
@@ -46,7 +46,7 @@ beforeEach(async () => {
     { id: 'alice', email: 'a@example.com', displayName: 'a' },
     { id: 'bob', email: 'b@example.com', displayName: 'b' },
   ])
-  await created.db.insert(profiles).values(
+  await created.db.insert(books).values(
     ['pa', 'pa2', 'gone', 'pb'].map((id) => ({
       id,
       userId: id === 'pb' ? 'bob' : 'alice',
@@ -79,7 +79,7 @@ describe('eventSyncHandler', () => {
       ownerId: 'alice',
       row: event('cm', 16, { isClosed: true }),
     })
-    await push.write(db, 'bob', event('bobs', 17, { profileId: 'pb' }))
+    await push.write(db, 'bob', event('bobs', 17, { bookId: 'pb' }))
     expect((await eventSyncHandler.pull(db, 'alice', 0, 100)).map((row) => row.id)).toEqual(['cm'])
     expect(await eventSyncHandler.pull(db, 'alice', 16, 100)).toEqual([])
   })
@@ -88,7 +88,7 @@ describe('eventSyncHandler', () => {
     vi.useFakeTimers({ now: new Date('2026-11-09T12:00:00Z'), toFake: ['Date'] })
     const valid = input(
       event('00000000-0000-7000-8000-000000000001', 1, {
-        profileId: '00000000-0000-7000-8000-0000000000aa',
+        bookId: '00000000-0000-7000-8000-0000000000aa',
       })
     )
     expect(push.validate({ ...valid, name: ' เชียงใหม่ ' })).toMatchObject({
@@ -117,26 +117,26 @@ describe('eventSyncHandler', () => {
     })
   })
 
-  it('needs a live profile of the user and never moves to another (rule 1)', async () => {
+  it('needs a live book of the user and never moves to another (rule 1)', async () => {
     expect(await push.check(db, 'alice', event('cm', 0))).toBeNull()
-    expect(await push.check(db, 'alice', event('cm', 0, { profileId: 'gone' }))).toBe(
-      EVENT_MESSAGE.PROFILE_GONE
+    expect(await push.check(db, 'alice', event('cm', 0, { bookId: 'gone' }))).toBe(
+      EVENT_MESSAGE.BOOK_GONE
     )
-    expect(await push.check(db, 'alice', event('cm', 0, { profileId: 'pb' }))).toBe(
-      EVENT_MESSAGE.PROFILE_GONE
+    expect(await push.check(db, 'alice', event('cm', 0, { bookId: 'pb' }))).toBe(
+      EVENT_MESSAGE.BOOK_GONE
     )
     await push.write(db, 'alice', event('cm', 1))
-    expect(await push.check(db, 'alice', event('cm', 0, { profileId: 'pa2' }))).toBe(
-      EVENT_MESSAGE.PROFILE_FIXED
+    expect(await push.check(db, 'alice', event('cm', 0, { bookId: 'pa2' }))).toBe(
+      EVENT_MESSAGE.BOOK_FIXED
     )
-    expect(await push.check(db, 'alice', event('cm', 0, { profileId: 'gone', deletedAt: 9 }))).toBe(
+    expect(await push.check(db, 'alice', event('cm', 0, { bookId: 'gone', deletedAt: 9 }))).toBe(
       null
     )
   })
 
-  it('holds at most 50 open events per profile; closed ones and stored open ones pass (rule 1)', async () => {
+  it('holds at most 50 open events per book; closed ones and stored open ones pass (rule 1)', async () => {
     await db.insert(events).values(
-      Array.from({ length: EVENT_LIMITS.OPEN_PER_PROFILE }, (_, i) => ({
+      Array.from({ length: EVENT_LIMITS.OPEN_PER_BOOK }, (_, i) => ({
         ...event(`e${i}`, i + 1),
         userId: 'alice',
       }))
@@ -144,7 +144,7 @@ describe('eventSyncHandler', () => {
     expect(await push.check(db, 'alice', event('new', 0))).toBe(EVENT_MESSAGE.LIMIT)
     expect(await push.check(db, 'alice', event('new', 0, { isClosed: true }))).toBeNull()
     expect(await push.check(db, 'alice', event('e3', 0, { name: 'แก้ชื่อ' }))).toBeNull()
-    expect(await push.check(db, 'alice', event('new', 0, { profileId: 'pa2' }))).toBeNull()
+    expect(await push.check(db, 'alice', event('new', 0, { bookId: 'pa2' }))).toBeNull()
     await push.write(db, 'alice', event('e4', 99, { isClosed: true }))
     // Reopening a closed one counts like a new open one.
     expect(await push.check(db, 'alice', event('e4', 0))).toBeNull()

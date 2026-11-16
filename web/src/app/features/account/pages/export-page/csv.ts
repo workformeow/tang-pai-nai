@@ -19,12 +19,12 @@ export const toCsv = (rows: readonly (readonly string[])[]): string =>
   '\uFEFF' + rows.map((row) => row.map(csvField).join(',')).join('\r\n') + '\r\n'
 
 /**
- * The file name (rule 5): `tangpainai-<profile>-<day>.csv` with the profile's name kept to
+ * The file name (rule 5): `tangpainai-<book>-<day>.csv` with the book's name kept to
  * ASCII letters, digits, `-` and `_` (browsers drop a download name with other characters, so
  * a Thai name is left out: `tangpainai-<day>.csv`).
  */
-export const exportFileName = (profileName: string, day: string): string => {
-  const part = profileName
+export const exportFileName = (bookName: string, day: string): string => {
+  const part = bookName
     .trim()
     .replace(/\s+/g, '-')
     .replace(/[^A-Za-z0-9_-]+/g, '')

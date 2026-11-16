@@ -6,7 +6,7 @@ delete:
     Privacy spec rules 6–9. The typed `email` must be the account's (`422
     ACCOUNT_EMAIL_MISMATCH`, checked first), then recent authentication as for the password
     routes (`403 REAUTH_REQUIRED`). Deletes at once, no undo: the user and every row that
-    references it (sessions, profiles, wallets, transactions, …), plus sign-in codes and invites
+    references it (sessions, books, wallets, transactions, …), plus sign-in codes and invites
     addressed to the email. Then one mail says so; a failed send doesn't undo anything. Other
     devices are refused on their next refresh.
   operationId: accountDelete

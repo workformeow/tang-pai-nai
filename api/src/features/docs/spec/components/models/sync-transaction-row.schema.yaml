@@ -3,15 +3,15 @@ description: >-
   A row of the `transactions` table (docs/features/transaction.md) as it travels in /sync/pull
   and in /sync/push. Devices send the whole row on upsert; the server stamps changeSeq and
   updatedBy. The sign comes from the category's type and the currency from the wallet; neither
-  is stored. Rules (each answers `CONFLICT`): profileId is one of the user's live profiles and
-  never changes; walletId and categoryId are the user's live rows of that profile (archived ones
+  is stored. Rules (each answers `CONFLICT`): bookId is one of the user's live books and
+  never changes; walletId and categoryId are the user's live rows of that book (archived ones
   are accepted); moving to a wallet with another currency is refused. A tombstone runs none of
   them. A live row whose categoryId is a merged category (category rule 15) is moved to the
   category it was merged into before the checks, and answered `applied` with that row.
 required:
   [
     id,
-    profileId,
+    bookId,
     walletId,
     categoryId,
     amount,
@@ -29,7 +29,7 @@ properties:
     type: string
     format: uuid
     description: UUIDv7 made on the device
-  profileId:
+  bookId:
     type: string
     format: uuid
   walletId:
@@ -70,14 +70,14 @@ properties:
     description: >-
       The debt this counted row belongs to (docs/features/debt.md: an instalment of a `repaid`
       debt, interest, a forgiven rest), null otherwise (a push without it means null). It must be
-      a debt of the same profile whose currency the wallet has (`CONFLICT`); a link to a debt
+      a debt of the same book whose currency the wallet has (`CONFLICT`); a link to a debt
       that is gone is cleared, not refused.
   eventId:
     type: [string, 'null']
     format: uuid
     description: >-
       The event / trip this row is tagged to (docs/features/event.md), null otherwise (a push
-      without it means null). It must be an event of the same profile, finished ones too
+      without it means null). It must be an event of the same book, finished ones too
       (`CONFLICT`); a link to an event that is gone is cleared, not refused.
   createdAt:
     type: integer
@@ -92,7 +92,7 @@ properties:
     type: string
 example:
   id: 0199b000-0000-7000-8000-000000000301
-  profileId: 0199b000-0000-7000-8000-000000000001
+  bookId: 0199b000-0000-7000-8000-000000000001
   walletId: 0199b000-0000-7000-8000-000000000101
   categoryId: 0199b000-0000-7000-8000-000000000202
   amount: 6500

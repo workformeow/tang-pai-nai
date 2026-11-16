@@ -80,10 +80,10 @@ import {
 import { TPN_ICONS } from './tpn-icons'
 
 /**
- * The curated lucide icons a user can pick for a profile (DESIGN.md §7). Stored by export name,
+ * The curated lucide icons a user can pick for a book (DESIGN.md §7). Stored by export name,
  * so an icon is never renamed or removed here once it has shipped; add new ones at the end.
  */
-export const PROFILE_ICONS = {
+export const BOOK_ICONS = {
   lucideUser,
   lucideUsers,
   lucideHandCoins,
@@ -107,19 +107,19 @@ export const PROFILE_ICONS = {
   lucideStar,
 } as const
 
-export type ProfileIcon = keyof typeof PROFILE_ICONS
+export type BookIcon = keyof typeof BOOK_ICONS
 
-export const PROFILE_ICON_NAMES = Object.keys(PROFILE_ICONS) as ProfileIcon[]
+export const BOOK_ICON_NAMES = Object.keys(BOOK_ICONS) as BookIcon[]
 
-/** Shown for an icon name this build doesn't know (a newer device picked it, profile rule 3). */
-export const FALLBACK_ICON: ProfileIcon = 'lucideUser'
+/** Shown for an icon name this build doesn't know (a newer device picked it, book rule 3). */
+export const FALLBACK_ICON: BookIcon = 'lucideUser'
 
 /**
- * Every icon a user can pick anywhere (profiles, wallets, later categories): the curated lucide
+ * Every icon a user can pick anywhere (books, wallets, later categories): the curated lucide
  * icons plus our own `tpn` set (DESIGN.md §7). Never rename or remove a shipped one.
  */
 export const USER_ICONS = {
-  ...PROFILE_ICONS,
+  ...BOOK_ICONS,
   lucideLandmark,
   lucideVault,
   lucideCreditCard,

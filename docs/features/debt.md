@@ -33,7 +33,7 @@ it is repaid, chosen per debt (Q1).
 `api/src/core/database/schema/debt.ts`. Two tables of their own (Q2) plus a column on
 `transactions` and on `recurring_rules`.
 
-- **debts** (synced): `id` (UUIDv7 from the device), `userId`, `profileId` (FK profiles,
+- **debts** (synced): `id` (UUIDv7 from the device), `userId`, `bookId` (FK books,
   cascade), `direction` (`borrowed` | `lent`), `person` (1–50 characters: who or where, "แม่",
   "KTC"), `note` (≤ 500, `''`), `currencyCode` (FK currencies), `countAs` (`spent` | `repaid`;
   always `spent` for `lent`, Q1), `categoryId` (FK categories, cascade; the expense category of
@@ -43,7 +43,7 @@ it is repaid, chosen per debt (Q1).
     its entries and linked transactions (ROADMAP → Money & data), and so is "closed" (left = 0,
     Q6).
 - **debt_entries** (synced): the money of a debt that is **not** income or expense (Q4):
-  `id`, `userId`, `profileId` (FK, cascade), `debtId` (FK debts, cascade), `kind` (`principal`:
+  `id`, `userId`, `bookId` (FK, cascade), `debtId` (FK debts, cascade), `kind` (`principal`:
   borrowed / lent, more of it later | `repayment`: paid back / received back), `walletId` (FK
   wallets, cascade; `null` only on a `repaid` debt: its `principal`, goods bought on
   instalment with no cash in, and a forgiven rest, rule 4), `amount` (1 to 10¹⁵ minor units), `occurredOn`, `note`,
@@ -52,8 +52,8 @@ it is repaid, chosen per debt (Q1).
   belongs to a debt: an instalment of a `repaid` debt, interest, or a forgiven remainder (Q4–Q6).
 - **recurring_rules.debtId** (nullable text, no FK: SQLite can't add one with a cascade to a table
   that exists, and the device deletes a debt's rules with it) and a new rule `kind` `debt` (Q7).
-- Server indexes: the sync pair, (`profileId`), (`walletId`), (`debtId`), (`categoryId`).
-  Device: (`profile_id`), (`debt_id`), (`wallet_id`) on `debt_entries`; (`debt_id`) on
+- Server indexes: the sync pair, (`bookId`), (`walletId`), (`debtId`), (`categoryId`).
+  Device: (`book_id`), (`debt_id`), (`wallet_id`) on `debt_entries`; (`debt_id`) on
   `transactions` (a partial index `WHERE debt_id IS NOT NULL`).
 
 **What is left** of a debt = Σ `principal` − Σ `repayment` − Σ amount of its linked transactions
@@ -70,9 +70,9 @@ and `countAs` tell them apart, all locked once used.
 
 1. **Own data, synced.** Like transaction rule 1: no REST endpoint, tables `debts` and
    `debt_entries` through `/sync/push` and `/sync/pull`. **Server check** (`CONFLICT`) for a
-   live debt: its profile is the owner's live profile and never changes; `currencyCode` active
+   live debt: its book is the owner's live book and never changes; `currencyCode` active
    when created; a `repaid` debt's `categoryId` is the owner's live **expense** category of that
-   profile; at most **100 open debts** per profile (Q12).
+   book; at most **100 open debts** per book (Q12).
 2. `direction` and `countAs` are chosen when the debt is created and **never change** (they
    decide how its rows count). `person` 1–50 after trimming, `note` ≤ 500, `dueOn` a real date
    from 2000-01-01 to 50 years after today (a mortgage).
@@ -103,7 +103,7 @@ and `countAs` tell them apart, all locked once used.
 
 **Entries and linked transactions**
 
-6. An entry's wallet is the owner's live wallet of the debt's profile with the **debt's
+6. An entry's wallet is the owner's live wallet of the debt's book with the **debt's
    currency** (server check); archived accepted as for transfers (transfer rule 2). `amount`,
    `occurredOn` and `note` as transaction rules 3, 4 and 6. Validation: `walletId` is `null`
    only on a `repaid` debt (its `principal`, and a forgiven rest, rule 4).
@@ -111,7 +111,7 @@ and `countAs` tell them apart, all locked once used.
    `repayment` of a lent one, and takes away the other two, like a transfer side. **Never** in
    รายรับ / รายจ่าย / สุทธิ, a day's net, the reports' figures or budgets (as transfer rule 5);
    in the reports' ยอดเริ่มต้น / ยอดสุดท้าย (they are balances).
-8. A transaction's `debtId` (server check): the owner's live debt of the same profile, and the
+8. A transaction's `debtId` (server check): the owner's live debt of the same book, and the
    transaction's wallet has the debt's currency. A late push whose debt is a tombstone is
    **kept with `debtId` cleared** (the `resolve` hook), never refused: the money was real.
 9. **A wallet with entries counts as "has transactions"** (wallet rules 4 and 6): currency fixed,
@@ -121,8 +121,8 @@ and `countAs` tell them apart, all locked once used.
    already using it (transaction rule 2).
 10. **Sweeps** (transaction rule 10): a device that pulls a wallet tombstone tombstones its live
     entries; a pulled debt tombstone tombstones its entries; a pulled category tombstone (not
-    merged) tombstones the `repaid` debts on it, with their entries. Profile delete takes debts
-    and entries (`PROFILE_CHILD_TABLES`), and the confirm counts them.
+    merged) tombstones the `repaid` debts on it, with their entries. Book delete takes debts
+    and entries (`BOOK_CHILD_TABLES`), and the confirm counts them.
 11. Two devices editing the same debt or entry: the later edit wins, delete beats edit, a notice
     for the loser (offline-sync rule 12). Two devices adding repayments add two rows (no
     conflict; the left amount is computed).
@@ -147,7 +147,7 @@ and `countAs` tell them apart, all locked once used.
 
 ## Volume
 
-Debts are tens per profile and entries a few a month, so the debts page reads the profile's
+Debts are tens per book and entries a few a month, so the debts page reads the book's
 debts with one query (sub-selects through the `debt_id` indexes of entries and linked
 transactions). Balances stay one aggregate (one more `UNION ALL` branch), and the Transactions
 tab merges the period's entries like transfer sides (`entries`, one pass, 100 rows drawn at a
@@ -207,7 +207,7 @@ Mock-up frames in brackets. Where (Q9): the Wallets tab's card and the ⋮ menu 
 - **Sync sheet**: a refused debt reads "หนี้ · แม่", an entry "คืนเงิน · แม่ · 2,000.00"; "แก้"
   opens the debt page (`FIX_ROUTES`).
 - **Delete confirms**: a wallet can't be deleted with entries (rule 9); a category says it is
-  used by n debts; the profile's counts "หนี้ n รายการ".
+  used by n debts; the book's counts "หนี้ n รายการ".
 
 Glossary: ยืม-คืน / Loans (the section: the card, the ⋮ row, the page title; owner 2026-11,
 after หนี้สิน, หนี้ / เงินกู้ and ยืมมา | ให้ยืม read as three names for one thing), หนี้ / debt (one
@@ -223,7 +223,7 @@ Forgive, ผ่อน / Instalment, กำหนดคืน / Due.
 - **Category**: a `repaid` debt's category (rule 9); merge follows.
 - **Recurring**: instalments (rules 13–14), `kind` `debt`.
 - **Reports**: entries count only in the balances (rule 7).
-- **Profile**: `PROFILE_CHILD_TABLES` (rule 10).
+- **Book**: `BOOK_CHILD_TABLES` (rule 10).
 
 ## Open questions
 
@@ -271,7 +271,7 @@ the options offered beside them were not taken):
   sweeps of rule 10 for races.
 - **Q11 Deleting a debt.** Proposal: confirm first (no undo), entries go, counted transactions
   stay unlinked, rules go (rule 5); "ปิดหนี้" is offered as the usual way.
-- **Q12 Limits and extras.** Proposal: 100 open debts per profile; due date with overdue in red;
+- **Q12 Limits and extras.** Proposal: 100 open debts per book; due date with overdue in red;
   a "ทั้งหมด x" quick chip. **Not** proposed (options): a "หลังหักหนี้" line (Q8), a reminder
   card on the Transactions tab for debts due within 7 days, a share text ("ทวง") with the
   history, a report page of interest paid.

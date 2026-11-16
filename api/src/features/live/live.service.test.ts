@@ -8,16 +8,16 @@ import { createLiveService } from './live.service'
 const poke = { seq: 9, deviceId: 'phone' }
 
 describe('createLiveService › token', () => {
-  it('grants an Ably token for the user and the profiles they may hear now (rule 8)', async () => {
+  it('grants an Ably token for the user and the books they may hear now (rule 8)', async () => {
     const provider = createMemoryLiveProvider(LiveProviderName.ABLY)
     const liveRepo = createMemoryLiveRepository(new Map([['bob', ['pa']]]))
     const service = createLiveService({ liveRepo, provider })
     expect(await service.token('bob')).toMatchObject({ provider: 'ably' })
-    liveRepo.profilesOf.set('bob', [])
+    liveRepo.booksOf.set('bob', [])
     await service.token('bob')
     expect(provider.grants).toEqual([
-      { userId: 'bob', profileIds: ['pa'] },
-      { userId: 'bob', profileIds: [] },
+      { userId: 'bob', bookIds: ['pa'] },
+      { userId: 'bob', bookIds: [] },
     ])
   })
 
@@ -41,16 +41,16 @@ describe('createLiveService › listen', () => {
     expect(() => service.listen('bob', () => undefined)).toThrow('Live stream not found')
   })
 
-  it("delivers a shared profile's pokes while the user may hear it (rule 3, per poke)", async () => {
+  it("delivers a shared book's pokes while the user may hear it (rule 3, per poke)", async () => {
     const provider = createLocalLiveProvider()
     const liveRepo = createMemoryLiveRepository(new Map([['bob', ['pa']]]))
     const service = createLiveService({ liveRepo, provider })
     const got: LiveMessage[] = []
     service.listen('bob', (message) => got.push(message))
-    await provider.publish({ channel: 'profile:pa', poke })
-    liveRepo.profilesOf.set('bob', [])
-    await provider.publish({ channel: 'profile:pa', poke })
+    await provider.publish({ channel: 'book:pa', poke })
+    liveRepo.booksOf.set('bob', [])
+    await provider.publish({ channel: 'book:pa', poke })
     await provider.publish({ channel: 'user:bob', poke })
-    expect(got.map((m) => m.channel)).toEqual(['profile:pa', 'user:bob'])
+    expect(got.map((m) => m.channel)).toEqual(['book:pa', 'user:bob'])
   })
 })

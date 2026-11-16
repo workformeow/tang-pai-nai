@@ -178,7 +178,7 @@ npm run test:watch  # watch mode
 
 ## Docker
 
-The API and the web app run together from the repo root's `docker-compose.yml` (profiles `dev`
+The API and the web app run together from the repo root's `docker-compose.yml` (books `dev`
 and `prod`). The commands are in the root [README](../README.md#run-in-docker). This folder holds
 only the API's `Dockerfile`.
 

@@ -5,12 +5,12 @@ import { provideRouter, Router } from '@angular/router'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
+import { BookService } from '@/core/book'
 import th from '@/core/i18n/th.json'
 import { NetworkStatusService } from '@/core/network'
 import { findOp, OfflineService, putRow, SyncService } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
-import { ProfileService } from '@/core/profile'
 import { TransactionService, TransferService } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import { WalletsPage } from './wallets-page'
@@ -63,7 +63,7 @@ describe('WalletsPage', () => {
   const wallet = (id: string, extra: object = {}) => {
     putRow(db, 'wallets', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       name: id,
       currencyCode: 'THB',
       initialBalance: 0,
@@ -85,7 +85,7 @@ describe('WalletsPage', () => {
   beforeEach(async () => {
     db = await openTestDatabase()
     localStorage.clear()
-    putRow(db, 'profiles', {
+    putRow(db, 'books', {
       id: 'p1',
       name: 'Home',
       icon: 'lucideHouse',
@@ -208,11 +208,11 @@ describe('WalletsPage', () => {
     expect(text()).toContain('Old ฿0.00')
   })
 
-  it("shows a shared profile's balances only, and a wallet opens its transactions", async () => {
+  it("shows a shared book's balances only, and a wallet opens its transactions", async () => {
     wallet('Cash')
     offline.sharedActive.set(true)
-    TestBed.inject(ProfileService).shared.set({
-      profile: {
+    TestBed.inject(BookService).shared.set({
+      book: {
         id: 'p1',
         name: 'Family',
         icon: 'lucideHouse',

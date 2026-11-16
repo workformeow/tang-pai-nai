@@ -1,10 +1,10 @@
 import { DOCUMENT } from '@angular/common'
 import { computed, effect, inject, Service, signal, untracked } from '@angular/core'
+import { BookService } from '@/core/book'
 import { CATEGORY_TABLE, followMerges, hasMergeLeftovers } from '@/core/category'
 import type { CategoryType } from '@/core/category'
 import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } from '@/core/offline'
 import type { LocalDatabase, SqlValue } from '@/core/offline'
-import { ProfileService } from '@/core/profile'
 import {
   DEBT_ENTRY_SIGN_SQL,
   DEBT_ENTRY_TABLE,
@@ -40,19 +40,19 @@ import type {
 const ORDER = 'ORDER BY t.occurred_on DESC, t.created_at DESC, t.id DESC'
 
 /**
- * The current profile's transactions on this device (docs/features/transaction.md). Reads come
+ * The current book's transactions on this device (docs/features/transaction.md). Reads come
  * from the local database through its indexes (Volume); every write goes through the outbox.
  */
 @Service()
 export class TransactionService {
   private offlineService = inject(OfflineService)
   private syncService = inject(SyncService)
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
   private walletService = inject(WalletService)
   private window = inject(DOCUMENT).defaultView
 
-  canWrite = this.profileService.canWrite
-  serverDown = this.profileService.serverDown
+  canWrite = this.bookService.canWrite
+  serverDown = this.bookService.serverDown
 
   /** Transactions and transfers with an op still waiting to sync ("รอ sync"). */
   pendingIds = computed(
@@ -75,12 +75,12 @@ export class TransactionService {
   sheet = signal<TransactionSheetState | null>(null)
   /**
    * Names behind `addedBy` (sharing rule 15), read online by `core/sharing` (the owner's members,
-   * a shared profile's people); memory only.
+   * a shared book's people); memory only.
    */
   people = signal<ReadonlyMap<string, string>>(new Map())
 
   // The Transactions tab's view (transaction.md → Web screens), shared by the header (wallet
-  // switcher, ⋮ "ดูตาม") and the page. The wallet and the unit are remembered per profile.
+  // switcher, ⋮ "ดูตาม") and the page. The wallet and the unit are remembered per book.
   /** The chosen wallet, or null for "ทุกกระเป๋า". */
   viewWalletId = signal<string | null>(null)
   unit = signal<PeriodUnit>('month')
@@ -98,7 +98,7 @@ export class TransactionService {
     return this.walletService.wallets().find((wallet) => wallet.id === id) ?? null
   })
   /**
-   * Rule 11's "all wallets": the profile's wallets without `excludeFromTotal`, and credit cards
+   * Rule 11's "all wallets": the book's wallets without `excludeFromTotal`, and credit cards
    * (credit-card rule 2), archived ones included (their history stays); or the one chosen.
    */
   viewWalletIds = computed<string[]>(() => {
@@ -111,24 +111,24 @@ export class TransactionService {
       .filter((item) => !item.excludeFromTotal || item.isCreditCard)
       .map((item) => item.id)
   })
-  /** The profile's oldest transaction or transfer day, where the period tabs start. */
+  /** The book's oldest transaction or transfer day, where the period tabs start. */
   firstDay = computed<string | null>(() => {
-    const profileId = this.profileService.current()?.id
-    if (!profileId) {
+    const bookId = this.bookService.current()?.id
+    if (!bookId) {
       return null
     }
     return this.read((db) => {
       const value = db.selectValue(
         `SELECT min(day) FROM (
            SELECT min(occurred_on) AS day FROM ${TRANSACTION_TABLE}
-           WHERE profile_id = ? AND deleted_at IS NULL
+           WHERE book_id = ? AND deleted_at IS NULL
            UNION ALL
-           SELECT min(occurred_on) FROM ${TRANSFER_TABLE} WHERE profile_id = ? AND deleted_at IS NULL
+           SELECT min(occurred_on) FROM ${TRANSFER_TABLE} WHERE book_id = ? AND deleted_at IS NULL
            UNION ALL
            SELECT min(occurred_on) FROM ${DEBT_ENTRY_TABLE}
-           WHERE profile_id = ? AND deleted_at IS NULL AND wallet_id IS NOT NULL
+           WHERE book_id = ? AND deleted_at IS NULL AND wallet_id IS NOT NULL
          )`,
-        [profileId, profileId, profileId]
+        [bookId, bookId, bookId]
       )
       return typeof value === 'string' ? value : null
     }, null)
@@ -139,11 +139,11 @@ export class TransactionService {
   summaryLines = computed(() => this.summary(this.range(), this.viewWalletIds()))
 
   constructor() {
-    // Each profile has its own remembered wallet and unit; a new profile starts on "ทุกกระเป๋า".
+    // Each book has its own remembered wallet and unit; a new book starts on "ทุกกระเป๋า".
     effect(() => {
-      const profileId = this.profileService.currentId() ?? ''
+      const bookId = this.bookService.currentId() ?? ''
       untracked(() => {
-        const saved = this.readView(profileId)
+        const saved = this.readView(bookId)
         this.viewWalletId.set(saved.walletId)
         this.unit.set(saved.unit)
         this.tab.set(0)
@@ -182,7 +182,7 @@ export class TransactionService {
   }
 
   /**
-   * The current profile's live transactions in `range` (in order, rule 13), with their category
+   * The current book's live transactions in `range` (in order, rule 13), with their category
    * and wallet; only `walletIds` when given.
    */
   list(
@@ -239,16 +239,16 @@ export class TransactionService {
   }
 
   /**
-   * The current profile's live debt entries with a wallet in `range` whose wallet is in
+   * The current book's live debt entries with a wallet in `range` whose wallet is in
    * `walletIds` (all when null), in rule 13's order (debt → Web screens).
    */
   debtEntries(range: DayRange, walletIds: readonly string[] | null = null): DebtEntryItem[] {
-    const profileId = this.profileService.current()?.id
-    if (!profileId || walletIds?.length === 0) {
+    const bookId = this.bookService.current()?.id
+    if (!bookId || walletIds?.length === 0) {
       return []
     }
-    const parts = ['e.profile_id = ?', 'e.deleted_at IS NULL', 'e.wallet_id IS NOT NULL']
-    const params: SqlValue[] = [profileId]
+    const parts = ['e.book_id = ?', 'e.deleted_at IS NULL', 'e.wallet_id IS NOT NULL']
+    const params: SqlValue[] = [bookId]
     if (range.from) {
       parts.push('e.occurred_on >= ?')
       params.push(range.from)
@@ -297,18 +297,18 @@ export class TransactionService {
   }
 
   /**
-   * The sides of the current profile's live transfers in `range` whose wallet is in
+   * The sides of the current book's live transfers in `range` whose wallet is in
    * `walletIds` (all when null), in rule 13's order, the outgoing side first.
    */
   transferSides(range: DayRange, walletIds: readonly string[] | null = null): TransferItem[] {
-    const profileId = this.profileService.current()?.id
-    if (!profileId || walletIds?.length === 0) {
+    const bookId = this.bookService.current()?.id
+    if (!bookId || walletIds?.length === 0) {
       return []
     }
     const side = (here: 'from' | 'to') => {
       const other = here === 'from' ? 'to' : 'from'
-      const parts = ['r.profile_id = ?', 'r.deleted_at IS NULL']
-      const params: SqlValue[] = [profileId]
+      const parts = ['r.book_id = ?', 'r.deleted_at IS NULL']
+      const params: SqlValue[] = [bookId]
       if (range.from) {
         parts.push('r.occurred_on >= ?')
         params.push(range.from)
@@ -428,18 +428,18 @@ export class TransactionService {
   }
 
   /**
-   * The profile's live events the form offers (event rule 3): open ones by `startOn` desc, then
+   * The book's live events the form offers (event rule 3): open ones by `startOn` desc, then
    * the latest created; plus `keepId` when the row already has it (a closed one stays on edit).
    */
-  eventOptions(profileId: string, keepId: string | null = null): EventOption[] {
+  eventOptions(bookId: string, keepId: string | null = null): EventOption[] {
     return this.read(
       (db) =>
         db
           .selectObjects(
             `SELECT * FROM ${EVENT_TABLE}
-              WHERE profile_id = ? AND deleted_at IS NULL AND (is_closed = 0 OR id = ?)
+              WHERE book_id = ? AND deleted_at IS NULL AND (is_closed = 0 OR id = ?)
               ORDER BY is_closed, start_on DESC, created_at DESC, id DESC`,
-            [profileId, keepId ?? '']
+            [bookId, keepId ?? '']
           )
           .map((row) => toEventOption(fromSql(EVENT_TABLE, row))),
       []
@@ -462,16 +462,16 @@ export class TransactionService {
   }
 
   /** Event rule 5: the open event whose dates hold `day` (the latest start), or null. */
-  defaultEventId(profileId: string, day: string): string | null {
+  defaultEventId(bookId: string, day: string): string | null {
     return (
-      this.eventOptions(profileId).find(
+      this.eventOptions(bookId).find(
         (event) =>
           !event.isClosed && event.startOn <= day && (event.endOn === null || day <= event.endOn)
       )?.id ?? null
     )
   }
 
-  /** A live transaction of any profile on this device. */
+  /** A live transaction of any book on this device. */
   byId(id: string): Transaction | null {
     return this.read((db) => {
       const row = this.find(db, id)
@@ -480,14 +480,14 @@ export class TransactionService {
   }
 
   /**
-   * Creates (`id` null) or updates a transaction in the current profile (a fix: the op's
-   * profile); a fix also drops the rejected op. Remembers the wallet for the next add.
+   * Creates (`id` null) or updates a transaction in the current book (a fix: the op's
+   * book); a fix also drops the rejected op. Remembers the wallet for the next add.
    */
   save(
     id: string | null,
     values: TransactionValues,
     fixOpId: string | null = null,
-    profileId = this.profileService.current()?.id ?? ''
+    bookId = this.bookService.current()?.id ?? ''
   ): string {
     const now = Date.now()
     const rowId = id ?? uuidv7(now)
@@ -496,7 +496,7 @@ export class TransactionService {
       queueWrite(db, TRANSACTION_TABLE, 'upsert', {
         ...current,
         id: rowId,
-        profileId: current?.profileId ?? profileId,
+        bookId: current?.bookId ?? bookId,
         walletId: values.walletId,
         categoryId: values.categoryId,
         amount: values.amount,
@@ -513,7 +513,7 @@ export class TransactionService {
         deleteOp(db, fixOpId)
       }
     })
-    this.rememberWallet(profileId, values.walletId)
+    this.rememberWallet(bookId, values.walletId)
     return rowId
   }
 
@@ -548,7 +548,7 @@ export class TransactionService {
     this.people.set(next)
   }
 
-  /** Chooses the wallet the tab shows (null: "ทุกกระเป๋า"); remembered for the profile. */
+  /** Chooses the wallet the tab shows (null: "ทุกกระเป๋า"); remembered for the book. */
   selectWallet(id: string | null): void {
     this.viewWalletId.set(id)
     this.writeView()
@@ -568,19 +568,19 @@ export class TransactionService {
   }
 
   /** The wallet a new transaction starts on: the last one used here, if still open. */
-  defaultWalletId(profileId = this.profileService.current()?.id ?? ''): string | null {
+  defaultWalletId(bookId = this.bookService.current()?.id ?? ''): string | null {
     const open = this.walletService.openWallets()
-    const last = this.storage()?.getItem(`${TRANSACTION_PREF_PREFIX}${profileId}`)
+    const last = this.storage()?.getItem(`${TRANSACTION_PREF_PREFIX}${bookId}`)
     return open.find((wallet) => wallet.id === last)?.id ?? open.at(0)?.id ?? null
   }
 
   /**
-   * "ใช้บ่อย" (8.2): ids of the profile's `type` categories with the most live transactions dated
-   * in the last `days` days, ties to the one recorded last. Through the (`profile_id`,
+   * "ใช้บ่อย" (8.2): ids of the book's `type` categories with the most live transactions dated
+   * in the last `days` days, ties to the one recorded last. Through the (`book_id`,
    * `occurred_on`) index; the picker keeps those it offers.
    */
-  frequentCategoryIds(profileId: string, type: CategoryType, days = 90, limit = 12): string[] {
-    if (!profileId) {
+  frequentCategoryIds(bookId: string, type: CategoryType, days = 90, limit = 12): string[] {
+    if (!bookId) {
       return []
     }
     return this.read(
@@ -590,21 +590,21 @@ export class TransactionService {
             `SELECT t.category_id AS id, count(*) AS uses, max(t.created_at) AS last
              FROM ${TRANSACTION_TABLE} t
              JOIN ${CATEGORY_TABLE} c ON c.id = t.category_id
-             WHERE t.profile_id = ? AND t.deleted_at IS NULL AND t.occurred_on >= ? AND c.type = ?
+             WHERE t.book_id = ? AND t.deleted_at IS NULL AND t.occurred_on >= ? AND c.type = ?
              GROUP BY t.category_id
              ORDER BY uses DESC, last DESC
              LIMIT ?`,
-            [profileId, addDays(this.today(), -days), type, limit]
+            [bookId, addDays(this.today(), -days), type, limit]
           )
           .map((row) => String(row['id'])),
       []
     )
   }
 
-  /** The type a new transaction starts on: the last one added in the profile here (8.2). */
-  lastType(profileId = this.profileService.current()?.id ?? ''): CategoryType {
+  /** The type a new transaction starts on: the last one added in the book here (8.2). */
+  lastType(bookId = this.bookService.current()?.id ?? ''): CategoryType {
     try {
-      return this.storage()?.getItem(`${TRANSACTION_PREF_PREFIX}type:${profileId}`) === 'income'
+      return this.storage()?.getItem(`${TRANSACTION_PREF_PREFIX}type:${bookId}`) === 'income'
         ? 'income'
         : 'expense'
     } catch {
@@ -612,9 +612,9 @@ export class TransactionService {
     }
   }
 
-  rememberType(type: CategoryType, profileId = this.profileService.current()?.id ?? ''): void {
+  rememberType(type: CategoryType, bookId = this.bookService.current()?.id ?? ''): void {
     try {
-      this.storage()?.setItem(`${TRANSACTION_PREF_PREFIX}type:${profileId}`, type)
+      this.storage()?.setItem(`${TRANSACTION_PREF_PREFIX}type:${bookId}`, type)
     } catch {
       // A full or blocked storage only loses the convenience.
     }
@@ -632,14 +632,12 @@ export class TransactionService {
     }
     const row = op.row
     const text = (key: string) => (typeof row[key] === 'string' ? row[key] : '')
-    const profileId = text('profileId')
+    const bookId = text('bookId')
     this.open({
       mode: 'fix',
       opId,
       id: op.rowId,
-      profileId: this.profileService.byId(profileId)
-        ? profileId
-        : (this.profileService.current()?.id ?? profileId),
+      bookId: this.bookService.byId(bookId) ? bookId : (this.bookService.current()?.id ?? bookId),
       values: {
         walletId: text('walletId'),
         categoryId: text('categoryId'),
@@ -659,12 +657,12 @@ export class TransactionService {
     walletIds: readonly string[] | null,
     filter: ListFilter = {}
   ): { sql: string; params: SqlValue[] } | null {
-    const profileId = this.profileService.current()?.id
-    if (!profileId || walletIds?.length === 0) {
+    const bookId = this.bookService.current()?.id
+    if (!bookId || walletIds?.length === 0) {
       return null
     }
-    const parts = ['t.profile_id = ?', 't.deleted_at IS NULL']
-    const params: SqlValue[] = [profileId]
+    const parts = ['t.book_id = ?', 't.deleted_at IS NULL']
+    const params: SqlValue[] = [bookId]
     if (range.from) {
       parts.push('t.occurred_on >= ?')
       params.push(range.from)
@@ -695,9 +693,9 @@ export class TransactionService {
     return { sql: parts.join(' AND '), params }
   }
 
-  private readView(profileId: string): { walletId: string | null; unit: PeriodUnit } {
+  private readView(bookId: string): { walletId: string | null; unit: PeriodUnit } {
     try {
-      const raw = this.storage()?.getItem(`${TRANSACTION_PREF_PREFIX}view:${profileId}`)
+      const raw = this.storage()?.getItem(`${TRANSACTION_PREF_PREFIX}view:${bookId}`)
       const parsed: unknown = raw ? JSON.parse(raw) : null
       if (parsed && typeof parsed === 'object') {
         const { walletId, unit } = parsed as Record<string, unknown>
@@ -717,13 +715,13 @@ export class TransactionService {
   }
 
   private writeView(): void {
-    const profileId = this.profileService.current()?.id
-    if (!profileId) {
+    const bookId = this.bookService.current()?.id
+    if (!bookId) {
       return
     }
     try {
       this.storage()?.setItem(
-        `${TRANSACTION_PREF_PREFIX}view:${profileId}`,
+        `${TRANSACTION_PREF_PREFIX}view:${bookId}`,
         JSON.stringify({ walletId: this.viewWalletId(), unit: this.unit() })
       )
     } catch {
@@ -731,15 +729,15 @@ export class TransactionService {
     }
   }
 
-  private rememberWallet(profileId: string, walletId: string): void {
+  private rememberWallet(bookId: string, walletId: string): void {
     try {
-      this.storage()?.setItem(`${TRANSACTION_PREF_PREFIX}${profileId}`, walletId)
+      this.storage()?.setItem(`${TRANSACTION_PREF_PREFIX}${bookId}`, walletId)
     } catch {
       // A full or blocked storage only loses the convenience.
     }
   }
 
-  /** Lasting on a trusted device, for the tab's life on an untrusted one (like the profile). */
+  /** Lasting on a trusted device, for the tab's life on an untrusted one (like the book). */
   private storage(): Storage | null {
     try {
       return this.offlineService.isTrusted()
@@ -775,7 +773,7 @@ export class TransactionService {
 
 const toTransaction = (row: Record<string, unknown>): Transaction => ({
   id: String(row['id']),
-  profileId: String(row['profileId']),
+  bookId: String(row['bookId']),
   walletId: String(row['walletId']),
   categoryId: String(row['categoryId']),
   amount: Number(row['amount']),
@@ -808,7 +806,7 @@ export const signedAmount = (amount: number, type: CategoryType): number =>
 
 export const toTransfer = (row: Record<string, unknown>) => ({
   id: String(row['id']),
-  profileId: String(row['profileId']),
+  bookId: String(row['bookId']),
   fromWalletId: String(row['fromWalletId']),
   toWalletId: String(row['toWalletId']),
   amount: Number(row['amount']),
@@ -853,7 +851,7 @@ const mergeEntries = (a: readonly EntryItem[], b: readonly EntryItem[]): EntryIt
 /** Debt rule 10: live debts and entries left pointing at a tombstone here. */
 const DEBT_ORPHANS = {
   // A repaid debt whose category is a tombstone (a merged one followed it already), or whose
-  // profile went (the profile sweep covers that).
+  // book went (the book sweep covers that).
   debts: `SELECT d.* FROM ${DEBT_TABLE} d JOIN categories c ON c.id = d.category_id
           WHERE d.deleted_at IS NULL AND c.deleted_at IS NOT NULL`,
   // An entry whose debt or wallet is a tombstone.

@@ -17,6 +17,7 @@ import {
 import { toast } from '@spartan-ng/brain/sonner'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
+import { BookService } from '@/core/book'
 import { CATEGORY_DEFAULT_ICON, CATEGORY_LIMITS, CategoryService } from '@/core/category'
 import type {
   Category,
@@ -27,7 +28,6 @@ import type {
   CategoryValues,
 } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
-import { ProfileService } from '@/core/profile'
 import { WalletService } from '@/core/wallet'
 import {
   ColorField,
@@ -662,7 +662,7 @@ export class CategorySheet {
   private languageService = inject(LanguageService)
   protected categoryService = inject(CategoryService)
   private walletService = inject(WalletService)
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
 
   protected iconGroups = CATEGORY_ICON_GROUPS
   protected defaultIcon = CATEGORY_DEFAULT_ICON as UserIcon
@@ -732,13 +732,13 @@ export class CategorySheet {
     const id = this.mergePlan()?.parentId
     return id ? (this.categoryService.byId(id)?.name ?? '') : ''
   })
-  /** The profile the name must be unique in (rule 2). */
-  private profileId = computed(() => {
+  /** The book the name must be unique in (rule 2). */
+  private bookId = computed(() => {
     const state = this.state()
     if (state?.mode === 'fix') {
-      return this.editing()?.profileId ?? state.profileId
+      return this.editing()?.bookId ?? state.bookId
     }
-    return this.editing()?.profileId ?? null
+    return this.editing()?.bookId ?? null
   })
   protected heading = computed(() => {
     switch (this.state()?.mode) {
@@ -764,18 +764,18 @@ export class CategorySheet {
     hiddenIn: [],
   })
   /**
-   * Rule 13, "ใช้ในกระเป๋า": the profile's open wallets with a switch each; a wallet that hides
+   * Rule 13, "ใช้ในกระเป๋า": the book's open wallets with a switch each; a wallet that hides
    * the chosen parent shows this one off, locked.
    */
   protected walletItems = computed<ToggleListItem[]>(() => {
-    const profileId = this.profileId() ?? this.profileService.current()?.id
-    if (!profileId) {
+    const bookId = this.bookId() ?? this.bookService.current()?.id
+    if (!bookId) {
       return []
     }
     const parentId = this.formValue().parentId
     this.languageService.language()
     const note = this.transloco.translate('categories.hiddenWithParent')
-    return this.walletService.openOf(profileId).map((wallet) => ({
+    return this.walletService.openOf(bookId).map((wallet) => ({
       id: wallet.id,
       label: wallet.name,
       icon: wallet.icon,
@@ -820,7 +820,7 @@ export class CategorySheet {
         (parent?.type ?? 'expense') as CategoryType,
         parent?.parentId || null,
         this.editingId(),
-        this.profileId() ?? undefined
+        this.bookId() ?? undefined
       )
       ? { nameTaken: 'categories.nameTaken' }
       : null
@@ -914,7 +914,7 @@ export class CategorySheet {
       parentId: value.parentId || null,
     }
     if (state.mode === 'fix') {
-      this.categoryService.save(state.id, values, state.opId, state.profileId, value.hiddenIn)
+      this.categoryService.save(state.id, values, state.opId, state.bookId, value.hiddenIn)
     } else {
       this.categoryService.save(this.editingId(), values, null, undefined, value.hiddenIn)
     }
@@ -1016,7 +1016,7 @@ export class CategorySheet {
     } else if (state.mode === 'fix') {
       this.form.reset({
         ...this.toForm(state.values),
-        hiddenIn: this.categoryService.hiddenIn(state.id, state.profileId),
+        hiddenIn: this.categoryService.hiddenIn(state.id, state.bookId),
       })
       this.form.markAllAsTouched()
       this.form.markAsDirty()
@@ -1028,7 +1028,7 @@ export class CategorySheet {
       }
       this.form.reset({
         ...this.toForm(category),
-        hiddenIn: this.categoryService.hiddenIn(category.id, category.profileId),
+        hiddenIn: this.categoryService.hiddenIn(category.id, category.bookId),
       })
     }
     const { type, parentId, hiddenIn } = this.form.getRawValue()

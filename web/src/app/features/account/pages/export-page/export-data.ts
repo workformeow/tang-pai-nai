@@ -15,7 +15,7 @@ import { csvText, toCsv } from './csv'
 
 /** What the export page has chosen (docs/features/export.md rule 2); null = all. */
 export interface ExportQuery {
-  profileId: string
+  bookId: string
   from: string | null
   to: string | null
   walletIds: readonly string[] | null
@@ -64,8 +64,8 @@ const whereOf = (
   query: ExportQuery,
   walletColumn: string
 ): { sql: string; params: SqlValue[] } => {
-  const parts = [`${alias}.profile_id = ?`, `${alias}.deleted_at IS NULL`]
-  const params: SqlValue[] = [query.profileId]
+  const parts = [`${alias}.book_id = ?`, `${alias}.deleted_at IS NULL`]
+  const params: SqlValue[] = [query.bookId]
   if (query.from) {
     parts.push(`${alias}.occurred_on >= ?`)
     params.push(query.from)
@@ -293,8 +293,8 @@ export const exportCsv = (
   ])
 }
 
-/** The profile's live wallets (archived too) with how many rows each holds (rule 2). */
-export const walletChoices = (db: LocalDatabase, profileId: string): PickRow[] =>
+/** The book's live wallets (archived too) with how many rows each holds (rule 2). */
+export const walletChoices = (db: LocalDatabase, bookId: string): PickRow[] =>
   db
     .selectObjects(
       `SELECT w.id, w.name, w.icon, w.color, w.is_archived,
@@ -304,9 +304,9 @@ export const walletChoices = (db: LocalDatabase, profileId: string): PickRow[] =
          + (SELECT count(*) FROM ${DEBT_ENTRY_TABLE} e WHERE e.wallet_id = w.id AND e.deleted_at IS NULL)
          AS n
        FROM ${WALLET_TABLE} w
-       WHERE w.profile_id = ? AND w.deleted_at IS NULL
+       WHERE w.book_id = ? AND w.deleted_at IS NULL
        ORDER BY w.is_archived, w.sort_order, w.created_at, w.id`,
-      [profileId]
+      [bookId]
     )
     .map((row) => ({
       id: String(row['id']),
@@ -319,12 +319,12 @@ export const walletChoices = (db: LocalDatabase, profileId: string): PickRow[] =
     }))
 
 /**
- * The profile's live categories of `type` as a tree (archived too, merged ones are tombstones
+ * The book's live categories of `type` as a tree (archived too, merged ones are tombstones
  * so they don't show), each with its own transaction count (rule 2).
  */
 export const categoryChoices = (
   db: LocalDatabase,
-  profileId: string,
+  bookId: string,
   type: CategoryType
 ): PickRow[] => {
   const rows = db.selectObjects(
@@ -332,9 +332,9 @@ export const categoryChoices = (
        (SELECT count(*) FROM ${TRANSACTION_TABLE} t
         WHERE t.category_id = c.id AND t.deleted_at IS NULL) AS n
      FROM ${CATEGORY_TABLE} c
-     WHERE c.profile_id = ? AND c.type = ? AND c.deleted_at IS NULL
+     WHERE c.book_id = ? AND c.type = ? AND c.deleted_at IS NULL
      ORDER BY c.is_archived, c.sort_order, c.created_at, c.id`,
-    [profileId, type]
+    [bookId, type]
   )
   const toPick = (row: Record<string, unknown>): PickRow => ({
     id: String(row['id']),
@@ -354,19 +354,19 @@ export const categoryChoices = (
   return parents
 }
 
-/** The first and last day the profile has a money row on, for "ทั้งหมด" (rule 2). */
+/** The first and last day the book has a money row on, for "ทั้งหมด" (rule 2). */
 export const dataSpan = (
   db: LocalDatabase,
-  profileId: string
+  bookId: string
 ): { from: string; to: string } | null => {
   const row = db
     .selectObjects(
       `SELECT min(d) AS f, max(d) AS l FROM (
-         SELECT min(occurred_on) AS d FROM ${TRANSACTION_TABLE} WHERE profile_id = ? AND deleted_at IS NULL
-         UNION ALL SELECT max(occurred_on) FROM ${TRANSACTION_TABLE} WHERE profile_id = ? AND deleted_at IS NULL
-         UNION ALL SELECT min(occurred_on) FROM ${TRANSFER_TABLE} WHERE profile_id = ? AND deleted_at IS NULL
-         UNION ALL SELECT max(occurred_on) FROM ${TRANSFER_TABLE} WHERE profile_id = ? AND deleted_at IS NULL)`,
-      [profileId, profileId, profileId, profileId]
+         SELECT min(occurred_on) AS d FROM ${TRANSACTION_TABLE} WHERE book_id = ? AND deleted_at IS NULL
+         UNION ALL SELECT max(occurred_on) FROM ${TRANSACTION_TABLE} WHERE book_id = ? AND deleted_at IS NULL
+         UNION ALL SELECT min(occurred_on) FROM ${TRANSFER_TABLE} WHERE book_id = ? AND deleted_at IS NULL
+         UNION ALL SELECT max(occurred_on) FROM ${TRANSFER_TABLE} WHERE book_id = ? AND deleted_at IS NULL)`,
+      [bookId, bookId, bookId, bookId]
     )
     .at(0)
   return typeof row?.['f'] === 'string' && typeof row['l'] === 'string'

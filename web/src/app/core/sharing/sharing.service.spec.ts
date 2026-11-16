@@ -3,11 +3,11 @@ import { TestBed } from '@angular/core/testing'
 import { toastState } from '@spartan-ng/brain/sonner'
 import { AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
-import { ProfileService } from '@/core/profile'
+import { BookService } from '@/core/book'
 import { TransactionService } from '@/core/transaction'
 import { envelope, NO_ONE, NOTHING, setUpSharing } from './sharing-testing'
 import { SharingService } from './sharing.service'
-import type { ShareGroup, SharedProfileRows, SharedWithMe } from './sharing.type'
+import type { ShareGroup, SharedBookRows, SharedWithMe } from './sharing.type'
 
 const withInvite: SharedWithMe = {
   invites: [
@@ -63,7 +63,7 @@ describe('SharingService', () => {
     setup.http.expectOne('/api/sharing/with-me').flush(envelope(withInvite))
     await settle()
     const owner = service.loadOwner('p1')
-    setup.http.expectOne('/api/sharing/profiles/p1').flush(envelope(NO_ONE))
+    setup.http.expectOne('/api/sharing/books/p1').flush(envelope(NO_ONE))
     await owner
     TestBed.inject(AuthStore).user.set({ id: 'u2' } as AuthUser)
     TestBed.tick()
@@ -72,7 +72,7 @@ describe('SharingService', () => {
     setup.http.expectOne('/api/sharing/with-me').flush(envelope(NOTHING))
   })
 
-  it('sends the UI language with an invite and reads the profile again', async () => {
+  it('sends the UI language with an invite and reads the book again', async () => {
     TestBed.tick()
     setup.http.expectOne('/api/sharing/with-me').flush(envelope(NOTHING))
     const sent = service.invite(
@@ -80,7 +80,7 @@ describe('SharingService', () => {
       { email: 'b@example.com', role: 'editor', walletIds: ['home'] },
       'en'
     )
-    const req = setup.http.expectOne('/api/sharing/profiles/p1/invites')
+    const req = setup.http.expectOne('/api/sharing/books/p1/invites')
     expect(req.request.body).toEqual({
       email: 'b@example.com',
       role: 'editor',
@@ -89,7 +89,7 @@ describe('SharingService', () => {
     })
     req.flush(envelope({ id: 'i1' }))
     await settle()
-    setup.http.expectOne('/api/sharing/profiles/p1').flush(envelope(NO_ONE))
+    setup.http.expectOne('/api/sharing/books/p1').flush(envelope(NO_ONE))
     await sent
     expect(service.owner('p1')).toEqual(NO_ONE)
   })
@@ -110,7 +110,7 @@ describe('SharingService', () => {
     TestBed.tick()
     setup.http.expectOne('/api/sharing/with-me').flush(envelope(NOTHING))
     const owner = service.loadOwner('p1')
-    setup.http.expectOne('/api/sharing/profiles/p1').flush(
+    setup.http.expectOne('/api/sharing/books/p1').flush(
       envelope({
         ...NO_ONE,
         members: [
@@ -130,21 +130,21 @@ describe('SharingService', () => {
   })
 })
 
-describe('SharingService › a shared profile in use (sharing rules 9–16)', () => {
+describe('SharingService › a shared book in use (sharing rules 9–16)', () => {
   let setup: Awaited<ReturnType<typeof setUpSharing>>
   let service: SharingService
-  let profileService: ProfileService
+  let bookService: BookService
 
   const group: ShareGroup = {
-    profileId: 'pz',
-    profile: { id: 'pz', name: 'Family', icon: 'lucideHouse', color: '#b45309' },
+    bookId: 'pz',
+    book: { id: 'pz', name: 'Family', icon: 'lucideHouse', color: '#b45309' },
     role: 'editor',
     owner: { id: 'z', displayName: 'Dad', email: 'd@x' },
     wallets: [],
   }
   const tx = (id: string, changeSeq: number, extra: Record<string, unknown> = {}) => ({
     id,
-    profileId: 'pz',
+    bookId: 'pz',
     walletId: 'zh',
     categoryId: 'zc',
     amount: 100,
@@ -166,10 +166,10 @@ describe('SharingService › a shared profile in use (sharing rules 9–16)', ()
     rows: Record<string, unknown>[],
     cursor: number,
     hasMore = false
-  ): SharedProfileRows => {
+  ): SharedBookRows => {
     const columns = Object.keys(rows.at(0) ?? {})
     return {
-      profile: group.profile,
+      book: group.book,
       role: 'editor',
       owner: group.owner,
       people: [
@@ -179,7 +179,7 @@ describe('SharingService › a shared profile in use (sharing rules 9–16)', ()
       wallets: [
         {
           id: 'zh',
-          profileId: 'pz',
+          bookId: 'pz',
           name: 'Home',
           currencyCode: 'THB',
           initialBalance: 5000,
@@ -199,7 +199,7 @@ describe('SharingService › a shared profile in use (sharing rules 9–16)', ()
       categories: [
         {
           id: 'zc',
-          profileId: 'pz',
+          bookId: 'pz',
           type: 'expense',
           parentId: null,
           name: 'Food',
@@ -226,7 +226,7 @@ describe('SharingService › a shared profile in use (sharing rules 9–16)', ()
   /** Opens `pz` with two pages of rows. */
   const openIt = async () => {
     const opened = service.openShared(group)
-    expect(profileService.shared()?.status).toBe('loading')
+    expect(bookService.shared()?.status).toBe('loading')
     setup.http.expectOne(rowsUrl(0)).flush(envelope(page([tx('t1', 2)], 2, true)))
     await settle()
     setup.http.expectOne(rowsUrl(2)).flush(envelope(page([tx('t2', 3, { addedBy: 'u1' })], 3)))
@@ -241,7 +241,7 @@ describe('SharingService › a shared profile in use (sharing rules 9–16)', ()
     toastState.dismiss()
     setup = await setUpSharing()
     service = TestBed.inject(SharingService)
-    profileService = TestBed.inject(ProfileService)
+    bookService = TestBed.inject(BookService)
     TestBed.tick()
     setup.http.expectOne('/api/sharing/with-me').flush(envelope(NOTHING))
   })
@@ -251,10 +251,10 @@ describe('SharingService › a shared profile in use (sharing rules 9–16)', ()
     setup.http.verify()
   })
 
-  it('puts its rows in the TEMP tables and makes it the current profile', async () => {
+  it('puts its rows in the TEMP tables and makes it the current book', async () => {
     await openIt()
-    expect(profileService.shared()).toMatchObject({ role: 'editor', status: 'ready' })
-    expect(profileService.current()?.name).toBe('Family')
+    expect(bookService.shared()).toMatchObject({ role: 'editor', status: 'ready' })
+    expect(bookService.current()?.name).toBe('Family')
     expect(setup.sharedActive()).toBe(true)
     expect(setup.db.selectObjects('SELECT id FROM transactions ORDER BY id')).toEqual([
       { id: 't1' },
@@ -263,10 +263,10 @@ describe('SharingService › a shared profile in use (sharing rules 9–16)', ()
     expect(count('SELECT count(*) FROM wallets')).toBe(1)
     expect(TestBed.inject(TransactionService).people().get('u1')).toBe('Mom')
     // Own rows stay where they were (main), out of sight.
-    expect(count(`SELECT count(*) FROM main.wallets WHERE profile_id = 'p1'`)).toBe(3)
+    expect(count(`SELECT count(*) FROM main.wallets WHERE book_id = 'p1'`)).toBe(3)
 
-    profileService.select('p1')
-    expect(profileService.shared()).toBeNull()
+    bookService.select('p1')
+    expect(bookService.shared()).toBeNull()
     expect(setup.sharedActive()).toBe(false)
     expect(count('SELECT count(*) FROM wallets')).toBe(3)
   })
@@ -312,7 +312,7 @@ describe('SharingService › a shared profile in use (sharing rules 9–16)', ()
     expect(count(`SELECT amount FROM transactions WHERE id = 't1'`)).toBe(700)
   })
 
-  it('tells a removed member and goes back to an own profile (rule 16)', async () => {
+  it('tells a removed member and goes back to an own book (rule 16)', async () => {
     await openIt()
     setup.sync.answer = (db) =>
       db.exec(`UPDATE outbox SET status = 'rejected', code = 'NOT_SHARED' WHERE status = 'pending'`)
@@ -322,15 +322,15 @@ describe('SharingService › a shared profile in use (sharing rules 9–16)', ()
     expect(toastState.toasts().map((item) => item.title)).toContain(
       'คุณไม่ได้เป็นสมาชิกของกระเป๋านี้แล้ว'
     )
-    expect(profileService.shared()).toBeNull()
+    expect(bookService.shared()).toBeNull()
     expect(setup.sharedActive()).toBe(false)
     setup.http.expectOne('/api/sharing/with-me').flush(envelope(NOTHING))
   })
 
-  it('listens to the shared profile in use from its read cursor, and reads on a poke (live-sync)', async () => {
-    expect(setup.live.has('profile:pz')).toBe(false)
+  it('listens to the shared book in use from its read cursor, and reads on a poke (live-sync)', async () => {
+    expect(setup.live.has('book:pz')).toBe(false)
     await openIt()
-    const listener = setup.live.get('profile:pz')
+    const listener = setup.live.get('book:pz')
     expect(listener?.cursor()).toBe(3)
     expect(listener?.deviceId()).toBe('d1')
     listener?.onPoke()
@@ -341,27 +341,27 @@ describe('SharingService › a shared profile in use (sharing rules 9–16)', ()
     setup.http.expectOne(rowsUrl(4)).flush(envelope(page([], 4)))
     await settle()
     expect(listener?.cursor()).toBe(4)
-    profileService.leaveShared()
+    bookService.leaveShared()
     TestBed.tick()
-    expect(setup.live.has('profile:pz')).toBe(false)
+    expect(setup.live.has('book:pz')).toBe(false)
   })
 
-  it('goes back to an own profile when a read answers 404', async () => {
+  it('goes back to an own book when a read answers 404', async () => {
     await openIt()
     const read = service.refreshShared()
     setup.http
       .expectOne(rowsUrl(3))
       .flush({ message: 'x' }, { status: 404, statusText: 'Not Found' })
     await read
-    expect(profileService.shared()).toBeNull()
+    expect(bookService.shared()).toBeNull()
     setup.http.expectOne('/api/sharing/with-me').flush(envelope(NOTHING))
   })
 
-  it('stays on the own profile, with a toast, when opening fails', async () => {
+  it('stays on the own book, with a toast, when opening fails', async () => {
     const opened = service.openShared(group)
     setup.http.expectOne(rowsUrl(0)).flush(null, { status: 0, statusText: 'Unknown Error' })
     await opened
-    expect(profileService.shared()).toBeNull()
+    expect(bookService.shared()).toBeNull()
     expect(setup.sharedActive()).toBe(false)
     expect(toastState.toasts()).toHaveLength(1)
   })

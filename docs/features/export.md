@@ -7,7 +7,7 @@
 
 Two small tools around the data the app already has, both on the device and offline:
 
-- **CSV export**: the current profile's money rows as one CSV file, to keep a copy or work on it
+- **CSV export**: the current book's money rows as one CSV file, to keep a copy or work on it
   in Excel / Google Sheets.
 - **Move transactions** to another category, all of a category's or one wallet's (owner, 7.3):
   what a merge can't do when only one wallet should change.
@@ -31,10 +31,10 @@ writes `transactions` rows (and a wallet's `hiddenCategoryIds`) through the outb
 
 **Export**
 
-1. Account › ข้อมูลของฉัน › **ส่งออก CSV** (`/account/export`) exports the **current profile**.
+1. Account › ข้อมูลของฉัน › **ส่งออก CSV** (`/account/export`) exports the **current book**.
    It works offline (it only reads).
 2. Choices, each starting on "all": **dates** (ทั้งหมด = the oldest to the newest row, or a
-   custom range of two days), **wallets** (ทุกกระเป๋า = every wallet of the profile, archived and
+   custom range of two days), **wallets** (ทุกกระเป๋า = every wallet of the book, archived and
    excluded-from-total ones too, or some), **categories** (ทุกหมวด, or some: income and expense
    tabs; a parent ticks its children, a parent with only some children ticked shows half
    ticked; archived categories are listed, merged ones are not), and **รวมการโอนเงินและยืม-คืน**
@@ -49,7 +49,7 @@ writes `transactions` rows (and a wallet's `hiddenCategoryIds`) through the outb
    Order: `occurredOn` ascending, then `createdAt`, then `id`; a transfer's outgoing side first.
 5. **File**: UTF-8 with a BOM (Excel reads Thai), comma separated, CRLF line ends, RFC 4180
    quoting (a field with `,` `"` or a line break is quoted, `"` doubled). Named
-   `tangpainai-<profile>-<YYYY-MM-DD>.csv` (today), the profile's name kept to ASCII letters,
+   `tangpainai-<book>-<YYYY-MM-DD>.csv` (today), the book's name kept to ASCII letters,
    digits, `-` and `_`; a Thai name is left out (`tangpainai-<YYYY-MM-DD>.csv`): browsers drop a
    download name with other characters. Headers in the UI language.
 6. **Columns**: date (`YYYY-MM-DD`), type (รายรับ / รายจ่าย / โอนออก / โอนเข้า / a debt entry's
@@ -65,7 +65,7 @@ writes `transactions` rows (and a wallet's `hiddenCategoryIds`) through the outb
    with none) and a link under "ลบไม่ได้" next to the merge link. It moves the category's **own**
    live transactions (not its children's); recurring rules and debts keep their category.
 8. Choices: **from wallet** (ทุกกระเป๋า, or one wallet that holds some of them, each with its
-   count) and **to category**: an open category of the same type and profile, not itself, picked
+   count) and **to category**: an open category of the same type and book, not itself, picked
    in the merge picker's tree. One wallet chosen shows **ซ่อน "<name>" ในกระเป๋านี้** (off by
    default; adds the category's id to that wallet's `hiddenCategoryIds`, category rule 13).
 9. "ย้าย n รายการ" asks once (from → to, the count, the hide), then moves every row in **one local

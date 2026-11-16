@@ -14,7 +14,7 @@ describe('category move rows (docs/features/export.md rules 7–10)', () => {
     db = setup.db
     setup.pulled('categories', {
       id: 'child',
-      profileId: 'p1',
+      bookId: 'p1',
       type: 'expense',
       parentId: 'shop',
       name: 'child',
@@ -43,7 +43,7 @@ describe('category move rows (docs/features/export.md rules 7–10)', () => {
     // t2 was edited offline: its op is still pending.
     queueWrite(db, 'transactions', 'upsert', {
       id: 't2',
-      profileId: 'p1',
+      bookId: 'p1',
       walletId: 'bank',
       categoryId: 'shop',
       amount: 300000,

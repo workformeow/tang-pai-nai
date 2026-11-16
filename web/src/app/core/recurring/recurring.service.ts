@@ -2,10 +2,10 @@ import { computed, effect, inject, Service, untracked } from '@angular/core'
 import { Router } from '@angular/router'
 import { TranslocoService } from '@jsverse/transloco'
 import { toast } from '@spartan-ng/brain/sonner'
+import { BookService } from '@/core/book'
 import { CATEGORY_TABLE, CategoryService, followMerges } from '@/core/category'
 import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
-import { ProfileService } from '@/core/profile'
 import {
   TRANSACTION_TABLE,
   TRANSFER_TABLE,
@@ -54,7 +54,7 @@ export const RECURRING_ROUTE = '/account/recurring'
 export class RecurringService {
   private offlineService = inject(OfflineService)
   private syncService = inject(SyncService)
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
   private walletService = inject(WalletService)
   private categoryService = inject(CategoryService)
   private transactionService = inject(TransactionService)
@@ -62,12 +62,12 @@ export class RecurringService {
   private transloco = inject(TranslocoService)
   private router = inject(Router)
 
-  canWrite = this.profileService.canWrite
+  canWrite = this.bookService.canWrite
 
-  /** The current profile's live rules, as the rules page shows them (rule order: next first). */
+  /** The current book's live rules, as the rules page shows them (rule order: next first). */
   items = computed<RuleItem[]>(() => {
-    const profileId = this.profileService.current()?.id
-    if (!profileId) {
+    const bookId = this.bookService.current()?.id
+    if (!bookId) {
       return []
     }
     const today = this.transactionService.today()
@@ -75,15 +75,15 @@ export class RecurringService {
       (db) =>
         db
           .selectObjects(
-            `SELECT * FROM ${RECURRING_TABLE} WHERE profile_id = ? AND deleted_at IS NULL
+            `SELECT * FROM ${RECURRING_TABLE} WHERE book_id = ? AND deleted_at IS NULL
              ORDER BY next_on IS NULL, next_on, created_at`,
-            [profileId]
+            [bookId]
           )
           .map((row) => this.toItem(toRule(fromSql(RECURRING_TABLE, row)), today)),
       []
     )
   })
-  atLimit = computed(() => this.items().length >= RECURRING_LIMITS.PER_PROFILE)
+  atLimit = computed(() => this.items().length >= RECURRING_LIMITS.PER_BOOK)
 
   /** Due occurrences of ask-first rules (rule 10), oldest first. */
   due = computed<Occurrence[]>(() => {
@@ -113,7 +113,7 @@ export class RecurringService {
       const settled = this.syncService.rounds() > 0 || !this.syncService.canSync()
       if (
         !this.offlineService.isOpen() ||
-        !this.profileService.ready() ||
+        !this.bookService.ready() ||
         !this.canWrite() ||
         this.syncService.isSyncing() ||
         !settled
@@ -124,7 +124,7 @@ export class RecurringService {
     })
   }
 
-  /** A live rule of any profile on this device. */
+  /** A live rule of any book on this device. */
   byId(id: string): RecurringRule | null {
     return this.read((db) => {
       const rule = this.find(db, id)
@@ -155,7 +155,7 @@ export class RecurringService {
    * Rule 8: a new rule (from a form with "ทำซ้ำ"), and in the same write the occurrences from its
    * start up to today (the one typed is the first). Answers the rule's id.
    */
-  create(values: RuleValues, profileId = this.profileService.current()?.id ?? ''): string {
+  create(values: RuleValues, bookId = this.bookService.current()?.id ?? ''): string {
     const now = Date.now()
     const id = uuidv7(now)
     const today = this.transactionService.today()
@@ -163,7 +163,7 @@ export class RecurringService {
       const rule: RecurringRule = {
         ...toTemplate(values, null),
         id,
-        profileId,
+        bookId,
         nextOn: nextOnOrAfter(values, values.startOn),
         isPaused: false,
         createdAt: now,
@@ -187,7 +187,7 @@ export class RecurringService {
     id: string,
     values: RuleValues,
     fixOpId: string | null = null,
-    profileId = this.profileService.current()?.id ?? ''
+    bookId = this.bookService.current()?.id ?? ''
   ): void {
     const now = Date.now()
     const today = this.transactionService.today()
@@ -200,7 +200,7 @@ export class RecurringService {
         rule = {
           ...template,
           id,
-          profileId: current?.profileId ?? profileId,
+          bookId: current?.bookId ?? bookId,
           nextOn: nextOnOrAfter(template, current ? from : template.startOn),
           isPaused: false,
           createdAt: current?.createdAt ?? now,
@@ -318,7 +318,7 @@ export class RecurringService {
 
   /**
    * Rule 17: the occurrences to come in `range` (from tomorrow, at most 3 months ahead) of the
-   * current profile's active rules with a wallet in `walletIds` (all when null). Never stored.
+   * current book's active rules with a wallet in `walletIds` (all when null). Never stored.
    */
   upcoming(range: DayRange, walletIds: readonly string[] | null): Occurrence[] {
     const today = this.transactionService.today()
@@ -364,7 +364,7 @@ export class RecurringService {
     }
   }
 
-  /** Rule 7 over every profile of the user; tells the user what it recorded. */
+  /** Rule 7 over every book of the user; tells the user what it recorded. */
   private recordDue(): void {
     const db = this.offlineService.db()
     const today = this.transactionService.today()
@@ -472,7 +472,7 @@ export class RecurringService {
     }
     const common = {
       id,
-      profileId: rule.profileId,
+      bookId: rule.bookId,
       amount: values?.amount ?? rule.amount,
       occurredOn: values?.occurredOn ?? on,
       note: values?.note ?? rule.note,
@@ -684,7 +684,7 @@ const text = (value: unknown): string | null => (typeof value === 'string' ? val
 
 export const toRule = (row: Record<string, unknown>): RecurringRule => ({
   id: String(row['id']),
-  profileId: String(row['profileId']),
+  bookId: String(row['bookId']),
   kind: row['kind'] === 'transfer' || row['kind'] === 'debt' ? row['kind'] : 'transaction',
   walletId: String(row['walletId']),
   categoryId: text(row['categoryId']),

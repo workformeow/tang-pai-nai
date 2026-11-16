@@ -20,7 +20,7 @@ tags:
   - name: Sync
     description: Offline sync, push then pull (docs/features/offline-sync.md)
   - name: Sharing
-    description: Family sharing, invitations and shared profiles (docs/features/sharing.md)
+    description: Family sharing, invitations and shared books (docs/features/sharing.md)
   - name: Live
     description: Live sync pokes after a push (docs/features/live-sync.md)
   - name: Todo
@@ -81,11 +81,11 @@ paths:
     $ref: './paths/sync/push.yaml'
   /sync/cleanup:
     $ref: './paths/sync/cleanup.yaml'
-  /sharing/profiles/{profileId}:
-    $ref: './paths/sharing/profile.yaml'
-  /sharing/profiles/{profileId}/invites:
+  /sharing/books/{bookId}:
+    $ref: './paths/sharing/book.yaml'
+  /sharing/books/{bookId}/invites:
     $ref: './paths/sharing/invites.yaml'
-  /sharing/profiles/{profileId}/members/{userId}:
+  /sharing/books/{bookId}/members/{userId}:
     $ref: './paths/sharing/member.yaml'
   /sharing/invites/{id}:
     $ref: './paths/sharing/invite.yaml'
@@ -97,9 +97,9 @@ paths:
     $ref: './paths/sharing/invite-decline.yaml'
   /sharing/with-me:
     $ref: './paths/sharing/with-me.yaml'
-  /sharing/with-me/{profileId}:
+  /sharing/with-me/{bookId}:
     $ref: './paths/sharing/leave.yaml'
-  /sharing/with-me/{profileId}/rows:
+  /sharing/with-me/{bookId}/rows:
     $ref: './paths/sharing/rows.yaml'
   /live/token:
     $ref: './paths/live/token.yaml'
@@ -154,8 +154,8 @@ components:
       $ref: './components/models/sync-row.schema.yaml'
     SyncPushRequest:
       $ref: './components/models/sync-push.schema.yaml'
-    SyncProfileRow:
-      $ref: './components/models/sync-profile-row.schema.yaml'
+    SyncBookRow:
+      $ref: './components/models/sync-book-row.schema.yaml'
     SyncWalletRow:
       $ref: './components/models/sync-wallet-row.schema.yaml'
     SyncCategoryRow:

@@ -83,7 +83,7 @@ No user-data table exists before #6, so 4a.2 syncs:
   page, the local table (device schema step 5, which also drops its outbox ops and notices) and
   the server table (migration `0008`; `0009` deletes its `change_history` rows).
 
-The real user-data tables since then: **profiles** (#6.1), **wallets** (#6.2; `wallet_members`
+The real user-data tables since then: **books** (#6.1), **wallets** (#6.2; `wallet_members`
 exists beside it, server only, empty until #16), **categories** (#7.1), **transactions** (#8.1), **transfers** (#9) and **recurring_rules**
 (#12, whose occurrences one user's devices write under deterministic ids, so the server keeps
 its row for a second create quietly: [recurring.md](recurring.md) rule 9).
@@ -119,7 +119,7 @@ its row for a second create quietly: [recurring.md](recurring.md) rule 9).
   count.
 - It holds **only the signed-in user's own data plus master data**. It never holds data of wallets
   shared with them, apart from their own pending adds (rule 14).
-- The tables mirror the server's synced tables (snake_case columns: `currencies`, `profiles`,
+- The tables mirror the server's synced tables (snake_case columns: `currencies`, `books`,
   `wallets`, `categories`, `transactions`), plus:
   - **outbox**: ordered ops `{ opId, table, rowId, op: upsert | delete, row, baseSeq, createdAt,
 status: pending | rejected, error? }`. It keeps **one pending op per row**: a newer local write
@@ -179,7 +179,7 @@ status: pending | rejected, error? }`. It keeps **one pending op per row**: a ne
      device's own screen lock is the protection, and a revoked session (rule 7) still wipes the
      data the next time the app is online. The encryption then only keeps the snapshot from being
      read as plain bytes. With the PIN, a 6-digit PIN stops someone who just picks up the device.
-     It doesn't stop a determined attacker who copies the browser profile and brute-forces 10⁶
+     It doesn't stop a determined attacker who copies the browser book and brute-forces 10⁶
      PINs offline. Passkey unlock (rule 2) is the stronger option.
 5. `navigator.storage.persist()` is requested when the local database is created. On iOS, data
    survives only when the PWA is **installed to the home screen**; in Safari itself it may be
@@ -277,7 +277,7 @@ status: pending | rejected, error? }`. It keeps **one pending op per row**: a ne
 13. A wallet has one **owner** (`wallets.userId`) and zero or more members in `wallet_members` with
     role `editor` or `viewer`. Only the owner can change the wallet itself (name, currency, archive,
     delete) and manage members.
-14. What each role can do (16.2, owner's choice: a shared profile is online only):
+14. What each role can do (16.2, owner's choice: a shared book is online only):
 
     |                                 | Owner            | Editor          | Viewer      |
     | ------------------------------- | ---------------- | --------------- | ----------- |
@@ -285,15 +285,15 @@ status: pending | rejected, error? }`. It keeps **one pending op per row**: a ne
     | Add a transaction               | online + offline | **online only** | ❌          |
     | Edit / delete a transaction     | online + offline | **online only** | ❌          |
     - An editor's write is pushed at once (`POST /sync/push`), never queued; offline, the shared
-      profile is disabled ([sharing](sharing.md) rule 10).
+      book is disabled ([sharing](sharing.md) rule 10).
     - On the server, an editor's update or delete must carry a `baseSeq` equal to the row's current
       `changeSeq`; otherwise it's `rejected` (`STALE`) and the editor's screen reloads.
 
 15. Members read shared wallets through online endpoints ([sharing](sharing.md) rule 9). That data
-    is held in memory only (TEMP tables while a shared profile is in use), never in the member's
+    is held in memory only (TEMP tables while a shared book is in use), never in the member's
     saved local database.
 16. Losing membership (removed by the owner) takes effect on the next request: a push is then
-    `rejected` (`NOT_SHARED`) and the member is told and sent back to an own profile.
+    `rejected` (`NOT_SHARED`) and the member is told and sent back to an own book.
 
 ## Endpoints
 
@@ -313,7 +313,7 @@ status: pending | rejected, error? }`. It keeps **one pending op per row**: a ne
   in the same order: `row` is the server's row after the op (the winner when `overridden`, the
   current one when `rejected`), `notice` the `change_history` entry when `overridden`.
 - Rejection `code`s: `VALIDATION` (the feature's rules, with its message), `CONFLICT` (a feature
-  rule about other rows, e.g. a profile or wallet name in use), `ID_TAKEN` (row `id` or `opId` of another
+  rule about other rows, e.g. a book or wallet name in use), `ID_TAKEN` (row `id` or `opId` of another
   user), `UNKNOWN_TABLE`, `READ_ONLY` (a pull-only table such as currencies).
 - **Cleanup**: `npm run sync:cleanup` deletes tombstones and `sync_ops` older than 90 days and
   raises `purgedSeq` (a Vercel Cron endpoint replaces it at deploy, #17, like `auth:cleanup`).
@@ -349,7 +349,7 @@ opens.
   a destructive ออกจากระบบ and ยกเลิก. Confirming pushes; if ops are still pending or rejected
   afterwards, the same sheet says how many will be lost.
 - **Sync test page** `/account/sync-test` (4a.2, dev only): removed in #6.2 with `sync_probes`;
-  profiles and wallets are tried for real instead.
+  books and wallets are tried for real instead.
 - **Account → Security** (4a.1): a "This device" group with "Lock with a PIN" (turn on: the new
   PIN twice; turn off: the current PIN) and, while it's on, "Change PIN" (current PIN, then the new
   one twice), beside the devices list (auth sessions). (The "Use offline on this device" switch is

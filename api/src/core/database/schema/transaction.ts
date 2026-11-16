@@ -1,8 +1,8 @@
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { syncColumns } from '@/core/database/columns'
 import { users } from '@/core/database/schema/auth'
+import { books } from '@/core/database/schema/book'
 import { categories } from '@/core/database/schema/category'
-import { profiles } from '@/core/database/schema/profile'
 import { wallets } from '@/core/database/schema/wallet'
 
 // docs/features/transaction.md → Data model. A synced table like `categories`: the id comes from
@@ -16,11 +16,11 @@ export const transactions = sqliteTable(
     userId: text()
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    // Cascades: purging a profile's, wallet's or category's old tombstone takes its
+    // Cascades: purging a book's, wallet's or category's old tombstone takes its
     // transactions' tombstones with it (a live row never points at one for long, rule 10).
-    profileId: text()
+    bookId: text()
       .notNull()
-      .references(() => profiles.id, { onDelete: 'cascade' }),
+      .references(() => books.id, { onDelete: 'cascade' }),
     walletId: text()
       .notNull()
       .references(() => wallets.id, { onDelete: 'cascade' }),
@@ -50,7 +50,7 @@ export const transactions = sqliteTable(
   (table) => [
     index('transactions_user_seq_idx').on(table.userId, table.changeSeq),
     index('transactions_change_seq_idx').on(table.changeSeq),
-    index('transactions_profile_idx').on(table.profileId),
+    index('transactions_book_idx').on(table.bookId),
     index('transactions_wallet_idx').on(table.walletId),
     index('transactions_category_idx').on(table.categoryId),
     index('transactions_debt_idx').on(table.debtId),

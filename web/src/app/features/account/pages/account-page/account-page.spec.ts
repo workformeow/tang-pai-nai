@@ -5,10 +5,10 @@ import { provideRouter, Router } from '@angular/router'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthService, AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
+import { BookService } from '@/core/book'
 import th from '@/core/i18n/th.json'
 import { provideNoLive } from '@/core/live/live-testing'
 import { OfflineService, SyncService } from '@/core/offline'
-import { ProfileService } from '@/core/profile'
 import { DeviceStorageService } from '@/core/pwa'
 import { PALETTES, ThemeService } from '@/core/theme'
 import { TransactionService } from '@/core/transaction'
@@ -63,13 +63,13 @@ describe('AccountPage', () => {
         { provide: SyncService, useValue: syncService },
         { provide: TransactionService, useValue: { addPeople: vi.fn() } },
         {
-          provide: ProfileService,
+          provide: BookService,
           useValue: {
             current: signal({ id: 'p1', name: 'ส่วนตัว' }),
             currentId: signal('p1'),
             isShared: signal(false),
             shared: signal(null),
-            profiles: signal([{}, {}]),
+            books: signal([{}, {}]),
             ruleCount: () => 2,
           },
         },
@@ -93,11 +93,11 @@ describe('AccountPage', () => {
     fixture.detectChanges()
   })
 
-  it('links the profiles page and names the current profile', () => {
+  it('links the books page and names the current book', () => {
     TestBed.inject(AuthStore).user.set({ displayName: 'mom', email: 'm@example.com' } as AuthUser)
     fixture.detectChanges()
-    const link = page().querySelector('a[href="/account/profiles"]')
-    expect(link?.textContent).toContain(th.account.profiles)
+    const link = page().querySelector('a[href="/account/books"]')
+    expect(link?.textContent).toContain(th.account.books)
     expect(link?.textContent).toContain('ใช้อยู่: ส่วนตัว · ทั้งหมด 2')
   })
 
@@ -111,7 +111,7 @@ describe('AccountPage', () => {
     ])
     const links = [...page().querySelectorAll('a')].map((a) => a.getAttribute('href'))
     expect(links).toEqual([
-      '/account/profiles',
+      '/account/books',
       '/account/categories',
       '/account/sharing',
       '/account/recurring',
@@ -124,7 +124,7 @@ describe('AccountPage', () => {
     ])
     const text = page().textContent
     expect(text).toContain('ของสมุด ส่วนตัว')
-    // Recurring (#12): how many rules the profile holds.
+    // Recurring (#12): how many rules the book holds.
     expect(text).toContain('2 รายการใน ส่วนตัว')
     // Debts and events are data, not settings (owner, 2026-11): reached from their tabs.
     expect(text).not.toContain(th.debts.menu)

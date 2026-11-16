@@ -25,7 +25,7 @@ export const createLivePublisher = (
         try {
           await Promise.race([provider.publish(message), timeout(timeoutMs)])
         } catch (error) {
-          // Ids only: the channel names a user or profile id, never data.
+          // Ids only: the channel names a user or book id, never data.
           logger.warn(LOG.LIVE.publishFailed(provider.name), {
             channel: message.channel,
             cause: error instanceof Error ? error.message : String(error),

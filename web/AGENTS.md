@@ -15,6 +15,9 @@ If anything here conflicts with the actual code, the code wins — update this f
 
 ---
 
+> **Naming:** a set of wallets and categories is a **book** (`BookService`, `bookId`; สมุด in the
+> UI), never a profile; "profile" means the user (`AuthUser`). See the root `CLAUDE.md` → Naming.
+
 ## 1. What this project is
 
 A **mobile-first, app-like PWA**: Angular 22 (standalone, zoneless, signals), Tailwind CSS v4 and
@@ -107,7 +110,7 @@ Owner's rule (after #16.1): **a component used in more than one place lives in
   `LanguageService` (`core/i18n`), `NetworkStatusService` (`core/network`), `KeyboardService`
   (`core/viewport`), `AppUpdateService` + `DeviceStorageService` (`core/pwa`; also the install
   offer, `canPrompt` / `promptInstall` / `platform`, install.md, so `App` injects it), `OfflineService`
-  and `SyncService` (`core/offline`), `ProfileService` (`core/profile`), `WalletService`
+  and `SyncService` (`core/offline`), `BookService` (`core/book`), `WalletService`
   (`core/wallet`), `CategoryService` (`core/category`), `TransactionService` (`core/transaction`),
   `ReportService` (`core/report`, kept out of the shell so it stays in the lazy chunks),
   `DebtService` (`core/debt`, likewise: only the Wallets tab and the debts pages inject it),
@@ -136,7 +139,7 @@ Owner's rule (after #16.1): **a component used in more than one place lives in
   navigation ends; keep the splash's ids, classes and steps in sync with `index.html`.
   `NavProgress` (`layout/nav-progress.ts`, in `App`'s template) is the 3px bar of a slow
   navigation (over 300ms, creeps toward and holds under 90%, `transform` only). A new device's
-  first pull is the shell's `loading` gate (`ProfileService.firstPull`, rows so far from
+  first pull is the shell's `loading` gate (`BookService.firstPull`, rows so far from
   `SyncService.pulledRows`). No spinners or bars for local reads or background sync.
 - The service worker (`ngsw-config.json`) caches the **app shell only**. Never add `dataGroups`:
   data comes from the local DB ([offline-sync](../docs/features/offline-sync.md) → Layers). It is
@@ -166,7 +169,7 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 1–7.
 - **Every signed-in device keeps its data** (rule 1, after 16.2): no trust step, no offline
   switch. `shellGuard` calls `enable()` (no PIN) on the first open; `isTrusted()` now means "the
   vault exists". Only when browser storage refuses it does `openInMemory()` open a database for
-  the tab's life (writes then need the server, `ProfileService.canWrite`).
+  the tab's life (writes then need the server, `BookService.canWrite`).
 - **Expired session** (rule 7): offline or with the server down the app keeps working; once the
   server refuses the session, the interceptor, `shellGuard` and an `OfflineService` effect send
   the user to sign-in, the data kept. The sign-in page says whose data the device holds
@@ -176,13 +179,13 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 1–7.
   reads re-run (read it, then `isOpen()`, then query `db()`).
 - Specs: jsdom has no IndexedDB or `matchMedia`, and no `/sqlite/`. A drawer renders into
   `document.body` (query there), and a radio's `[value]` is a property, so find it by its
-  `aria-label` (`profile-sheet.spec.ts`). For real SQL use
+  `aria-label` (`book-sheet.spec.ts`). For real SQL use
   `openTestDatabase()` (`core/offline/testing-db.ts`, the wasm from `node_modules`), as
   `OPEN_LOCAL_DATABASE` or behind a fake `OfflineService` (`sync.service.spec.ts`,
   `wallet.service.spec.ts`, `wallet-sheet.spec.ts`, `category.service.spec.ts`,
   `category-sheet.spec.ts`, `hidden-categories.spec.ts`; their test database has no pulled
   currencies, so put the ones you need with `putRow`); `offline.service.spec.ts` uses a key/value fake. Stub
-  `DeviceStorageService` for the shell (`app.spec.ts`), and `ProfileService` for the sync pill
+  `DeviceStorageService` for the shell (`app.spec.ts`), and `BookService` for the sync pill
   and sheet (`rejectedItems`; `sync-status.spec.ts`). `vi.mock` doesn't work with Angular's
   bundled Vitest runner; inject seams instead.
 - **Toasts are module state** (`toastState` from `@spartan-ng/brain/sonner`), and in CI several
@@ -218,8 +221,8 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
 - **Server unreachable** (rule 11): a round, or the session check at open, that can't reach the
   API sets `NetworkStatusService.serverReachable` false and retries after `RETRY_DELAYS_MS`
   (5 s … then every 5 min); a round that gets through sets it back, and offline / locked /
-  signed out stops the retries. A shared profile's (or an in-memory database's)
-  `ProfileService.canWrite()` needs it too; its "needs online" notices switch to
+  signed out stops the retries. A shared book's (or an in-memory database's)
+  `BookService.canWrite()` needs it too; its "needs online" notices switch to
   `sync.serverDownWrite` while `serverDown()`. Specs that
   stub `NetworkStatusService` give it both `isOnline` and `serverReachable` signals.
 - `SyncService.rounds()` counts finished (or failed) rounds since the app loaded: work that
@@ -228,8 +231,8 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
   Specs that stub `SyncService` for a component that reaches `RecurringService` give it
   `rounds: signal(0)`, `canSync` and `isSyncing`.
 - **Rejected ops**: the local row already went back to the server's version; the op keeps the
-  refused values. A refused profile create carries its refused child rows
-  (`ProfileService.rejectedItems()`, read by the sheet and the pill): fixing the profile re-sends
+  refused values. A refused book create carries its refused child rows
+  (`BookService.rejectedItems()`, read by the sheet and the pill): fixing the book re-sends
   them in the same write, discarding it drops them (`discardRefused`). "Fix" opens the table's form via `FIX_ROUTES` in `layout/sync-sheet.ts` with
   `?fix=<opId>` (a wallet goes to `/wallets` and calls `WalletService.openFix(opId)` itself,
   because the Wallets tab may be showing the first-wallet step); saving queues a new op and
@@ -241,37 +244,37 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
   sheet (`layout/sync-sheet.ts`, spartan drawer) is `@defer`red until first opened. A new synced
   table needs its `sync.table<name>` key there (the sheet labels items by table).
 
-### Profiles (`core/profile`, #6.1)
+### Books (`core/book`, #6.1)
 
-Spec: [profile.md](../docs/features/profile.md). Every data screen (wallets, transactions,
-reports) shows the **current profile's** data.
+Spec: [book.md](../docs/features/book.md). Every data screen (wallets, transactions,
+reports) shows the **current book's** data.
 
-- `ProfileService`: `profiles()` (live, in order), `current()` (a shared profile in use, else the
+- `BookService`: `books()` (live, in order), `current()` (a shared book in use, else the
   device's choice, else the first; `shared()` / `isShared()`, #16.2), `ready()` (false only
-  while a new device waits for its first pull), `canWrite()` (own data: always; a shared profile =
+  while a new device waits for its first pull), `canWrite()` (own data: always; a shared book =
   an editor, online, ready; an in-memory database = online and the server answering), `serverDown()`, `atLimit()`, `nameTaken()`, `save(id | null, values, fixOpId?)`,
-  `remove(id)`, `moveTo(id, index)`, `select(id)`. The current id is `tpn-profile:<userId>` in
+  `remove(id)`, `moveTo(id, index)`, `select(id)`. The current id is `tpn-book:<userId>` in
   `localStorage` (`sessionStorage` for an in-memory database); `OfflineService.wipe()` removes it.
-  `save()` of a new profile writes the default category set in the same write
+  `save()` of a new book writes the default category set in the same write
   (`default-categories.ts`, in `LanguageService`'s language); `switchSheet` opens the switch
   sheet the shell renders (the header and Account › หมวดหมู่ use it).
-- The shell owns the profile UI because every tab needs it: `layout/profile-switcher` (the
-  glass capsule left in both `app-header` on `isProfileTab()` routes and `transactions-header`), `layout/profile-sheet` (create / edit / fix / delete, opened by
-  `ProfileService.open(state)` from anywhere and `@defer`red), and `layout/profile-create-step`,
-  which `AppShell` renders instead of the page on the data tabs while there is no profile. Data
+- The shell owns the book UI because every tab needs it: `layout/book-switcher` (the
+  glass capsule left in both `app-header` on `isBookTab()` routes and `transactions-header`), `layout/book-sheet` (create / edit / fix / delete, opened by
+  `BookService.open(state)` from anywhere and `@defer`red), and `layout/book-create-step`,
+  which `AppShell` renders instead of the page on the data tabs while there is no book. Data
   pages can therefore assume `current()` is set.
-- A feature's rows carry `profileId` (from 6.2) and its queries filter by
-  `profileService.current()`. `current()` is a **new object after every write or pull** (the
-  rows are read again), so an effect that should run only when the profile changes (restoring a
-  screen's remembered view) reads `profileService.currentId()` instead (fixed in #10: the
-  Transactions tab jumped back to this period after a save). Deleting a profile must tombstone
-  its rows in the same `OfflineService.write()` (profile rule 8).
+- A feature's rows carry `bookId` (from 6.2) and its queries filter by
+  `bookService.current()`. `current()` is a **new object after every write or pull** (the
+  rows are read again), so an effect that should run only when the book changes (restoring a
+  screen's remembered view) reads `bookService.currentId()` instead (fixed in #10: the
+  Transactions tab jumped back to this period after a save). Deleting a book must tombstone
+  its rows in the same `OfflineService.write()` (book rule 8).
 - Reordering a list: an order mode with one CDK drag handle per row (`cdkDropList` /
   `cdkDrag` / `cdkDragHandle`, `cdkDragStartDelay` `{ touch: 300, mouse: 0 }`,
   `cdkDragPreviewClass="tpn-drag-preview"`) plus ↑ / ↓ on the handle; see
-  `features/account/pages/profiles-page`.
+  `features/account/pages/books-page`.
 - User icons and colours: `@/shared/components/icon-badge` (`app-icon-badge` with a `fallback`,
-  `USER_ICONS` = the curated lucide icons + our `TPN_ICONS` SVG strings, `PROFILE_ICONS`,
+  `USER_ICONS` = the curated lucide icons + our `TPN_ICONS` SVG strings, `BOOK_ICONS`,
   `WALLET_ICON_GROUPS`, `CATEGORY_ICON_GROUPS`, `USER_COLORS`, `userColor` (a stored colour as
   drawn: old palette colours map to their darker ones), `glyphColor`, `knownIcon(name, fallback)`); pick them in
   the sheet's icon-and-colour view with `app-icon-field` (flat `icons` or titled `groups`) and
@@ -300,24 +303,24 @@ data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"` holding one `app-sheet-frame
 
 Spec: [wallet.md](../docs/features/wallet.md).
 
-- `WalletService`: `wallets()` (the current profile's live wallets in order, archived too),
+- `WalletService`: `wallets()` (the current book's live wallets in order, archived too),
   `openWallets()`, `archived()`, `hasWallet()`, `atLimit()` (20 open), `totals()` (per currency),
   `currencies()` / `activeCurrencies()` / `minorUnit(code)` / `defaultCurrency()` (from the
   pulled `currencies`), `balance(wallet)` (`initialBalance` + its live transactions, one
   aggregate for all wallets), `hasTransactions(id)`, `canChangeCurrency(id)` (false once it has
-  some; `remove()` refuses then too), `nameTaken()`, `byId()`, `openOf(profileId)`,
-  `save(id | null, values, fixOpId?, profileId?)` (`values.hiddenCategoryIds` goes through
+  some; `remove()` refuses then too), `nameTaken()`, `byId()`, `openOf(bookId)`,
+  `save(id | null, values, fixOpId?, bookId?)` (`values.hiddenCategoryIds` goes through
   `cleanHidden`), `setArchived(id, archived)` (answers `nameTaken` / `limit` when coming
   back is refused), `remove(id)`, `moveTo(id, index)`, `sheet` / `open()` / `openFix()`;
   credit cards (#18, [credit-card.md](../docs/features/credit-card.md)): `cards()` (open ones),
   `owed(wallet)` (−balance, never below 0), `owedTotals()` (per currency). `save()` keeps a card
   out of the total.
 - The shell renders `layout/wallet-first-step` instead of the Transactions and Wallets pages
-  while the profile has no wallet (`isWalletTab()`), the ➕ leads there, and
-  `layout/wallet-sheet` is `@defer`red like the profile sheet. `features/wallets` holds only the
+  while the book has no wallet (`isWalletTab()`), the ➕ leads there, and
+  `layout/wallet-sheet` is `@defer`red like the book sheet. `features/wallets` holds only the
   Wallets tab page.
-- `ProfileService.remove()` tombstones the rows of `PROFILE_CHILD_TABLES` (tables with
-  `profile_id`) in the same write, and an effect tombstones live child rows of a profile that is
+- `BookService.remove()` tombstones the rows of `BOOK_CHILD_TABLES` (tables with
+  `book_id`) in the same write, and an effect tombstones live child rows of a book that is
   a tombstone here (deleted on a device that didn't know them, wallet rule 11). Categories are
   in that list since #7.1.
 - **Hidden categories** (7.2, category rule 13): `core/wallet/hidden-categories.ts` holds
@@ -330,12 +333,12 @@ Spec: [wallet.md](../docs/features/wallet.md).
 
 Spec: [category.md](../docs/features/category.md).
 
-- `CategoryService`: `categories()` (the current profile's live ones in order, archived too),
+- `CategoryService`: `categories()` (the current book's live ones in order, archived too),
   `openCategories()`, `tree(type, archived?)` (parents with children), `archivedChildren(type)`,
   `openCount(type)`, `parents(type, exceptId)`, `childrenOf(id)`, `atLimit()` (200 open),
-  `nameTaken(name, type, parentId, exceptId, profileId?)`, `byId()`, `treeOf(profileId, type)`,
-  `hiddenIn(categoryId, profileId)` (open wallets listing its own id), `save(id | null, values,
-fixOpId?, profileId?, hiddenIn?)` (a row that changes siblings goes last among the new ones;
+  `nameTaken(name, type, parentId, exceptId, bookId?)`, `byId()`, `treeOf(bookId, type)`,
+  `hiddenIn(categoryId, bookId)` (open wallets listing its own id), `save(id | null, values,
+fixOpId?, bookId?, hiddenIn?)` (a row that changes siblings goes last among the new ones;
   `hiddenIn` rewrites the open wallets whose list changes, in the same write),
   `setArchived(id, archived)` (a parent takes / brings back its children; answers `nameTaken` /
   `limit` / `parentArchived`), `remove(id)` (only without live children), `moveTo(id, index)`
@@ -373,16 +376,16 @@ fixOpId?, profileId?, hiddenIn?)` (a row that changes siblings goes last among t
 Spec: [transaction.md](../docs/features/transaction.md).
 
 - `TransactionService`: `list(range, walletIds)` / `summary(range, walletIds)` (SQL through
-  the local indexes; a period of the profile, never every row), `byId()`, `save(id | null,
-values, fixOpId?, profileId?)` (remembers the wallet: `defaultWalletId()`), `remove()` +
+  the local indexes; a period of the book, never every row), `byId()`, `save(id | null,
+values, fixOpId?, bookId?)` (remembers the wallet: `defaultWalletId()`), `remove()` +
   `restore()` (the toast's undo), `sheet` / `open()` / `openFix()` (a create state may carry
-  `values` + `type`: "copy"), `frequentCategoryIds(profileId, type)` ("ใช้บ่อย", last 90 days),
+  `values` + `type`: "copy"), `frequentCategoryIds(bookId, type)` ("ใช้บ่อย", last 90 days),
   `lastType()` / `rememberType()` (8.2). The Transactions tab's view
   lives here too, shared by the header and the page: `viewWalletId` (null = "ทุกกระเป๋า",
   `viewWalletIds()` leaves out wallets excluded from the total, except credit cards), `unit`
   (`PeriodUnit`), `tab`,
   `custom`, `range()`, `tabs()`, `items()`, `summaryLines()`, `today`; `selectWallet` /
-  `selectUnit` / `selectCustom` remember wallet and unit per profile (`tpn-profile:tx:…`, wiped
+  `selectUnit` / `selectCustom` remember wallet and unit per book (`tpn-book:tx:…`, wiped
   with the device). An effect tombstones live transactions whose wallet or category is a
   tombstone here (rule 10); the shell injects the service so it runs.
 - `core/transaction/period.ts`: `periodRange`, `periodTabs`, `periodLabel` (pure, ค.ศ.).
@@ -392,7 +395,7 @@ values, fixOpId?, profileId?)` (remembers the wallet: `defaultWalletId()`), `rem
   with `addQuickAmount` (`@/shared/utils` `calc.ts`).
 - **Transfers** (#9, spec: [transfer.md](../docs/features/transfer.md)) live in
   `core/transaction` too: `TransferService` (`byId`, `save`, `remove` / `restore`,
-  `defaultFromId`, `lastToId` (Q7, `tpn-profile:tx:transfer:…`), `payFromId` / `pay(cardId)`
+  `defaultFromId`, `lastToId` (Q7, `tpn-book:tx:transfer:…`), `payFromId` / `pay(cardId)`
   (#18: the sheet's `pay` mode, a create state with `pay`), `sheet` / `open` / `openFix`;
   an effect tombstones live transfers with a side in a wallet that is a tombstone here; the
   shell injects it). One row per transfer (`transfers`, schema step 9); the list reads
@@ -430,7 +433,7 @@ Spec: [report.md](../docs/features/report.md). Read only: every figure is an agg
 local database, nothing is stored.
 
 - `ReportService`: its own `unit` (`ReportUnit`: month / quarter / year / custom, kept per
-  profile in `tpn-profile:report:unit:…`, never custom), `tab` (a number, no "อนาคต"),
+  book in `tpn-book:report:unit:…`, never custom), `tab` (a number, no "อนาคต"),
   `custom`, `customSheet`, `type` (the breakdown's tab), `chosenCurrency` / `currencyCode()`;
   `walletIds` and `today` are the Transactions tab's (Q3). `range()` / `previousRange()` always
   have both ends. `summaries()` (per currency: income, expense, net, transfer, left-out count
@@ -457,7 +460,7 @@ local database, nothing is stored.
 
 Spec: [recurring.md](../docs/features/recurring.md).
 
-- `RecurringService`: `items()` (the current profile's live rules as `RuleItem`s: state
+- `RecurringService`: `items()` (the current book's live rules as `RuleItem`s: state
   `active` / `paused` / `stopped` (an archived wallet or category) / `ended`, names, signs),
   `due()` (ask-first occurrences up to today), `byId()`, `itemOf()`, `recordedCount()`,
   `create(values)` (the rule and its occurrences up to today in one write), `update(id, values,
@@ -466,7 +469,7 @@ fixOpId?)` (a new schedule starts from today; a refused create comes back), `set
   the occurrence's id), `confirmAll()`, `upcoming(range, walletIds)` (3 months, never stored),
   `open(id)` (the transaction or transfer sheet in `rule` mode). An effect is the **recording
   pass**: after the first sync round (`SyncService.rounds()`) or at once when it can't sync,
-  never while a round runs, over every profile; it sweeps rules of deleted wallets or
+  never while a round runs, over every book; it sweeps rules of deleted wallets or
   categories (after `followMerges`) and **opens no write when nothing changes** (an empty write
   re-runs the pass forever).
 - An occurrence's id is `occurrenceId(ruleId, day)` (`occurrence-id.ts`, SHA-256 in plain JS so
@@ -496,7 +499,7 @@ fixOpId?)` (a new schedule starts from today; a refused create comes back), `set
 
 Spec: [debt.md](../docs/features/debt.md).
 
-- `DebtService`: `items()` (the current profile's live debts as `DebtItem`s: `total`, `paid`,
+- `DebtService`: `items()` (the current book's live debts as `DebtItem`s: `total`, `paid`,
   `left`, `interest`, `instalments`, `lastOn`, `closed`, `forgiven`, `overdue`, all computed in
   one query, never stored), `openItems()`, `item(id)`, `byId()`, `entryById()`,
   `history(debtId)` (entries and linked transactions, newest first), `rules(debtId)`,
@@ -530,7 +533,7 @@ Spec: [debt.md](../docs/features/debt.md).
 
 Spec: [event.md](../docs/features/event.md).
 
-- `EventService`: `items()` (the current profile's live events as `EventItem`s: `money` per
+- `EventService`: `items()` (the current book's live events as `EventItem`s: `money` per
   currency with every tagged row, `excludeFromReport` ones too, `count`, `walletCount`,
   `current`; one aggregate query, never stored), `openItems()` / `closedItems()`, `atLimit()`
   (50 open), `item(id)`, `byId()`, `byCategory(id)`, `save(id | null, values, fixOpId?)`,
@@ -538,8 +541,8 @@ Spec: [event.md](../docs/features/event.md).
   tombstone only**: rows keep `eventId`, so another device's offline edit of one never loses
   to the delete), `rowCount(id)`, `sheet` / `open()` / `openFix()` / `refused()`.
 - `core/transaction` reads `events` **by name** (`EVENT_TABLE`, `EventOption`):
-  `eventOptions(profileId, keepId?)` (open ones by start, plus the row's own),
-  `defaultEventId(profileId, day)` (rule 5), `liveEventId(id)` (null for a deleted event),
+  `eventOptions(bookId, keepId?)` (open ones by start, plus the row's own),
+  `defaultEventId(bookId, day)` (rule 5), `liveEventId(id)` (null for a deleted event),
   `TransactionItem.eventName` (a live event only), `ListFilter.eventId`, and
   `TransactionValues.eventId` (optional: absent keeps the row's). It never imports `core/event`.
 - The transaction sheet's "อีเวนต์" row is a signal (`eventId`, `eventChosen`), not a form
@@ -571,13 +574,13 @@ Spec: [export.md](../docs/features/export.md). Account › ส่งออก CS
 Spec: [sharing.md](../docs/features/sharing.md).
 
 - `SharingService` is the one place that calls `/sharing/*` (online REST, offline-sync rule 15):
-  what it reads stays in **signals only** (`withMe`, `owner(profileId)`, `readAt`) and is
+  what it reads stays in **signals only** (`withMe`, `owner(bookId)`, `readAt`) and is
   cleared when the signed-in user changes. `canCall()` = online and the server reachable;
   screens disable every action without it. `failure(error)` gives a translation key
   (`sharing.error.<CODE>`, `sharing.needsOnline`). `loadOwner` also feeds
   `TransactionService.addPeople` (the names behind "เพิ่มโดย …").
-- **A shared profile in use** (16.2): `openShared(group)` sets `ProfileService.shared`
-  (`loading` → `ready`; `current()` returns its profile, never stored), reads
+- **A shared book in use** (16.2): `openShared(group)` sets `BookService.shared`
+  (`loading` → `ready`; `current()` returns its book, never stored), reads
   `/sharing/with-me/:id/rows` page by page while a running own round ends
   (`SyncService.idle()`), then `OfflineService.enterShared()` and `fillShared()` put the rows in
   **TEMP tables that shadow `SHARED_TABLES`** (`LocalDatabase.createShadows`): every service
@@ -585,29 +588,29 @@ Spec: [sharing.md](../docs/features/sharing.md).
   own sync rounds wait (`canSync` false) and nothing is saved; `OfflineService.write` rolls back
   any op that isn't a transaction. An editor's write lands in the TEMP outbox and an effect
   pushes it at once (`SyncService.pushShared`, no pull); `STALE` → toast + read again,
-  `NOT_SHARED` (or a 404 read) → toast + back to an own profile. `refreshShared()` reads what
-  changed (every minute, back online, on visibility). `ProfileService.select()` /
+  `NOT_SHARED` (or a 404 read) → toast + back to an own book. `refreshShared()` reads what
+  changed (every minute, back online, on visibility). `BookService.select()` /
   `leaveShared()` drop the TEMP tables; a lock clears it too.
 - The shell loads the service with a dynamic `import()` after its first render (like
   `RecurringService`) and holds it in a signal for the Account tab's invite dot and the switch
   sheet's "แชร์กับฉัน" group (`[sharing]` input), so it stays out of the initial bundle; `import
-type` is all the shell has of it. `AppShell.gate()` shows `layout/shared-profile-step` for a
-  shared profile offline, on Reports and on the profile's own setup pages (`OWN_ONLY`). In a
-  shared profile, screens hide what isn't shared (the Wallets tab's wallet actions and debts, the
+type` is all the shell has of it. `AppShell.gate()` shows `layout/shared-book-step` for a
+  shared book offline, on Reports and on the book's own setup pages (`OWN_ONLY`). In a
+  shared book, screens hide what isn't shared (the Wallets tab's wallet actions and debts, the
   ⋮ menu's transfer / debts / events / rules, the sheet's "ทำซ้ำ" and hidden-category links),
   and ➕ is off while `canWrite()` is false (viewer, offline, loading).
-- Specs: `core/sharing/sharing-testing.ts` (`setUpSharing`: test DB with profile `p1` and
+- Specs: `core/sharing/sharing-testing.ts` (`setUpSharing`: test DB with book `p1` and
   wallets, a fake `OfflineService` with real TEMP shadows, a fake push `sync.answer`,
   `provideHttpClientTesting`, network signals); answer reads with `envelope(data)` and let the
   promise settle (`setTimeout`) before checking signals. A fake `OfflineService` for a service
-  that reaches `ProfileService` gives it `sharedActive` and `leaveShared`.
+  that reaches `BookService` gives it `sharedActive` and `leaveShared`.
 
 ### Live sync (`core/live`, #20)
 
 Spec: [live-sync.md](../docs/features/live-sync.md).
 
 - `LiveService` owns the connection and imports neither sync nor sharing: they listen
-  (`listenUser` / `listenProfile(id, { deviceId, cursor, onPoke })`, each answers a stop
+  (`listenUser` / `listenBook(id, { deviceId, cursor, onPoke })`, each answers a stop
   function; call them from an `effect` with `onCleanup`). It connects only while signed in,
   online, in the foreground and someone listens; it drops own-device and not-newer pokes and
   runs `onPoke` once per 300 ms burst. Failures are quiet (no toast): `provider()` and

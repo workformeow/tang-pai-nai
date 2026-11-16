@@ -21,7 +21,7 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
     booleans: ['isActive'],
     readOnly: true,
   },
-  profiles: {
+  books: {
     key: 'id',
     columns: [
       'id',
@@ -40,7 +40,7 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
     key: 'id',
     columns: [
       'id',
-      'profileId',
+      'bookId',
       'name',
       'currencyCode',
       'initialBalance',
@@ -64,7 +64,7 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
     key: 'id',
     columns: [
       'id',
-      'profileId',
+      'bookId',
       'type',
       'parentId',
       'name',
@@ -85,7 +85,7 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
     key: 'id',
     columns: [
       'id',
-      'profileId',
+      'bookId',
       'walletId',
       'categoryId',
       'amount',
@@ -108,7 +108,7 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
     key: 'id',
     columns: [
       'id',
-      'profileId',
+      'bookId',
       'fromWalletId',
       'toWalletId',
       'amount',
@@ -126,7 +126,7 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
     key: 'id',
     columns: [
       'id',
-      'profileId',
+      'bookId',
       'kind',
       'walletId',
       'categoryId',
@@ -155,7 +155,7 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
     key: 'id',
     columns: [
       'id',
-      'profileId',
+      'bookId',
       'direction',
       'person',
       'note',
@@ -174,7 +174,7 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
     key: 'id',
     columns: [
       'id',
-      'profileId',
+      'bookId',
       'debtId',
       'kind',
       'walletId',
@@ -193,7 +193,7 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
     key: 'id',
     columns: [
       'id',
-      'profileId',
+      'bookId',
       'name',
       'icon',
       'color',

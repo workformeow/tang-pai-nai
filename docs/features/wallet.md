@@ -8,8 +8,8 @@
 ## Purpose
 
 A wallet is where money sits: cash, a bank account, a credit card, an e-wallet. Every wallet
-belongs to one **profile** ([profile.md](profile.md)), every transaction belongs to exactly one
-wallet, and the Wallets tab shows the current profile's wallets with their balances and a total
+belongs to one **book** ([book.md](book.md)), every transaction belongs to exactly one
+wallet, and the Wallets tab shows the current book's wallets with their balances and a total
 per currency, like Money Lover.
 
 ## Out of scope
@@ -21,21 +21,21 @@ per currency, like Money Lover.
   wallet is.
 - Bank or brand logos, and letter badges. Icons are drawings of what the wallet is (rule 8).
 - Savings goals, credit-card statement cycles, bank sync.
-- Moving a wallet to another profile.
+- Moving a wallet to another book.
 
 ## Data model
 
 `api/src/core/database/schema/wallet.ts`
 
-- **wallets** (synced, like `profiles`): `id` (UUIDv7 from the device), `userId` (the
-  **owner**), `profileId` (FK profiles), `name`, `currencyCode` (FK currencies),
+- **wallets** (synced, like `books`): `id` (UUIDv7 from the device), `userId` (the
+  **owner**), `bookId` (FK books), `name`, `currencyCode` (FK currencies),
   `initialBalance` (integer, minor units, may be negative), `icon` (rule 8), `color`
   (`#rrggbb`), `excludeFromTotal` (default `false`), `isCreditCard` (default `false`, #18:
   [credit-card.md](credit-card.md)), `isArchived` (default `false`),
   `sortOrder`, `hiddenCategoryIds` (7.2: a JSON array of category ids the wallet doesn't use,
   at most 200, default `[]`; category rule 13), plus the sync columns (`createdAt`,
   `updatedAt`, `deletedAt?`, `changeSeq`, `updatedBy`). Indexes (`userId`, `changeSeq`),
-  (`changeSeq`), (`profileId`).
+  (`changeSeq`), (`bookId`).
 - **wallet_members**: `walletId` (FK), `userId` (FK), `role` (`editor` | `viewer`), `addedAt`.
   PK (`walletId`, `userId`). The owner isn't listed here. Server only (not synced) and empty
   until #16.
@@ -49,12 +49,12 @@ transaction rule 12; built in #8.1, transfers in #9).
 
 1. Wallets are synced own data, scoped to the owner (another user's id is `ID_TAKEN` on push).
    Members reach shared wallets through online endpoints in #16.
-2. **Profile**: `profileId` must be one of the owner's **live** profiles when the wallet is
-   created or edited (server check, `CONFLICT`; e.g. the profile was deleted on another device
-   while this one added a wallet offline). A wallet never moves to another profile.
-3. `name` is 1–50 characters after trimming, unique among the **profile's** non-archived wallets
-   (case-insensitive; server check, `CONFLICT`). The same name may exist in another profile
-   (decided before 6.2). A profile holds at most **20 non-archived wallets** (server check,
+2. **Book**: `bookId` must be one of the owner's **live** books when the wallet is
+   created or edited (server check, `CONFLICT`; e.g. the book was deleted on another device
+   while this one added a wallet offline). A wallet never moves to another book.
+3. `name` is 1–50 characters after trimming, unique among the **book's** non-archived wallets
+   (case-insensitive; server check, `CONFLICT`). The same name may exist in another book
+   (decided before 6.2). A book holds at most **20 non-archived wallets** (server check,
    `CONFLICT`; the web hides "add" at 20, and unarchiving at 20 is refused; decided at the start
    of 6.2). Archiving frees a place.
 4. **Currency** (decided at the start of #6, with its message): `currencyCode` must be active
@@ -74,7 +74,7 @@ transaction rule 12; built in #8.1, transfers in #9).
    wallets are hidden from pickers and the total but keep their history in reports. A wallet
    with no transactions is deleted as a tombstone, after a confirm sheet. Only the owner can
    archive or delete (rule 13 of offline-sync, from #16).
-7. **Total** ("ยอดรวม") sums the current profile's non-archived wallets with
+7. **Total** ("ยอดรวม") sums the current book's non-archived wallets with
    `excludeFromTotal = false`, **grouped by currency**.
 8. **Icons** (decided at the start of #6, refined before 6.2: no letter badges): `icon` is
    either a curated **lucide** export name (`lucideWallet`, …) or a name from our own **`tpn`
@@ -86,32 +86,32 @@ transaction rule 12; built in #8.1, transfers in #9).
    user picks another from the catalogue at any time.
 
    The server checks only the shape (`^(lucide|tpn)[A-Z][A-Za-z0-9]*$`, ≤ 40 characters); a name
-   the web doesn't know shows the default icon, as for profiles.
+   the web doesn't know shows the default icon, as for books.
 
-9. **No automatic wallet** (replaces "a new user starts with เงินสด"). After creating a profile,
+9. **No automatic wallet** (replaces "a new user starts with เงินสด"). After creating a book,
    the user creates its first wallet (rule 12).
-10. **Order**: `sortOrder` ascending, then `createdAt`, then `id`, within the profile. Reordering
-    uses the same order mode and drag handle as profiles (DESIGN.md §8).
-11. **Deleting a profile** tombstones its wallets in the same local write (profile rule 8); the
-    profile's confirm sheet says how many wallets go with it. A device only tombstones the
+10. **Order**: `sortOrder` ascending, then `createdAt`, then `id`, within the book. Reordering
+    uses the same order mode and drag handle as books (DESIGN.md §8).
+11. **Deleting a book** tombstones its wallets in the same local write (book rule 8); the
+    book's confirm sheet says how many wallets go with it. A device only tombstones the
     wallets it knows, so a wallet another device synced that this one hadn't pulled yet would
-    stay live under a deleted profile. Therefore **a device that pulls a profile's tombstone
-    tombstones its own live wallets of that profile** too (decided at the start of 6.2; a
+    stay live under a deleted book. Therefore **a device that pulls a book's tombstone
+    tombstones its own live wallets of that book** too (decided at the start of 6.2; a
     delete of a row already deleted is `applied` and changes nothing, so devices doing it twice
     is harmless).
-12. **First wallet step**: while the current profile has no live wallet, the Transactions tab
+12. **First wallet step**: while the current book has no live wallet, the Transactions tab
     shows "เพิ่มกระเป๋าเงินใบแรก" with a button that opens the wallet form (replacing the 6.1
     placeholder), the Wallets tab shows the same, and ➕ leads there.
 
 ## Endpoints
 
 None in 6.2: wallets travel through `/sync/push` and `/sync/pull` as table `wallets`, like
-profiles (OpenAPI `SyncWalletRow`). Online `GET`s for members of shared wallets arrive with #16
+books (OpenAPI `SyncWalletRow`). Online `GET`s for members of shared wallets arrive with #16
 (offline-sync rule 15).
 
 ## Web screens
 
-- **Wallets tab** (current profile): the total per currency ("ยอดรวม", ฿0.00 while nothing
+- **Wallets tab** (current book): the total per currency ("ยอดรวม", ฿0.00 while nothing
   counts), 12px above the "กระเป๋าที่ใช้อยู่ (n)" heading and the wallet list (40px icon badge,
   name, "ไม่รวมในยอดรวม" / "รอ sync" under it, balance on the right, negative in the expense
   colour), "เพิ่มกระเป๋าเงิน" (a line saying why at 20), then a folded "เก็บถาวร (n)" group.
@@ -122,7 +122,7 @@ profiles (OpenAPI `SyncWalletRow`). Online `GET`s for members of shared wallets 
   from mock-ups): row 1 the icon on its colour (a button) and the name; row 2 the +/− button, the
   starting balance in large figures and the currency code (a picker chip when more than one
   currency is active; read-only with rule 4's line once there are transactions); row 3 the
-  "ไม่รวมในยอดรวม" switch; row 4 (7.2) "หมวดหมู่ที่ใช้", opening a view of the profile's
+  "ไม่รวมในยอดรวม" switch; row 4 (7.2) "หมวดหมู่ที่ใช้", opening a view of the book's
   categories with a switch each (category.md → Web screens, rule 13). No labels above fields and no hints. Tapping the icon opens the
   "ไอคอนและสี" view: colour swatches, then the catalogue grouped by meaning (ที่เก็บเงิน, บัตร,
   เงินสดและของมีค่า, ดิจิทัล, อื่น ๆ; lucide and `tpn` mixed); picking an icon goes back. Save
@@ -135,8 +135,8 @@ profiles (OpenAPI `SyncWalletRow`). Online `GET`s for members of shared wallets 
 
 ## Interactions
 
-- **Profile**: `wallets.profileId`; deleting a profile takes its wallets (rule 11).
-- **Category (#7)**: one set per profile; a wallet can hide categories it doesn't use, as a
+- **Book**: `wallets.bookId`; deleting a book takes its wallets (rule 11).
+- **Category (#7)**: one set per book; a wallet can hide categories it doesn't use, as a
   `hiddenCategoryIds` column on `wallets` (decided at the start of #7; built in 7.2, category
   rule 13); the category form can also choose its wallets, writing their lists.
 - **Transaction (#8)**: requires `walletId` and inherits the wallet's currency; rule 4's
@@ -163,15 +163,15 @@ Settled before 6.2 (owner, in the 6.1 session):
   **gold bar**, **savings jar**, **envelope of cash**. The same catalogue grows for categories
   in #7 (food, buffet, coffee cup, …). Kept as SVG strings in code beside the picker
   (`shared/components/icon-badge`), registered like lucide's.
-- **Name scope**: unique within the profile (rule 3).
+- **Name scope**: unique within the book (rule 3).
 - **Decided while building 6.2** (owner, from mock-ups): every sheet is the same near-full
   height with a header bar (close / back left, title centred, icon actions right) and one main
-  button pinned at the bottom; the wallet and profile forms are compact (icon + name on one row,
+  button pinned at the bottom; the wallet and book forms are compact (icon + name on one row,
   the icon opening an icon-and-colour view); archive and delete are header icons, and archiving
   offers undo in its toast. Recorded in DESIGN.md §6.
-- **Settled at the start of 6.2** (owner): at most 20 non-archived wallets per profile (rule 3);
-  a +/− button for a negative starting balance (rule 5); a device that pulls a profile's
-  tombstone also tombstones that profile's wallets it holds (rule 11).
+- **Settled at the start of 6.2** (owner): at most 20 non-archived wallets per book (rule 3);
+  a +/− button for a negative starting balance (rule 5); a device that pulls a book's
+  tombstone also tombstones that book's wallets it holds (rule 11).
 - **Archive**: built in 6.2 (rule 6). The `isArchived` column must exist from the first
   migration anyway, so the toggle and the "เก็บถาวร" group cost little now; the "has
   transactions, so no delete" gate becomes real in #8.

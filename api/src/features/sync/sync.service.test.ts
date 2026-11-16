@@ -574,8 +574,8 @@ const setupShared = (live = createMemoryLiveProvider()) => {
       }
       return { ownerId, role: walletId === 'daves' ? null : (roles.get(userId) ?? null) }
     },
-    // `home` is shared on Alice's profile `pa`; `cash` is hers alone.
-    sharedProfileOf: (walletId) => (walletId === 'home' ? 'pa' : null),
+    // `home` is shared on Alice's book `pa`; `cash` is hers alone.
+    sharedBookOf: (walletId) => (walletId === 'home' ? 'pa' : null),
   })
   const service = createSyncService({
     syncRepo: memory.repo,
@@ -760,24 +760,24 @@ describe('createSyncService › live pokes (live-sync rules 4, 6–7)', () => {
     expect(result.status).toBe('applied')
   })
 
-  it("pokes the owner and the shared profile for an editor's write", async () => {
+  it("pokes the owner and the shared book for an editor's write", async () => {
     const { push, entry, live } = setupShared()
     const added = await push(BOB, { row: entry('e1', 'Rice') })
     expect(live.published).toEqual([
       { channel: `user:${ALICE}`, poke: { seq: seq(added), deviceId: LAPTOP } },
-      { channel: 'profile:pa', poke: { seq: seq(added), deviceId: LAPTOP } },
+      { channel: 'book:pa', poke: { seq: seq(added), deviceId: LAPTOP } },
     ])
   })
 
-  it('pokes the shared profile a row moves out of, and not for an unshared wallet', async () => {
+  it('pokes the shared book a row moves out of, and not for an unshared wallet', async () => {
     const { push, entry, live } = setupShared()
     const added = await push(ALICE, { row: entry('e1', 'Rice', { walletId: 'cash' }) })
     expect(live.published.map((m) => m.channel)).toEqual([`user:${ALICE}`])
     live.published.length = 0
     const moved = await push(ALICE, { row: entry('e1', 'Rice'), baseSeq: seq(added) })
-    expect(live.published.map((m) => m.channel)).toEqual([`user:${ALICE}`, 'profile:pa'])
+    expect(live.published.map((m) => m.channel)).toEqual([`user:${ALICE}`, 'book:pa'])
     live.published.length = 0
     await push(ALICE, { row: entry('e1', 'Rice', { walletId: 'cash' }), baseSeq: seq(moved) })
-    expect(live.published.map((m) => m.channel)).toEqual([`user:${ALICE}`, 'profile:pa'])
+    expect(live.published.map((m) => m.channel)).toEqual([`user:${ALICE}`, 'book:pa'])
   })
 })

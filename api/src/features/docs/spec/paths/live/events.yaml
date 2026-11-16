@@ -4,7 +4,7 @@ get:
   summary: Stream of pokes (local provider)
   description: >-
     `LIVE_PROVIDER=local` only, else 404 (docs/features/live-sync.md rule 9). A server-sent event
-    stream of `poke` events for the caller's own channel and the shared profiles they may hear
+    stream of `poke` events for the caller's own channel and the shared books they may hear
     (checked on each poke). A poke carries no data, only `{ channel, seq, deviceId }`. Comment
     lines keep it open; the API ends it after 10 minutes and the device opens a new one.
   operationId: liveEvents

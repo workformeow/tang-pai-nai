@@ -1,0 +1,300 @@
+import { signal } from '@angular/core'
+import { TestBed } from '@angular/core/testing'
+import type { ComponentFixture } from '@angular/core/testing'
+import { TranslocoTestingModule } from '@jsverse/transloco'
+import { toastState } from '@spartan-ng/brain/sonner'
+import { AuthStore } from '@/core/auth'
+import type { AuthUser } from '@/core/auth'
+import { BookService } from '@/core/book'
+import th from '@/core/i18n/th.json'
+import { NetworkStatusService } from '@/core/network'
+import { findOp, listOps, OfflineService, putRow, SyncService } from '@/core/offline'
+import type { LocalDatabase } from '@/core/offline'
+import { openTestDatabase } from '@/core/offline/testing-db'
+import { BookSheet } from './book-sheet'
+
+describe('BookSheet', () => {
+  let fixture: ComponentFixture<BookSheet>
+  let db: LocalDatabase
+  let books: BookService
+  const changes = signal(0)
+  const trusted = signal(true)
+  const online = signal(true)
+
+  const offline = {
+    isOpen: signal(true),
+    sharedActive: signal(false),
+    leaveShared: () => undefined,
+    isTrusted: trusted,
+    meta: signal(null),
+    changes,
+    db: () => db,
+    write: <T>(work: (database: LocalDatabase) => T): T => {
+      const result = db.transaction(work)
+      changes.update((n) => n + 1)
+      return result
+    },
+  }
+  const sync = {
+    canSync: signal(false),
+    isSyncing: signal(false),
+    lastSyncedAt: signal<number | null>(null),
+    rejectedOp: (opId: string) => findOp(db, opId),
+  }
+
+  const body = () => document.body
+  /** A button by its text, or by its aria-label for an icon button. */
+  const button = (label: string) =>
+    [...body().querySelectorAll('button')].find(
+      (b) => b.textContent.trim() === label || b.getAttribute('aria-label') === label
+    )
+  const nameInput = () => body().querySelector('input[autocomplete="off"]') as HTMLInputElement
+  const type = (value: string) => {
+    nameInput().value = value
+    nameInput().dispatchEvent(new Event('input'))
+  }
+  const settle = async () => {
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+  }
+  const open = async (state: Parameters<BookService['open']>[0]) => {
+    books.open(state)
+    await settle()
+  }
+  const submit = async () => {
+    body().querySelector('form')?.dispatchEvent(new Event('submit'))
+    await settle()
+  }
+  const pulled = (id: string, name: string, sortOrder = 0) => {
+    putRow(db, 'books', {
+      id,
+      name,
+      icon: 'lucideHouse',
+      color: '#16a34a',
+      sortOrder,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 5,
+      updatedBy: 'u1',
+    })
+    changes.update((n) => n + 1)
+  }
+
+  beforeEach(async () => {
+    db = await openTestDatabase()
+    localStorage.clear()
+    trusted.set(true)
+    online.set(true)
+    TestBed.configureTestingModule({
+      imports: [
+        TranslocoTestingModule.forRoot({
+          langs: { th },
+          translocoConfig: { availableLangs: ['th'], defaultLang: 'th' },
+          preloadLangs: true,
+        }),
+      ],
+      providers: [
+        { provide: OfflineService, useValue: offline },
+        { provide: SyncService, useValue: sync },
+        {
+          provide: NetworkStatusService,
+          useValue: { isOnline: online, serverReachable: signal(true) },
+        },
+      ],
+    })
+    TestBed.inject(AuthStore).user.set({ id: 'u1' } as AuthUser)
+    books = TestBed.inject(BookService)
+    fixture = TestBed.createComponent(BookSheet)
+    await settle()
+  })
+
+  afterEach(() => {
+    fixture.destroy()
+    db.close()
+    // The sheet's toasts are module state; don't leave them to the next spec file.
+    toastState.dismiss()
+  })
+
+  it('creates a book with the picked icon and colour, then closes', async () => {
+    await open({ mode: 'create' })
+    expect(body().textContent).toContain(th.books.createHeading)
+    type('  ร้านกาแฟ ')
+    button(th.books.changeIcon)?.click()
+    await settle()
+    expect(body().textContent).toContain(th.books.iconHeading)
+    const orange = body().querySelector('input[aria-label="สีที่ 6"]') as HTMLInputElement
+    orange.click()
+    await settle()
+    const store = body().querySelector(
+      `input[aria-label="${th.icons.lucideStore}"]`
+    ) as HTMLInputElement
+    store.click()
+    await settle()
+    // Picking only selects: the view stays until ‹.
+    expect(body().textContent).toContain(th.books.iconHeading)
+    button(th.sheet.back)?.click()
+    await settle()
+    expect(nameInput().value).toBe('  ร้านกาแฟ ')
+    await submit()
+    expect(books.books()).toMatchObject([
+      { name: 'ร้านกาแฟ', icon: 'lucideStore', color: '#c2410c' },
+    ])
+    expect(books.current()?.name).toBe('ร้านกาแฟ')
+    expect(books.sheet()).toBeNull()
+  })
+
+  it('refuses an empty name and a name already in use, in place', async () => {
+    pulled('p1', 'Home')
+    await open({ mode: 'create' })
+    await submit()
+    expect(body().textContent).toContain(th.books.nameRequired)
+    type('HOME')
+    await settle()
+    expect(body().textContent).toContain(th.books.nameTaken)
+    expect(listOps(db, 'pending')).toHaveLength(0)
+  })
+
+  it('edits a book without counting its own name as taken', async () => {
+    pulled('p1', 'Home')
+    await open({ mode: 'edit', id: 'p1' })
+    expect(nameInput().value).toBe('Home')
+    await submit()
+    expect(listOps(db, 'pending')).toHaveLength(1)
+    expect(books.sheet()).toBeNull()
+  })
+
+  it('closes at once with unsaved input, without asking', async () => {
+    await open({ mode: 'create' })
+    type('ครอบครัว')
+    button(th.sheet.close)?.click()
+    await settle()
+    expect(books.sheet()).toBeNull()
+    expect(books.books()).toHaveLength(0)
+  })
+
+  it('deletes a book only after the confirm step (rule 8)', async () => {
+    pulled('p1', 'Home')
+    pulled('p2', 'Work', 1)
+    await open({ mode: 'edit', id: 'p2' })
+    button(th.books.delete)?.click()
+    await settle()
+    expect(body().textContent).toContain('ลบสมุด “Work” ใช่ไหม')
+    button(th.sheet.back)?.click()
+    await settle()
+    expect(books.books()).toHaveLength(2)
+    button(th.books.delete)?.click()
+    await settle()
+    button(th.books.deleteConfirm)?.click()
+    await settle()
+    expect(books.books().map((book) => book.name)).toEqual(['Home'])
+  })
+
+  it('says how many wallets go with the book, and deletes them with it', async () => {
+    pulled('p1', 'Home')
+    for (const id of ['w1', 'w2']) {
+      putRow(db, 'wallets', {
+        id,
+        bookId: 'p1',
+        name: id,
+        currencyCode: 'THB',
+        initialBalance: 0,
+        icon: 'lucideWallet',
+        color: '#16a34a',
+        excludeFromTotal: false,
+        isArchived: false,
+        sortOrder: 0,
+        createdAt: 1,
+        updatedAt: 1,
+        deletedAt: null,
+        changeSeq: 6,
+        updatedBy: 'u1',
+      })
+    }
+    changes.update((n) => n + 1)
+    await open({ mode: 'edit', id: 'p1' })
+    button(th.books.delete)?.click()
+    await settle()
+    expect(body().textContent).toContain('กระเป๋าเงิน 2 ใบ')
+    button(th.books.deleteConfirm)?.click()
+    await settle()
+    expect(db.selectValue('SELECT count(*) FROM wallets WHERE deleted_at IS NULL')).toBe(0)
+    expect(listOps(db, 'pending').map((op) => `${op.table}:${op.op}`)).toEqual([
+      'wallets:delete',
+      'wallets:delete',
+      'books:delete',
+    ])
+  })
+
+  it('counts the categories too, with or without wallets (category rule 12)', async () => {
+    pulled('p1', 'Home')
+    const row = (id: string) => ({
+      id,
+      bookId: 'p1',
+      type: 'expense',
+      parentId: null,
+      name: id,
+      icon: 'lucideShapes',
+      color: '#475569',
+      isArchived: false,
+      sortOrder: 0,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 6,
+      updatedBy: 'u1',
+    })
+    for (const id of ['c1', 'c2', 'c3']) {
+      putRow(db, 'categories', row(id))
+    }
+    changes.update((n) => n + 1)
+    await open({ mode: 'edit', id: 'p1' })
+    button(th.books.delete)?.click()
+    await settle()
+    expect(body().textContent).toContain('หมวดหมู่ 3 รายการ ในสมุดนี้จะถูกลบไปด้วย และเลิกทำไม่ได้')
+    putRow(db, 'wallets', {
+      id: 'w1',
+      bookId: 'p1',
+      name: 'w1',
+      currencyCode: 'THB',
+      initialBalance: 0,
+      icon: 'lucideWallet',
+      color: '#16a34a',
+      excludeFromTotal: false,
+      isArchived: false,
+      sortOrder: 0,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 6,
+      updatedBy: 'u1',
+    })
+    changes.update((n) => n + 1)
+    await settle()
+    expect(body().textContent).toContain(
+      'กระเป๋าเงิน 1 ใบและหมวดหมู่ 3 รายการ ในสมุดนี้จะถูกลบไปด้วย'
+    )
+  })
+
+  it('opens a fix with the refused values and their error showing', async () => {
+    pulled('p1', 'Home')
+    await open({
+      mode: 'fix',
+      opId: 'o1',
+      id: 'p9',
+      values: { name: 'home', icon: 'lucideStar', color: '#2563eb' },
+    })
+    expect(body().textContent).toContain(th.books.fixHeading)
+    expect(nameInput().value).toBe('home')
+    expect(body().textContent).toContain(th.books.nameTaken)
+  })
+
+  it('says an untrusted device must be online, and blocks saving', async () => {
+    trusted.set(false)
+    online.set(false)
+    await open({ mode: 'create' })
+    expect(body().textContent).toContain(th.books.needsOnline)
+    expect(button(th.books.save)?.disabled).toBe(true)
+  })
+})

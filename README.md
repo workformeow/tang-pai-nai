@@ -30,7 +30,7 @@ npm run db:migrate  # creates data/local.db and applies every migration in drizz
 `npm run db:migrate` is required: without it the API starts with no tables. The migrations are
 committed, so you don't run `npm run db:generate` (only after changing a schema in
 `api/src/core/database/schema/`). `npm run db:seed` is optional: the currencies come from a
-migration and every other row is made in the app (sign in, create a profile and a wallet).
+migration and every other row is made in the app (sign in, create a book and a wallet).
 
 Then run both apps, each in its own terminal:
 
@@ -53,7 +53,7 @@ web app's production build behind nginx, which forwards `/api/*` like `web/middl
 Vercel) and runs them together. No npm and no Node needed on the PC, only Docker. Use it to try
 the app as a whole before a deploy.
 
-| Profile   | Opens at                | API settings                    | Database, mail, bot check                       |
+| Book   | Opens at                | API settings                    | Database, mail, bot check                       |
 | --------- | ----------------------- | ------------------------------- | ----------------------------------------------- |
 | `dev`     | `http://localhost:8080` | `api/.env.dev` (development)    | SQLite in a volume, codes in the log, test keys |
 | `staging` | `http://localhost:8081` | `api/.env.staging` (production) | staging's Turso, Resend and Turnstile           |
@@ -68,25 +68,25 @@ First time, the env files must exist (`cd api && npm run setup-env` makes both f
 fill `JWT_SECRET` / `OTP_PEPPER` with any 32+ characters, different in each file).
 
 ```bash
-docker compose --profile dev up --build -d    # build and start in the background
-docker compose --profile dev logs -f api-dev  # follow the API log (sign-in codes show here)
-docker compose --profile dev down             # stop (the database stays)
-docker compose --profile dev down -v          # stop and delete the database
+docker compose --book dev up --build -d    # build and start in the background
+docker compose --book dev logs -f api-dev  # follow the API log (sign-in codes show here)
+docker compose --book dev down             # stop (the database stays)
+docker compose --book dev down -v          # stop and delete the database
 ```
 
-The `staging` profile takes the same commands with `staging` and `api-staging`. Both can run at
+The `staging` book takes the same commands with `staging` and `api-staging`. Both can run at
 once. Rebuild with `--build` after pulling or changing code.
 
 ### `api/.env.staging`: staging's keys
 
 Gitignored and never copied into an image. It holds staging's own values (never production's,
 which live only in Vercel); the file's header and [`docs/env.md`](docs/env.md) say what goes
-where. Fill the `CHANGE-ME` values, try it with the `staging` profile, then import the same file
+where. Fill the `CHANGE-ME` values, try it with the `staging` book, then import the same file
 into Vercel (API project → Environment Variables → Import .env, **Preview**, branch `develop`).
 
 - Production mode refuses the `console` providers: the file sets `EMAIL_PROVIDER="smtp"` and
   `SMS_PROVIDER="disabled"`; the API won't start until `SMTP_URL` is filled
-  (`docker compose --profile staging logs api-staging` says what is missing).
+  (`docker compose --book staging logs api-staging` says what is missing).
 - Compose sets `WEB_ORIGIN` and `BASE_URL` to `localhost:8081` itself, so links in the mails open
   the local copy. The staging Turnstile widget needs `localhost` among its hostnames for this.
 - Until a domain is verified in Resend, `EMAIL_FROM="onboarding@resend.dev"` sends only to the

@@ -2,8 +2,8 @@ import type { LiveProviderName } from '@/shared/types'
 
 // docs/features/live-sync.md. A poke says only "something changed" (rule 4): never data.
 
-/** `user:<userId>` (one user's own devices) or `profile:<profileId>` (a shared profile's viewers). */
-export type LiveChannel = `user:${string}` | `profile:${string}`
+/** `user:<userId>` (one user's own devices) or `book:<bookId>` (a shared book's viewers). */
+export type LiveChannel = `user:${string}` | `book:${string}`
 
 /** Rule 4: the highest `changeSeq` the push stamped and the device that pushed. */
 export interface LivePoke {
@@ -17,10 +17,10 @@ export interface LiveMessage {
   poke: LivePoke
 }
 
-/** What a device may listen to (rule 3): its `user:` channel and these `profile:` channels. */
+/** What a device may listen to (rule 3): its `user:` channel and these `book:` channels. */
 export interface LiveGrant {
   userId: string
-  profileIds: string[]
+  bookIds: string[]
 }
 
 /** `POST /live/token`: how the device listens (rule 8). */
@@ -32,8 +32,8 @@ export type LiveToken =
 /** A listener of the `local` stream (rule 9): one open `GET /live/events`. */
 export interface LiveListener {
   userId: string
-  /** Rule 3, asked on each `profile:` poke (membership may end while the stream is open). */
-  mayListen(profileId: string): Promise<boolean>
+  /** Rule 3, asked on each `book:` poke (membership may end while the stream is open). */
+  mayListen(bookId: string): Promise<boolean>
   send(message: LiveMessage): void
 }
 

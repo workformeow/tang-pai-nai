@@ -13,7 +13,7 @@ import { openTestDatabase } from '@/core/offline/testing-db'
 import { TransactionService } from '@/core/transaction'
 
 /**
- * A test database with profile `p1`, wallets `cash` / `bank`, categories `shop` / `interest`
+ * A test database with book `p1`, wallets `cash` / `bank`, categories `shop` / `interest`
  * (expense) and `gift` (income), and real services (spec helper, like `report-testing.ts`).
  * `debt` and `entry` put pulled rows; `changes` re-runs the reads.
  */
@@ -46,7 +46,7 @@ export const setUpDebts = async (today = '2026-11-09', routes: Routes = []) => {
     putRow(db, table, { ...base, ...row })
     changes.update((n) => n + 1)
   }
-  putRow(db, 'profiles', {
+  putRow(db, 'books', {
     ...base,
     id: 'p1',
     name: 'ครอบครัว',
@@ -89,7 +89,7 @@ export const setUpDebts = async (today = '2026-11-09', routes: Routes = []) => {
   ] as const) {
     pulled('wallets', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       name: id,
       currencyCode: 'THB',
       initialBalance,
@@ -107,7 +107,7 @@ export const setUpDebts = async (today = '2026-11-09', routes: Routes = []) => {
   ] as const) {
     pulled('categories', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       type,
       parentId: null,
       name: id,
@@ -120,7 +120,7 @@ export const setUpDebts = async (today = '2026-11-09', routes: Routes = []) => {
   const debt = (id: string, extra: object = {}) =>
     pulled('debts', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       direction: 'borrowed',
       person: id,
       note: '',
@@ -134,7 +134,7 @@ export const setUpDebts = async (today = '2026-11-09', routes: Routes = []) => {
   const entry = (debtId: string, kind: string, amount: number, extra: object = {}) =>
     pulled('debt_entries', {
       id: `${debtId}-e${++n}`,
-      profileId: 'p1',
+      bookId: 'p1',
       debtId,
       kind,
       walletId: 'cash',
@@ -147,7 +147,7 @@ export const setUpDebts = async (today = '2026-11-09', routes: Routes = []) => {
   const transaction = (id: string, extra: object = {}) =>
     pulled('transactions', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       walletId: 'bank',
       categoryId: 'shop',
       amount: 300000,

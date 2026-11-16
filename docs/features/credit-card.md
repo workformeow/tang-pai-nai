@@ -38,7 +38,7 @@ a bill is paid with **one transfer** from a counted wallet to the card.
    (server check in the row schema, `VALIDATION`; the form switches it on and locks it). Wallet
    rule 7 (the total) doesn't change: a card's balance never adds to ยอดรวม.
 2. **A card counts in "ทุกกระเป๋า".** Transaction rule 11's and report rule 2's "all wallets" =
-   the profile's wallets with `excludeFromTotal = false` **or** `isCreditCard = true` (archived
+   the book's wallets with `excludeFromTotal = false` **or** `isCreditCard = true` (archived
    ones included). So a purchase counts in the month's รายจ่าย and the reports by category on the
    day it was made, and a payment (a transfer from a counted wallet to the card) has both sides in
    view, so it adds nothing to รายรับ / รายจ่าย or the summary's "โอน" line.

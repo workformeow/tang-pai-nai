@@ -1,9 +1,9 @@
 import { DOCUMENT } from '@angular/common'
 import { computed, inject, Service, signal } from '@angular/core'
+import { BookService } from '@/core/book'
 import { CATEGORY_TABLE } from '@/core/category'
 import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
-import { ProfileService } from '@/core/profile'
 import { RecurringService } from '@/core/recurring'
 import { TRANSACTION_TABLE, TransactionService } from '@/core/transaction'
 import {
@@ -40,24 +40,24 @@ import type {
 export class DebtService {
   private offlineService = inject(OfflineService)
   private syncService = inject(SyncService)
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
   private walletService = inject(WalletService)
   private transactionService = inject(TransactionService)
   private recurringService = inject(RecurringService)
   private window = inject(DOCUMENT).defaultView
 
-  canWrite = this.profileService.canWrite
-  serverDown = this.profileService.serverDown
+  canWrite = this.bookService.canWrite
+  serverDown = this.bookService.serverDown
 
   /** The open sheets (the debts pages render them). */
   sheet = signal<DebtSheetState | null>(null)
   entrySheet = signal<EntrySheetState | null>(null)
   closeSheet = signal<string | null>(null)
 
-  /** The current profile's live debts with their sums, open ones by due date (none last). */
+  /** The current book's live debts with their sums, open ones by due date (none last). */
   items = computed<DebtItem[]>(() => {
-    const profileId = this.profileService.current()?.id
-    if (!profileId) {
+    const bookId = this.bookService.current()?.id
+    if (!bookId) {
       return []
     }
     const today = this.transactionService.today()
@@ -95,9 +95,9 @@ export class DebtService {
                  SELECT max(t.occurred_on) FROM ${TRANSACTION_TABLE} t
                  WHERE t.debt_id = d.id AND t.deleted_at IS NULL)) AS last_on
              FROM ${DEBT_TABLE} d
-             WHERE d.profile_id = ? AND d.deleted_at IS NULL
+             WHERE d.book_id = ? AND d.deleted_at IS NULL
              ORDER BY d.due_on IS NULL, d.due_on, d.created_at`,
-            [profileId]
+            [bookId]
           )
           .map((row) => {
             const debt = toDebt(fromSql(DEBT_TABLE, row))
@@ -123,7 +123,7 @@ export class DebtService {
     )
   })
   openItems = computed(() => this.items().filter((item) => !item.closed))
-  atLimit = computed(() => this.openItems().length >= DEBT_LIMITS.OPEN_PER_PROFILE)
+  atLimit = computed(() => this.openItems().length >= DEBT_LIMITS.OPEN_PER_BOOK)
 
   /** Debts with an op still waiting to sync. */
   pendingIds = computed(
@@ -142,19 +142,19 @@ export class DebtService {
       )
   )
 
-  /** Names used before in the profile (the person field's suggestions, Q3). */
+  /** Names used before in the book (the person field's suggestions, Q3). */
   people = computed<string[]>(() => {
-    const profileId = this.profileService.current()?.id
-    if (!profileId) {
+    const bookId = this.bookService.current()?.id
+    if (!bookId) {
       return []
     }
     return this.read(
       (db) =>
         db
           .selectObjects(
-            `SELECT person FROM ${DEBT_TABLE} WHERE profile_id = ? AND deleted_at IS NULL
+            `SELECT person FROM ${DEBT_TABLE} WHERE book_id = ? AND deleted_at IS NULL
              GROUP BY person ORDER BY max(updated_at) DESC LIMIT 30`,
-            [profileId]
+            [bookId]
           )
           .map((row) => String(row['person'])),
       []
@@ -165,7 +165,7 @@ export class DebtService {
     return this.items().find((item) => item.debt.id === id) ?? null
   }
 
-  /** A live debt of any profile on this device. */
+  /** A live debt of any book on this device. */
   byId(id: string): Debt | null {
     return this.read((db) => {
       const debt = findDebt(db, id)
@@ -261,14 +261,14 @@ export class DebtService {
    * recurring rule (debt rule 13), which records what is due up to today. Answers the id.
    */
   create(values: DebtValues, plan: PlanValues | null = null): string {
-    const profileId = this.profileService.current()?.id ?? ''
+    const bookId = this.bookService.current()?.id ?? ''
     const now = Date.now()
     const id = uuidv7(now)
     const repaid = values.direction === 'borrowed' && values.countAs === 'repaid'
     this.offlineService.write((db) => {
       queueWrite(db, DEBT_TABLE, 'upsert', {
         id,
-        profileId,
+        bookId,
         direction: values.direction,
         person: values.person.trim(),
         note: values.note.trim(),
@@ -282,7 +282,7 @@ export class DebtService {
       })
       queueWrite(db, DEBT_ENTRY_TABLE, 'upsert', {
         id: uuidv7(now),
-        profileId,
+        bookId,
         debtId: id,
         kind: 'principal',
         walletId: repaid ? null : values.walletId,
@@ -309,7 +309,7 @@ export class DebtService {
           excludeFromReport: false,
           startOn: plan.startOn,
         },
-        profileId
+        bookId
       )
     }
     return id
@@ -414,7 +414,7 @@ export class DebtService {
       queueWrite(db, DEBT_ENTRY_TABLE, 'upsert', {
         ...current,
         id: rowId,
-        profileId: debt.profileId,
+        bookId: debt.bookId,
         debtId,
         kind: values.kind,
         walletId: values.walletId,
@@ -475,7 +475,7 @@ export class DebtService {
       const entry = (walletId: string | null, entryNote = '') =>
         queueWrite(db, DEBT_ENTRY_TABLE, 'upsert', {
           id: uuidv7(now),
-          profileId: debt.profileId,
+          bookId: debt.bookId,
           debtId,
           kind: 'repayment',
           walletId,
@@ -559,7 +559,7 @@ export class DebtService {
   ): void {
     queueWrite(db, TRANSACTION_TABLE, 'upsert', {
       id: uuidv7(values.now),
-      profileId: debt.profileId,
+      bookId: debt.bookId,
       walletId: values.walletId,
       categoryId: values.categoryId,
       amount: values.amount,
@@ -585,7 +585,7 @@ export class DebtService {
       )
       .at(0)
     const id = typeof row?.['wallet_id'] === 'string' ? row['wallet_id'] : null
-    return id ?? this.walletService.openOf(debt.profileId).at(0)?.id ?? ''
+    return id ?? this.walletService.openOf(debt.bookId).at(0)?.id ?? ''
   }
 
   private setEntryDeleted(id: string, deleted: boolean): void {
@@ -631,7 +631,7 @@ const text = (value: unknown): string | null => (typeof value === 'string' ? val
 
 export const toDebt = (row: Record<string, unknown>): Debt => ({
   id: String(row['id']),
-  profileId: String(row['profileId']),
+  bookId: String(row['bookId']),
   direction: row['direction'] === 'lent' ? 'lent' : 'borrowed',
   person: text(row['person']) ?? '',
   note: text(row['note']) ?? '',
@@ -647,7 +647,7 @@ export const toDebt = (row: Record<string, unknown>): Debt => ({
 
 export const toEntry = (row: Record<string, unknown>): DebtEntry => ({
   id: String(row['id']),
-  profileId: String(row['profileId']),
+  bookId: String(row['bookId']),
   debtId: String(row['debtId']),
   kind: row['kind'] === 'principal' ? 'principal' : 'repayment',
   walletId: text(row['walletId']),

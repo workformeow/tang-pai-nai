@@ -19,7 +19,7 @@ properties:
             role: { $ref: './sharing-role.schema.yaml' }
             walletIds:
               type: array
-              description: The member's open wallets of this profile
+              description: The member's open wallets of this book
               items: { type: string, format: uuid }
             addedAt: { type: integer, description: Epoch ms }
       invites:
@@ -28,5 +28,5 @@ properties:
         items: { $ref: './sharing-invite.schema.yaml' }
       unsharedWalletIds:
         type: array
-        description: Open wallets of the profile shared with nobody
+        description: Open wallets of the book shared with nobody
         items: { type: string, format: uuid }

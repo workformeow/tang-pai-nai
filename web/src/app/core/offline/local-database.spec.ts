@@ -1,5 +1,24 @@
 import { openTestDatabase } from './testing-db'
 
+/** Back to before schema step 16 (books): an older snapshot calls them profiles. */
+const UNDO_STEP_16 = `ALTER TABLE books RENAME TO profiles;
+  DROP INDEX wallets_book; ALTER TABLE wallets RENAME COLUMN book_id TO profile_id;
+  CREATE INDEX wallets_profile ON wallets (profile_id);
+  DROP INDEX categories_book; ALTER TABLE categories RENAME COLUMN book_id TO profile_id;
+  CREATE INDEX categories_profile ON categories (profile_id);
+  DROP INDEX transactions_book_day; ALTER TABLE transactions RENAME COLUMN book_id TO profile_id;
+  CREATE INDEX transactions_profile_day ON transactions (profile_id, occurred_on);
+  DROP INDEX transfers_book_day; ALTER TABLE transfers RENAME COLUMN book_id TO profile_id;
+  CREATE INDEX transfers_profile_day ON transfers (profile_id, occurred_on);
+  DROP INDEX recurring_rules_book; ALTER TABLE recurring_rules RENAME COLUMN book_id TO profile_id;
+  CREATE INDEX recurring_rules_profile ON recurring_rules (profile_id);
+  DROP INDEX debts_book; ALTER TABLE debts RENAME COLUMN book_id TO profile_id;
+  CREATE INDEX debts_profile ON debts (profile_id);
+  DROP INDEX debt_entries_book_day; ALTER TABLE debt_entries RENAME COLUMN book_id TO profile_id;
+  CREATE INDEX debt_entries_profile_day ON debt_entries (profile_id, occurred_on);
+  DROP INDEX events_book; ALTER TABLE events RENAME COLUMN book_id TO profile_id;
+  CREATE INDEX events_profile ON events (profile_id)`
+
 /** Back to before schema step 12 (#13): an older snapshot has no debts. */
 const UNDO_STEP_12 = `DROP TABLE debts; DROP TABLE debt_entries;
   DROP INDEX transactions_debt; ALTER TABLE transactions DROP COLUMN debt_id;
@@ -26,7 +45,7 @@ describe('LocalDatabase', () => {
         'categories',
         'currencies',
         'outbox',
-        'profiles',
+        'books',
         'sync_meta',
         'sync_notices',
         'recurring_rules',
@@ -39,12 +58,13 @@ describe('LocalDatabase', () => {
       ])
     )
     expect(tables).not.toContain('sync_probes')
-    expect(db.selectValue('PRAGMA user_version')).toBe(15)
+    expect(db.selectValue('PRAGMA user_version')).toBe(16)
     db.close()
   })
 
   it('brings a 4a.1 snapshot (schema step 1) up to date and keeps its data', async () => {
     const old = await openTestDatabase()
+    old.exec(UNDO_STEP_16)
     old.exec(UNDO_STEP_15)
     old.exec(UNDO_STEP_14)
     old.exec(UNDO_STEP_13)
@@ -60,10 +80,10 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(15)
+    expect(db.selectValue('PRAGMA user_version')).toBe(16)
     expect(db.selectValue(`SELECT value FROM sync_meta WHERE key = 'deviceId'`)).toBe('d1')
     expect(db.selectValue('SELECT count(*) FROM outbox')).toBe(0)
-    expect(db.selectValue('SELECT count(*) FROM profiles')).toBe(0)
+    expect(db.selectValue('SELECT count(*) FROM books')).toBe(0)
     expect(db.selectValue('SELECT count(*) FROM wallets')).toBe(0)
     expect(db.selectValue('SELECT count(*) FROM categories')).toBe(0)
     expect(db.selectValue('SELECT count(*) FROM transactions')).toBe(0)
@@ -72,6 +92,7 @@ describe('LocalDatabase', () => {
 
   it('drops the dev-only sync_probes with its ops and notices (step 5), keeping the rest', async () => {
     const old = await openTestDatabase()
+    old.exec(UNDO_STEP_16)
     old.exec(UNDO_STEP_15)
     old.exec(UNDO_STEP_14)
     old.exec(UNDO_STEP_13)
@@ -100,6 +121,7 @@ describe('LocalDatabase', () => {
 
   it('adds categories (step 6) to a 6.2 snapshot', async () => {
     const old = await openTestDatabase()
+    old.exec(UNDO_STEP_16)
     old.exec(UNDO_STEP_15)
     old.exec(UNDO_STEP_14)
     old.exec(UNDO_STEP_13)
@@ -115,7 +137,7 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(15)
+    expect(db.selectValue('PRAGMA user_version')).toBe(16)
     expect(db.selectValue('SELECT count(*) FROM categories')).toBe(0)
     expect(db.selectValue(`SELECT value FROM sync_meta WHERE key = 'deviceId'`)).toBe('d1')
     db.close()
@@ -123,6 +145,7 @@ describe('LocalDatabase', () => {
 
   it('adds wallets.hidden_category_ids (step 7) to a 7.1 snapshot, [] for its wallets', async () => {
     const old = await openTestDatabase()
+    old.exec(UNDO_STEP_16)
     old.exec(UNDO_STEP_15)
     old.exec(UNDO_STEP_14)
     old.exec(UNDO_STEP_13)
@@ -140,13 +163,14 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(15)
+    expect(db.selectValue('PRAGMA user_version')).toBe(16)
     expect(db.selectValue('SELECT hidden_category_ids FROM wallets')).toBe('[]')
     db.close()
   })
 
   it('adds transactions (step 8) with its indexes to a 7.2 snapshot', async () => {
     const old = await openTestDatabase()
+    old.exec(UNDO_STEP_16)
     old.exec(UNDO_STEP_15)
     old.exec(UNDO_STEP_14)
     old.exec(UNDO_STEP_13)
@@ -161,7 +185,7 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(15)
+    expect(db.selectValue('PRAGMA user_version')).toBe(16)
     expect(db.selectValue('SELECT count(*) FROM transactions')).toBe(0)
     expect(
       db
@@ -171,10 +195,10 @@ describe('LocalDatabase', () => {
         )
         .map((row) => row['name'])
     ).toEqual([
+      'transactions_book_day',
       'transactions_category',
       'transactions_debt',
       'transactions_event',
-      'transactions_profile_day',
       'transactions_wallet',
     ])
     db.close()
@@ -182,6 +206,7 @@ describe('LocalDatabase', () => {
 
   it('adds categories.merged_into_id (step 10) to a #9 snapshot, null for its categories', async () => {
     const old = await openTestDatabase()
+    old.exec(UNDO_STEP_16)
     old.exec(UNDO_STEP_15)
     old.exec(UNDO_STEP_14)
     old.exec(UNDO_STEP_13)
@@ -198,13 +223,14 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(15)
+    expect(db.selectValue('PRAGMA user_version')).toBe(16)
     expect(db.selectValue('SELECT merged_into_id FROM categories')).toBeNull()
     db.close()
   })
 
   it('adds recurring_rules and recurring_id (step 11) to a 7.3 snapshot, null for its rows', async () => {
     const old = await openTestDatabase()
+    old.exec(UNDO_STEP_16)
     old.exec(UNDO_STEP_15)
     old.exec(UNDO_STEP_14)
     old.exec(UNDO_STEP_13)
@@ -220,7 +246,7 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(15)
+    expect(db.selectValue('PRAGMA user_version')).toBe(16)
     expect(db.selectValue('SELECT recurring_id FROM transactions')).toBeNull()
     expect(db.selectValue('SELECT count(*) FROM recurring_rules')).toBe(0)
     db.close()
@@ -228,6 +254,7 @@ describe('LocalDatabase', () => {
 
   it('adds debts, debt_entries and debt_id (step 12) to a #12 snapshot, null for its rows', async () => {
     const old = await openTestDatabase()
+    old.exec(UNDO_STEP_16)
     old.exec(UNDO_STEP_15)
     old.exec(UNDO_STEP_14)
     old.exec(UNDO_STEP_13)
@@ -240,7 +267,7 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(15)
+    expect(db.selectValue('PRAGMA user_version')).toBe(16)
     expect(db.selectValue('SELECT debt_id FROM transactions')).toBeNull()
     expect(db.selectValue('SELECT count(*) FROM debts')).toBe(0)
     expect(db.selectValue('SELECT count(*) FROM debt_entries')).toBe(0)
@@ -249,6 +276,7 @@ describe('LocalDatabase', () => {
 
   it('adds events and event_id (step 13) to a #13 snapshot, null for its rows', async () => {
     const old = await openTestDatabase()
+    old.exec(UNDO_STEP_16)
     old.exec(UNDO_STEP_15)
     old.exec(UNDO_STEP_14)
     old.exec(UNDO_STEP_13)
@@ -260,7 +288,7 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(15)
+    expect(db.selectValue('PRAGMA user_version')).toBe(16)
     expect(db.selectValue('SELECT event_id FROM transactions')).toBeNull()
     expect(db.selectValue('SELECT count(*) FROM events')).toBe(0)
     db.close()
@@ -280,6 +308,7 @@ describe('LocalDatabase', () => {
 
   it('adds transactions.added_by (step 14) to a #14 snapshot, null for its rows', async () => {
     const old = await openTestDatabase()
+    old.exec(UNDO_STEP_16)
     old.exec(UNDO_STEP_15)
     old.exec(UNDO_STEP_14)
     old.exec(`INSERT INTO transactions (id, profile_id, wallet_id, category_id, amount,
@@ -290,13 +319,14 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(15)
+    expect(db.selectValue('PRAGMA user_version')).toBe(16)
     expect(db.selectValue(`SELECT added_by FROM transactions WHERE id = 't1'`)).toBeNull()
     db.close()
   })
 
   it('adds wallets.is_credit_card (step 15) to a #16.2 snapshot, off for its rows', async () => {
     const old = await openTestDatabase()
+    old.exec(UNDO_STEP_16)
     old.exec(UNDO_STEP_15)
     old.exec(`INSERT INTO wallets (id, profile_id, name, currency_code, initial_balance, icon,
         color, exclude_from_total, is_archived, sort_order, created_at, updated_at)
@@ -306,19 +336,48 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(15)
+    expect(db.selectValue('PRAGMA user_version')).toBe(16)
     expect(db.selectValue(`SELECT is_credit_card FROM wallets WHERE id = 'w1'`)).toBe(0)
+    db.close()
+  })
+
+  it('renames profiles to books (step 16), their ops and notices too, keeping the rows', async () => {
+    const old = await openTestDatabase()
+    old.exec(UNDO_STEP_16)
+    old.exec(`INSERT INTO profiles (id, name, icon, color, sort_order, created_at, updated_at)
+        VALUES ('p1', 'Home', 'lucideHouse', '#16a34a', 0, 1, 1);
+      INSERT INTO wallets (id, profile_id, name, currency_code, initial_balance, icon, color,
+        exclude_from_total, is_archived, sort_order, created_at, updated_at)
+        VALUES ('w1', 'p1', 'Cash', 'THB', 0, 'lucideWallet', '#16a34a', 0, 0, 0, 1, 1);
+      INSERT INTO outbox (op_id, tbl, row_id, op, row, created_at)
+        VALUES ('o1', 'profiles', 'p1', 'upsert', '{"id":"p1"}', 1),
+          ('o2', 'wallets', 'w1', 'upsert', '{"id":"w1","profileId":"p1"}', 1);
+      INSERT INTO sync_notices (id, tbl, row_id, previous, created_at)
+        VALUES ('n1', 'profiles', 'p1', '{}', 1);
+      PRAGMA user_version = 15`)
+    const snapshot = old.export()
+    old.close()
+
+    const db = await openTestDatabase(snapshot)
+    expect(db.selectValue('PRAGMA user_version')).toBe(16)
+    expect(db.selectObjects('SELECT id, name FROM books')).toEqual([{ id: 'p1', name: 'Home' }])
+    expect(db.selectValue(`SELECT book_id FROM wallets WHERE id = 'w1'`)).toBe('p1')
+    expect(db.selectObjects('SELECT tbl, row FROM outbox ORDER BY op_id')).toEqual([
+      { tbl: 'books', row: '{"id":"p1"}' },
+      { tbl: 'wallets', row: '{"id":"w1","bookId":"p1"}' },
+    ])
+    expect(db.selectValue('SELECT tbl FROM sync_notices')).toBe('books')
     db.close()
   })
 
   it('shadows tables with TEMP copies that every query reads and no export holds', async () => {
     const db = await openTestDatabase()
-    db.exec(`INSERT INTO wallets (id, profile_id, name, currency_code, initial_balance, icon,
+    db.exec(`INSERT INTO wallets (id, book_id, name, currency_code, initial_balance, icon,
         color, exclude_from_total, is_archived, sort_order, created_at, updated_at)
         VALUES ('mine', 'p1', 'Mine', 'THB', 0, 'lucideWallet', '#16a34a', 0, 0, 0, 1, 1)`)
     db.createShadows(['wallets', 'outbox'])
     expect(db.selectValue('SELECT count(*) FROM wallets')).toBe(0)
-    db.exec(`INSERT INTO wallets (id, profile_id, name, currency_code, initial_balance, icon,
+    db.exec(`INSERT INTO wallets (id, book_id, name, currency_code, initial_balance, icon,
         color, exclude_from_total, is_archived, sort_order, created_at, updated_at)
         VALUES ('theirs', 'p2', 'Theirs', 'THB', 0, 'lucideWallet', '#16a34a', 0, 0, 0, 1, 1)`)
     expect(db.selectObjects('SELECT id FROM wallets')).toEqual([{ id: 'theirs' }])

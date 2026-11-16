@@ -14,7 +14,7 @@ import { ReportService } from '@/core/report'
 import { TransactionService } from '@/core/transaction'
 
 /**
- * The report pages' specs: a test database with one profile, three wallets (one left out of
+ * The report pages' specs: a test database with one book, three wallets (one left out of
  * the total), a parent category with a child, an archived one, income, and October 2026 as
  * "เดือนที่แล้ว" (today is 2 Nov 2026). Real services over it, as `transactions-page.spec`.
  */
@@ -50,7 +50,7 @@ export const setUpReports = async (providers: Provider[] = []) => {
   const transaction = (occurredOn: string, categoryId: string, amount: number, extra = {}) =>
     pulled('transactions', {
       id: `t${++seq}`,
-      profileId: 'p1',
+      bookId: 'p1',
       walletId: 'cash',
       categoryId,
       amount,
@@ -62,7 +62,7 @@ export const setUpReports = async (providers: Provider[] = []) => {
     })
 
   localStorage.clear()
-  putRow(db, 'profiles', {
+  putRow(db, 'books', {
     ...base,
     id: 'p1',
     name: 'p1',
@@ -111,7 +111,7 @@ export const setUpReports = async (providers: Provider[] = []) => {
   const wallet = (id: string, extra: object = {}) =>
     pulled('wallets', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       name: id,
       currencyCode: 'THB',
       initialBalance: 0,
@@ -125,7 +125,7 @@ export const setUpReports = async (providers: Provider[] = []) => {
   const category = (id: string, type: string, extra: object = {}) =>
     pulled('categories', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       type,
       parentId: null,
       name: id,
@@ -150,7 +150,7 @@ export const setUpReports = async (providers: Provider[] = []) => {
   transaction('2026-10-09', 'fun', 15000)
   pulled('transfers', {
     id: 'r1',
-    profileId: 'p1',
+    bookId: 'p1',
     fromWalletId: 'card',
     toWalletId: 'save',
     amount: 50000,

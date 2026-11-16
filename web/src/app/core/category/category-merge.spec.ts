@@ -5,7 +5,7 @@ import { followMerges, hasMergeLeftovers, mergeTargetOf } from './category-merge
 
 const category = (id: string, extra: Record<string, unknown> = {}) => ({
   id,
-  profileId: 'p',
+  bookId: 'p',
   type: 'expense',
   parentId: null,
   name: id,
@@ -22,7 +22,7 @@ const category = (id: string, extra: Record<string, unknown> = {}) => ({
 
 const transaction = (id: string, categoryId: string, extra: Record<string, unknown> = {}) => ({
   id,
-  profileId: 'p',
+  bookId: 'p',
   walletId: 'w',
   categoryId,
   amount: 100,
@@ -51,7 +51,7 @@ describe('category-merge', () => {
   afterEach(() => db.close())
 
   describe('mergeTargetOf', () => {
-    it('follows merges to a live category of the same profile and type, up to five', () => {
+    it('follows merges to a live category of the same book and type, up to five', () => {
       for (const value of [
         category('end', { isArchived: true }),
         merged('m1', 'm2'),
@@ -72,7 +72,7 @@ describe('category-merge', () => {
         category('live'),
         category('plain', { deletedAt: 5 }),
         category('salary', { type: 'income' }),
-        category('other', { profileId: 'q' }),
+        category('other', { bookId: 'q' }),
         merged('toSalary', 'salary'),
         merged('toOther', 'other'),
         merged('toNowhere', 'nope'),

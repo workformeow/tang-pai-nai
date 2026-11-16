@@ -5,7 +5,7 @@ import { env } from '@/core/config'
 import { makeTempDir, removeTempDir } from '@/shared/testing/temp-dir'
 import { createDatabase } from './client'
 import { users } from './schema/auth'
-import { profiles } from './schema/profile'
+import { books } from './schema/book'
 import { walletMembers, wallets } from './schema/wallet'
 import { walletAccess } from './wallet-access'
 import type { Database } from './client'
@@ -22,7 +22,7 @@ const wallet = (
 ): typeof wallets.$inferInsert => ({
   id,
   userId: 'alice',
-  profileId: 'pa',
+  bookId: 'pa',
   name: id,
   currencyCode: 'THB',
   initialBalance: 0,
@@ -45,7 +45,7 @@ beforeEach(async () => {
     { id: 'bob', email: 'b@example.com', displayName: 'b' },
     { id: 'carol', email: 'c@example.com', displayName: 'c' },
   ])
-  const profile = (id: string, deletedAt: number | null = null) => ({
+  const book = (id: string, deletedAt: number | null = null) => ({
     id,
     userId: 'alice',
     name: id,
@@ -55,14 +55,14 @@ beforeEach(async () => {
     deletedAt,
     ...sync('alice'),
   })
-  await created.db.insert(profiles).values([profile('pa'), profile('gone', 5)])
+  await created.db.insert(books).values([book('pa'), book('gone', 5)])
   await created.db
     .insert(wallets)
     .values([
       wallet('home'),
       wallet('old', { isArchived: true }),
       wallet('deleted', { deletedAt: 5 }),
-      wallet('orphan', { profileId: 'gone' }),
+      wallet('orphan', { bookId: 'gone' }),
     ])
   await created.db.insert(walletMembers).values(
     ['home', 'old', 'deleted', 'orphan'].flatMap((walletId) => [
@@ -86,7 +86,7 @@ describe('walletAccess', () => {
     expect(await walletAccess(db, 'carol', 'home')).toEqual({ ownerId: 'alice', role: 'viewer' })
   })
 
-  it('gives members no role on an archived or deleted wallet, or one on a deleted profile', async () => {
+  it('gives members no role on an archived or deleted wallet, or one on a deleted book', async () => {
     for (const id of ['old', 'deleted', 'orphan']) {
       expect(await walletAccess(db, 'bob', id)).toEqual({ ownerId: 'alice', role: null })
     }
