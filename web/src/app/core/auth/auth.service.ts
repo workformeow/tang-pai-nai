@@ -303,6 +303,14 @@ export class AuthService {
     }
   }
 
+  /** Saves the name other people see (`PATCH /auth/me`, online only) and shows it at once. */
+  async updateProfile(displayName: string): Promise<void> {
+    const response = await this.api.patch<AuthUser>('/auth/me', { displayName })
+    if (response.data) {
+      this.authStore.user.set(response.data)
+    }
+  }
+
   async signOut(): Promise<void> {
     await this.api.post('/auth/sign-out', {}, { context: skipAuthRefresh() })
     this.authStore.clear()

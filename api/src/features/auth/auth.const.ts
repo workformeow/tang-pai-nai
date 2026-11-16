@@ -106,6 +106,7 @@ export enum AuthErrorCode {
 export const AUTH_MESSAGE = {
   CODE_SENT: 'If the address can sign in, a code and a link are on their way',
   SIGNED_IN: 'Signed in',
+  PROFILE_SAVED: 'Profile saved',
   REFRESHED: 'Session refreshed',
   SIGNED_OUT: 'Signed out',
   CODE_INVALID: 'The code is incorrect',

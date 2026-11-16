@@ -37,6 +37,14 @@ export class ApiClient {
     return firstValueFrom(this.http.put<ApiResponse<T>>(this.PREFIX + path, body, options))
   }
 
+  async patch<T>(
+    path: string,
+    body: unknown = {},
+    options: ApiRequestOptions = {}
+  ): Promise<ApiResponse<T>> {
+    return firstValueFrom(this.http.patch<ApiResponse<T>>(this.PREFIX + path, body, options))
+  }
+
   async delete<T>(
     path: string,
     body: unknown = {},

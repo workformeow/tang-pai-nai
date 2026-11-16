@@ -67,6 +67,7 @@ export const createAuthRouter = (
   router.post('/refresh', sameOrigin, authController.refresh)
   router.post('/sign-out', sameOrigin, authController.signOut)
   router.get('/me', authenticate, authController.me)
+  router.patch('/me', authenticate, validate(authSchema.updateMe), authController.updateMe)
   // Privacy rules 5–10: what deleting takes with it, and deleting (recent auth + typed email).
   router.get('/account/deletion', authenticate, authController.accountDeletion)
   router.delete(

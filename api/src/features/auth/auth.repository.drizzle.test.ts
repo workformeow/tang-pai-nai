@@ -336,6 +336,20 @@ describe('fillAvatarIfEmpty', () => {
   })
 })
 
+describe('setDisplayName', () => {
+  it('saves the name and the time, and answers null for a missing user', async () => {
+    const user = await repo.createUser({ email: 'a@example.com', displayName: 'a' })
+    const at = new Date('2026-11-16T10:00:00Z')
+
+    expect(await repo.setDisplayName(user.id, 'สมชาย ใจดี', at)).toMatchObject({
+      displayName: 'สมชาย ใจดี',
+      updatedAt: at,
+    })
+    expect(await repo.findUserById(user.id)).toMatchObject({ displayName: 'สมชาย ใจดี' })
+    expect(await repo.setDisplayName('missing', 'x', at)).toBeNull()
+  })
+})
+
 describe('identity per user (4.4a)', () => {
   it('finds and deletes the user’s identity of one provider, nobody else’s', async () => {
     const one = await repo.createUser({ email: 'a@example.com', displayName: 'a' })

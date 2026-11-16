@@ -101,6 +101,18 @@ describe('AccountPage', () => {
     expect(link?.textContent).toContain('ใช้อยู่: ส่วนตัว · ทั้งหมด 2')
   })
 
+  it('opens "แก้ไขโปรไฟล์" from the name card on top (design A)', async () => {
+    TestBed.inject(AuthStore).user.set({ displayName: 'mom', email: 'm@example.com' } as AuthUser)
+    fixture.detectChanges()
+    const card = page().querySelector(`button[aria-label="${th.profile.edit}"]`) as HTMLElement
+    expect(card.textContent).toContain('mom')
+    expect(card.textContent).toContain('m@example.com')
+    card.click()
+    await settle()
+    expect(document.body.querySelector('hlm-drawer-content input')).toBeTruthy()
+    expect(document.body.textContent).toContain(th.profile.name)
+  })
+
   it('groups rows that each open a page, with a line on what is there (A1)', () => {
     const headings = [...page().querySelectorAll('h2')].map((h) => h.textContent.trim())
     expect(headings).toEqual([

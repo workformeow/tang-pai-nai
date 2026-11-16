@@ -534,6 +534,32 @@ describe('getMe', () => {
   })
 })
 
+describe('updateMe', () => {
+  it('saves the display name and returns the user as getMe does', async () => {
+    const ctx = setup()
+    const { user } = await signIn(ctx)
+
+    await expect(ctx.service.updateMe(user.id, 'สมชาย ใจดี')).resolves.toMatchObject({
+      email: EMAIL,
+      displayName: 'สมชาย ใจดี',
+      hasPassword: false,
+    })
+    await expect(ctx.service.getMe(user.id)).resolves.toMatchObject({ displayName: 'สมชาย ใจดี' })
+  })
+
+  it('answers 401 for an unknown user and 403 for a disabled one, changing nothing', async () => {
+    const ctx = setup({ seed: { users: [disabledUser] } })
+
+    await expect(ctx.service.updateMe('missing', 'x')).rejects.toMatchObject({ status: 401 })
+    await expect(ctx.service.updateMe(disabledUser.id, 'x')).rejects.toMatchObject({
+      status: 403,
+    })
+    expect(await ctx.repo.findUserById(disabledUser.id)).toMatchObject({
+      displayName: disabledUser.displayName,
+    })
+  })
+})
+
 describe('cleanup', () => {
   it('deletes only rows that ended more than 7 days ago', async () => {
     const ctx = setup()

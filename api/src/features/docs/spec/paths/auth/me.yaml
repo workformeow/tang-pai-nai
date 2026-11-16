@@ -16,3 +16,32 @@ get:
       $ref: '../../components/responses/error.response.yaml'
     '403':
       $ref: '../../components/responses/error.response.yaml'
+patch:
+  tags:
+    - Auth
+  summary: Edit the signed-in user's profile
+  description: >-
+    Sets the display name: what the Settings tab shows and what people sharing a book see. Account
+    data, not synced; no recent auth (it is no credential).
+  operationId: updateMe
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/models/auth-update-me.schema.yaml'
+  responses:
+    '200':
+      description: Saved; the user with the new name
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/auth-user-response.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '403':
+      $ref: '../../components/responses/error.response.yaml'
+    '422':
+      $ref: '../../components/responses/error.response.yaml'

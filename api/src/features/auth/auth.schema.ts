@@ -87,6 +87,16 @@ const phoneChangeBody = z.object({
 const phoneConfirmBody = z.object({ code, lang })
 const reauthVerifyBody = z.object({ code })
 
+// The name other people see; trimmed, 1–50 characters.
+const DISPLAY_NAME_MAX = 50
+const updateMeBody = z.object({
+  displayName: z
+    .string({ error: ERRORS.requiredField('Display name') })
+    .trim()
+    .min(1, ERRORS.requiredField('Display name'))
+    .max(DISPLAY_NAME_MAX, ERRORS.maxLength('Display name', DISPLAY_NAME_MAX)),
+})
+
 // Google sends the browser to these (rule 14), so a bad value never fails validation: it's
 // dropped, and the callback then redirects to the web app's error page instead of showing JSON.
 const queryValue = (max: number) => z.string().max(max).optional().catch(undefined)
@@ -124,6 +134,7 @@ export const authSchema = {
   phoneConfirm: { body: phoneConfirmBody },
   phoneRemove: { body: recentAuthBody },
   reauthVerify: { body: reauthVerifyBody },
+  updateMe: { body: updateMeBody },
   googleStart: { query: googleStartQuery },
   googleCallback: { query: googleCallbackQuery },
 } as const
@@ -137,6 +148,7 @@ export type SessionParams = z.infer<typeof sessionParams>
 export type ReauthStartInput = z.infer<typeof reauthStartBody>
 export type AccountDeleteInput = z.infer<typeof accountDeleteBody>
 export type ReauthVerifyInput = z.infer<typeof reauthVerifyBody>
+export type UpdateMeInput = z.infer<typeof updateMeBody>
 export type PhoneStartInput = z.infer<typeof phoneStartBody>
 export type PhoneVerifyInput = z.infer<typeof phoneVerifyBody>
 export type PhoneChangeInput = z.infer<typeof phoneChangeBody>
