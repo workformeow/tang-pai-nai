@@ -33,7 +33,13 @@ describe('AccountPage', () => {
   const page = () => fixture.nativeElement as HTMLElement
   const button = (label: string) =>
     [...page().querySelectorAll('button')].find((b) => b.textContent.trim() === label)
+  /** The sign-out sheet renders into `document.body` (a drawer). */
+  const sheet = () => document.body.querySelector('hlm-drawer-content')
+  const sheetButton = (label: string) =>
+    [...(sheet()?.querySelectorAll('button') ?? [])].find((b) => b.textContent.trim() === label)
   const settle = async () => {
+    await fixture.whenStable()
+    fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
   }
@@ -129,22 +135,28 @@ describe('AccountPage', () => {
     expect(text).toContain('เปิดในเบราว์เซอร์ · ไม่รองรับการเก็บถาวร')
   })
 
-  /** Taps "ออกจากระบบ", then the same label on the confirm card. */
-  const confirmSignOut = async () => {
-    button(th.account.signOut)?.click()
-    await settle()
+  /** Opens the sheet from the page's button. */
+  const openSheet = async () => {
     button(th.account.signOut)?.click()
     await settle()
   }
-
-  it('asks before signing out, and can cancel', async () => {
-    button(th.account.signOut)?.click()
+  /** Opens the sheet, then taps its own "ออกจากระบบ". */
+  const confirmSignOut = async () => {
+    await openSheet()
+    sheetButton(th.account.signOut)?.click()
     await settle()
-    expect(page().textContent).toContain(th.account.signOutConfirmText)
+  }
+
+  afterEach(() => {
+    document.body.querySelectorAll('hlm-drawer-content').forEach((el) => el.remove())
+  })
+
+  it('asks in a sheet before signing out, and can cancel', async () => {
+    await openSheet()
+    expect(sheet()?.textContent).toContain(th.account.signOutConfirmText)
     expect(syncService.flush).not.toHaveBeenCalled()
-    button(th.account.cancel)?.click()
-    fixture.detectChanges()
-    expect(page().textContent).not.toContain(th.account.signOutConfirmText)
+    sheetButton(th.account.cancel)?.click()
+    await settle()
     expect(authService.signOut).not.toHaveBeenCalled()
   })
 
@@ -155,20 +167,22 @@ describe('AccountPage', () => {
     expect(offlineService.wipe).toHaveBeenCalledOnce()
   })
 
-  it('asks before losing ops that could not be pushed, and can cancel', async () => {
+  it('warns in the sheet before losing ops that could not be pushed; cancel resets it', async () => {
     syncService.flush.mockResolvedValue(2)
     await confirmSignOut()
-    expect(page().textContent).toContain('ยังมี 2 รายการที่ยังไม่ได้ sync')
+    expect(sheet()?.textContent).toContain('ยังมี 2 รายการที่ยังไม่ได้ sync')
     expect(authService.signOut).not.toHaveBeenCalled()
-    button(th.account.cancel)?.click()
-    fixture.detectChanges()
-    expect(page().textContent).not.toContain('ยังมี 2 รายการ')
+    sheetButton(th.account.cancel)?.click()
+    await settle()
+    await openSheet()
+    expect(sheet()?.textContent).toContain(th.account.signOutConfirmText)
+    expect(sheet()?.textContent).not.toContain('ยังมี 2 รายการ')
   })
 
   it('signs out anyway once the loss is confirmed', async () => {
     syncService.flush.mockResolvedValue(1)
     await confirmSignOut()
-    button(th.account.signOutUnsyncedConfirm)?.click()
+    sheetButton(th.account.signOutUnsyncedConfirm)?.click()
     await settle()
     expect(authService.signOut).toHaveBeenCalledOnce()
     expect(offlineService.wipe).toHaveBeenCalledOnce()

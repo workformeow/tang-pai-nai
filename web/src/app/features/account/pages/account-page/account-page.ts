@@ -17,6 +17,7 @@ import {
   lucideUsers,
 } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
+import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { AuthService, AuthStore, SIGN_IN_URL } from '@/core/auth'
 import { LanguageService } from '@/core/i18n'
@@ -25,6 +26,7 @@ import { ProfileService } from '@/core/profile'
 import { DeviceStorageService } from '@/core/pwa'
 import { SharingService } from '@/core/sharing'
 import { ThemeService } from '@/core/theme'
+import { SheetFrame } from '@/shared/components/sheet'
 
 /** A row of the account page: a page to go to, with a short line on what's there. */
 interface AccountItem {
@@ -38,7 +40,7 @@ interface AccountItem {
 
 @Component({
   selector: 'app-account-page',
-  imports: [TranslocoPipe, RouterLink, NgIcon, HlmButton, HlmSpinner],
+  imports: [TranslocoPipe, RouterLink, NgIcon, HlmButton, HlmDrawerImports, HlmSpinner, SheetFrame],
   providers: [
     provideIcons({
       lucideChevronRight,
@@ -115,63 +117,82 @@ interface AccountItem {
         </section>
       }
 
-      <section class="flex flex-col gap-3">
-        @if (confirming()) {
-          <div
-            class="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 text-card-foreground"
-          >
-            @if (unsynced() > 0) {
-              <p class="text-sm">
-                {{ 'account.signOutUnsynced' | transloco: { count: unsynced() } }}
-              </p>
-            } @else {
-              <p class="text-sm">{{ 'account.signOutConfirmText' | transloco }}</p>
-            }
-            <button
-              hlmBtn
-              variant="destructive"
-              type="button"
-              class="h-11 w-full text-base"
-              [disabled]="isSigningOut()"
-              (click)="signOut(unsynced() > 0)"
-            >
-              @if (isSigningOut()) {
-                <hlm-spinner [aria-label]="'account.signingOut' | transloco" />
-              }
-              {{
-                (unsynced() > 0 ? 'account.signOutUnsyncedConfirm' : 'account.signOut') | transloco
-              }}
-            </button>
-            <button
-              hlmBtn
-              variant="outline"
-              type="button"
-              class="h-11 w-full"
-              [disabled]="isSigningOut()"
-              (click)="cancelSignOut()"
-            >
-              {{ 'account.cancel' | transloco }}
-            </button>
-          </div>
-        } @else {
-          <button
-            hlmBtn
-            variant="outline"
-            type="button"
-            class="h-11 w-full text-base"
-            (click)="confirming.set(true)"
-          >
-            <ng-icon name="lucideLogOut" aria-hidden="true" />
-            {{ 'account.signOut' | transloco }}
-          </button>
-        }
-        @if (signOutFailed()) {
-          <p role="alert" class="text-center text-sm text-destructive">
-            {{ 'account.signOutFailed' | transloco }}
-          </p>
-        }
-      </section>
+      <button
+        hlmBtn
+        variant="outline"
+        type="button"
+        class="h-11 w-full text-base"
+        (click)="confirming.set(true)"
+      >
+        <ng-icon name="lucideLogOut" aria-hidden="true" />
+        {{ 'account.signOut' | transloco }}
+      </button>
     </div>
+
+    <!-- Sign-out asks first, in a bottom sheet like every other question (DESIGN.md §6). -->
+    @defer (when confirming()) {
+      <hlm-drawer [state]="confirming() ? 'open' : 'closed'" (closed)="cancelSignOut()">
+        <hlm-drawer-content
+          *hlmDrawerPortal
+          class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
+        >
+          <app-sheet-frame
+            [title]="'account.signOut' | transloco"
+            [leadingLabel]="'sheet.close' | transloco"
+            (leading)="cancelSignOut()"
+          >
+            <div class="flex flex-col items-center gap-4 pt-6 text-center">
+              <span
+                class="flex size-14 items-center justify-center rounded-full bg-muted text-2xl text-destructive"
+                aria-hidden="true"
+              >
+                <ng-icon name="lucideLogOut" />
+              </span>
+              @if (unsynced() > 0) {
+                <p class="text-base">
+                  {{ 'account.signOutUnsynced' | transloco: { count: unsynced() } }}
+                </p>
+              } @else {
+                <p class="text-base">{{ 'account.signOutConfirmText' | transloco }}</p>
+              }
+              @if (signOutFailed()) {
+                <p role="alert" class="text-sm text-destructive">
+                  {{ 'account.signOutFailed' | transloco }}
+                </p>
+              }
+            </div>
+            <div sheetFooter class="flex flex-col gap-2 pt-3">
+              <button
+                hlmBtn
+                variant="destructive"
+                type="button"
+                class="h-11 w-full text-base"
+                [disabled]="isSigningOut()"
+                (click)="signOut(unsynced() > 0)"
+              >
+                @if (isSigningOut()) {
+                  <hlm-spinner [aria-label]="'account.signingOut' | transloco" />
+                }
+                {{
+                  (unsynced() > 0 ? 'account.signOutUnsyncedConfirm' : 'account.signOut')
+                    | transloco
+                }}
+              </button>
+              <button
+                hlmBtn
+                variant="outline"
+                type="button"
+                class="h-11 w-full text-base"
+                [disabled]="isSigningOut()"
+                (click)="cancelSignOut()"
+              >
+                {{ 'account.cancel' | transloco }}
+              </button>
+            </div>
+          </app-sheet-frame>
+        </hlm-drawer-content>
+      </hlm-drawer>
+    }
   `,
 })
 /**

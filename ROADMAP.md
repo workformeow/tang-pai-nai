@@ -298,6 +298,19 @@ must be able to read what is kept and delete their account themselves (PDPA mini
 
 ---
 
+## Done: Sign-out asks first (2026-11)
+
+Web only, no API change. Owner: "ออกจากระบบ" on the Account tab signed out at once, and sign-out
+wipes the device's data.
+
+- The button opens a bottom sheet (`@defer`red in `account-page`, `app-sheet-frame`): a line on
+  what happens (the device's data is deleted, synced data stays in the account), a destructive
+  ออกจากระบบ and ยกเลิก. An inline card was tried first; on a phone it sat below the fold.
+- Confirming runs the old flow (push first, rule 7); unsynced ops switch the same sheet to the
+  "ยังมี n รายการ…" warning. Cancel, ✕, swipe or the backdrop reset it.
+
+---
+
 ## Done: Fewer toasts (2026-11)
 
 Web only, no API change. Owner: the toast after adding a transaction covered the header, and the
