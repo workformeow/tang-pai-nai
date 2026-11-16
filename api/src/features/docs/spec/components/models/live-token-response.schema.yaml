@@ -1,0 +1,31 @@
+type: object
+required: [message, timestamp, data]
+properties:
+  message:
+    type: string
+    example: Live sync token issued
+  timestamp:
+    type: string
+    format: date-time
+    example: '2026-01-01T00:00:00.000Z'
+  data:
+    type: object
+    required: [provider]
+    properties:
+      provider:
+        type: string
+        enum: [ably, local, disabled]
+        example: ably
+      tokenRequest:
+        type: object
+        description: >-
+          `ably` only: a signed Ably token request (subscribe only, 1 hour) for `user:<id>` and the
+          `profile:<id>` channels the caller may hear (live-sync rules 3 and 8).
+        additionalProperties: true
+        example:
+          keyName: appId.keyId
+          capability: '{"user:0199…":["subscribe"],"profile:0199…":["subscribe"]}'
+          ttl: 3600000
+          timestamp: 1794758532983
+          nonce: '0743188920982715'
+          mac: BXdNkEbeFJE/mTvhwWe/UpNdUTE/CnpXMOjw7DmCXb8=

@@ -61,6 +61,7 @@
     "@libsql/client": "^0.18.0",
     "@node-rs/argon2": "^2.2.2",
     "@scalar/express-api-reference": "^0.10.12",
+    "ably": "^2.30.0",
     "chalk": "^6.0.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",

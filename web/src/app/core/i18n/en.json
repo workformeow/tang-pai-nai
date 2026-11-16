@@ -632,6 +632,8 @@
     "open": "Sync status: {{status}}. Tap for details",
     "heading": "Sync status",
     "lastSynced": "Last synced {{time}}",
+    "liveConnected": "Live updates: connected",
+    "liveDisconnected": "Live updates: not connected",
     "neverSynced": "Not synced on this device yet",
     "syncNow": "Sync now",
     "syncingNow": "Syncing",

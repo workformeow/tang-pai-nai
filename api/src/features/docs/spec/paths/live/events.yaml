@@ -1,0 +1,26 @@
+get:
+  tags:
+    - Live
+  summary: Stream of pokes (local provider)
+  description: >-
+    `LIVE_PROVIDER=local` only, else 404 (docs/features/live-sync.md rule 9). A server-sent event
+    stream of `poke` events for the caller's own channel and the shared profiles they may hear
+    (checked on each poke). A poke carries no data, only `{ channel, seq, deviceId }`. Comment
+    lines keep it open; the API ends it after 10 minutes and the device opens a new one.
+  operationId: liveEvents
+  security:
+    - bearerAuth: []
+  responses:
+    '200':
+      description: The stream
+      content:
+        text/event-stream:
+          schema:
+            type: string
+            example: |
+              event: poke
+              data: {"channel":"user:0199…","seq":42,"deviceId":"0199…"}
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '404':
+      $ref: '../../components/responses/error.response.yaml'

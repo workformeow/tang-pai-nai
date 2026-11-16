@@ -60,6 +60,15 @@ themselves (a pull request's preview must not change the staging database).
 - Leave both unset and the check is off. Development uses Cloudflare's test keys (see
   [env.md](env.md)); never put them on staging or production, where they would let every bot in.
 
+## 3c. Ably (live sync, optional)
+
+- ably.com → sign up (free plan) → **Create new app**, one per environment (e.g.
+  `tang-pai-nai-staging`, later `tang-pai-nai-prod`). The app's API Keys tab shows the **root
+  key** (`<appId>.<keyId>:<secret>`) → `ABLY_API_KEY` on the API project (step 4), with
+  `LIVE_PROVIDER=ably`. The API hands devices short subscribe-only tokens; the key itself never
+  leaves the API.
+- Leave `LIVE_PROVIDER` unset (`disabled`) and devices keep their timed rounds only.
+
 ## 4. Vercel: the API project
 
 - New project from this repo, **Root Directory `api`**, Framework Preset _Other_ (build, output and
@@ -87,6 +96,7 @@ themselves (a pull request's preview must not change the staging database).
 | `SIGNUP_ENABLED`                                                | `true` while the family signs up, then `false`                       |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`                      | optional: leave unset and the Google button is hidden                |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`                    | step 3b; both or neither (unset: no bot check)                       |
+| `LIVE_PROVIDER`, `ABLY_API_KEY`                                 | `ably` and step 3c (unset: no live sync); never `local` on Vercel    |
 
 Vercel Cron calls `GET /auth/cleanup` and `GET /sync/cleanup` every day (02:17 and 02:47 Thai
 time) with `CRON_SECRET`, on **production only**. On staging run them by hand when needed:
@@ -121,5 +131,7 @@ from `WEB_ORIGIN`, so a pull request's own preview URL can't stay signed in: tes
    address; if it isn't, raise `TRUST_PROXY_HOPS` by one and redeploy (rate limits count per
    IP). Then set `LOG_LEVEL_CONSOLE` back to `info`.
 4. Install the PWA on the phone (Add to Home Screen) and open it offline once.
+5. With Ably on: the sync sheet says "อัปเดตทันที: เชื่อมต่อแล้ว". Open the app on the phone and
+   the computer, add a transaction on one: the other shows it within a few seconds.
 
 Then merge `develop` into `main` and repeat 1–4 on production.

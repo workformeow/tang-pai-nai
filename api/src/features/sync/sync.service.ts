@@ -1,4 +1,7 @@
 import { GoneError } from '@/core/error'
+import type { LiveChannel, LivePublisher } from '@/core/live'
+import { profileChannel, userChannel } from '@/core/live/live.channel'
+import { logger } from '@/core/logger'
 import type {
   SyncPushHandler,
   SyncRegistry,
@@ -7,6 +10,7 @@ import type {
   SyncRowWrite,
   SyncSharedRows,
 } from '@/core/sync'
+import { LOG } from '@/shared/constants'
 import { SYNC_LIMITS, SYNC_MESSAGE, SyncErrorCode, SyncRejectCode } from './sync.const'
 import type { OpResult, PullChange, PullResult, PushOp, SyncNotice } from './sync.entity'
 import type { SyncRepository } from './sync.repository'
@@ -16,6 +20,8 @@ export interface SyncServiceDeps {
   registry: Pick<SyncRegistry, 'get' | 'all'>
   clock?: () => number
   newId: () => string
+  /** Live sync (docs/features/live-sync.md rules 6–7); none = no pokes. */
+  live?: LivePublisher
 }
 
 export interface PullQuery {
@@ -33,6 +39,13 @@ type PushHandler = Pick<SyncPushHandler, 'validate' | 'keepsStored' | 'sameChang
  * (docs/features/sharing.md rules 11–13), or a refusal.
  */
 type Acting = { ownerId: string; editor: boolean } | { code: SyncRejectCode; message: string }
+
+/** A row this push wrote: whose it is and the wallets it was or is in (live-sync rule 6). */
+interface Touched {
+  ownerId: string
+  seq: number
+  walletIds: string[]
+}
 
 /** One op's write: the caller, the row's owner and whether the caller writes as an editor. */
 interface Write {
@@ -64,17 +77,63 @@ export const createSyncService = ({
   registry,
   clock = Date.now,
   newId,
+  live,
 }: SyncServiceDeps) => {
   /** Rule 10: ops in order, each in its own transaction, each answered on its own. */
   const push = async (userId: string, deviceId: string, ops: PushOp[]): Promise<OpResult[]> => {
     const results: OpResult[] = []
+    const touched: Touched[] = []
     for (const op of ops) {
-      results.push(await pushOne(userId, deviceId, op))
+      const pending: Touched[] = []
+      results.push(await pushOne(userId, deviceId, op, pending))
+      // Only once the op's transaction committed.
+      touched.push(...pending)
     }
+    await announce(deviceId, touched)
     return results
   }
 
-  const pushOne = async (userId: string, deviceId: string, op: PushOp): Promise<OpResult> => {
+  /**
+   * Live-sync rules 6–7: one poke per channel for the rows this push applied, after they
+   * committed. Awaited (a serverless function may freeze after the response), never failing it.
+   */
+  const announce = async (deviceId: string, touched: Touched[]): Promise<void> => {
+    if (!live || touched.length === 0) {
+      return
+    }
+    const seqs = new Map<LiveChannel, number>()
+    const raise = (channel: LiveChannel, seq: number) => {
+      seqs.set(channel, Math.max(seq, seqs.get(channel) ?? 0))
+    }
+    const profileOf = new Map<string, string | null>()
+    try {
+      for (const { ownerId, seq, walletIds } of touched) {
+        raise(userChannel(ownerId), seq)
+        for (const walletId of walletIds) {
+          if (!profileOf.has(walletId)) {
+            profileOf.set(walletId, await syncRepo.sharedProfileOf(walletId))
+          }
+          const profileId = profileOf.get(walletId)
+          if (profileId) {
+            raise(profileChannel(profileId), seq)
+          }
+        }
+      }
+    } catch (error) {
+      // A shared profile we can't look up only loses its poke; the timed rounds catch up.
+      logger.warn(LOG.LIVE.lookupFailed, {
+        cause: error instanceof Error ? error.message : String(error),
+      })
+    }
+    await live.publish([...seqs].map(([channel, seq]) => ({ channel, poke: { seq, deviceId } })))
+  }
+
+  const pushOne = async (
+    userId: string,
+    deviceId: string,
+    op: PushOp,
+    touched: Touched[]
+  ): Promise<OpResult> => {
     const handler = registry.get(op.table)
     if (!handler) {
       return rejected(op.opId, SyncRejectCode.UNKNOWN_TABLE, SYNC_MESSAGE.UNKNOWN_TABLE)
@@ -91,7 +150,7 @@ export const createSyncService = ({
           ? stored.result
           : rejected(op.opId, SyncRejectCode.ID_TAKEN, SYNC_MESSAGE.ID_TAKEN)
       }
-      const result = await decide(tx, userId, deviceId, op, pushHandler)
+      const result = await decide(tx, userId, deviceId, op, pushHandler, touched)
       await tx.saveOp({ opId: op.opId, userId, deviceId, appliedAt: clock(), result })
       return result
     })
@@ -102,7 +161,8 @@ export const createSyncService = ({
     userId: string,
     deviceId: string,
     op: PushOp,
-    pushHandler: PushHandler
+    pushHandler: PushHandler,
+    touched: Touched[]
   ): Promise<OpResult> => {
     const now = clock()
     const existing = await tx.find(op.table, op.row.id)
@@ -126,10 +186,15 @@ export const createSyncService = ({
       now,
     }
 
-    if (op.op === 'delete') {
-      return remove(write, op, existing, conflict)
+    const result =
+      op.op === 'delete'
+        ? await remove(write, op, existing, conflict)
+        : await upsert(write, op, existing, conflict, pushHandler)
+    const wrote = touchedBy(result, existing, acting.ownerId, pushHandler.shared)
+    if (wrote) {
+      touched.push(wrote)
     }
-    return upsert(write, op, existing, conflict, pushHandler)
+    return result
   }
 
   /** Sharing rules 11–13: who the op writes for, or why it is refused. */
@@ -444,6 +509,40 @@ export const createSyncService = ({
   }
 
   return { push, pull, cleanup }
+}
+
+/** What an applied op wrote, for its pokes; null when it changed nothing (live-sync rule 6). */
+const touchedBy = (
+  result: OpResult,
+  existing: Stored | null,
+  ownerId: string,
+  shared: SyncSharedRows | undefined
+): Touched | null => {
+  if (result.status !== 'applied' || !result.row || result.changeSeq === null) {
+    return null
+  }
+  // A no-op delete answers the stored row's old seq: nothing new to tell.
+  if (existing && result.changeSeq <= existing.row.changeSeq) {
+    return null
+  }
+  return {
+    ownerId,
+    seq: result.changeSeq,
+    walletIds: walletsOf(shared, existing?.row ?? null, result.row),
+  }
+}
+
+/** The wallets a shared table's row was and is in (a move pokes both profiles). */
+const walletsOf = (
+  shared: SyncSharedRows | undefined,
+  before: SyncRow | null,
+  after: SyncRow
+): string[] => {
+  if (!shared) {
+    return []
+  }
+  const ids = [before ? shared.walletOf(before) : null, shared.walletOf(after)]
+  return [...new Set(ids.filter((id): id is string => id !== null))]
 }
 
 const numberOr = (value: unknown, fallback: number): number =>

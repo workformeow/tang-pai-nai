@@ -61,8 +61,13 @@ function exampleEntries(content: string): { key: string; lines: string[] }[] {
 }
 
 // A variable added to .env.example after the file was made is appended with the example's value
-// and comment, so the file always lists every setting. Values already there are left alone.
-function fillMissingKeys(examplePath: string, targetPath: string): void {
+// (or the file's own value from `replace`) and comment, so the file always lists every setting.
+// Values already there are left alone.
+function fillMissingKeys(
+  examplePath: string,
+  targetPath: string,
+  replace: Record<string, string> = {}
+): void {
   let content = readFileSync(targetPath, 'utf-8')
   const missing = exampleEntries(readFileSync(examplePath, 'utf-8')).filter(
     ({ key }) => !new RegExp(`^${key}=`, 'm').test(content)
@@ -70,7 +75,12 @@ function fillMissingKeys(examplePath: string, targetPath: string): void {
   if (missing.length === 0) {
     return
   }
-  const block = missing.map(({ lines }) => lines.join('\n')).join('\n')
+  const block = missing
+    .map(({ key, lines }) =>
+      key in replace ? [...lines.slice(0, -1), `${key}="${replace[key]}"`] : lines
+    )
+    .map((lines) => lines.join('\n'))
+    .join('\n')
   content = `${content.trimEnd()}\n\n# ── Added by \`npm run setup-env\` from .env.example ──\n${block}\n`
   writeFileSync(targetPath, content)
   console.log(
@@ -87,7 +97,7 @@ function createEnvFile(
     console.log(
       chalk.yellow(`${basename(targetPath)} already exists: only missing keys are added.`)
     )
-    fillMissingKeys(sourcePath, targetPath)
+    fillMissingKeys(sourcePath, targetPath, replace)
     fillMissingSecrets(targetPath)
     return false
   }
@@ -114,6 +124,8 @@ function setupEnv(): void {
     createEnvFile(envExamplePath, envDevPath, {
       NODE_ENV: 'development',
       TEST_VERSION: 'true',
+      // Live sync from the API's own stream: dev runs one API process (docs/features/live-sync.md).
+      LIVE_PROVIDER: 'local',
       ...generatedSecrets(),
     })
     // Staging is the app's test copy (privacy rule 2): it says so on sign-in.

@@ -94,13 +94,13 @@ merging.
 | 17  | Deploy (Vercel)                | ✅  | ✅  | **staging only** (`develop`), the app's show-and-test copy; production waits until the family uses it for real (owner, 2026-11). [steps](docs/deploy.md)                                                                                                |
 | 18  | Credit card                    | ✅  | ✅  | `wallets.isCreditCard`: out of the total, counted in "ทุกกระเป๋า"; paid by one transfer (pay sheet, Wallets tab card section). [spec](docs/features/credit-card.md)                                                                                     |
 | 19  | Loading                        | —   | ✅  | splash in `index.html` until the first page, a creeping bar for slow page changes, a new device waits for its whole first pull. [spec](docs/features/loading.md)                                                                                        |
-| 20  | **Live sync** ← next           | ⬜  | ⬜  | a poke (no data) from the API after a push makes open devices sync at once; Ably on Vercel, a local stream in dev. [spec](docs/features/live-sync.md)                                                                                                   |
-| 21  | Shared activity (3rd)          | ⬜  | ⬜  | who added, edited or deleted which transaction in a shared profile (latest action per row, 90 days), under ⋮; names on rows when not you. Web only. [spec](docs/features/shared-activity.md)                                                            |
+| 20  | Live sync                      | ✅  | ✅  | a poke `{ seq, deviceId }` after a push that applied something; `user:` → a sync round, `profile:` → a shared read; `local` SSE in dev, Ably on Vercel (key pending). [spec](docs/features/live-sync.md)                                                |
+| 21  | **Shared activity** ← next     | ⬜  | ⬜  | who added, edited or deleted which transaction in a shared profile (latest action per row, 90 days), under ⋮; names on rows when not you. Web only. [spec](docs/features/shared-activity.md)                                                            |
 | 22  | Privacy & account deletion     | ✅  | ✅  | a privacy notice open without sign-in (`/auth/privacy`, Account › เกี่ยวกับแอป), "test version" from `TEST_VERSION`, "signing in accepts the notice"; delete the account at once (recent auth + typed email + button). [spec](docs/features/privacy.md) |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
 
-Order of work from here (owner, 2026-11): **#22 (done) → #20 → #21**. The number is a feature's id, not
+Order of work from here (owner, 2026-11): **#22 (done) → #20 (done) → #21**. The number is a feature's id, not
 its place in the queue, so numbers are never reused or shuffled. Each row gets its `docs/features/<feature>.md` before work starts. Rows 0–8 (with 4a) are the MVP.
 After #8 the app can replace Money Lover for daily use. Until #17, everything runs **locally only** (see locked
 decision "Local-first").
@@ -226,6 +226,38 @@ Branch `feat/web-loading`, built and tested 2026-11-15. Web only, no API change.
 - **Known**: over the dev tunnel a cached old `main.js` with the new `index.html` leaves the
   splash up (the old script never removes it); Ctrl+F5 fixes it. Production can't mix them
   (hashed file names, `index.html` not cached, the service worker serves one version).
+
+---
+
+## Done: Live sync (#20)
+
+API + web. [spec](docs/features/live-sync.md). Another open device of the same user, or a
+member viewing a shared profile, sees a change within about a second instead of the next timed
+round (5 min own, 1 min shared). Decisions at the start: timed rounds unchanged, the sync sheet
+line shown, nothing in the background (spec → Decisions).
+
+- **API**: `core/live` (port `LiveProvider`: `disabled` / `local` / `ably` by `LIVE_PROVIDER`,
+  like the notifier; `livePublisher` sends each poke within 1 s and only logs a warning).
+  `SyncService.push` collects the rows it newly applied and, after their transactions, awaits
+  one poke per channel: `user:<owner>` and `profile:<id>` for a shared wallet (old and new
+  wallet on a move). `features/live`: `POST /live/token` (Ably token request, subscribe only,
+  1 h, the channels of rule 3 from `core/database/live-access`), `GET /live/events` (`local`
+  SSE, rule 3 per poke, ends after 10 min). `ABLY_API_KEY` is required with `ably`;
+  `setup-env` writes `LIVE_PROVIDER=local` into `.env.dev`, `disabled` elsewhere. No migration.
+- **Web**: `core/live` `LiveService` owns the connection (signed in, online, foreground, someone
+  listening); `SyncService` listens on `user:` while the local DB is open, `SharingService` on
+  `profile:<id>` while that shared profile is in use (a poke during a read reads once more).
+  Own and old pokes are ignored, a 300 ms burst runs one round, failures are quiet. The `local`
+  stream is `fetch` with the bearer (and `ngsw-bypass`); Ably's SDK is a dynamic `import()`
+  (211 kB lazy chunk, `allowedCommonJsDependencies`), the initial bundle 763 → 768 kB. Sync
+  sheet: "อัปเดตทันที: เชื่อมต่อแล้ว / ไม่ได้เชื่อมต่อ", hidden with `disabled`.
+- Tests: API 686, web 734. Checked with `local` in Chromium: a push from another device id
+  showed on the open app in about 0.8 s; the sheet line; a wrong Ably key leaves the push
+  `applied` with a warning in the log.
+- **Owner, to do**: create the staging Ably app (free plan), then set `LIVE_PROVIDER=ably` and
+  `ABLY_API_KEY` on the API's Vercel Preview and in `api/.env.staging`
+  ([deploy.md](docs/deploy.md) step 3c), and check step 7.5 on two devices. Until then staging
+  runs with live sync off.
 
 ---
 
@@ -1596,6 +1628,9 @@ Agreed with the user. Do not re-propose alternatives unless asked.
   state, so edits between pulls would be lost, each device would differ and a member keeps
   nothing (shared-activity.md → Out of scope). Restoring a row someone else deleted could come
   with it.
+- **Longer shared refresh while live** (live-sync decision 1): a device with a live connection
+  could stretch the shared profile's 1-minute read to 5 minutes. Not before Ably runs on
+  staging for a while.
 - **Live updates of sharing** (after #20): poke the `user:` channel when an invite arrives or a
   member's role or wallets change, so the Account tab's dot and the switcher update at once.
   Invites are rare, so the next app open is enough for now.

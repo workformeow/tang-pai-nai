@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createLivePublisher, createMemoryLiveProvider } from '@/core/live'
 import { createSyncRegistry } from '@/core/sync'
 import type { SyncPushHandler, SyncRow, SyncValidation } from '@/core/sync'
 import { SYNC_LIMITS, SyncErrorCode } from './sync.const'
@@ -35,7 +36,8 @@ const THB: SyncRow = { id: 'THB', code: 'THB', changeSeq: 1, updatedAt: NOW, isA
 
 const setup = (
   options: MemorySyncOptions = {},
-  hooks: Pick<SyncPushHandler, 'keepsStored' | 'sameChange'> = {}
+  hooks: Pick<SyncPushHandler, 'keepsStored' | 'sameChange'> = {},
+  live = createMemoryLiveProvider()
 ) => {
   let now = NOW
   let ids = 0
@@ -62,10 +64,12 @@ const setup = (
     registry,
     clock: () => now,
     newId: () => `history-${++ids}`,
+    live: createLivePublisher(live),
   })
   return {
     service,
     memory,
+    live,
     tick: (ms: number) => {
       now += ms
     },
@@ -529,7 +533,7 @@ const validateEntry = (input: unknown): SyncValidation => {
 const seq = (result: OpResult): number | null =>
   result.status === 'rejected' ? null : result.changeSeq
 
-const setupShared = () => {
+const setupShared = (live = createMemoryLiveProvider()) => {
   let now = NOW
   let ids = 0
   const roles = new Map<string, 'editor' | 'viewer'>([
@@ -570,12 +574,15 @@ const setupShared = () => {
       }
       return { ownerId, role: walletId === 'daves' ? null : (roles.get(userId) ?? null) }
     },
+    // `home` is shared on Alice's profile `pa`; `cash` is hers alone.
+    sharedProfileOf: (walletId) => (walletId === 'home' ? 'pa' : null),
   })
   const service = createSyncService({
     syncRepo: memory.repo,
     registry,
     clock: () => now,
     newId: () => `history-${++ids}`,
+    live: createLivePublisher(live),
   })
   const push = async (userId: string, pushed: Partial<PushOp> & { row: PushOp['row'] }) =>
     one(service, userId, userId === ALICE ? PHONE : LAPTOP, op({ table: 'entries', ...pushed }))
@@ -590,6 +597,7 @@ const setupShared = () => {
   return {
     service,
     memory,
+    live,
     push,
     entry,
     roles,
@@ -708,5 +716,68 @@ describe('createSyncService › push to a shared wallet (sharing rules 11–14)'
     await one(service, ALICE, PHONE, op({ row: note('n1', 'Coffee', NOW) }))
     const result = await one(service, BOB, LAPTOP, op({ row: note('n1', 'Tea', NOW) }))
     expect(result).toMatchObject({ status: 'rejected', code: 'ID_TAKEN', row: null })
+  })
+})
+
+describe('createSyncService › live pokes (live-sync rules 4, 6–7)', () => {
+  it("pokes the owner's channel once, with the highest seq and the pushing device", async () => {
+    const { service, live } = setup()
+    await service.push(ALICE, PHONE, [
+      op({ row: note('n1', 'Coffee', NOW) }),
+      op({ row: note('n2', 'Tea', NOW) }),
+    ])
+    expect(live.published).toEqual([
+      { channel: `user:${ALICE}`, poke: { seq: 3, deviceId: PHONE } },
+    ])
+  })
+
+  it('pokes nobody when no op was applied: rejected, overridden or a retried op', async () => {
+    const { service, live, tick } = setup()
+    const first = op({ row: note('n1', 'Coffee', NOW) })
+    await service.push(ALICE, PHONE, [first])
+    live.published.length = 0
+    await service.push(ALICE, PHONE, [first])
+    await service.push(ALICE, PHONE, [op({ row: note('n2', '', NOW) })])
+    tick(-1_000)
+    await service.push(ALICE, LAPTOP, [op({ row: note('n1', 'Older', NOW - 5_000), baseSeq: 1 })])
+    expect(live.published).toEqual([])
+  })
+
+  it('pokes nobody for a delete of a row the server already deleted', async () => {
+    const { service, live } = setup()
+    await service.push(ALICE, PHONE, [op({ row: note('n1', 'Coffee', NOW) })])
+    await service.push(ALICE, PHONE, [op({ op: 'delete', row: { id: 'n1', updatedAt: NOW } })])
+    live.published.length = 0
+    await service.push(ALICE, PHONE, [op({ op: 'delete', row: { id: 'n1', updatedAt: NOW } })])
+    expect(live.published).toEqual([])
+  })
+
+  it("still answers the push when the poke can't be sent", async () => {
+    const live = createMemoryLiveProvider()
+    live.publish = async () => Promise.reject(new Error('down'))
+    const { service } = setup({}, {}, live)
+    const [result] = await service.push(ALICE, PHONE, [op({ row: note('n1', 'Coffee', NOW) })])
+    expect(result.status).toBe('applied')
+  })
+
+  it("pokes the owner and the shared profile for an editor's write", async () => {
+    const { push, entry, live } = setupShared()
+    const added = await push(BOB, { row: entry('e1', 'Rice') })
+    expect(live.published).toEqual([
+      { channel: `user:${ALICE}`, poke: { seq: seq(added), deviceId: LAPTOP } },
+      { channel: 'profile:pa', poke: { seq: seq(added), deviceId: LAPTOP } },
+    ])
+  })
+
+  it('pokes the shared profile a row moves out of, and not for an unshared wallet', async () => {
+    const { push, entry, live } = setupShared()
+    const added = await push(ALICE, { row: entry('e1', 'Rice', { walletId: 'cash' }) })
+    expect(live.published.map((m) => m.channel)).toEqual([`user:${ALICE}`])
+    live.published.length = 0
+    const moved = await push(ALICE, { row: entry('e1', 'Rice'), baseSeq: seq(added) })
+    expect(live.published.map((m) => m.channel)).toEqual([`user:${ALICE}`, 'profile:pa'])
+    live.published.length = 0
+    await push(ALICE, { row: entry('e1', 'Rice', { walletId: 'cash' }), baseSeq: seq(moved) })
+    expect(live.published.map((m) => m.channel)).toEqual([`user:${ALICE}`, 'profile:pa'])
   })
 })

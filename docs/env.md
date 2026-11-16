@@ -39,6 +39,7 @@ production**; never share them. Development needs none of them.
 | Turso database + token | `turso db create …`, `turso db show … --url`, `turso db tokens create …` | `DATABASE_URL`, `DATABASE_AUTH_TOKEN`                   | yes                       |
 | Resend API key         | resend.com → API keys ("Sending access"), after verifying the domain     | `SMTP_URL` = `smtps://resend:<key>@smtp.resend.com:465` | yes (sign-in mails)       |
 | Cloudflare Turnstile   | Cloudflare dashboard → Turnstile → Add widget (hostname = the web's)     | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`            | recommended (bot check)   |
+| Ably app + API key     | ably.com → Create app (one per environment) → API Keys → the root key    | `ABLY_API_KEY` (and `LIVE_PROVIDER=ably`)               | optional (live sync)      |
 | Google OAuth client    | Google Cloud console → Credentials → OAuth client ID (Web application)   | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`              | optional (Google sign-in) |
 | Random secrets         | `openssl rand -base64 48`, a new one each                                | `JWT_SECRET`, `OTP_PEPPER`, `CRON_SECRET`               | yes                       |
 
@@ -101,6 +102,16 @@ chats and commits.
 | `TURNSTILE_SITE_KEY`    | no       | unset                            | bot check (rule 32); both or neither (off: no check). Public            |
 | `TURNSTILE_SECRET_KEY`  | no       | unset                            | **secret**                                                              |
 | `CRON_SECRET`           | deployed | unset                            | **secret**, ≥ 32 characters; unset, the cleanup routes answer 404       |
+
+### Live sync ([live-sync.md](features/live-sync.md))
+
+| Name            | Required  | Default    | What                                                                                                                                                    |
+| --------------- | --------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LIVE_PROVIDER` | no        | `disabled` | `disabled` (timed rounds only), `local` (a stream from this API: one process, dev and Docker `dev`; `setup-env` sets it in `.env.dev`), `ably` (Vercel) |
+| `ABLY_API_KEY`  | with ably | unset      | **secret**, the key of this environment's own Ably app (staging's never in production)                                                                  |
+
+Never `local` on Vercel: each function instance has its own listeners, and a stream would hold a
+function open.
 
 Locally, Cloudflare's Turnstile **test keys** work on any host: site `1x00000000000000000000AA`
 with secret `1x0000000000000000000000000000000AA` (always passes) or

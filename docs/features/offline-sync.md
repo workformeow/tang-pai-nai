@@ -26,7 +26,7 @@ and so does a reading app like Meb.
 - **Offline for wallets shared with you.** Only their owner has them offline. A member can queue
   _new_ transactions offline, and nothing else (rule 14).
 - Real-time push between devices (websockets). Devices sync when they come online, when the app
-  opens, and every few minutes while it's open. A poke that starts a round at once is specced in
+  opens, and every few minutes while it's open. A poke that starts a round at once is built in
   [live-sync.md](live-sync.md) (#20); the data still comes only through pull.
 - Receipt photos and other attachments (backlog).
 

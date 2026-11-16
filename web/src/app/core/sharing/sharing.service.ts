@@ -3,6 +3,7 @@ import { TranslocoService } from '@jsverse/transloco'
 import { toast } from '@spartan-ng/brain/sonner'
 import { ApiClient, isUnreachable, toApiError } from '@/core/api'
 import { AuthStore } from '@/core/auth'
+import { LiveService } from '@/core/live'
 import { NetworkStatusService } from '@/core/network'
 import { deleteOp, listOps, OfflineService, putRow, SyncService } from '@/core/offline'
 import type { LocalDatabase, SyncRow } from '@/core/offline'
@@ -52,6 +53,7 @@ export class SharingService {
   private profileService = inject(ProfileService)
   private transactionService = inject(TransactionService)
   private transloco = inject(TranslocoService)
+  private liveService = inject(LiveService)
   private window = inject(DOCUMENT).defaultView
 
   /** Invites to me and wallets shared with me; `null` until read once. */
@@ -61,6 +63,15 @@ export class SharingService {
   /** The shared profile in use: its id and the last `changeSeq` read (sharing rule 9). */
   private session: { profileId: string; cursor: number; walletIds: Set<string> } | null = null
   private pushing: Promise<void> | null = null
+  private refreshing: Promise<void> | null = null
+  private refreshAgain = false
+  /** The shared profile in use, once its rows are in (live-sync rule 10). */
+  private liveProfileId = computed(() => {
+    const shared = this.profileService.shared()
+    return shared?.status === 'ready' && this.offlineService.sharedActive()
+      ? shared.profile.id
+      : null
+  })
   /** When the data on screen was read (the offline notice says it). */
   readAt = signal<number | null>(null)
 
@@ -94,6 +105,19 @@ export class SharingService {
       if (this.canCall() && this.offlineService.sharedActive()) {
         untracked(() => void this.refreshShared())
       }
+    })
+    // Live sync (rules 10–11): another member's push pokes a read of the profile in use.
+    effect((onCleanup) => {
+      const profileId = this.liveProfileId()
+      if (!profileId) {
+        return
+      }
+      const stop = this.liveService.listenProfile(profileId, {
+        deviceId: () => this.offlineService.syncMeta('deviceId'),
+        cursor: () => (this.session?.profileId === profileId ? this.session.cursor : 0),
+        onPoke: () => void this.refreshShared(),
+      })
+      onCleanup(stop)
     })
     this.window?.setInterval(() => void this.refreshShared(), REFRESH_MS)
     this.window?.document.addEventListener('visibilitychange', () => {
@@ -141,8 +165,32 @@ export class SharingService {
     }
   }
 
-  /** Reads what changed in the shared profile in use (others' writes, a removal). */
+  /**
+   * Reads what changed in the shared profile in use (others' writes, a removal). A call during a
+   * read runs one more after it (live-sync rule 11).
+   */
   async refreshShared(): Promise<void> {
+    if (this.refreshing) {
+      this.refreshAgain = true
+      return this.refreshing
+    }
+    this.refreshing = (async () => {
+      do {
+        this.refreshAgain = false
+        await this.refreshOnce()
+      } while (this.wantsRefresh())
+    })().finally(() => {
+      this.refreshing = null
+    })
+    return this.refreshing
+  }
+
+  /** A call came in during the read (a method: TS can't see the flag change). */
+  private wantsRefresh(): boolean {
+    return this.refreshAgain
+  }
+
+  private async refreshOnce(): Promise<void> {
     const session = this.session
     if (!session || !this.offlineService.sharedActive() || !this.canCall()) {
       return

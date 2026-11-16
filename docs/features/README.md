@@ -23,7 +23,7 @@ AI can understand a feature without reading its code. These docs are the shared 
 | Offline & sync             | [offline-sync.md](offline-sync.md)       | Built (4a.1, 4a.2)  |
 | Install (PWA)              | [install.md](install.md)                 | Built (web only)    |
 | Loading                    | [loading.md](loading.md)                 | Building (web only) |
-| Live sync                  | [live-sync.md](live-sync.md)             | Spec (#20)          |
+| Live sync                  | [live-sync.md](live-sync.md)             | Built (#20)         |
 | Shared activity            | [shared-activity.md](shared-activity.md) | Spec (#21)          |
 | Privacy & account deletion | [privacy.md](privacy.md)                 | Built (#22)         |
 

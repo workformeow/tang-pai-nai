@@ -13,6 +13,7 @@ import { TranslocoService } from '@jsverse/transloco'
 import { toast } from '@spartan-ng/brain/sonner'
 import { ApiClient, isUnreachable, toApiError } from '@/core/api'
 import { AuthStore } from '@/core/auth'
+import { LiveService } from '@/core/live'
 import { NetworkStatusService } from '@/core/network'
 import { OfflineService } from './offline.service'
 import { countOps, deleteOp, findOp, findPending, listOps } from './outbox'
@@ -74,6 +75,7 @@ export class SyncService {
   private authStore = inject(AuthStore)
   private networkStatusService = inject(NetworkStatusService)
   private offlineService = inject(OfflineService)
+  private liveService = inject(LiveService)
 
   isSyncing = signal(false)
   /** The last round reached the server, which answered with an error (a 500): retried like rule 11. */
@@ -160,6 +162,19 @@ export class SyncService {
       if (this.canSync()) {
         untracked(() => void this.sync())
       }
+    })
+    // Live sync (docs/features/live-sync.md rules 10–11): another device's push pokes a round,
+    // while the local database is open.
+    effect((onCleanup) => {
+      if (!this.offlineService.isOpen()) {
+        return
+      }
+      const stop = this.liveService.listenUser({
+        deviceId: () => this.offlineService.syncMeta('deviceId'),
+        cursor: () => Number(this.offlineService.syncMeta('cursor') ?? 0),
+        onPoke: () => void this.sync(),
+      })
+      onCleanup(stop)
     })
     // About 2 seconds after a local write that queued an op.
     effect(() => {

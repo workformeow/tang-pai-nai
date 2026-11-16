@@ -8,6 +8,7 @@ import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
 import th from '@/core/i18n/th.json'
+import { fakeLive } from '@/core/live/live-testing'
 import { NetworkStatusService } from '@/core/network'
 import { OfflineService, putRow, SHARED_TABLES, SyncService } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
@@ -75,6 +76,7 @@ export const setUpSharing = async (routes: Routes = []) => {
       database.exec(`DELETE FROM outbox WHERE status = 'pending'`)
     },
   }
+  const live = fakeLive()
   TestBed.configureTestingModule({
     imports: [
       TranslocoTestingModule.forRoot({
@@ -84,6 +86,7 @@ export const setUpSharing = async (routes: Routes = []) => {
       }),
     ],
     providers: [
+      live.provider,
       provideRouter(routes),
       provideHttpClient(),
       provideHttpClientTesting(),
@@ -95,6 +98,7 @@ export const setUpSharing = async (routes: Routes = []) => {
           meta: signal(null),
           changes,
           sharedActive,
+          syncMeta: (key: string) => (key === 'deviceId' ? 'd1' : null),
           db: () => db,
           write: <T>(work: (database: LocalDatabase) => T): T => {
             const result = db.transaction(work)
@@ -139,5 +143,12 @@ export const setUpSharing = async (routes: Routes = []) => {
     ],
   })
   TestBed.inject(AuthStore).user.set({ id: 'u1' } as AuthUser)
-  return { db, network, sync, sharedActive, http: TestBed.inject(HttpTestingController) }
+  return {
+    db,
+    network,
+    sync,
+    sharedActive,
+    live: live.listeners,
+    http: TestBed.inject(HttpTestingController),
+  }
 }

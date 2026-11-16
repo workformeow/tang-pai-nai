@@ -8,6 +8,7 @@ import { toastState } from '@spartan-ng/brain/sonner'
 import { AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
 import th from '@/core/i18n/th.json'
+import { fakeLive } from '@/core/live/live-testing'
 import { NetworkStatusService } from '@/core/network'
 import { OfflineService, SHARED_TABLES } from './offline.service'
 import { countOps, findPending, listOps, queueWrite } from './outbox'
@@ -75,6 +76,7 @@ const fakeOffline = (db: LocalDatabase) => {
 describe('SyncService', () => {
   let db: LocalDatabase
   let offline: ReturnType<typeof fakeOffline>
+  let live: ReturnType<typeof fakeLive>
   let http: HttpTestingController
   let service: SyncService
   let pullData: (since: number) => unknown
@@ -124,6 +126,7 @@ describe('SyncService', () => {
     db = await openTestDatabase()
     db.exec(`INSERT INTO sync_meta (key, value) VALUES ('deviceId', 'd1'), ('userId', 'u1')`)
     offline = fakeOffline(db)
+    live = fakeLive()
     pullData = emptyPull
     TestBed.configureTestingModule({
       imports: [
@@ -134,6 +137,7 @@ describe('SyncService', () => {
         }),
       ],
       providers: [
+        live.provider,
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: OfflineService, useValue: offline },
@@ -404,6 +408,19 @@ describe('SyncService', () => {
     expect(asked).toEqual([3, 0])
     expect(getRow(db, 'profiles', 'p9')).toBeNull()
     expect(offline.syncMeta('cursor')).toBe('40')
+  })
+
+  it('listens for pokes while the database is open, as this device, from its cursor (live-sync)', async () => {
+    TestBed.tick()
+    const listener = live.listeners.get('user')
+    expect(listener?.deviceId()).toBe('d1')
+    expect(listener?.cursor()).toBe(0)
+    offline.write((tx) => queueWrite(tx, 'profiles', 'upsert', profile('p1', 'Coffee')))
+    await drive(Promise.resolve(listener?.onPoke()).then(async () => service.idle()))
+    expect(service.pendingCount()).toBe(0)
+    offline.isOpen.set(false)
+    TestBed.tick()
+    expect(live.listeners.has('user')).toBe(false)
   })
 
   it('does nothing offline or without a live session, and says so', async () => {

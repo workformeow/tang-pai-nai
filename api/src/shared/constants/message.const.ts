@@ -54,6 +54,10 @@ export const LOG = {
     cleanedUp: (challenges: number, sessions: number, buckets: number) =>
       `[Auth] Cleanup removed ${challenges} challenges, ${sessions} sessions, ${buckets} rate-limit buckets`,
   },
+  LIVE: {
+    publishFailed: (provider: string) => `[Live] ⚠️ Poke via ${provider} not sent (push kept)`,
+    lookupFailed: '[Live] ⚠️ Shared profile lookup failed: its poke is skipped (push kept)',
+  },
   SYNC: {
     cleanedUp: (tombstones: number, ops: number) =>
       `[Sync] Cleanup removed ${tombstones} tombstones, ${ops} op records`,

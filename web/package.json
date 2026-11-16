@@ -30,6 +30,7 @@
     "@ng-icons/lucide": "^32.2.0",
     "@spartan-ng/brain": "^1.8.0",
     "@sqlite.org/sqlite-wasm": "^3.54.1-build1",
+    "ably": "^2.30.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "rxjs": "~7.8.0",
