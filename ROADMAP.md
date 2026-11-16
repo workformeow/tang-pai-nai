@@ -95,12 +95,12 @@ merging.
 | 18  | Credit card                    | ✅  | ✅  | `wallets.isCreditCard`: out of the total, counted in "ทุกกระเป๋า"; paid by one transfer (pay sheet, Wallets tab card section). [spec](docs/features/credit-card.md)                                                                                     |
 | 19  | Loading                        | —   | ✅  | splash in `index.html` until the first page, a creeping bar for slow page changes, a new device waits for its whole first pull. [spec](docs/features/loading.md)                                                                                        |
 | 20  | Live sync                      | ✅  | ✅  | a poke `{ seq, deviceId }` after a push that applied something; `user:` → a sync round, `book:` → a shared read; `local` SSE in dev, Ably on Vercel (staging on, 2026-11). [spec](docs/features/live-sync.md)                                         |
-| 21  | **Shared activity** ← next     | ⬜  | ⬜  | who added, edited or deleted which transaction in a shared book (latest action per row, 90 days), under ⋮; names on rows when not you. Web only. [spec](docs/features/shared-activity.md)                                                            |
+| 21  | Shared activity                | —   | ✅  | who added, edited or deleted which transaction in a shared book (latest action per row, 90 days), under ⋮ after รายการซ้ำ; names on rows when not you; stays 90 days after sharing ends. Web only. [spec](docs/features/shared-activity.md)                                                            |
 | 22  | Privacy & account deletion     | ✅  | ✅  | a privacy notice open without sign-in (`/auth/privacy`, Account › เกี่ยวกับแอป), "test version" from `TEST_VERSION`, "signing in accepts the notice"; delete the account at once (recent auth + typed email + button). [spec](docs/features/privacy.md) |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
 
-Order of work from here (owner, 2026-11): **#22 (done) → #20 (done) → #21**. The number is a feature's id, not
+Order of work from here (owner, 2026-11): **#22 (done) → #20 (done) → #21 (done)**; then Playwright end-to-end tests (Backlog) once the wanted features are done. The number is a feature's id, not
 its place in the queue, so numbers are never reused or shuffled. Each row gets its `docs/features/<feature>.md` before work starts. Rows 0–8 (with 4a) are the MVP.
 After #8 the app can replace Money Lover for daily use. Until #17, everything runs **locally only** (see locked
 decision "Local-first").
@@ -295,6 +295,30 @@ must be able to read what is kept and delete their account themselves (PDPA mini
 - **Bundle budget** (owner, 2026-11): the initial bundle is 763 kB (`develop` was already at
   762.1 kB; the notice's text adds 0.9 kB), so the warning budget goes 760 → **800 kB**
   (`web/angular.json`; the error stays at 1 MB).
+
+---
+
+## Done: Shared activity (#21)
+
+Spec: [shared-activity.md](docs/features/shared-activity.md). Web only, no API change: the rows
+already carry `addedBy` and `updatedBy`, tombstones included, on the owner's device and in a
+member's shared read.
+
+- **Decided at the start** (owner, a mock-up with five screens): "กิจกรรม" after รายการซ้ำ in
+  the ⋮ menu; deleted rows only struck through; one colour per person; formal, short wording
+  ("การเปลี่ยนแปลงในกระเป๋าที่แชร์ 90 วันล่าสุด", "อดีตสมาชิก"); after the sharing ends the
+  activity stays until it is 90 days old, with "เหลือ n วัน" in the menu and a line on the page in
+  the last week.
+- **Web**: `core/transaction/activity.ts` (`latestAction` and `ACTOR_SQL`, the 1-minute add
+  window, the days left); `TransactionService.activityScope()` / `activity()` /
+  `setShares()`; `Transaction.updatedBy`; `SharingService.loadOwner` feeds the shared wallets and
+  member count; `features/transactions/pages/activity-page` (`/transactions/activity`, ‹ to the
+  tab); the list's "แก้ไขโดย / เพิ่มโดย" line for everyone in the share; "สมาชิก" became
+  "อดีตสมาชิก". The Transactions tab now reads an own book's members once per book and session
+  (it used to only when a row had an unknown `addedBy`), so the ⋮ entry shows for a shared book.
+  Initial bundle 772 → 775.5 kB.
+- **Tests**: `activity.spec.ts`, the service's activity block (scope, 90 days, ended, the four
+  actions), `activity-page.spec.ts`, the header's menu entry and days left, the list's line.
 
 ---
 
