@@ -266,7 +266,8 @@ line shown, nothing in the background (spec → Decisions).
   leaves nothing to look at, with no toast. Tests: web 739.
 - **Ably on staging** (owner, 2026-11): the staging Ably app (free plan) is set up, with
   `LIVE_PROVIDER=ably` and `ABLY_API_KEY` on the API's Vercel Preview and in `api/.env.staging`
-  ([deploy.md](docs/deploy.md) step 3c), so staging runs with live sync on.
+  ([deploy.md](docs/deploy.md) step 3c), so staging runs with live sync on. Checked by the owner
+  with step 7.5 on two devices: a change on one shows on the other as expected.
 
 ---
 
