@@ -50,6 +50,7 @@ When writing tests, follow this standard so output stays consistent across the c
 - **Assertions** — prefer `toEqual`/`toMatchObject` for object shape, `toBe` for primitives. Avoid loosely-typed matchers like `expect.any(Array)` where they trigger `@typescript-eslint/no-unsafe-assignment`; assert the field(s) individually instead.
 - **Coverage priority** — cover branches, edge cases, and any bug uncovered while writing the test (document it with a test rather than silently fixing it, unless asked to fix). Skip near-zero-risk one-liners (trivial wrappers, pure re-exports) unless asked.
 - **Lint/type clean** — test files follow the same rules as production code (§3): no `any`, unused params prefixed `_`, etc. `npm run fix` and `npm run typecheck` must both pass.
+- **Temporary files** — a test that needs a folder (e.g. a SQLite file) makes it with `makeTempDir('<name>')` and removes it with `removeTempDir(dir)` (`@/shared/testing/temp-dir`), never `mkdtempSync` / `rmSync` directly. On Windows libsql keeps the file open after `client.close()`, so a plain `rmSync` fails the test with EPERM; `removeTempDir` skips that case and the vitest global setup sweeps leftovers older than an hour.
 - **Quiet runs** — `vitest.config.ts` sets `LOG_SILENT=true`, so the logger writes nothing (no console noise, no `logs/` folder). Don't assert on log output via real transports; mock `@/core/logger` if a test needs to check what was logged.
 - Run `npm test` before calling a change done whenever test files were touched (see §8).
 

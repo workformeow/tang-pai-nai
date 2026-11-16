@@ -1,6 +1,4 @@
 import { migrate } from 'drizzle-orm/libsql/migrator'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { env } from '@/core/config'
@@ -8,6 +6,7 @@ import type { Database } from '@/core/database'
 import { createDatabase } from '@/core/database/client'
 import { users } from '@/core/database/schema/auth'
 import type { SyncPushHandler, SyncRowWrite } from '@/core/sync'
+import { makeTempDir, removeTempDir } from '@/shared/testing/temp-dir'
 import { PROFILE_MESSAGE } from './profile.const'
 import { profileSyncHandler } from './profile.repository.drizzle'
 
@@ -37,7 +36,7 @@ const profile = (
 })
 
 beforeEach(async () => {
-  dir = mkdtempSync(join(tmpdir(), 'tpn-profile-'))
+  dir = makeTempDir('profile')
   const created = createDatabase({ ...env, DATABASE_URL: `file:${join(dir, 'test.db')}` })
   await migrate(created.db, { migrationsFolder: 'drizzle' })
   await created.db.insert(users).values([
@@ -50,7 +49,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   close()
-  rmSync(dir, { recursive: true, force: true })
+  removeTempDir(dir)
 })
 
 describe('profileSyncHandler', () => {

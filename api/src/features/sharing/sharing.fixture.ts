@@ -1,6 +1,4 @@
 import { migrate } from 'drizzle-orm/libsql/migrator'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { env } from '@/core/config'
 import type { Database } from '@/core/database'
@@ -15,6 +13,7 @@ import {
   users,
   wallets,
 } from '@/core/database/schema'
+import { makeTempDir, removeTempDir } from '@/shared/testing/temp-dir'
 import type { NotificationChannel } from '@/shared/types'
 import { createDrizzleSharingRepository } from './sharing.repository.drizzle'
 import { createSharingService } from './sharing.service'
@@ -182,7 +181,7 @@ export interface SentMail {
 
 /** A temporary SQLite file with the committed migrations, seeded, and a service on it. */
 export const setUpSharing = async (start = Date.UTC(2026, 10, 9)) => {
-  const dir = mkdtempSync(join(tmpdir(), 'tpn-sharing-'))
+  const dir = makeTempDir('sharing')
   const created = createDatabase({ ...env, DATABASE_URL: `file:${join(dir, 'test.db')}` })
   await migrate(created.db, { migrationsFolder: 'drizzle' })
   await seed(created.db)
@@ -201,7 +200,7 @@ export const setUpSharing = async (start = Date.UTC(2026, 10, 9)) => {
   })
   const close = () => {
     created.client.close()
-    rmSync(dir, { recursive: true, force: true })
+    removeTempDir(dir)
   }
   return { db: created.db, service, sent, clock, close }
 }

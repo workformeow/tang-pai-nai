@@ -1,6 +1,4 @@
 import { migrate } from 'drizzle-orm/libsql/migrator'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { env } from '@/core/config'
@@ -10,6 +8,7 @@ import { users } from '@/core/database/schema/auth'
 import { events } from '@/core/database/schema/event'
 import { profiles } from '@/core/database/schema/profile'
 import type { SyncPushHandler, SyncRowWrite } from '@/core/sync'
+import { makeTempDir, removeTempDir } from '@/shared/testing/temp-dir'
 import { EVENT_LIMITS, EVENT_MESSAGE } from './event.const'
 import { eventSyncHandler } from './event.repository.drizzle'
 
@@ -40,7 +39,7 @@ const input = (row: ReturnType<typeof event>) => {
 }
 
 beforeEach(async () => {
-  dir = mkdtempSync(join(tmpdir(), 'tpn-event-'))
+  dir = makeTempDir('event')
   const created = createDatabase({ ...env, DATABASE_URL: `file:${join(dir, 'test.db')}` })
   await migrate(created.db, { migrationsFolder: 'drizzle' })
   await created.db.insert(users).values([
@@ -68,7 +67,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   close()
-  rmSync(dir, { recursive: true, force: true })
+  removeTempDir(dir)
   vi.useRealTimers()
 })
 

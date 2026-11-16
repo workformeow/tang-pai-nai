@@ -1,7 +1,5 @@
 import { eq } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/libsql/migrator'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { env } from '@/core/config'
@@ -16,6 +14,7 @@ import {
   walletMembers,
   wallets,
 } from '@/core/database/schema'
+import { makeTempDir, removeTempDir } from '@/shared/testing/temp-dir'
 import { createDrizzleAuthRepository } from './auth.repository.drizzle'
 import type { AuthRepository } from './auth.repository'
 
@@ -30,7 +29,7 @@ let repo: AuthRepository
 let database: ReturnType<typeof createDatabase>['db']
 
 beforeEach(async () => {
-  dir = mkdtempSync(join(tmpdir(), 'tpn-auth-'))
+  dir = makeTempDir('auth')
   const { client, db } = createDatabase({ ...env, DATABASE_URL: `file:${join(dir, 'test.db')}` })
   await migrate(db, { migrationsFolder: 'drizzle' })
   repo = createDrizzleAuthRepository(db)
@@ -40,7 +39,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   close()
-  rmSync(dir, { recursive: true, force: true })
+  removeTempDir(dir)
 })
 
 const newChallenge = async (destination = 'a@example.com', expiresAt = later(600_000)) =>

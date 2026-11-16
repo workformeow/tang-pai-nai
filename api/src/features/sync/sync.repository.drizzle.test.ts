@@ -1,6 +1,4 @@
 import { migrate } from 'drizzle-orm/libsql/migrator'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { env } from '@/core/config'
@@ -8,6 +6,7 @@ import { createDatabase } from '@/core/database/client'
 import { users } from '@/core/database/schema/auth'
 import { createSyncRegistry } from '@/core/sync'
 import type { SyncPushHandler, SyncTableHandler } from '@/core/sync'
+import { makeTempDir, removeTempDir } from '@/shared/testing/temp-dir'
 import { createDrizzleSyncRepository } from './sync.repository.drizzle'
 import type { HistoryEntry, OpResult } from './sync.entity'
 import type { SyncRepository } from './sync.repository'
@@ -34,7 +33,7 @@ const PHONE = '11111111-1111-4111-8111-111111111111'
 const LAPTOP = '22222222-2222-4222-8222-222222222222'
 
 beforeEach(async () => {
-  dir = mkdtempSync(join(tmpdir(), 'tpn-sync-'))
+  dir = makeTempDir('sync')
   const { client, db } = createDatabase({ ...env, DATABASE_URL: `file:${join(dir, 'test.db')}` })
   await migrate(db, { migrationsFolder: 'drizzle' })
   await db.insert(users).values({ id: ALICE, email: 'a@example.com', displayName: 'a' })
@@ -47,7 +46,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   close()
-  rmSync(dir, { recursive: true, force: true })
+  removeTempDir(dir)
 })
 
 const applied: OpResult = { opId: 'op-1', status: 'applied', row: null, changeSeq: null }
