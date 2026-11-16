@@ -146,6 +146,63 @@ describe('TransactionService', () => {
 
   afterEach(() => db.close())
 
+  describe('activity (docs/features/shared-activity.md)', () => {
+    const now = Date.now()
+    const recent = now - 60_000
+
+    it('has no scope while only I wrote in the book (rule 7)', () => {
+      transaction('mine', { createdAt: recent, updatedAt: recent })
+      expect(service.activityScope()).toBeNull()
+    })
+
+    it('reaches the shared wallets and those someone else wrote in, and says when sharing ended (rules 1, 7)', () => {
+      transaction('theirs', {
+        addedBy: 'm1',
+        updatedBy: 'm1',
+        createdAt: recent,
+        updatedAt: recent,
+      })
+      expect(service.activityScope()).toEqual({
+        walletIds: ['cash'],
+        ended: false,
+        expiresAt: recent + 90 * 86_400_000,
+      })
+      service.setShares('p1', ['card'], 1)
+      expect(service.activityScope()?.walletIds).toEqual(['card', 'cash'])
+      service.setShares('p1', [], 0)
+      expect(service.activityScope()).toMatchObject({ walletIds: ['cash'], ended: true })
+    })
+
+    it('forgets a member’s row once it is 90 days old (rule 1)', () => {
+      const old = now - 91 * 86_400_000
+      transaction('theirs', { addedBy: 'm1', updatedBy: 'm1', createdAt: old, updatedAt: old })
+      expect(service.activityScope()).toBeNull()
+    })
+
+    it('lists the latest action of each row in scope, deleted ones too, newest first (rules 1–4)', () => {
+      transaction('added', { addedBy: 'm1', updatedBy: 'm1', createdAt: recent, updatedAt: recent })
+      transaction('edited', { updatedBy: 'm1', createdAt: recent - 300_000, updatedAt: recent - 1 })
+      transaction('deleted', {
+        updatedBy: 'm1',
+        createdAt: recent - 600_000,
+        updatedAt: recent - 2,
+        deletedAt: recent - 2,
+      })
+      transaction('mine', { createdAt: recent - 3, updatedAt: recent - 3 })
+      transaction('elsewhere', { walletId: 'card', updatedBy: 'm1', updatedAt: recent })
+      transaction('old', { updatedBy: 'm1', createdAt: 1, updatedAt: now - 91 * 86_400_000 })
+
+      const lines = service.activity({ walletIds: ['cash'], ended: false, expiresAt: null })
+      expect(lines.map((line) => [line.id, line.action, line.actor])).toEqual([
+        ['added', 'added', 'm1'],
+        ['edited', 'edited', 'm1'],
+        ['deleted', 'deleted', 'm1'],
+        ['mine', 'added', null],
+      ])
+      expect(lines[0]).toMatchObject({ categoryName: 'food', walletName: 'cash', type: 'expense' })
+    })
+  })
+
   it('lists a period newest day first, then the one recorded last (rule 13), with its category and wallet', () => {
     transaction('a', { occurredOn: '2026-11-01', createdAt: 5 })
     transaction('b', { occurredOn: '2026-11-02', createdAt: 1 })

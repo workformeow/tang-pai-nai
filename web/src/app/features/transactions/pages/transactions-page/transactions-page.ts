@@ -26,6 +26,7 @@ import {
   lucideUsers,
 } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
+import { AuthStore } from '@/core/auth'
 import { BookService } from '@/core/book'
 import { CATEGORY_DEFAULT_ICON } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
@@ -35,6 +36,7 @@ import type { Occurrence } from '@/core/recurring'
 import { SharingService } from '@/core/sharing'
 import {
   FUTURE,
+  latestAction,
   periodLabel,
   signedAmount,
   TransactionService,
@@ -350,11 +352,11 @@ interface DayGroup {
                         row.item.note
                       }}</span>
                     }
-                    @if (addedBy(row.item); as name) {
-                      <!-- Added by an editor of a shared wallet (sharing rule 15). -->
+                    @if (touchedBy(row.item, row.pending); as line) {
+                      <!-- Who else touched it last (shared-activity rule 6). -->
                       <span class="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
                         <ng-icon name="lucideUsers" size="12" class="shrink-0" aria-hidden="true" />
-                        <span class="truncate">{{ 'sharing.addedBy' | transloco: { name } }}</span>
+                        <span class="truncate">{{ line }}</span>
                       </span>
                     }
                     @if (row.pending) {
@@ -484,6 +486,7 @@ export class TransactionsPage {
   })
   private walletService = inject(WalletService)
   private bookService = inject(BookService)
+  private authStore = inject(AuthStore)
   private sharingService = inject(SharingService)
   private networkStatusService = inject(NetworkStatusService)
   /** Books whose members were asked for, for "เพิ่มโดย …" (sharing rule 15). */
@@ -700,16 +703,27 @@ export class TransactionsPage {
   private t = (key: string, params?: Record<string, unknown>) =>
     this.transloco.translate(key, params)
 
-  /** "เพิ่มโดย …": a name once read, else "สมาชิก" (sharing rule 15); null for the owner's own. */
-  protected addedBy(item: EntryItem): string | null {
-    if (item.kind !== 'transaction' || item.addedBy === null) {
+  /**
+   * Shared-activity rule 6: "แก้ไขโดย …" when someone else edited the row last, else "เพิ่มโดย …"
+   * when someone else added it; null for rows you wrote. A name once read, else "อดีตสมาชิก".
+   */
+  protected touchedBy(item: EntryItem, pending: boolean): string | null {
+    if (item.kind !== 'transaction' || pending) {
       return null
     }
     this.languageService.language()
-    return (
-      this.transactionService.people().get(item.addedBy) ??
-      this.transloco.translate('sharing.member')
-    )
+    const me = this.authStore.user()?.id ?? null
+    const ownerId = this.bookService.shared()?.owner.id ?? me
+    const name = (id: string) =>
+      this.transactionService.people().get(id) ?? this.transloco.translate('sharing.member')
+    const { action, actor } = latestAction(item, ownerId, me)
+    if (action === 'edited' && actor) {
+      return this.transloco.translate('activity.editedBy', { name: name(actor) })
+    }
+    const adder = item.addedBy ?? ownerId
+    return adder && adder !== me
+      ? this.transloco.translate('sharing.addedBy', { name: name(adder) })
+      : null
   }
 
   constructor() {
@@ -726,16 +740,12 @@ export class TransactionsPage {
             { rootMargin: '600px' }
           )
     inject(DestroyRef).onDestroy(() => observer?.disconnect())
-    // Sharing rule 15: the owner's rows added by an editor need the members' names, read online
-    // once per book and session.
+    // Sharing rule 15 and shared-activity rules 1, 5: an own book's members (their names, the
+    // wallets shared with them), read online once per book and session.
     effect(() => {
       const bookId = this.bookService.currentId()
       const online = this.networkStatusService.isOnline()
-      const people = this.transactionService.people()
-      const unknown = this.transactionService
-        .items()
-        .some((item) => item.kind === 'transaction' && item.addedBy && !people.has(item.addedBy))
-      if (!bookId || !online || !unknown || this.bookService.isShared()) {
+      if (!bookId || !online || this.bookService.isShared()) {
         return
       }
       if (!this.askedPeople.has(bookId)) {

@@ -21,11 +21,35 @@ export interface Transaction {
   eventId: string | null
   /** The editor of a shared wallet who added it (sharing rule 12); null = the owner. */
   addedBy: string | null
+  /** Who wrote it last, set by the server (sharing rule 12); null until the server has it. */
+  updatedBy: string | null
   createdAt: number
   updatedAt: number
   deletedAt: number | null
   /** Null until the server has seen the row. */
   changeSeq: number | null
+}
+
+/** A transaction's latest action (shared-activity rule 4). */
+export type ActivityAction = 'added' | 'edited' | 'deleted'
+
+/** One line of a book's activity (shared-activity rules 3–4): the row and its latest action. */
+export interface ActivityItem extends TransactionItem {
+  action: ActivityAction
+  /** Who did it; null = the signed-in user (a row the server hasn't seen yet is one's own). */
+  actor: string | null
+}
+
+/**
+ * Where a book's activity reaches (shared-activity rules 1, 7): `walletIds` (null = all of the
+ * book, a shared book in use), and for an own book whose sharing ended, until when it shows.
+ */
+export interface ActivityScope {
+  walletIds: readonly string[] | null
+  /** The owner had members and has none now (owner sharing read online). */
+  ended: boolean
+  /** When the last line someone else wrote turns 90 days old; null while nobody else wrote. */
+  expiresAt: number | null
 }
 
 /** A row of the list: the transaction with what it shows of its category and wallet. */

@@ -8,6 +8,7 @@ import {
   lucideCheck,
   lucideChevronDown,
   lucideChevronLeft,
+  lucideActivity,
   lucideChevronRight,
   lucideEllipsisVertical,
   lucideHandCoins,
@@ -19,7 +20,13 @@ import { BookService } from '@/core/book'
 import { LanguageService } from '@/core/i18n'
 import { REPORT_UNITS, ReportService } from '@/core/report'
 import type { ReportUnit } from '@/core/report'
-import { PERIOD_UNITS, TransactionService, TransferService } from '@/core/transaction'
+import {
+  activityDaysLeft,
+  activityLeftText,
+  PERIOD_UNITS,
+  TransactionService,
+  TransferService,
+} from '@/core/transaction'
 import type { PeriodUnit } from '@/core/transaction'
 import { IconBadge } from '@/shared/components/icon-badge'
 import { Slide } from '@/shared/components/slide'
@@ -73,6 +80,7 @@ import { SyncStatus } from './sync-status'
   `,
   providers: [
     provideIcons({
+      lucideActivity,
       lucideArrowLeftRight,
       lucideCalendarRange,
       lucideCheck,
@@ -212,6 +220,27 @@ import { SyncStatus } from './sync-status'
                 />
               </button>
             }
+            @if (view() === 'transactions' && transactionService.activityScope()) {
+              <!-- Shared activity (rule 7): after the recurring rules, while the book has any. -->
+              <button
+                type="button"
+                role="menuitem"
+                class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+                (click)="activity()"
+              >
+                <ng-icon name="lucideActivity" size="20" aria-hidden="true" />
+                <span class="flex-1">{{ 'activity.menu' | transloco }}</span>
+                @if (activityLeft(); as left) {
+                  <span class="text-sm font-semibold text-brand">{{ left }}</span>
+                }
+                <ng-icon
+                  name="lucideChevronRight"
+                  size="16"
+                  class="text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </button>
+            }
             <button
               type="button"
               role="menuitem"
@@ -266,6 +295,8 @@ export class TransactionsHeader {
   private reportService = inject(ReportService)
   private languageService = inject(LanguageService)
   private transloco = inject(TranslocoService)
+  private t = (key: string, params?: Record<string, unknown>) =>
+    this.transloco.translate(key, params)
   private router = inject(Router)
 
   /** Which tab it heads: the Transactions tab's menu, or the Reports tab's (report.md Q2). */
@@ -331,6 +362,19 @@ export class TransactionsHeader {
     this.closeMenu(false)
     void this.router.navigateByUrl('/account/recurring')
   }
+
+  protected activity(): void {
+    this.closeMenu(false)
+    void this.router.navigateByUrl('/transactions/activity')
+  }
+
+  /** "เหลือ n วัน" on the menu item in the last week of an ended share (shared-activity rule 7). */
+  protected activityLeft = computed(() => {
+    this.languageService.language()
+    const scope = this.transactionService.activityScope()
+    const days = scope?.ended ? activityDaysLeft(scope.expiresAt) : null
+    return days === null || days > 7 ? null : activityLeftText(days, this.t)
+  })
 
   protected closeMenu(refocus: boolean): void {
     if (!this.menuOpen()) {

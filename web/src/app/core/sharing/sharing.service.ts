@@ -358,6 +358,12 @@ export class SharingService {
     this.transactionService.addPeople(
       data.members.map((member) => ({ id: member.userId, displayName: member.displayName }))
     )
+    // Shared-activity rule 1: which wallets the book's activity reaches, and whether it ended.
+    this.transactionService.setShares(
+      bookId,
+      [...new Set(data.members.flatMap((member) => member.walletIds))],
+      data.members.length
+    )
     return data
   }
 

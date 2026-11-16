@@ -31,6 +31,7 @@
     "recurring": "Recurring",
     "debts": "Loans",
     "events": "Events / trips",
+    "activity": "Activity",
     "export": "Export CSV",
     "sharing": "Share wallets",
     "privacy": "Privacy notice",
@@ -865,6 +866,22 @@
     "saveFailed": "Couldn't save. Try again",
     "needsOnline": "Go online to edit your profile"
   },
+  "activity": {
+    "menu": "Activity",
+    "intro": "Changes in shared wallets, last 90 days",
+    "empty": "No changes in the last 90 days",
+    "added": "added",
+    "edited": "edited",
+    "deleted": "deleted",
+    "you": "You",
+    "editedBy": "Edited by {{name}}",
+    "ended": "This book is no longer shared",
+    "until": "Activity shows until {{date}}",
+    "daysLeft": "{{count}} days left",
+    "lastDay": "Last day today",
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
   "sheet": {
     "close": "Close",
     "back": "Back"
@@ -1451,7 +1468,7 @@
     "refused": "Couldn't save, so the data was reloaded",
     "removedFromShared": "You're no longer a member of this wallet",
     "addedBy": "Added by {{name}}",
-    "member": "a member",
+    "member": "a former member",
     "viewerReadOnly": "You're a viewer of this book: read only"
   },
   "privacy": {

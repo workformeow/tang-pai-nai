@@ -423,6 +423,12 @@ values, fixOpId?, bookId?)` (remembers the wallet: `defaultWalletId()`), `remove
   `/transactions?fix=<opId>` (the page asks both services; each opens only its own table's op).
   `layout/transfer-sheet` (views `form` / `pick` (from or to) / `note`) is
   `@defer`red by the shell and opened by the header's two-level ⋮ menu and the Wallets tab.
+- **Shared activity** (#21, [shared-activity.md](../docs/features/shared-activity.md)): a row's
+  latest action and who did it come from `addedBy` / `updatedBy` / the times
+  (`core/transaction/activity.ts`: `latestAction`, `ACTOR_SQL`); `activityScope()` decides the ⋮
+  entry and its wallets, `activity(scope)` lists the lines; `setShares` is fed by
+  `SharingService.loadOwner`. Code that shows "who" calls `latestAction`, never reads
+  `addedBy` alone.
 - Specs: `transaction.service.spec.ts`, `transfer.service.spec.ts`, `transaction-sheet.spec.ts`,
   `transfer-sheet.spec.ts`, `transactions-page.spec.ts` put their rows with `putRow` like the
   other tables; `transactions-header.spec.ts` stubs the services (the menu only).

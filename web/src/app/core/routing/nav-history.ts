@@ -29,7 +29,7 @@ export const parentOf = (url: string): string | null => {
   if (/^\/transactions\/events\/[^/]+/.test(path)) {
     return '/transactions/events'
   }
-  if (path === '/transactions/events') {
+  if (path === '/transactions/events' || path === '/transactions/activity') {
     return '/transactions'
   }
   const report = /^\/reports\/category\/([^/]+)\/[^/]+/.exec(path)
