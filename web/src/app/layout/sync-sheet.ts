@@ -362,7 +362,21 @@ export class SyncSheet {
     void this.router.navigate([FIX_ROUTES[table]], { queryParams: { fix: opId } })
   }
 
+  /**
+   * "Sync now": a round that leaves nothing to look at (no failure, nothing waiting, rejected or
+   * noticed) closes the sheet; the list and the pill already show the result, so no toast.
+   */
   protected syncNow(): void {
-    void this.syncService.sync()
+    void this.syncService.sync().then(() => this.closeIfDone())
+  }
+
+  private closeIfDone(): void {
+    if (
+      this.syncService.status() === 'synced' &&
+      this.syncService.rejected().length === 0 &&
+      this.syncService.notices().length === 0
+    ) {
+      this.open.set(false)
+    }
   }
 }
