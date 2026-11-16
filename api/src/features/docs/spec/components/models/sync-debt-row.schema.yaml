@@ -2,16 +2,16 @@ type: object
 description: >-
   A row of the `debts` table (docs/features/debt.md) as it travels in /sync/pull and in
   /sync/push: a debt borrowed or lent. What is left (and whether it is closed) is computed from
-  its entries and linked transactions, never stored. Rules (each answers `CONFLICT`): profileId
-  is one of the user's live profiles and never changes; direction, countAs and currencyCode never
+  its entries and linked transactions, never stored. Rules (each answers `CONFLICT`): bookId
+  is one of the user's live books and never changes; direction, countAs and currencyCode never
   change, and the currency is active when the debt is created; a `repaid` debt's categoryId is a
-  live expense category of the profile (a merged one is followed); at most 100 open debts per
-  profile. A tombstone runs none of them. A live debt fixes its category's type, and a category
+  live expense category of the book (a merged one is followed); at most 100 open debts per
+  book. A tombstone runs none of them. A live debt fixes its category's type, and a category
   merge moves it.
 required:
   [
     id,
-    profileId,
+    bookId,
     direction,
     person,
     note,
@@ -30,7 +30,7 @@ properties:
     type: string
     format: uuid
     description: UUIDv7 made on the device
-  profileId:
+  bookId:
     type: string
     format: uuid
   direction:
@@ -75,7 +75,7 @@ properties:
     type: string
 example:
   id: 0199b000-0000-7000-8000-000000000701
-  profileId: 0199b000-0000-7000-8000-000000000001
+  bookId: 0199b000-0000-7000-8000-000000000001
   direction: borrowed
   person: แม่
   note: ยืมซ่อมรถ

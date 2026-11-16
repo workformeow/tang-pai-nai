@@ -8,7 +8,7 @@ import type { AppResponse } from '@/shared/types'
 import { createSharingController } from './sharing.controller'
 import { EMAIL, ID, setUpSharing } from './sharing.fixture'
 import { createSharingRouter } from './sharing.routes'
-import type { SharedProfileRows, SharedWithMe, SharingInvite } from './sharing.type'
+import type { SharedBookRows, SharedWithMe, SharingInvite } from './sharing.type'
 
 // The HTTP side of /sharing (auth, validation, envelopes, codes). The rules are in
 // sharing.service.test.ts.
@@ -32,7 +32,7 @@ const bearer = async (userId: string) =>
 
 const invite = async (body: Record<string, unknown>) =>
   request(app)
-    .post(`/sharing/profiles/${ID.pa}/invites`)
+    .post(`/sharing/books/${ID.pa}/invites`)
     .set('Authorization', await bearer(ID.alice))
     .send(body)
 
@@ -73,7 +73,7 @@ describe('/sharing', () => {
     expect(Number(res.headers['retry-after'])).toBeGreaterThan(0)
   })
 
-  it("lets the invitee accept, then read the shared profile's rows", async () => {
+  it("lets the invitee accept, then read the shared book's rows", async () => {
     const created = (await invite({ email: EMAIL.bob, role: 'editor', walletIds: [ID.home] }))
       .body as AppResponse<SharingInvite>
     const auth = await bearer(ID.bob)
@@ -90,7 +90,7 @@ describe('/sharing', () => {
       .get(`/sharing/with-me/${ID.pa}/rows?since=2&limit=1`)
       .set('Authorization', auth)
     expect(rows.status).toBe(HttpStatus.OK)
-    expect((rows.body as AppResponse<SharedProfileRows>).data).toMatchObject({
+    expect((rows.body as AppResponse<SharedBookRows>).data).toMatchObject({
       cursor: 6,
       hasMore: true,
     })
@@ -101,7 +101,7 @@ describe('/sharing', () => {
     expect(bad.status).toBe(HttpStatus.UNPROCESSABLE_ENTITY)
   })
 
-  it('answers 404 for a profile that shares nothing with the caller', async () => {
+  it('answers 404 for a book that shares nothing with the caller', async () => {
     const res = await request(app)
       .get(`/sharing/with-me/${ID.pa}/rows`)
       .set('Authorization', await bearer(ID.carol))

@@ -1,5 +1,5 @@
 import '@/features/currency'
-import '@/features/profile'
+import '@/features/book'
 import '@/features/category'
 import '@/features/wallet'
 import '@/features/transaction'

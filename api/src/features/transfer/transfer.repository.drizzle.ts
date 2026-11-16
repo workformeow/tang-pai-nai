@@ -1,6 +1,6 @@
 import { and, asc, eq, gt, isNull, lt, max } from 'drizzle-orm'
 import type { Executor } from '@/core/database'
-import { profiles } from '@/core/database/schema/profile'
+import { books } from '@/core/database/schema/book'
 import { transfers } from '@/core/database/schema/transfer'
 import { wallets } from '@/core/database/schema/wallet'
 import { wrapUnexpected } from '@/core/error'
@@ -24,7 +24,7 @@ const findWallet = async (executor: Executor, id: string) =>
     await executor
       .select({
         userId: wallets.userId,
-        profileId: wallets.profileId,
+        bookId: wallets.bookId,
         currencyCode: wallets.currencyCode,
         deletedAt: wallets.deletedAt,
       })
@@ -38,11 +38,11 @@ type FoundWallet = Awaited<ReturnType<typeof findWallet>>
 const isOwnLive = (wallet: FoundWallet, userId: string): wallet is NonNullable<FoundWallet> =>
   wallet !== undefined && wallet.userId === userId && wallet.deletedAt === null
 
-const isLiveProfile = async (executor: Executor, userId: string, profileId: string) => {
+const isLiveBook = async (executor: Executor, userId: string, bookId: string) => {
   const rows = await executor
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(and(eq(profiles.id, profileId), eq(profiles.userId, userId), isNull(profiles.deletedAt)))
+    .select({ id: books.id })
+    .from(books)
+    .where(and(eq(books.id, bookId), eq(books.userId, userId), isNull(books.deletedAt)))
   return rows.length > 0
 }
 
@@ -56,13 +56,13 @@ const checkTransfer = async (
   if (row.deletedAt !== null) {
     return null
   }
-  const profileId = String(row.profileId)
+  const bookId = String(row.bookId)
   const stored = await findRow(executor, row.id)
-  if (stored && stored.profileId !== profileId) {
-    return TRANSFER_MESSAGE.PROFILE_FIXED
+  if (stored && stored.bookId !== bookId) {
+    return TRANSFER_MESSAGE.BOOK_FIXED
   }
-  if (!(await isLiveProfile(executor, userId, profileId))) {
-    return TRANSFER_MESSAGE.PROFILE_GONE
+  if (!(await isLiveBook(executor, userId, bookId))) {
+    return TRANSFER_MESSAGE.BOOK_GONE
   }
   const from = await findWallet(executor, String(row.fromWalletId))
   if (!isOwnLive(from, userId)) {
@@ -72,8 +72,8 @@ const checkTransfer = async (
   if (!isOwnLive(to, userId)) {
     return TRANSFER_MESSAGE.TO_GONE
   }
-  if (from.profileId !== profileId || to.profileId !== profileId) {
-    return TRANSFER_MESSAGE.OTHER_PROFILE
+  if (from.bookId !== bookId || to.bookId !== bookId) {
+    return TRANSFER_MESSAGE.OTHER_BOOK
   }
   if (from.currencyCode !== to.currencyCode) {
     return TRANSFER_MESSAGE.OTHER_CURRENCY
@@ -120,7 +120,7 @@ export const transferSyncHandler: SyncTableHandler = {
           const values = {
             id: row.id,
             userId,
-            profileId: String(row.profileId),
+            bookId: String(row.bookId),
             fromWalletId: String(row.fromWalletId),
             toWalletId: String(row.toWalletId),
             amount: Number(row.amount),

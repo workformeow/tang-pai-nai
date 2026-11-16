@@ -6,7 +6,7 @@ import { env } from '@/core/config'
 import { createDatabase } from '@/core/database/client'
 import {
   categories,
-  profiles,
+  books,
   sessions,
   transactions,
   users,
@@ -458,7 +458,7 @@ describe('phone (4.4b)', () => {
 
 describe('deleting an account (privacy rules 8, 10)', () => {
   const sync = { createdAt: 1, updatedAt: 1, deletedAt: null, changeSeq: 1, updatedBy: 'device' }
-  const profile = (id: string, userId: string) => ({
+  const book = (id: string, userId: string) => ({
     id,
     userId,
     name: id,
@@ -467,10 +467,10 @@ describe('deleting an account (privacy rules 8, 10)', () => {
     sortOrder: 0,
     ...sync,
   })
-  const wallet = (id: string, profileId: string, userId: string, extra = {}) => ({
+  const wallet = (id: string, bookId: string, userId: string, extra = {}) => ({
     id,
     userId,
-    profileId,
+    bookId,
     name: id,
     currencyCode: 'THB',
     initialBalance: 0,
@@ -483,12 +483,12 @@ describe('deleting an account (privacy rules 8, 10)', () => {
     ...extra,
   })
 
-  /** Alice owns a profile with two wallets shared with Bob and Carol; she is a member of Bob's. */
+  /** Alice owns a book with two wallets shared with Bob and Carol; she is a member of Bob's. */
   const seed = async () => {
     const alice = await repo.createUser({ email: 'alice@example.com', displayName: 'Alice' })
     const bob = await repo.createUser({ email: 'bob@example.com', displayName: 'Bob' })
     const carol = await repo.createUser({ email: 'carol@example.com', displayName: 'Carol' })
-    await database.insert(profiles).values([profile('pa', alice.id), profile('pb', bob.id)])
+    await database.insert(books).values([book('pa', alice.id), book('pb', bob.id)])
     await database
       .insert(wallets)
       .values([
@@ -515,7 +515,7 @@ describe('deleting an account (privacy rules 8, 10)', () => {
     await database.insert(categories).values({
       id: 'food',
       userId: alice.id,
-      profileId: 'pa',
+      bookId: 'pa',
       type: 'expense',
       parentId: null,
       name: 'Food',
@@ -528,7 +528,7 @@ describe('deleting an account (privacy rules 8, 10)', () => {
     await database.insert(transactions).values({
       id: 't1',
       userId: alice.id,
-      profileId: 'pa',
+      bookId: 'pa',
       walletId: 'home',
       categoryId: 'food',
       amount: 100,
@@ -539,7 +539,7 @@ describe('deleting an account (privacy rules 8, 10)', () => {
     })
     const invite = (id: string, email: string) => ({
       id,
-      profileId: 'pb',
+      bookId: 'pb',
       ownerId: bob.id,
       email,
       role: 'viewer' as const,
@@ -577,7 +577,7 @@ describe('deleting an account (privacy rules 8, 10)', () => {
     await expect(left(database.select().from(users))).resolves.toEqual(
       [bob.id, (await repo.findUserByEmail('carol@example.com'))?.id ?? ''].sort()
     )
-    await expect(left(database.select().from(profiles))).resolves.toEqual(['pb'])
+    await expect(left(database.select().from(books))).resolves.toEqual(['pb'])
     await expect(left(database.select().from(wallets))).resolves.toEqual(['bobs'])
     await expect(left(database.select().from(transactions))).resolves.toEqual([])
     await expect(left(database.select().from(categories))).resolves.toEqual([])

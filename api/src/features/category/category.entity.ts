@@ -6,7 +6,7 @@ export type CategoryType = (typeof CATEGORY_TYPES)[number]
 // layer's `Record<string, unknown>` rows.
 export type Category = {
   id: string
-  profileId: string
+  bookId: string
   type: CategoryType
   /** Null for a top-level category. */
   parentId: string | null

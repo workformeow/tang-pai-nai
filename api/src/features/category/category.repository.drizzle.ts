@@ -1,9 +1,9 @@
 import { and, asc, count, eq, gt, inArray, isNull, lt, max, ne, sql } from 'drizzle-orm'
 import type { Executor } from '@/core/database'
 import { findMergeTarget } from '@/core/database/category-merge'
+import { books } from '@/core/database/schema/book'
 import { categories } from '@/core/database/schema/category'
 import { debts } from '@/core/database/schema/debt'
-import { profiles } from '@/core/database/schema/profile'
 import { recurringRules } from '@/core/database/schema/recurring'
 import { transactions } from '@/core/database/schema/transaction'
 import { wrapUnexpected } from '@/core/error'
@@ -37,14 +37,14 @@ const checkParent = async (
   executor: Executor,
   userId: string,
   row: SyncRowInput,
-  profileId: string,
+  bookId: string,
   parentId: string
 ): Promise<string | null> => {
   const parent = await findRow(executor, parentId)
   if (!parent || parent.userId !== userId || parent.deletedAt !== null) {
     return CATEGORY_MESSAGE.PARENT_GONE
   }
-  if (parent.profileId !== profileId || parent.type !== row.type || parent.parentId !== null) {
+  if (parent.bookId !== bookId || parent.type !== row.type || parent.parentId !== null) {
     return CATEGORY_MESSAGE.PARENT_INVALID
   }
   if (parent.isArchived && row.isArchived !== true) {
@@ -75,12 +75,12 @@ const hasTransactions = async (executor: Executor, id: string) => {
   return rows.length > 0 || rules.length > 0 || owed.length > 0
 }
 
-/** Rule 1: the owner's live profile; whether `profileId` is one. */
-const isLiveProfile = async (executor: Executor, userId: string, profileId: string) => {
+/** Rule 1: the owner's live book; whether `bookId` is one. */
+const isLiveBook = async (executor: Executor, userId: string, bookId: string) => {
   const rows = await executor
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(and(eq(profiles.id, profileId), eq(profiles.userId, userId), isNull(profiles.deletedAt)))
+    .select({ id: books.id })
+    .from(books)
+    .where(and(eq(books.id, bookId), eq(books.userId, userId), isNull(books.deletedAt)))
   return rows.length > 0
 }
 
@@ -88,10 +88,10 @@ const isLiveProfile = async (executor: Executor, userId: string, profileId: stri
 const checkOpen = async (
   executor: Executor,
   row: SyncRowInput,
-  profileId: string,
+  bookId: string,
   parentId: string | null
 ): Promise<string | null> => {
-  const open = and(eq(categories.profileId, profileId), eq(categories.isArchived, false))
+  const open = and(eq(categories.bookId, bookId), eq(categories.isArchived, false))
   const sameName = and(
     open,
     eq(categories.type, String(row.type) as Category['type']),
@@ -101,7 +101,7 @@ const checkOpen = async (
   if ((await countOthers(executor, row.id, sameName)) > 0) {
     return CATEGORY_MESSAGE.NAME_TAKEN
   }
-  if ((await countOthers(executor, row.id, open)) >= CATEGORY_LIMITS.PER_PROFILE) {
+  if ((await countOthers(executor, row.id, open)) >= CATEGORY_LIMITS.PER_BOOK) {
     return CATEGORY_MESSAGE.TOO_MANY
   }
   return null
@@ -136,18 +136,18 @@ const checkCategory = async (
   if (row.deletedAt !== null) {
     return null
   }
-  const profileId = String(row.profileId)
+  const bookId = String(row.bookId)
   const parentId = typeof row.parentId === 'string' ? row.parentId : null
   const stored = await findRow(executor, row.id)
-  // Rule 1: one of the owner's live profiles, and a category never moves to another.
-  if (stored && stored.profileId !== profileId) {
-    return CATEGORY_MESSAGE.PROFILE_FIXED
+  // Rule 1: one of the owner's live books, and a category never moves to another.
+  if (stored && stored.bookId !== bookId) {
+    return CATEGORY_MESSAGE.BOOK_FIXED
   }
-  if (!(await isLiveProfile(executor, userId, profileId))) {
-    return CATEGORY_MESSAGE.PROFILE_GONE
+  if (!(await isLiveBook(executor, userId, bookId))) {
+    return CATEGORY_MESSAGE.BOOK_GONE
   }
   const parentError =
-    parentId === null ? null : await checkParent(executor, userId, row, profileId, parentId)
+    parentId === null ? null : await checkParent(executor, userId, row, bookId, parentId)
   if (parentError) {
     return parentError
   }
@@ -156,7 +156,7 @@ const checkCategory = async (
     return shapeError
   }
   // Rules 2 and 11: archived categories neither hold a name nor count toward the 200.
-  return row.isArchived === true ? null : checkOpen(executor, row, profileId, parentId)
+  return row.isArchived === true ? null : checkOpen(executor, row, bookId, parentId)
 }
 
 /** Moves the live transactions of `fromIds` to `targetId`, each with its own `changeSeq`. */
@@ -335,7 +335,7 @@ export const categorySyncHandler: SyncTableHandler = {
           const values = {
             id: row.id,
             userId,
-            profileId: String(row.profileId),
+            bookId: String(row.bookId),
             type: String(row.type) as Category['type'],
             parentId: typeof row.parentId === 'string' ? row.parentId : null,
             name: String(row.name),

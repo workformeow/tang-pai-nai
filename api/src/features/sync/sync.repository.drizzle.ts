@@ -1,6 +1,6 @@
 import { and, eq, gt, isNull, lt, lte, ne, sql } from 'drizzle-orm'
 import type { Executor } from '@/core/database'
-import { sharedProfileOf } from '@/core/database/live-access'
+import { sharedBookOf } from '@/core/database/live-access'
 import { changeHistory, syncOps, syncState } from '@/core/database/schema/sync'
 import { walletAccess } from '@/core/database/wallet-access'
 import { wrapUnexpected } from '@/core/error'
@@ -145,8 +145,8 @@ export const createDrizzleSyncRepository = (
 
     walletAccess: async (userId, walletId) =>
       run('walletAccess', async () => walletAccess(db, userId, walletId), { walletId }),
-    sharedProfileOf: async (walletId) =>
-      run('sharedProfileOf', async () => sharedProfileOf(db, walletId), { walletId }),
+    sharedBookOf: async (walletId) =>
+      run('sharedBookOf', async () => sharedBookOf(db, walletId), { walletId }),
 
     pull: async (table, userId, since, limit) => handler(table).pull(db, userId, since, limit),
     find: async (table, id) => pushHandler(table).find(db, id),

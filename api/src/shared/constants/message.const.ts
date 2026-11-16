@@ -56,7 +56,7 @@ export const LOG = {
   },
   LIVE: {
     publishFailed: (provider: string) => `[Live] ⚠️ Poke via ${provider} not sent (push kept)`,
-    lookupFailed: '[Live] ⚠️ Shared profile lookup failed: its poke is skipped (push kept)',
+    lookupFailed: '[Live] ⚠️ Shared book lookup failed: its poke is skipped (push kept)',
   },
   SYNC: {
     cleanedUp: (tombstones: number, ops: number) =>

@@ -2,17 +2,17 @@ type: object
 description: >-
   A row of the `recurring_rules` table (docs/features/recurring.md) as it travels in /sync/pull
   and /sync/push: a rule for money that repeats. The device records each due occurrence as a
-  transaction or transfer with `recurringId`. Rules (each answers `CONFLICT`): profileId is one of
-  the user's live profiles and never changes; walletId (and toWalletId of a transfer rule) are
-  live wallets of the user in that profile, archived ones accepted, a transfer's two of the same
-  currency; categoryId of a transaction rule is a live category of the profile; at most 100 live
-  rules per profile. A tombstone runs none of them. A rule on a merged category follows it, and
+  transaction or transfer with `recurringId`. Rules (each answers `CONFLICT`): bookId is one of
+  the user's live books and never changes; walletId (and toWalletId of a transfer rule) are
+  live wallets of the user in that book, archived ones accepted, a transfer's two of the same
+  currency; categoryId of a transaction rule is a live category of the book; at most 100 live
+  rules per book. A tombstone runs none of them. A rule on a merged category follows it, and
   with the schedule unchanged `nextOn` never moves back; two versions that differ only in nextOn
   conflict without a notice. A live rule fixes its wallets' currency and its category's type.
 required:
   [
     id,
-    profileId,
+    bookId,
     kind,
     walletId,
     categoryId,
@@ -39,7 +39,7 @@ properties:
     type: string
     format: uuid
     description: UUIDv7 made on the device
-  profileId:
+  bookId:
     type: string
     format: uuid
   kind:
@@ -65,7 +65,7 @@ properties:
     format: uuid
     description: >-
       A `debt` rule's debt, or a transaction rule's (its occurrences are a debt's instalments);
-      a live debt of the profile in the wallet's currency (`CONFLICT`); null otherwise
+      a live debt of the book in the wallet's currency (`CONFLICT`); null otherwise
   amount:
     type: integer
     minimum: 1
@@ -119,7 +119,7 @@ properties:
     type: string
 example:
   id: 0199b000-0000-7000-8000-000000000501
-  profileId: 0199b000-0000-7000-8000-000000000001
+  bookId: 0199b000-0000-7000-8000-000000000001
   kind: transaction
   walletId: 0199b000-0000-7000-8000-000000000101
   categoryId: 0199b000-0000-7000-8000-000000000201

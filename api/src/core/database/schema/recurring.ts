@@ -1,8 +1,8 @@
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { syncColumns } from '@/core/database/columns'
 import { users } from '@/core/database/schema/auth'
+import { books } from '@/core/database/schema/book'
 import { categories } from '@/core/database/schema/category'
-import { profiles } from '@/core/database/schema/profile'
 import { wallets } from '@/core/database/schema/wallet'
 
 // docs/features/recurring.md → Data model. A rule for money that repeats: the device records
@@ -15,10 +15,10 @@ export const recurringRules = sqliteTable(
     userId: text()
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    // Cascades: purging a profile's, wallet's or category's old tombstone takes the rule's.
-    profileId: text()
+    // Cascades: purging a book's, wallet's or category's old tombstone takes the rule's.
+    bookId: text()
       .notNull()
-      .references(() => profiles.id, { onDelete: 'cascade' }),
+      .references(() => books.id, { onDelete: 'cascade' }),
     /** `transaction` | `transfer` | `debt` (a debt's repayment, debt rule 13). */
     kind: text().notNull(),
     /** The transaction's wallet, or the wallet a transfer leaves. */
@@ -60,7 +60,7 @@ export const recurringRules = sqliteTable(
   (table) => [
     index('recurring_rules_user_seq_idx').on(table.userId, table.changeSeq),
     index('recurring_rules_change_seq_idx').on(table.changeSeq),
-    index('recurring_rules_profile_idx').on(table.profileId),
+    index('recurring_rules_book_idx').on(table.bookId),
     index('recurring_rules_wallet_idx').on(table.walletId),
     index('recurring_rules_category_idx').on(table.categoryId),
     index('recurring_rules_to_wallet_idx').on(table.toWalletId),

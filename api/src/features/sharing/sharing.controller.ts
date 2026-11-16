@@ -7,11 +7,11 @@ import type {
   LangBody,
   MemberBody,
   MemberParams,
-  ProfileParams,
+  BookParams,
   RowsQuery,
 } from './sharing.schema'
 import type { SharingService } from './sharing.service'
-import type { OwnerSharing, SharedProfileRows, SharedWithMe, SharingInvite } from './sharing.type'
+import type { OwnerSharing, SharedBookRows, SharedWithMe, SharingInvite } from './sharing.type'
 import type { NextFunction, Request, Response } from 'express'
 
 /** `req.auth`, set by `authenticate` in front of every sharing route. */
@@ -46,19 +46,18 @@ export const createSharingController = (sharingService: SharingService) => {
       }
     }
 
-  const ofProfile = handle<ProfileParams>(
+  const ofBook = handle<BookParams>(
     SUCCESS.get('sharing'),
     HttpStatus.OK,
-    async (req, userId): Promise<OwnerSharing> =>
-      sharingService.ofProfile(userId, req.params.profileId)
+    async (req, userId): Promise<OwnerSharing> => sharingService.ofBook(userId, req.params.bookId)
   )
 
-  const invite = handle<ProfileParams, InviteBody>(
+  const invite = handle<BookParams, InviteBody>(
     SUCCESS.create('invite'),
     HttpStatus.CREATED,
     async (req, userId): Promise<SharingInvite> => {
       const { lang, ...input } = req.body
-      return sharingService.invite(userId, req.params.profileId, input, lang)
+      return sharingService.invite(userId, req.params.bookId, input, lang)
     }
   )
 
@@ -76,14 +75,13 @@ export const createSharingController = (sharingService: SharingService) => {
     SUCCESS.update('member'),
     HttpStatus.OK,
     async (req, userId) =>
-      sharingService.updateMember(userId, req.params.profileId, req.params.userId, req.body)
+      sharingService.updateMember(userId, req.params.bookId, req.params.userId, req.body)
   )
 
   const removeMember = handle<MemberParams>(
     SUCCESS.delete('member'),
     HttpStatus.OK,
-    async (req, userId) =>
-      sharingService.removeMember(userId, req.params.profileId, req.params.userId)
+    async (req, userId) => sharingService.removeMember(userId, req.params.bookId, req.params.userId)
   )
 
   const withMe = handle<unknown>(
@@ -100,22 +98,22 @@ export const createSharingController = (sharingService: SharingService) => {
     sharingService.decline(userId, req.params.id)
   )
 
-  const leave = handle<ProfileParams>(SUCCESS.OK, HttpStatus.OK, async (req, userId) =>
-    sharingService.leave(userId, req.params.profileId)
+  const leave = handle<BookParams>(SUCCESS.OK, HttpStatus.OK, async (req, userId) =>
+    sharingService.leave(userId, req.params.bookId)
   )
 
-  const rows = handle<ProfileParams>(
+  const rows = handle<BookParams>(
     SUCCESS.list('rows'),
     HttpStatus.OK,
-    async (req, userId): Promise<SharedProfileRows> => {
+    async (req, userId): Promise<SharedBookRows> => {
       // Already parsed (coerced, defaults filled) by validate(); Express types it as ParsedQs.
       const query = req.query as RowsQuery
-      return sharingService.rows(userId, req.params.profileId, query.since, query.limit)
+      return sharingService.rows(userId, req.params.bookId, query.since, query.limit)
     }
   )
 
   return {
-    ofProfile,
+    ofBook,
     invite,
     resend,
     cancel,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { validateProfile } from './profile.schema'
+import { validateBook } from './book.schema'
 
 const valid = {
   id: '0199a000-0000-7000-8000-000000000001',
@@ -11,16 +11,16 @@ const valid = {
   updatedAt: 1000,
 }
 
-describe('validateProfile', () => {
-  it('accepts a profile, trims the name and defaults deletedAt to null', () => {
-    expect(validateProfile(valid)).toEqual({
+describe('validateBook', () => {
+  it('accepts a book, trims the name and defaults deletedAt to null', () => {
+    expect(validateBook(valid)).toEqual({
       ok: true,
       row: { ...valid, name: 'ส่วนตัว', deletedAt: null },
     })
   })
 
   it('ignores server columns a device sends', () => {
-    const result = validateProfile({ ...valid, changeSeq: 99, updatedBy: 'x', userId: 'y' })
+    const result = validateBook({ ...valid, changeSeq: 99, updatedBy: 'x', userId: 'y' })
     expect(result.ok && Object.keys(result.row).sort()).toEqual([
       'color',
       'createdAt',
@@ -34,7 +34,7 @@ describe('validateProfile', () => {
   })
 
   it('accepts a name of exactly 30 characters and a tombstone', () => {
-    const result = validateProfile({ ...valid, name: 'x'.repeat(30), deletedAt: 2000 })
+    const result = validateBook({ ...valid, name: 'x'.repeat(30), deletedAt: 2000 })
     expect(result.ok && result.row).toMatchObject({ name: 'x'.repeat(30), deletedAt: 2000 })
   })
 
@@ -49,7 +49,7 @@ describe('validateProfile', () => {
     ['a fractional sort order', { sortOrder: 1.5 }, 'Sort order must be of type integer'],
     ['an id that is not a UUID', { id: 'abc' }, 'Invalid id format'],
   ])('refuses %s', (_name, change, message) => {
-    const result = validateProfile({ ...valid, ...change })
+    const result = validateBook({ ...valid, ...change })
     expect(result.ok).toBe(false)
     expect(!result.ok && result.message).toContain(message)
   })

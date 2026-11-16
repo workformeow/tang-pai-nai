@@ -26,7 +26,7 @@ const isDueDay = (value: string) => isCalendarDay(value) && value >= DEBT_LIMITS
 const debtRow = z
   .object({
     id: z.uuid({ error: ERRORS.invalidField('id') }),
-    profileId: z.uuid({ error: ERRORS.invalidField('profileId') }),
+    bookId: z.uuid({ error: ERRORS.invalidField('bookId') }),
     direction: z.enum(Object.values(DebtDirection), { error: ERRORS.invalidField('direction') }),
     person: z
       .string({ error: ERRORS.requiredField('Person') })
@@ -62,7 +62,7 @@ const debtRow = z
 // A pushed debt entry (debt rule 6).
 const entryRow = z.object({
   id: z.uuid({ error: ERRORS.invalidField('id') }),
-  profileId: z.uuid({ error: ERRORS.invalidField('profileId') }),
+  bookId: z.uuid({ error: ERRORS.invalidField('bookId') }),
   debtId: z.uuid({ error: ERRORS.invalidField('debtId') }),
   kind: z.enum(Object.values(DebtEntryKind), { error: ERRORS.invalidField('kind') }),
   walletId: z

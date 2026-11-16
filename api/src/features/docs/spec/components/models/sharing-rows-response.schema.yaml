@@ -5,9 +5,9 @@ properties:
   timestamp: { type: string, format: date-time }
   data:
     type: object
-    required: [profile, role, owner, people, wallets, categories, transactions, cursor, hasMore]
+    required: [book, role, owner, people, wallets, categories, transactions, cursor, hasMore]
     properties:
-      profile: { $ref: './sharing-profile.schema.yaml' }
+      book: { $ref: './sharing-book.schema.yaml' }
       role: { $ref: './sharing-role.schema.yaml' }
       owner:
         type: object
@@ -17,7 +17,7 @@ properties:
           email: { type: string, format: email }
       people:
         type: array
-        description: The owner and the profile's members, the names behind `addedBy`
+        description: The owner and the book's members, the names behind `addedBy`
         items:
           type: object
           properties:
@@ -31,7 +31,7 @@ properties:
         items: { $ref: './sync-row.schema.yaml' }
       categories:
         type: array
-        description: The owner's live categories of the profile, archived ones too
+        description: The owner's live categories of the book, archived ones too
         items: { $ref: './sync-row.schema.yaml' }
       transactions:
         type: object

@@ -2,7 +2,7 @@
 // sync layer's `Record<string, unknown>` rows.
 export type Transaction = {
   id: string
-  profileId: string
+  bookId: string
   walletId: string
   categoryId: string
   /** Minor units, always > 0. The sign comes from the category's type. */

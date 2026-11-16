@@ -4,8 +4,8 @@ export const WALLET_LIMITS = {
   SORT_ORDER_MAX: 1_000_000,
   /** ±10¹⁵ minor units (wallet rule 5). */
   BALANCE_MAX: 1_000_000_000_000_000,
-  /** Non-archived wallets per profile (wallet rule 3). */
-  PER_PROFILE: 20,
+  /** Non-archived wallets per book (wallet rule 3). */
+  PER_BOOK: 20,
   /** Ids in `hiddenCategoryIds` (category rule 13). */
   HIDDEN_CATEGORIES_MAX: 200,
 } as const
@@ -18,11 +18,11 @@ export const WALLET_PATTERN = {
 } as const
 
 export const WALLET_MESSAGE = {
-  PROFILE_GONE: 'The profile does not exist or was deleted',
-  PROFILE_FIXED: 'A wallet cannot move to another profile',
+  BOOK_GONE: 'The book does not exist or was deleted',
+  BOOK_FIXED: 'A wallet cannot move to another book',
   CURRENCY_INACTIVE: 'The currency is not available',
   CURRENCY_FIXED: 'A wallet with transactions cannot change its currency',
-  NAME_TAKEN: 'A wallet with this name already exists in this profile',
-  TOO_MANY: `A profile can have at most ${WALLET_LIMITS.PER_PROFILE} wallets`,
+  NAME_TAKEN: 'A wallet with this name already exists in this book',
+  TOO_MANY: `A book can have at most ${WALLET_LIMITS.PER_BOOK} wallets`,
   CARD_IN_TOTAL: 'A credit card must be excluded from the total',
 } as const

@@ -11,7 +11,7 @@ const flag = (field: string) => z.boolean({ error: ERRORS.invalidType(field, 'bo
 const row = z
   .object({
     id: z.uuid({ error: ERRORS.invalidField('id') }),
-    profileId: z.uuid({ error: ERRORS.invalidField('profileId') }),
+    bookId: z.uuid({ error: ERRORS.invalidField('bookId') }),
     name: z
       .string({ error: ERRORS.requiredField('Name') })
       .trim()
@@ -41,7 +41,7 @@ const row = z
       .int(ERRORS.invalidType('Sort order', 'integer'))
       .min(0, ERRORS.invalidField('sortOrder'))
       .max(WALLET_LIMITS.SORT_ORDER_MAX, ERRORS.invalidField('sortOrder')),
-    // Category rule 13: only the shape. Unknown ids (deleted, another profile's) are the device's
+    // Category rule 13: only the shape. Unknown ids (deleted, another book's) are the device's
     // to ignore. A push without the field (a device from before 7.2) means none hidden.
     hiddenCategoryIds: z
       .array(z.uuid({ error: ERRORS.invalidField('hiddenCategoryIds') }), {

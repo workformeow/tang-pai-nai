@@ -1,6 +1,6 @@
 import { createHttpClient } from '@ably/pubsub-server'
 import { LiveProviderName } from '@/shared/types'
-import { profileChannel, userChannel } from './live.channel'
+import { bookChannel, userChannel } from './live.channel'
 import { LIVE_LIMITS } from './live.const'
 import type { LiveProvider } from './live.type'
 
@@ -25,8 +25,8 @@ export const createAblyLiveProvider = ({ apiKey }: { apiKey: string }): LiveProv
     publish: async ({ channel, poke }) => {
       await rest.channels.get(channel).publish('poke', poke)
     },
-    token: async ({ userId, profileIds }) => {
-      const channels = [userChannel(userId), ...profileIds.map(profileChannel)]
+    token: async ({ userId, bookIds }) => {
+      const channels = [userChannel(userId), ...bookIds.map(bookChannel)]
       const capability = Object.fromEntries(channels.map((name) => [name, ['subscribe']]))
       const tokenRequest = await rest.auth.createTokenRequest({
         clientId: userId,

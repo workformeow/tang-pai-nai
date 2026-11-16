@@ -1,9 +1,9 @@
 type: object
 description: >-
-  A row of the `profiles` table (docs/features/profile.md) as it travels in /sync/pull and in
+  A row of the `books` table (docs/features/book.md) as it travels in /sync/pull and in
   /sync/push. Devices send the whole row on upsert; the server stamps changeSeq and updatedBy.
-  Rules: name 1–30 characters, unique among the user's live profiles (case-insensitive), at most
-  20 live profiles (both answer `CONFLICT`); icon a lucide export name; color `#rrggbb`.
+  Rules: name 1–30 characters, unique among the user's live books (case-insensitive), at most
+  20 live books (both answer `CONFLICT`); icon a lucide export name; color `#rrggbb`.
 required: [id, name, icon, color, sortOrder, createdAt, updatedAt, deletedAt, changeSeq, updatedBy]
 properties:
   id:
@@ -31,7 +31,7 @@ properties:
     type: integer
   deletedAt:
     type: [integer, 'null']
-    description: Set on a deleted profile (a tombstone)
+    description: Set on a deleted book (a tombstone)
   changeSeq:
     type: integer
   updatedBy:

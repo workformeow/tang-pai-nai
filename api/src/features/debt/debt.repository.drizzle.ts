@@ -2,10 +2,10 @@ import { and, asc, eq, gt, isNull, lt, max, sql } from 'drizzle-orm'
 import type { Executor } from '@/core/database'
 import { findMergeTarget } from '@/core/database/category-merge'
 import { checkDebtLink } from '@/core/database/debt-link'
+import { books } from '@/core/database/schema/book'
 import { categories } from '@/core/database/schema/category'
 import { currencies } from '@/core/database/schema/currency'
 import { debtEntries, debts } from '@/core/database/schema/debt'
-import { profiles } from '@/core/database/schema/profile'
 import { wallets } from '@/core/database/schema/wallet'
 import { wrapUnexpected } from '@/core/error'
 import type { SyncRowInput, SyncTableHandler } from '@/core/sync'
@@ -30,11 +30,11 @@ const findDebtRow = async (executor: Executor, id: string) =>
 const findEntryRow = async (executor: Executor, id: string) =>
   (await executor.select().from(debtEntries).where(eq(debtEntries.id, id))).at(0)
 
-const isLiveProfile = async (executor: Executor, userId: string, profileId: string) => {
+const isLiveBook = async (executor: Executor, userId: string, bookId: string) => {
   const rows = await executor
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(and(eq(profiles.id, profileId), eq(profiles.userId, userId), isNull(profiles.deletedAt)))
+    .select({ id: books.id })
+    .from(books)
+    .where(and(eq(books.id, bookId), eq(books.userId, userId), isNull(books.deletedAt)))
   return rows.length > 0
 }
 
@@ -43,9 +43,9 @@ const isLiveProfile = async (executor: Executor, userId: string, profileId: stri
  * transactions that settle it: the instalments (expenses) of a `repaid` debt. Interest and a
  * forgiven rest's transaction don't (its repayment entry does, debt rule 4).
  */
-const OPEN_DEBTS = (profileId: string, exceptId: string) => sql`
+const OPEN_DEBTS = (bookId: string, exceptId: string) => sql`
   SELECT count(*) AS total FROM debts d
-   WHERE d.profile_id = ${profileId} AND d.deleted_at IS NULL AND d.id <> ${exceptId}
+   WHERE d.book_id = ${bookId} AND d.deleted_at IS NULL AND d.id <> ${exceptId}
      AND coalesce((SELECT sum(CASE e.kind WHEN 'principal' THEN e.amount ELSE -e.amount END)
                      FROM debt_entries e WHERE e.debt_id = d.id AND e.deleted_at IS NULL), 0)
        - coalesce((SELECT sum(t.amount) FROM transactions t
@@ -58,13 +58,13 @@ const checkCategory = async (
   executor: Executor,
   userId: string,
   categoryId: string,
-  profileId: string
+  bookId: string
 ): Promise<string | null> => {
   const category = (
     await executor
       .select({
         userId: categories.userId,
-        profileId: categories.profileId,
+        bookId: categories.bookId,
         type: categories.type,
         deletedAt: categories.deletedAt,
       })
@@ -74,7 +74,7 @@ const checkCategory = async (
   if (!category || category.userId !== userId || category.deletedAt !== null) {
     return DEBT_MESSAGE.CATEGORY_GONE
   }
-  return category.profileId === profileId && category.type === 'expense'
+  return category.bookId === bookId && category.type === 'expense'
     ? null
     : DEBT_MESSAGE.CATEGORY_NOT_EXPENSE
 }
@@ -103,32 +103,32 @@ const checkDebt = async (
   if (row.deletedAt !== null) {
     return null
   }
-  const profileId = String(row.profileId)
+  const bookId = String(row.bookId)
   const stored = await findDebtRow(executor, row.id)
-  if (stored && stored.profileId !== profileId) {
-    return DEBT_MESSAGE.PROFILE_FIXED
+  if (stored && stored.bookId !== bookId) {
+    return DEBT_MESSAGE.BOOK_FIXED
   }
   if (stored && changesFixed(stored, row)) {
     return DEBT_MESSAGE.FIXED
   }
-  if (!(await isLiveProfile(executor, userId, profileId))) {
-    return DEBT_MESSAGE.PROFILE_GONE
+  if (!(await isLiveBook(executor, userId, bookId))) {
+    return DEBT_MESSAGE.BOOK_GONE
   }
   if (!stored && !(await isActiveCurrency(executor, String(row.currencyCode)))) {
     return DEBT_MESSAGE.CURRENCY_INACTIVE
   }
   if (typeof row.categoryId === 'string') {
-    const broken = await checkCategory(executor, userId, row.categoryId, profileId)
+    const broken = await checkCategory(executor, userId, row.categoryId, bookId)
     if (broken) {
       return broken
     }
   }
-  // Rule 1: at most 100 open debts per profile; a stored live one already counts.
+  // Rule 1: at most 100 open debts per book; a stored live one already counts.
   if (stored && stored.deletedAt === null) {
     return null
   }
-  const [{ total }] = (await executor.all(OPEN_DEBTS(profileId, row.id))) as [{ total: number }]
-  return total >= DEBT_LIMITS.OPEN_PER_PROFILE ? DEBT_MESSAGE.LIMIT : null
+  const [{ total }] = (await executor.all(OPEN_DEBTS(bookId, row.id))) as [{ total: number }]
+  return total >= DEBT_LIMITS.OPEN_PER_BOOK ? DEBT_MESSAGE.LIMIT : null
 }
 
 /** Category rule 15: a `repaid` debt on a merged category follows it to its target. */
@@ -146,22 +146,22 @@ const resolveDebt = async (
 
 const LINK_MESSAGE = new Map<string, string>([
   ['gone', DEBT_ENTRY_MESSAGE.DEBT_GONE],
-  ['otherProfile', DEBT_ENTRY_MESSAGE.OTHER_PROFILE],
+  ['otherBook', DEBT_ENTRY_MESSAGE.OTHER_BOOK],
   ['otherCurrency', DEBT_ENTRY_MESSAGE.OTHER_CURRENCY],
 ])
 
-/** Rule 6: the owner's live wallet of the entry's profile; the message or null. */
+/** Rule 6: the owner's live wallet of the entry's book; the message or null. */
 const checkEntryWallet = async (
   executor: Executor,
   userId: string,
   walletId: string,
-  profileId: string
+  bookId: string
 ): Promise<string | null> => {
   const wallet = (
     await executor
       .select({
         userId: wallets.userId,
-        profileId: wallets.profileId,
+        bookId: wallets.bookId,
         deletedAt: wallets.deletedAt,
       })
       .from(wallets)
@@ -170,7 +170,7 @@ const checkEntryWallet = async (
   if (!wallet || wallet.userId !== userId || wallet.deletedAt !== null) {
     return DEBT_ENTRY_MESSAGE.WALLET_GONE
   }
-  return wallet.profileId === profileId ? null : DEBT_ENTRY_MESSAGE.OTHER_PROFILE
+  return wallet.bookId === bookId ? null : DEBT_ENTRY_MESSAGE.OTHER_BOOK
 }
 
 /** Rule 6: the entry's debt and wallet; the message or null. */
@@ -182,24 +182,24 @@ const checkEntry = async (
   if (row.deletedAt !== null) {
     return null
   }
-  const profileId = String(row.profileId)
+  const bookId = String(row.bookId)
   const stored = await findEntryRow(executor, row.id)
-  if (stored && stored.profileId !== profileId) {
-    return DEBT_ENTRY_MESSAGE.PROFILE_FIXED
+  if (stored && stored.bookId !== bookId) {
+    return DEBT_ENTRY_MESSAGE.BOOK_FIXED
   }
   if (stored && stored.debtId !== row.debtId) {
     return DEBT_ENTRY_MESSAGE.DEBT_FIXED
   }
-  if (!(await isLiveProfile(executor, userId, profileId))) {
-    return DEBT_ENTRY_MESSAGE.PROFILE_GONE
+  if (!(await isLiveBook(executor, userId, bookId))) {
+    return DEBT_ENTRY_MESSAGE.BOOK_GONE
   }
   const walletId = text(row.walletId)
   const walletError =
-    walletId === null ? null : await checkEntryWallet(executor, userId, walletId, profileId)
+    walletId === null ? null : await checkEntryWallet(executor, userId, walletId, bookId)
   if (walletError) {
     return walletError
   }
-  const link = await checkDebtLink(executor, userId, String(row.debtId), profileId, walletId)
+  const link = await checkDebtLink(executor, userId, String(row.debtId), bookId, walletId)
   const linkError = LINK_MESSAGE.get(link.status)
   if (linkError) {
     return linkError
@@ -280,7 +280,7 @@ export const debtSyncHandler: SyncTableHandler = {
           const values = {
             id: row.id,
             userId,
-            profileId: String(row.profileId),
+            bookId: String(row.bookId),
             direction: String(row.direction),
             person: String(row.person),
             note: typeof row.note === 'string' ? row.note : '',
@@ -345,7 +345,7 @@ export const debtEntrySyncHandler: SyncTableHandler = {
           const values = {
             id: row.id,
             userId,
-            profileId: String(row.profileId),
+            bookId: String(row.bookId),
             debtId: String(row.debtId),
             kind: String(row.kind),
             walletId: text(row.walletId),

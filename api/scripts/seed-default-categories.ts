@@ -2,9 +2,9 @@ import { createClient } from '@libsql/client'
 import { v7 as uuidv7 } from 'uuid'
 
 /**
- * One-off (#7, docs/features/category.md rule 8): gives every live profile that has no category
- * rows at all the default category set, in Thai. New profiles get the set from the device that
- * creates them; only profiles made before #7 (dev data) need this. Each row takes the next
+ * One-off (#7, docs/features/category.md rule 8): gives every live book that has no category
+ * rows at all the default category set, in Thai. New books get the set from the device that
+ * creates them; only books made before #7 (dev data) need this. Each row takes the next
  * `sync_state.last_seq` in one transaction, so devices pull them like any other change.
  *
  *   npx tsx --env-file-if-exists=.env.dev scripts/seed-default-categories.ts
@@ -69,16 +69,16 @@ const url = process.env.DATABASE_URL ?? 'file:./data/local.db'
 const client = createClient({ url, authToken: process.env.DATABASE_AUTH_TOKEN })
 
 const run = async (): Promise<void> => {
-  const profiles = await client.execute(
-    `SELECT p.id, p.user_id FROM profiles p
-     WHERE p.deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM categories c WHERE c.profile_id = p.id)`
+  const books = await client.execute(
+    `SELECT p.id, p.user_id FROM books p
+     WHERE p.deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM categories c WHERE c.book_id = p.id)`
   )
   const tx = await client.transaction('write')
   try {
     let written = 0
-    for (const profile of profiles.rows) {
-      const profileId = profile['id'] as string
-      const userId = profile['user_id'] as string
+    for (const book of books.rows) {
+      const bookId = book['id'] as string
+      const userId = book['user_id'] as string
       const insert = async (
         type: string,
         seed: Seed,
@@ -91,13 +91,13 @@ const run = async (): Promise<void> => {
           'UPDATE sync_state SET last_seq = last_seq + 1 WHERE id = 1 RETURNING last_seq'
         )
         await tx.execute({
-          sql: `INSERT INTO categories (id, user_id, profile_id, type, parent_id, name, icon, color,
+          sql: `INSERT INTO categories (id, user_id, book_id, type, parent_id, name, icon, color,
                   is_archived, sort_order, created_at, updated_at, deleted_at, change_seq, updated_by)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, NULL, ?, ?)`,
           args: [
             id,
             userId,
-            profileId,
+            bookId,
             type,
             parentId,
             seed.name,
@@ -126,7 +126,7 @@ const run = async (): Promise<void> => {
       }
     }
     await tx.commit()
-    console.log(`Default categories: ${written} rows for ${profiles.rows.length} profile(s)`)
+    console.log(`Default categories: ${written} rows for ${books.rows.length} book(s)`)
   } catch (error) {
     await tx.rollback()
     throw error

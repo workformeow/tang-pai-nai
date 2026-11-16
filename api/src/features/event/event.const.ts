@@ -1,8 +1,8 @@
 export const EVENT_LIMITS = {
   NAME_MAX: 50,
   ICON_MAX: 40,
-  /** Open (not closed) events per profile (event rule 1). */
-  OPEN_PER_PROFILE: 50,
+  /** Open (not closed) events per book (event rule 1). */
+  OPEN_PER_BOOK: 50,
 } as const
 
 export const EVENT_PATTERN = {
@@ -12,8 +12,8 @@ export const EVENT_PATTERN = {
 } as const
 
 export const EVENT_MESSAGE = {
-  PROFILE_GONE: 'The profile does not exist or was deleted',
-  PROFILE_FIXED: 'An event cannot move to another profile',
-  LIMIT: `A profile holds at most ${EVENT_LIMITS.OPEN_PER_PROFILE} open events`,
+  BOOK_GONE: 'The book does not exist or was deleted',
+  BOOK_FIXED: 'An event cannot move to another book',
+  LIMIT: `A book holds at most ${EVENT_LIMITS.OPEN_PER_BOOK} open events`,
   END_BEFORE_START: 'An event cannot end before it starts',
 } as const

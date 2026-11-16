@@ -2,10 +2,10 @@ import { sql } from 'drizzle-orm'
 import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { syncColumns } from '@/core/database/columns'
 import { users } from '@/core/database/schema/auth'
+import { books } from '@/core/database/schema/book'
 import { currencies } from '@/core/database/schema/currency'
-import { profiles } from '@/core/database/schema/profile'
 
-// docs/features/wallet.md → Data model. A synced table like `profiles`: the id comes from the
+// docs/features/wallet.md → Data model. A synced table like `books`: the id comes from the
 // device, rows travel through /sync/push and /sync/pull, and "delete" is a tombstone.
 export const wallets = sqliteTable(
   'wallets',
@@ -15,11 +15,11 @@ export const wallets = sqliteTable(
     userId: text()
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    // Cascade: purging a profile's old tombstone takes its wallets' tombstones with it, whatever
+    // Cascade: purging a book's old tombstone takes its wallets' tombstones with it, whatever
     // order the cleanup visits the tables in.
-    profileId: text()
+    bookId: text()
       .notNull()
-      .references(() => profiles.id, { onDelete: 'cascade' }),
+      .references(() => books.id, { onDelete: 'cascade' }),
     name: text().notNull(),
     currencyCode: text()
       .notNull()
@@ -46,7 +46,7 @@ export const wallets = sqliteTable(
   (table) => [
     index('wallets_user_seq_idx').on(table.userId, table.changeSeq),
     index('wallets_change_seq_idx').on(table.changeSeq),
-    index('wallets_profile_idx').on(table.profileId),
+    index('wallets_book_idx').on(table.bookId),
   ]
 )
 

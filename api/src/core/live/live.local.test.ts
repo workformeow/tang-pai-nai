@@ -4,11 +4,11 @@ import type { LiveListener, LiveMessage } from './live.type'
 
 const poke = { seq: 3, deviceId: 'phone' }
 
-const listener = (userId: string, profiles: string[] = []) => {
+const listener = (userId: string, books: string[] = []) => {
   const got: LiveMessage[] = []
   const value: LiveListener = {
     userId,
-    mayListen: async (profileId) => Promise.resolve(profiles.includes(profileId)),
+    mayListen: async (bookId) => Promise.resolve(books.includes(bookId)),
     send: (message) => got.push(message),
   }
   return { value, got }
@@ -26,13 +26,13 @@ describe('createLocalLiveProvider', () => {
     expect(bob.got).toEqual([])
   })
 
-  it('sends a profile: poke to the streams that may hear it (rule 3), asked on each poke', async () => {
+  it('sends a book: poke to the streams that may hear it (rule 3), asked on each poke', async () => {
     const provider = createLocalLiveProvider()
     const member = listener('bob', ['pa'])
     const stranger = listener('carol')
     provider.listen?.(member.value)
     provider.listen?.(stranger.value)
-    await provider.publish({ channel: 'profile:pa', poke })
+    await provider.publish({ channel: 'book:pa', poke })
     expect(member.got).toHaveLength(1)
     expect(stranger.got).toEqual([])
   })
@@ -48,7 +48,7 @@ describe('createLocalLiveProvider', () => {
 
   it('answers the local provider for a token, with no Ably token', async () => {
     const provider = createLocalLiveProvider()
-    expect(await provider.token({ userId: 'alice', profileIds: ['pa'] })).toEqual({
+    expect(await provider.token({ userId: 'alice', bookIds: ['pa'] })).toEqual({
       provider: 'local',
     })
   })

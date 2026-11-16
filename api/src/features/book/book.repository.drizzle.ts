@@ -1,20 +1,20 @@
 import { and, asc, count, eq, gt, isNull, lt, max, ne, sql } from 'drizzle-orm'
 import type { Executor } from '@/core/database'
-import { profiles } from '@/core/database/schema/profile'
+import { books } from '@/core/database/schema/book'
 import { wrapUnexpected } from '@/core/error'
 import type { SyncTableHandler } from '@/core/sync'
-import { PROFILE_LIMITS, PROFILE_MESSAGE } from './profile.const'
-import { validateProfile } from './profile.schema'
-import type { Profile } from './profile.entity'
+import { BOOK_LIMITS, BOOK_MESSAGE } from './book.const'
+import { validateBook } from './book.schema'
+import type { Book } from './book.entity'
 
-type ProfileRow = typeof profiles.$inferSelect
+type BookRow = typeof books.$inferSelect
 
-const toProfile = ({ userId: _userId, ...row }: ProfileRow): Profile => row
+const toBook = ({ userId: _userId, ...row }: BookRow): Book => row
 
 const run = async <T>(operation: string, work: () => Promise<T>, metadata?: object) =>
-  wrapUnexpected(work, { operation: `profileSync.${operation}`, metadata: { ...metadata } })
+  wrapUnexpected(work, { operation: `bookSync.${operation}`, metadata: { ...metadata } })
 
-/** The user's other live profiles matching `extra`. */
+/** The user's other live books matching `extra`. */
 const countLiveOthers = async (
   executor: Executor,
   userId: string,
@@ -23,37 +23,37 @@ const countLiveOthers = async (
 ) => {
   const [{ total }] = await executor
     .select({ total: count() })
-    .from(profiles)
-    .where(and(eq(profiles.userId, userId), isNull(profiles.deletedAt), ne(profiles.id, id), extra))
+    .from(books)
+    .where(and(eq(books.userId, userId), isNull(books.deletedAt), ne(books.id, id), extra))
   return total
 }
 
-/** The profiles table's sync handler (docs/features/profile.md rule 1). */
-export const profileSyncHandler: SyncTableHandler = {
-  table: 'profiles',
+/** The books table's sync handler (docs/features/book.md rule 1). */
+export const bookSyncHandler: SyncTableHandler = {
+  table: 'books',
   pull: async (executor, userId, since, limit) =>
     run('pull', async () => {
       const rows = await executor
         .select()
-        .from(profiles)
-        .where(and(eq(profiles.userId, userId), gt(profiles.changeSeq, since)))
-        .orderBy(asc(profiles.changeSeq))
+        .from(books)
+        .where(and(eq(books.userId, userId), gt(books.changeSeq, since)))
+        .orderBy(asc(books.changeSeq))
         .limit(limit)
-      return rows.map(toProfile)
+      return rows.map(toBook)
     }),
   push: {
-    validate: validateProfile,
+    validate: validateBook,
     find: async (executor, id) =>
       run(
         'find',
         async () => {
-          const rows = await executor.select().from(profiles).where(eq(profiles.id, id))
+          const rows = await executor.select().from(books).where(eq(books.id, id))
           const row = rows.at(0)
-          return row ? { ownerId: row.userId, row: toProfile(row) } : null
+          return row ? { ownerId: row.userId, row: toBook(row) } : null
         },
         { id }
       ),
-    // Rules a device can't check offline: a name unique among the user's live profiles (rule 2)
+    // Rules a device can't check offline: a name unique among the user's live books (rule 2)
     // and at most 20 of them (rule 4). A tombstone breaks neither.
     check: async (executor, userId, row) =>
       run('check', async () => {
@@ -61,12 +61,12 @@ export const profileSyncHandler: SyncTableHandler = {
           return null
         }
         const name = String(row.name)
-        const sameName = sql`lower(${profiles.name}) = lower(${name})`
+        const sameName = sql`lower(${books.name}) = lower(${name})`
         if ((await countLiveOthers(executor, userId, row.id, sameName)) > 0) {
-          return PROFILE_MESSAGE.NAME_TAKEN
+          return BOOK_MESSAGE.NAME_TAKEN
         }
-        if ((await countLiveOthers(executor, userId, row.id)) >= PROFILE_LIMITS.PER_USER) {
-          return PROFILE_MESSAGE.TOO_MANY
+        if ((await countLiveOthers(executor, userId, row.id)) >= BOOK_LIMITS.PER_USER) {
+          return BOOK_MESSAGE.TOO_MANY
         }
         return null
       }),
@@ -88,22 +88,22 @@ export const profileSyncHandler: SyncTableHandler = {
             updatedBy: row.updatedBy,
           }
           const [written] = await executor
-            .insert(profiles)
+            .insert(books)
             .values(values)
-            .onConflictDoUpdate({ target: profiles.id, set: values })
+            .onConflictDoUpdate({ target: books.id, set: values })
             .returning()
-          return toProfile(written)
+          return toBook(written)
         },
         { id: row.id }
       ),
     purge: async (executor, before) =>
       run('purge', async () => {
-        const old = lt(profiles.deletedAt, before)
+        const old = lt(books.deletedAt, before)
         const [{ maxSeq }] = await executor
-          .select({ maxSeq: max(profiles.changeSeq) })
-          .from(profiles)
+          .select({ maxSeq: max(books.changeSeq) })
+          .from(books)
           .where(old)
-        const removed = await executor.delete(profiles).where(old).returning({ id: profiles.id })
+        const removed = await executor.delete(books).where(old).returning({ id: books.id })
         return { removed: removed.length, maxSeq: maxSeq ?? 0 }
       }),
   },

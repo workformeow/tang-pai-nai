@@ -3,8 +3,8 @@ const DAY_MS = 24 * 60 * MINUTE_MS
 
 // docs/features/sharing.md → Business rules.
 export const SHARING_LIMITS = {
-  /** Rule 3: members and pending invites of one profile together. */
-  PEOPLE_PER_PROFILE: 10,
+  /** Rule 3: members and pending invites of one book together. */
+  PEOPLE_PER_BOOK: 10,
   /** Rule 5. */
   INVITE_TTL_MS: 14 * DAY_MS,
   /** Rule 4: invite + resend mails per owner. */
@@ -15,9 +15,9 @@ export const SHARING_LIMITS = {
   /** The global mail cap's bucket, shared with auth's mails (EMAIL_DAILY_LIMIT). */
   EMAIL_DAILY_KEY: 'email:global:day',
   EMAIL_DAILY_WINDOW_MS: DAY_MS,
-  /** Wallets in one invite or membership: a profile holds at most this many anyway. */
+  /** Wallets in one invite or membership: a book holds at most this many anyway. */
   WALLETS_MAX: 200,
-  /** Transactions per read of a shared profile (rule 9), like a pull page. */
+  /** Transactions per read of a shared book (rule 9), like a pull page. */
   ROWS_DEFAULT: 2000,
   ROWS_MAX: 5000,
 } as const
@@ -37,10 +37,10 @@ export enum ShareErrorCode {
 
 export const SHARING_MESSAGE = {
   SELF: 'You can’t invite yourself',
-  ALREADY_MEMBER: 'This person already shares wallets of this profile',
+  ALREADY_MEMBER: 'This person already shares wallets of this book',
   INVITE_PENDING: 'An invitation to this email is already pending',
-  MEMBER_LIMIT: 'A profile can be shared with at most 10 people',
-  WALLETS_INVALID: 'Pick open wallets of this profile',
+  MEMBER_LIMIT: 'A book can be shared with at most 10 people',
+  WALLETS_INVALID: 'Pick open wallets of this book',
   INVITE_EMPTY: 'None of the invited wallets is shared any more',
   DAILY_LIMIT: 'Too many invitations today. Please try again tomorrow',
   RESEND_COOLDOWN: 'Wait a few minutes before sending this invitation again',

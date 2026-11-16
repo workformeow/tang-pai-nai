@@ -3,7 +3,7 @@ import { validateTransaction } from './transaction.schema'
 
 const valid = {
   id: '0199a000-0000-7000-8000-000000000301',
-  profileId: '0199a000-0000-7000-8000-000000000001',
+  bookId: '0199a000-0000-7000-8000-000000000001',
   walletId: '0199a000-0000-7000-8000-000000000101',
   categoryId: '0199a000-0000-7000-8000-000000000201',
   amount: 6500,
@@ -71,7 +71,7 @@ describe('validateTransaction', () => {
   })
 
   it('needs UUIDs for the row and the rows it points at', () => {
-    for (const field of ['id', 'profileId', 'walletId', 'categoryId', 'debtId']) {
+    for (const field of ['id', 'bookId', 'walletId', 'categoryId', 'debtId']) {
       expect(messageOf({ [field]: 'nope' })).toBe(`Invalid ${field} format`)
     }
   })

@@ -1,6 +1,6 @@
 import { GoneError } from '@/core/error'
 import type { LiveChannel, LivePublisher } from '@/core/live'
-import { profileChannel, userChannel } from '@/core/live/live.channel'
+import { bookChannel, userChannel } from '@/core/live/live.channel'
 import { logger } from '@/core/logger'
 import type {
   SyncPushHandler,
@@ -105,22 +105,22 @@ export const createSyncService = ({
     const raise = (channel: LiveChannel, seq: number) => {
       seqs.set(channel, Math.max(seq, seqs.get(channel) ?? 0))
     }
-    const profileOf = new Map<string, string | null>()
+    const bookOf = new Map<string, string | null>()
     try {
       for (const { ownerId, seq, walletIds } of touched) {
         raise(userChannel(ownerId), seq)
         for (const walletId of walletIds) {
-          if (!profileOf.has(walletId)) {
-            profileOf.set(walletId, await syncRepo.sharedProfileOf(walletId))
+          if (!bookOf.has(walletId)) {
+            bookOf.set(walletId, await syncRepo.sharedBookOf(walletId))
           }
-          const profileId = profileOf.get(walletId)
-          if (profileId) {
-            raise(profileChannel(profileId), seq)
+          const bookId = bookOf.get(walletId)
+          if (bookId) {
+            raise(bookChannel(bookId), seq)
           }
         }
       }
     } catch (error) {
-      // A shared profile we can't look up only loses its poke; the timed rounds catch up.
+      // A shared book we can't look up only loses its poke; the timed rounds catch up.
       logger.warn(LOG.LIVE.lookupFailed, {
         cause: error instanceof Error ? error.message : String(error),
       })
@@ -532,7 +532,7 @@ const touchedBy = (
   }
 }
 
-/** The wallets a shared table's row was and is in (a move pokes both profiles). */
+/** The wallets a shared table's row was and is in (a move pokes both books). */
 const walletsOf = (
   shared: SyncSharedRows | undefined,
   before: SyncRow | null,

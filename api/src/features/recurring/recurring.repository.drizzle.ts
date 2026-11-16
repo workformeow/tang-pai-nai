@@ -2,8 +2,8 @@ import { and, asc, count, eq, gt, isNull, lt, max, ne } from 'drizzle-orm'
 import type { Executor } from '@/core/database'
 import { findMergeTarget } from '@/core/database/category-merge'
 import { checkDebtLink } from '@/core/database/debt-link'
+import { books } from '@/core/database/schema/book'
 import { categories } from '@/core/database/schema/category'
-import { profiles } from '@/core/database/schema/profile'
 import { recurringRules } from '@/core/database/schema/recurring'
 import { wallets } from '@/core/database/schema/wallet'
 import { wrapUnexpected } from '@/core/error'
@@ -27,7 +27,7 @@ const findWallet = async (executor: Executor, id: string) =>
     await executor
       .select({
         userId: wallets.userId,
-        profileId: wallets.profileId,
+        bookId: wallets.bookId,
         currencyCode: wallets.currencyCode,
         deletedAt: wallets.deletedAt,
       })
@@ -40,24 +40,24 @@ const findCategory = async (executor: Executor, id: string) =>
     await executor
       .select({
         userId: categories.userId,
-        profileId: categories.profileId,
+        bookId: categories.bookId,
         deletedAt: categories.deletedAt,
       })
       .from(categories)
       .where(eq(categories.id, id))
   ).at(0)
 
-type Parent = { userId: string; profileId: string; deletedAt: number | null } | undefined
+type Parent = { userId: string; bookId: string; deletedAt: number | null } | undefined
 
 /** Rule 1: the owner's live row; archived ones are fine (they pause the rule, rule 12). */
 const isOwnLive = (parent: Parent, userId: string): parent is NonNullable<Parent> =>
   parent !== undefined && parent.userId === userId && parent.deletedAt === null
 
-const isLiveProfile = async (executor: Executor, userId: string, profileId: string) => {
+const isLiveBook = async (executor: Executor, userId: string, bookId: string) => {
   const rows = await executor
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(and(eq(profiles.id, profileId), eq(profiles.userId, userId), isNull(profiles.deletedAt)))
+    .select({ id: books.id })
+    .from(books)
+    .where(and(eq(books.id, bookId), eq(books.userId, userId), isNull(books.deletedAt)))
   return rows.length > 0
 }
 
@@ -66,33 +66,33 @@ const checkParents = async (
   executor: Executor,
   userId: string,
   row: SyncRowInput,
-  profileId: string
+  bookId: string
 ): Promise<string | null> => {
   const wallet = await findWallet(executor, String(row.walletId))
   if (!isOwnLive(wallet, userId)) {
     return RECURRING_MESSAGE.WALLET_GONE
   }
-  if (wallet.profileId !== profileId) {
-    return RECURRING_MESSAGE.OTHER_PROFILE
+  if (wallet.bookId !== bookId) {
+    return RECURRING_MESSAGE.OTHER_BOOK
   }
   if (row.kind === RecurringKind.TRANSFER) {
     const to = await findWallet(executor, String(row.toWalletId))
     if (!isOwnLive(to, userId)) {
       return RECURRING_MESSAGE.TO_WALLET_GONE
     }
-    if (to.profileId !== profileId) {
-      return RECURRING_MESSAGE.OTHER_PROFILE
+    if (to.bookId !== bookId) {
+      return RECURRING_MESSAGE.OTHER_BOOK
     }
     return to.currencyCode === wallet.currencyCode ? null : RECURRING_MESSAGE.OTHER_CURRENCY
   }
-  // Debt rule 13: a repayment's or an instalment's debt, of the profile and the wallet's currency.
+  // Debt rule 13: a repayment's or an instalment's debt, of the book and the wallet's currency.
   if (typeof row.debtId === 'string') {
-    const link = await checkDebtLink(executor, userId, row.debtId, profileId, String(row.walletId))
+    const link = await checkDebtLink(executor, userId, row.debtId, bookId, String(row.walletId))
     if (link.status === 'gone') {
       return RECURRING_MESSAGE.DEBT_GONE
     }
-    if (link.status === 'otherProfile') {
-      return RECURRING_MESSAGE.DEBT_OTHER_PROFILE
+    if (link.status === 'otherBook') {
+      return RECURRING_MESSAGE.DEBT_OTHER_BOOK
     }
     if (link.status === 'otherCurrency') {
       return RECURRING_MESSAGE.DEBT_OTHER_CURRENCY
@@ -105,7 +105,7 @@ const checkParents = async (
   if (!isOwnLive(category, userId)) {
     return RECURRING_MESSAGE.CATEGORY_GONE
   }
-  return category.profileId === profileId ? null : RECURRING_MESSAGE.OTHER_PROFILE
+  return category.bookId === bookId ? null : RECURRING_MESSAGE.OTHER_BOOK
 }
 
 /** Rules a device can't check offline (recurring rule 1); the message or null. */
@@ -118,19 +118,19 @@ const checkRule = async (
   if (row.deletedAt !== null) {
     return null
   }
-  const profileId = String(row.profileId)
+  const bookId = String(row.bookId)
   const stored = await findRow(executor, row.id)
-  if (stored && stored.profileId !== profileId) {
-    return RECURRING_MESSAGE.PROFILE_FIXED
+  if (stored && stored.bookId !== bookId) {
+    return RECURRING_MESSAGE.BOOK_FIXED
   }
-  if (!(await isLiveProfile(executor, userId, profileId))) {
-    return RECURRING_MESSAGE.PROFILE_GONE
+  if (!(await isLiveBook(executor, userId, bookId))) {
+    return RECURRING_MESSAGE.BOOK_GONE
   }
-  const broken = await checkParents(executor, userId, row, profileId)
+  const broken = await checkParents(executor, userId, row, bookId)
   if (broken) {
     return broken
   }
-  // Rule 1: at most 100 live rules per profile (a stored live one already counts).
+  // Rule 1: at most 100 live rules per book (a stored live one already counts).
   if (stored && stored.deletedAt === null) {
     return null
   }
@@ -139,12 +139,12 @@ const checkRule = async (
     .from(recurringRules)
     .where(
       and(
-        eq(recurringRules.profileId, profileId),
+        eq(recurringRules.bookId, bookId),
         isNull(recurringRules.deletedAt),
         ne(recurringRules.id, row.id)
       )
     )
-  return total >= RECURRING_LIMITS.PER_PROFILE ? RECURRING_MESSAGE.LIMIT : null
+  return total >= RECURRING_LIMITS.PER_BOOK ? RECURRING_MESSAGE.LIMIT : null
 }
 
 const SCHEDULE = ['startOn', 'frequency', 'interval', 'endOn', 'endCount'] as const
@@ -196,7 +196,7 @@ const resolveRule = async (
 }
 
 const CONTENT = [
-  'profileId',
+  'bookId',
   'kind',
   'walletId',
   'categoryId',
@@ -251,7 +251,7 @@ export const recurringSyncHandler: SyncTableHandler = {
           const values = {
             id: row.id,
             userId,
-            profileId: String(row.profileId),
+            bookId: String(row.bookId),
             kind: String(row.kind),
             walletId: String(row.walletId),
             categoryId: text(row.categoryId),

@@ -6,11 +6,11 @@ import { env } from '@/core/config'
 import type { Database } from '@/core/database'
 import { createDatabase } from '@/core/database/client'
 import { users } from '@/core/database/schema/auth'
+import { books } from '@/core/database/schema/book'
 import { categories } from '@/core/database/schema/category'
 import { currencies } from '@/core/database/schema/currency'
 import { debts } from '@/core/database/schema/debt'
 import { events } from '@/core/database/schema/event'
-import { profiles } from '@/core/database/schema/profile'
 import { wallets } from '@/core/database/schema/wallet'
 import type { SyncPushHandler, SyncRowWrite } from '@/core/sync'
 import { makeTempDir, removeTempDir } from '@/shared/testing/temp-dir'
@@ -25,7 +25,7 @@ const push = transactionSyncHandler.push as SyncPushHandler
 
 const transaction = (id: string, changeSeq: number, extra: Partial<SyncRowWrite> = {}) => ({
   id,
-  profileId: 'pa',
+  bookId: 'pa',
   walletId: 'cash',
   categoryId: 'food',
   amount: 6500,
@@ -52,7 +52,7 @@ const sync = (userId: string, deletedAt: number | null = null) => ({
   updatedBy: userId,
 })
 
-const profile = (id: string, userId: string, deletedAt: number | null = null) => ({
+const book = (id: string, userId: string, deletedAt: number | null = null) => ({
   id,
   userId,
   name: id,
@@ -65,12 +65,12 @@ const profile = (id: string, userId: string, deletedAt: number | null = null) =>
 const wallet = (
   id: string,
   userId: string,
-  profileId: string,
+  bookId: string,
   extra: Partial<typeof wallets.$inferInsert> = {}
 ) => ({
   id,
   userId,
-  profileId,
+  bookId,
   name: id,
   currencyCode: 'THB',
   initialBalance: 0,
@@ -86,12 +86,12 @@ const wallet = (
 const category = (
   id: string,
   userId: string,
-  profileId: string,
+  bookId: string,
   extra: Partial<typeof categories.$inferInsert> = {}
 ) => ({
   id,
   userId,
-  profileId,
+  bookId,
   type: 'expense' as const,
   parentId: null,
   name: id,
@@ -113,12 +113,12 @@ beforeEach(async () => {
     { id: 'bob', email: 'b@example.com', displayName: 'b' },
   ])
   await created.db
-    .insert(profiles)
+    .insert(books)
     .values([
-      profile('pa', 'alice'),
-      profile('pa2', 'alice'),
-      profile('gone', 'alice', 500),
-      profile('pb', 'bob'),
+      book('pa', 'alice'),
+      book('pa2', 'alice'),
+      book('gone', 'alice', 500),
+      book('pb', 'bob'),
     ])
   await created.db
     .insert(wallets)
@@ -168,7 +168,7 @@ describe('transactionSyncHandler', () => {
     await push.write(
       db,
       'bob',
-      transaction('t2', 16, { profileId: 'pb', walletId: 'bobs', categoryId: 'bobcat' })
+      transaction('t2', 16, { bookId: 'pb', walletId: 'bobs', categoryId: 'bobcat' })
     )
     await push.write(db, 'alice', transaction('t3', 17, { deletedAt: 1000 }))
     expect((await transactionSyncHandler.pull(db, 'alice', 15, 10)).map((row) => row.id)).toEqual([
@@ -180,10 +180,10 @@ describe('transactionSyncHandler', () => {
     ])
   })
 
-  it("refuses a profile that isn't the user's live one, and a move to another profile", async () => {
-    for (const profileId of ['pb', 'gone', 'nope']) {
-      expect(await push.check(db, 'alice', transaction('t9', 0, { profileId }))).toBe(
-        TRANSACTION_MESSAGE.PROFILE_GONE
+  it("refuses a book that isn't the user's live one, and a move to another book", async () => {
+    for (const bookId of ['pb', 'gone', 'nope']) {
+      expect(await push.check(db, 'alice', transaction('t9', 0, { bookId }))).toBe(
+        TRANSACTION_MESSAGE.BOOK_GONE
       )
     }
     await push.write(db, 'alice', transaction('t1', 15))
@@ -191,12 +191,12 @@ describe('transactionSyncHandler', () => {
       await push.check(
         db,
         'alice',
-        transaction('t1', 0, { profileId: 'pa2', walletId: 'other', categoryId: 'othercat' })
+        transaction('t1', 0, { bookId: 'pa2', walletId: 'other', categoryId: 'othercat' })
       )
-    ).toBe(TRANSACTION_MESSAGE.PROFILE_FIXED)
+    ).toBe(TRANSACTION_MESSAGE.BOOK_FIXED)
   })
 
-  it("needs the user's live wallet and category of the same profile; archived ones are fine", async () => {
+  it("needs the user's live wallet and category of the same book; archived ones are fine", async () => {
     const check = async (extra: Partial<SyncRowWrite>) =>
       push.check(db, 'alice', transaction('t9', 0, extra))
     expect(await check({})).toBeNull()
@@ -208,8 +208,8 @@ describe('transactionSyncHandler', () => {
     for (const categoryId of ['deadcat', 'bobcat', 'nope']) {
       expect(await check({ categoryId })).toBe(TRANSACTION_MESSAGE.CATEGORY_GONE)
     }
-    expect(await check({ walletId: 'other' })).toBe(TRANSACTION_MESSAGE.OTHER_PROFILE)
-    expect(await check({ categoryId: 'othercat' })).toBe(TRANSACTION_MESSAGE.OTHER_PROFILE)
+    expect(await check({ walletId: 'other' })).toBe(TRANSACTION_MESSAGE.OTHER_BOOK)
+    expect(await check({ categoryId: 'othercat' })).toBe(TRANSACTION_MESSAGE.OTHER_BOOK)
   })
 
   it('refuses a move to a wallet with another currency, not to one with the same', async () => {
@@ -228,7 +228,7 @@ describe('transactionSyncHandler', () => {
     ).toBeNull()
   })
 
-  it('purges old tombstones, and goes with a purged wallet, category or profile', async () => {
+  it('purges old tombstones, and goes with a purged wallet, category or book', async () => {
     await push.write(db, 'alice', transaction('t1', 15, { deletedAt: 100 }))
     await push.write(db, 'alice', transaction('t2', 16, { deletedAt: 900 }))
     expect(await push.purge(db, 500)).toEqual({ removed: 1, maxSeq: 15 })
@@ -239,7 +239,7 @@ describe('transactionSyncHandler', () => {
     await db.delete(categories).where(eq(categories.id, 'salary'))
     expect(await push.find(db, 't3')).toBeNull()
     expect(await push.find(db, 't4')).toBeNull()
-    await db.delete(profiles)
+    await db.delete(books)
     expect(await push.find(db, 't2')).toBeNull()
   })
 
@@ -267,11 +267,11 @@ describe('transactionSyncHandler', () => {
     expect(push.keepsStored?.({ ...row, recurringId: null })).toBe(false)
   })
 
-  it('links a debt of its profile and currency; a link to a gone debt is cleared (debt rule 8)', async () => {
-    const debtRow = (id: string, profileId: string, extra: object = {}) => ({
+  it('links a debt of its book and currency; a link to a gone debt is cleared (debt rule 8)', async () => {
+    const debtRow = (id: string, bookId: string, extra: object = {}) => ({
       id,
       userId: 'alice',
-      profileId,
+      bookId,
       direction: 'borrowed',
       person: id,
       note: '',
@@ -296,9 +296,7 @@ describe('transactionSyncHandler', () => {
     const linked = (debtId: string, extra: Partial<SyncRowWrite> = {}) =>
       transaction('t9', 0, { debtId, ...extra })
     expect(await push.check(db, 'alice', linked('mom'))).toBeNull()
-    expect(await push.check(db, 'alice', linked('far'))).toBe(
-      TRANSACTION_MESSAGE.DEBT_OTHER_PROFILE
-    )
+    expect(await push.check(db, 'alice', linked('far'))).toBe(TRANSACTION_MESSAGE.DEBT_OTHER_BOOK)
     expect(await push.check(db, 'alice', linked('mom', { walletId: 'usd' }))).toBe(
       TRANSACTION_MESSAGE.DEBT_OTHER_CURRENCY
     )
@@ -308,11 +306,11 @@ describe('transactionSyncHandler', () => {
     expect((await push.write(db, 'alice', linked('mom'))).debtId).toBe('mom')
   })
 
-  it('tags an event of its profile; a link to a gone event is cleared (event rule 3)', async () => {
-    const eventRow = (id: string, profileId: string, extra: object = {}) => ({
+  it('tags an event of its book; a link to a gone event is cleared (event rule 3)', async () => {
+    const eventRow = (id: string, bookId: string, extra: object = {}) => ({
       id,
-      userId: profileId === 'pb' ? 'bob' : 'alice',
-      profileId,
+      userId: bookId === 'pb' ? 'bob' : 'alice',
+      bookId,
       name: id,
       icon: 'lucidePlane',
       color: '#0e7490',
@@ -338,9 +336,7 @@ describe('transactionSyncHandler', () => {
     const tagged = (eventId: string) => transaction('t9', 0, { eventId })
     expect(await push.check(db, 'alice', tagged('cm'))).toBeNull()
     expect(await push.check(db, 'alice', tagged('done'))).toBeNull()
-    expect(await push.check(db, 'alice', tagged('far'))).toBe(
-      TRANSACTION_MESSAGE.EVENT_OTHER_PROFILE
-    )
+    expect(await push.check(db, 'alice', tagged('far'))).toBe(TRANSACTION_MESSAGE.EVENT_OTHER_BOOK)
     for (const id of ['gone', 'nope', 'bobs']) {
       expect(await push.resolve?.(db, 'alice', tagged(id))).toMatchObject({ eventId: null })
     }

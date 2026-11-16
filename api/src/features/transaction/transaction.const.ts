@@ -5,13 +5,13 @@ export const TRANSACTION_LIMITS = {
 } as const
 
 export const TRANSACTION_MESSAGE = {
-  PROFILE_GONE: 'The profile does not exist or was deleted',
-  PROFILE_FIXED: 'A transaction cannot move to another profile',
+  BOOK_GONE: 'The book does not exist or was deleted',
+  BOOK_FIXED: 'A transaction cannot move to another book',
   WALLET_GONE: 'The wallet does not exist or was deleted',
   CATEGORY_GONE: 'The category does not exist or was deleted',
-  OTHER_PROFILE: 'The wallet and the category must belong to the transaction’s profile',
+  OTHER_BOOK: 'The wallet and the category must belong to the transaction’s book',
   CURRENCY_FIXED: 'A transaction cannot move to a wallet with another currency',
-  DEBT_OTHER_PROFILE: 'The debt must belong to the transaction’s profile',
+  DEBT_OTHER_BOOK: 'The debt must belong to the transaction’s book',
   DEBT_OTHER_CURRENCY: 'The wallet must have the debt’s currency',
-  EVENT_OTHER_PROFILE: 'The event must belong to the transaction’s profile',
+  EVENT_OTHER_BOOK: 'The event must belong to the transaction’s book',
 } as const

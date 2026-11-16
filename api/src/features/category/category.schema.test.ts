@@ -3,7 +3,7 @@ import { validateCategory } from './category.schema'
 
 const valid = {
   id: '0199a000-0000-7000-8000-000000000201',
-  profileId: '0199a000-0000-7000-8000-000000000001',
+  bookId: '0199a000-0000-7000-8000-000000000001',
   type: 'expense',
   parentId: '0199a000-0000-7000-8000-000000000200',
   name: '  กาแฟ ',
@@ -28,6 +28,7 @@ describe('validateCategory', () => {
     const result = validateCategory({ ...top, changeSeq: 9, updatedBy: 'x', userId: 'y' })
     expect(result.ok && result.row['parentId']).toBeNull()
     expect(result.ok && Object.keys(result.row).sort()).toEqual([
+      'bookId',
       'color',
       'createdAt',
       'deletedAt',
@@ -37,7 +38,6 @@ describe('validateCategory', () => {
       'mergedIntoId',
       'name',
       'parentId',
-      'profileId',
       'sortOrder',
       'type',
       'updatedAt',
@@ -62,7 +62,7 @@ describe('validateCategory', () => {
     ['an unknown type', { type: 'debt' }, 'Invalid type format'],
     ['a parent id that is not a UUID', { parentId: 'abc' }, 'Invalid parentId format'],
     ['itself as its parent', { parentId: valid.id }, 'Invalid parentId format'],
-    ['a profile id that is not a UUID', { profileId: 'abc' }, 'Invalid profileId format'],
+    ['a book id that is not a UUID', { bookId: 'abc' }, 'Invalid bookId format'],
     ['an icon of another library', { icon: 'faCoffee' }, 'Invalid icon format'],
     ['an icon name over 40 characters', { icon: `tpn${'A'.repeat(38)}` }, 'Invalid icon format'],
     ['an uppercase colour', { color: '#A16207' }, 'Invalid color format'],

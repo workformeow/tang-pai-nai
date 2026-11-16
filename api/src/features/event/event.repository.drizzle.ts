@@ -1,7 +1,7 @@
 import { and, asc, count, eq, gt, isNull, lt, max, ne } from 'drizzle-orm'
 import type { Executor } from '@/core/database'
+import { books } from '@/core/database/schema/book'
 import { events } from '@/core/database/schema/event'
-import { profiles } from '@/core/database/schema/profile'
 import { wrapUnexpected } from '@/core/error'
 import type { SyncRowInput, SyncTableHandler } from '@/core/sync'
 import { EVENT_LIMITS, EVENT_MESSAGE } from './event.const'
@@ -18,11 +18,11 @@ const run = async <T>(operation: string, work: () => Promise<T>, metadata?: obje
 const findRow = async (executor: Executor, id: string) =>
   (await executor.select().from(events).where(eq(events.id, id))).at(0)
 
-const isLiveProfile = async (executor: Executor, userId: string, profileId: string) => {
+const isLiveBook = async (executor: Executor, userId: string, bookId: string) => {
   const rows = await executor
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(and(eq(profiles.id, profileId), eq(profiles.userId, userId), isNull(profiles.deletedAt)))
+    .select({ id: books.id })
+    .from(books)
+    .where(and(eq(books.id, bookId), eq(books.userId, userId), isNull(books.deletedAt)))
   return rows.length > 0
 }
 
@@ -36,15 +36,15 @@ const checkEvent = async (
   if (row.deletedAt !== null) {
     return null
   }
-  const profileId = String(row.profileId)
+  const bookId = String(row.bookId)
   const stored = await findRow(executor, row.id)
-  if (stored && stored.profileId !== profileId) {
-    return EVENT_MESSAGE.PROFILE_FIXED
+  if (stored && stored.bookId !== bookId) {
+    return EVENT_MESSAGE.BOOK_FIXED
   }
-  if (!(await isLiveProfile(executor, userId, profileId))) {
-    return EVENT_MESSAGE.PROFILE_GONE
+  if (!(await isLiveBook(executor, userId, bookId))) {
+    return EVENT_MESSAGE.BOOK_GONE
   }
-  // At most 50 open events per profile; a stored live open one already counts.
+  // At most 50 open events per book; a stored live open one already counts.
   if (row.isClosed === true || (stored && stored.deletedAt === null && !stored.isClosed)) {
     return null
   }
@@ -53,13 +53,13 @@ const checkEvent = async (
     .from(events)
     .where(
       and(
-        eq(events.profileId, profileId),
+        eq(events.bookId, bookId),
         isNull(events.deletedAt),
         eq(events.isClosed, false),
         ne(events.id, row.id)
       )
     )
-  return total >= EVENT_LIMITS.OPEN_PER_PROFILE ? EVENT_MESSAGE.LIMIT : null
+  return total >= EVENT_LIMITS.OPEN_PER_BOOK ? EVENT_MESSAGE.LIMIT : null
 }
 
 /** The events table's sync handler (docs/features/event.md rule 1). */
@@ -95,7 +95,7 @@ export const eventSyncHandler: SyncTableHandler = {
           const values = {
             id: row.id,
             userId,
-            profileId: String(row.profileId),
+            bookId: String(row.bookId),
             name: String(row.name),
             icon: String(row.icon),
             color: String(row.color),

@@ -3,15 +3,15 @@ description: >-
   A row of the `debt_entries` table (docs/features/debt.md) as it travels in /sync/pull and in
   /sync/push: money of a debt that is not income or expense (borrowed or lent, more of it, paid
   or received back). It moves its wallet's balance like a transfer side. Rules (each answers
-  `CONFLICT`): profileId is one of the user's live profiles and never changes; debtId is a live
-  debt of the user in that profile and never changes; walletId is a live wallet of the profile
+  `CONFLICT`): bookId is one of the user's live books and never changes; debtId is a live
+  debt of the user in that book and never changes; walletId is a live wallet of the book
   in the debt's currency (archived accepted), and null only on a `repaid` debt. An entry pushed
   after its debt was deleted is stored as a tombstone with the debt, not refused. A tombstone
   runs none of them. A live entry fixes its wallet's currency.
 required:
   [
     id,
-    profileId,
+    bookId,
     debtId,
     kind,
     walletId,
@@ -28,7 +28,7 @@ properties:
   id:
     type: string
     format: uuid
-  profileId:
+  bookId:
     type: string
     format: uuid
   debtId:
@@ -72,7 +72,7 @@ properties:
     type: string
 example:
   id: 0199b000-0000-7000-8000-000000000801
-  profileId: 0199b000-0000-7000-8000-000000000001
+  bookId: 0199b000-0000-7000-8000-000000000001
   debtId: 0199b000-0000-7000-8000-000000000701
   kind: repayment
   walletId: 0199b000-0000-7000-8000-000000000101

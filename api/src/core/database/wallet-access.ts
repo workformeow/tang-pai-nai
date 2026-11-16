@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm'
-import { profiles } from './schema/profile'
+import { books } from './schema/book'
 import { walletMembers, wallets } from './schema/wallet'
 import type { Executor } from './client'
 
@@ -26,10 +26,10 @@ export const walletAccess = async (
         ownerId: wallets.userId,
         deletedAt: wallets.deletedAt,
         isArchived: wallets.isArchived,
-        profileDeletedAt: profiles.deletedAt,
+        bookDeletedAt: books.deletedAt,
       })
       .from(wallets)
-      .leftJoin(profiles, eq(profiles.id, wallets.profileId))
+      .leftJoin(books, eq(books.id, wallets.bookId))
       .where(eq(wallets.id, walletId))
   ).at(0)
   if (!wallet) {
@@ -38,9 +38,8 @@ export const walletAccess = async (
   if (wallet.ownerId === userId) {
     return { ownerId: wallet.ownerId, role: 'owner' }
   }
-  // A member sees (and writes) a wallet while it is live, open and on a live profile (rule 8).
-  const visible =
-    wallet.deletedAt === null && !wallet.isArchived && wallet.profileDeletedAt === null
+  // A member sees (and writes) a wallet while it is live, open and on a live book (rule 8).
+  const visible = wallet.deletedAt === null && !wallet.isArchived && wallet.bookDeletedAt === null
   const member = visible
     ? (
         await executor

@@ -2,7 +2,7 @@
 // layer's `Record<string, unknown>` rows.
 export type Event = {
   id: string
-  profileId: string
+  bookId: string
   name: string
   icon: string
   color: string

@@ -4,9 +4,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { env } from '@/core/config'
 import { makeTempDir, removeTempDir } from '@/shared/testing/temp-dir'
 import { createDatabase } from './client'
-import { listenableProfiles, sharedProfileOf } from './live-access'
+import { listenableBooks, sharedBookOf } from './live-access'
 import { users } from './schema/auth'
-import { profiles } from './schema/profile'
+import { books } from './schema/book'
 import { walletMembers, wallets } from './schema/wallet'
 import type { Database } from './client'
 
@@ -22,7 +22,7 @@ const wallet = (
 ): typeof wallets.$inferInsert => ({
   id,
   userId: 'alice',
-  profileId: 'pa',
+  bookId: 'pa',
   name: id,
   currencyCode: 'THB',
   initialBalance: 0,
@@ -45,7 +45,7 @@ beforeEach(async () => {
     { id: 'bob', email: 'b@example.com', displayName: 'b' },
     { id: 'carol', email: 'c@example.com', displayName: 'c' },
   ])
-  const profile = (id: string, deletedAt: number | null = null) => ({
+  const book = (id: string, deletedAt: number | null = null) => ({
     id,
     userId: 'alice',
     name: id,
@@ -55,17 +55,15 @@ beforeEach(async () => {
     deletedAt,
     ...sync('alice'),
   })
-  await created.db
-    .insert(profiles)
-    .values([profile('pa'), profile('gone', 5), profile('solo-profile')])
+  await created.db.insert(books).values([book('pa'), book('gone', 5), book('solo-book')])
   await created.db
     .insert(wallets)
     .values([
       wallet('home'),
       wallet('old', { isArchived: true }),
       wallet('deleted', { deletedAt: 5 }),
-      wallet('orphan', { profileId: 'gone' }),
-      wallet('solo', { profileId: 'solo-profile' }),
+      wallet('orphan', { bookId: 'gone' }),
+      wallet('solo', { bookId: 'solo-book' }),
     ])
   await created.db.insert(walletMembers).values(
     ['home', 'old', 'deleted', 'orphan'].flatMap((walletId) => [
@@ -82,28 +80,28 @@ afterEach(() => {
   removeTempDir(dir)
 })
 
-describe('sharedProfileOf', () => {
-  it('answers the profile of a live wallet that has members', async () => {
-    expect(await sharedProfileOf(db, 'home')).toBe('pa')
+describe('sharedBookOf', () => {
+  it('answers the book of a live wallet that has members', async () => {
+    expect(await sharedBookOf(db, 'home')).toBe('pa')
   })
 
-  it('answers null for an unshared, archived, deleted or unknown wallet, or a deleted profile', async () => {
+  it('answers null for an unshared, archived, deleted or unknown wallet, or a deleted book', async () => {
     for (const walletId of ['solo', 'old', 'deleted', 'orphan', 'nope']) {
-      expect(await sharedProfileOf(db, walletId)).toBeNull()
+      expect(await sharedBookOf(db, walletId)).toBeNull()
     }
   })
 })
 
-describe('listenableProfiles', () => {
-  it('gives the owner and every member the profiles with a live, shared wallet', async () => {
-    expect(await listenableProfiles(db, 'alice')).toEqual(['pa'])
-    expect(await listenableProfiles(db, 'bob')).toEqual(['pa'])
-    expect(await listenableProfiles(db, 'carol')).toEqual(['pa'])
+describe('listenableBooks', () => {
+  it('gives the owner and every member the books with a live, shared wallet', async () => {
+    expect(await listenableBooks(db, 'alice')).toEqual(['pa'])
+    expect(await listenableBooks(db, 'bob')).toEqual(['pa'])
+    expect(await listenableBooks(db, 'carol')).toEqual(['pa'])
   })
 
   it('gives nothing to a user no live wallet is shared with', async () => {
     await db.delete(walletMembers)
-    expect(await listenableProfiles(db, 'bob')).toEqual([])
-    expect(await listenableProfiles(db, 'alice')).toEqual([])
+    expect(await listenableBooks(db, 'bob')).toEqual([])
+    expect(await listenableBooks(db, 'alice')).toEqual([])
   })
 })

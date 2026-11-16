@@ -8,11 +8,11 @@ import type { Executor } from './client'
  * rule and debt entry handlers all read it, so it lives here rather than in one feature.
  */
 export type DebtLink =
-  /** The owner's live debt of the same profile, in the wallet's currency. */
+  /** The owner's live debt of the same book, in the wallet's currency. */
   | { status: 'ok' }
   /** No live debt of this owner (deleted, never synced, someone else's). */
   | { status: 'gone' }
-  | { status: 'otherProfile' }
+  | { status: 'otherBook' }
   | { status: 'otherCurrency' }
 
 export const findDebt = async (executor: Executor, id: string) =>
@@ -20,7 +20,7 @@ export const findDebt = async (executor: Executor, id: string) =>
     await executor
       .select({
         userId: debts.userId,
-        profileId: debts.profileId,
+        bookId: debts.bookId,
         currencyCode: debts.currencyCode,
         countAs: debts.countAs,
         deletedAt: debts.deletedAt,
@@ -29,20 +29,20 @@ export const findDebt = async (executor: Executor, id: string) =>
       .where(eq(debts.id, id))
   ).at(0)
 
-/** Whether `debtId` may be linked from a row of `profileId` paid from `walletId` (or none). */
+/** Whether `debtId` may be linked from a row of `bookId` paid from `walletId` (or none). */
 export const checkDebtLink = async (
   executor: Executor,
   userId: string,
   debtId: string,
-  profileId: string,
+  bookId: string,
   walletId: string | null
 ): Promise<DebtLink> => {
   const debt = await findDebt(executor, debtId)
   if (!debt || debt.userId !== userId || debt.deletedAt !== null) {
     return { status: 'gone' }
   }
-  if (debt.profileId !== profileId) {
-    return { status: 'otherProfile' }
+  if (debt.bookId !== bookId) {
+    return { status: 'otherBook' }
   }
   if (walletId !== null) {
     const wallet = (

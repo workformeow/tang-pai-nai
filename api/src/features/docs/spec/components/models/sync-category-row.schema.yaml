@@ -2,18 +2,18 @@ type: object
 description: >-
   A row of the `categories` table (docs/features/category.md) as it travels in /sync/pull and in
   /sync/push. Devices send the whole row on upsert; the server stamps changeSeq and updatedBy.
-  Rules (each answers `CONFLICT`): profileId is one of the user's live profiles and never changes;
-  parentId, when set, is a live top-level category of the same profile and type, not archived
+  Rules (each answers `CONFLICT`): bookId is one of the user's live books and never changes;
+  parentId, when set, is a live top-level category of the same book and type, not archived
   unless this row is archived too; a category with live children stays top-level and keeps its
-  type, and one with live transactions keeps its type; name is unique (case-insensitive) among its open siblings (same profile, type and
-  parentId); a profile holds at most 200 open categories. A tombstone runs none of them.
+  type, and one with live transactions keeps its type; name is unique (case-insensitive) among its open siblings (same book, type and
+  parentId); a book holds at most 200 open categories. A tombstone runs none of them.
   Merge (rule 15): a tombstone with mergedIntoId (pushed as an upsert) moves the category's live
   transactions, and its live children, to that category in the same write; a live category pushed
   under a merged parent is stored merged into the parent's target instead.
 required:
   [
     id,
-    profileId,
+    bookId,
     type,
     parentId,
     name,
@@ -32,7 +32,7 @@ properties:
     type: string
     format: uuid
     description: UUIDv7 made on the device
-  profileId:
+  bookId:
     type: string
     format: uuid
   type:
@@ -80,7 +80,7 @@ properties:
     type: string
 example:
   id: 0199b000-0000-7000-8000-000000000202
-  profileId: 0199b000-0000-7000-8000-000000000001
+  bookId: 0199b000-0000-7000-8000-000000000001
   type: expense
   parentId: 0199b000-0000-7000-8000-000000000201
   name: กาแฟ

@@ -1,14 +1,14 @@
 delete:
   tags:
     - Sharing
-  summary: 'Leave a profile’s sharing'
+  summary: 'Leave a book’s sharing'
   description: >-
-    The member leaves every wallet of that owner’s profile.
+    The member leaves every wallet of that owner’s book.
   operationId: sharingLeave
   security:
     - bearerAuth: []
   parameters:
-    - name: profileId
+    - name: bookId
       in: path
       required: true
       schema: { type: string, format: uuid }

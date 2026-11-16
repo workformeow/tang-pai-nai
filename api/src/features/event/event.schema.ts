@@ -11,7 +11,7 @@ const epochMs = z.number().int().nonnegative()
 const row = z
   .object({
     id: z.uuid({ error: ERRORS.invalidField('id') }),
-    profileId: z.uuid({ error: ERRORS.invalidField('profileId') }),
+    bookId: z.uuid({ error: ERRORS.invalidField('bookId') }),
     name: z
       .string({ error: ERRORS.requiredField('Name') })
       .trim()

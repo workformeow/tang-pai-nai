@@ -8,7 +8,7 @@ export const liveProvider = createLiveProvider(env)
 export const livePublisher = createLivePublisher(liveProvider)
 onShutdown(async () => liveProvider.close?.())
 
-export { profileChannel, userChannel } from './live.channel'
+export { bookChannel, userChannel } from './live.channel'
 export { createLivePublisher } from './live.publisher'
 export { createLocalLiveProvider } from './live.local'
 export { createMemoryLiveProvider } from './live.memory'

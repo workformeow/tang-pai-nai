@@ -1,6 +1,6 @@
-// docs/features/profile.md → Data model. A type alias (not an interface), so it fits the sync
+// docs/features/book.md → Data model. A type alias (not an interface), so it fits the sync
 // layer's `Record<string, unknown>` rows.
-export type Profile = {
+export type Book = {
   id: string
   name: string
   /** A lucide export name, e.g. `lucideHouse`. */

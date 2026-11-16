@@ -1,20 +1,20 @@
 get:
   tags:
     - Sharing
-  summary: 'Owner view of a profile'
+  summary: 'Owner view of a book'
   description: >-
     Members (one role each, their open wallets), pending invites and open wallets shared with nobody (docs/features/sharing.md).
-  operationId: sharingOfProfile
+  operationId: sharingOfBook
   security:
     - bearerAuth: []
   parameters:
-    - name: profileId
+    - name: bookId
       in: path
       required: true
       schema: { type: string, format: uuid }
   responses:
     '200':
-      description: 'The profile’s sharing'
+      description: 'The book’s sharing'
       content:
         application/json:
           schema:

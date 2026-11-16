@@ -6,10 +6,10 @@ import { env } from '@/core/config'
 import type { Database } from '@/core/database'
 import { createDatabase } from '@/core/database/client'
 import { users } from '@/core/database/schema/auth'
+import { books } from '@/core/database/schema/book'
 import { categories } from '@/core/database/schema/category'
 import { currencies } from '@/core/database/schema/currency'
 import { debtEntries, debts } from '@/core/database/schema/debt'
-import { profiles } from '@/core/database/schema/profile'
 import { transactions } from '@/core/database/schema/transaction'
 import { wallets } from '@/core/database/schema/wallet'
 import type { SyncPushHandler, SyncRowWrite } from '@/core/sync'
@@ -32,7 +32,7 @@ const sync = (userId: string, deletedAt: number | null = null) => ({
 })
 const debt = (id: string, changeSeq: number, extra: Partial<SyncRowWrite> = {}) => ({
   id,
-  profileId: 'pa',
+  bookId: 'pa',
   direction: 'borrowed',
   person: 'แม่',
   note: '',
@@ -49,7 +49,7 @@ const debt = (id: string, changeSeq: number, extra: Partial<SyncRowWrite> = {}) 
 })
 const entry = (id: string, changeSeq: number, extra: Partial<SyncRowWrite> = {}) => ({
   id,
-  profileId: 'pa',
+  bookId: 'pa',
   debtId: 'mom',
   kind: 'principal',
   walletId: 'cash',
@@ -78,7 +78,7 @@ beforeEach(async () => {
     { id: 'alice', email: 'a@example.com', displayName: 'a' },
     { id: 'bob', email: 'b@example.com', displayName: 'b' },
   ])
-  await created.db.insert(profiles).values(
+  await created.db.insert(books).values(
     ['pa', 'pa2', 'pb'].map((id) => ({
       id,
       userId: id === 'pb' ? 'bob' : 'alice',
@@ -91,13 +91,13 @@ beforeEach(async () => {
   )
   const wallet = (
     id: string,
-    profileId: string,
+    bookId: string,
     currencyCode = 'THB',
     deletedAt: number | null = null
   ) => ({
     id,
-    userId: profileId === 'pb' ? 'bob' : 'alice',
-    profileId,
+    userId: bookId === 'pb' ? 'bob' : 'alice',
+    bookId,
     name: id,
     currencyCode,
     initialBalance: 0,
@@ -116,10 +116,10 @@ beforeEach(async () => {
       wallet('dead', 'pa', 'THB', 900),
       wallet('other', 'pa2'),
     ])
-  const category = (id: string, type: 'income' | 'expense', profileId = 'pa') => ({
+  const category = (id: string, type: 'income' | 'expense', bookId = 'pa') => ({
     id,
     userId: 'alice',
-    profileId,
+    bookId,
     type,
     parentId: null,
     name: id,
@@ -153,7 +153,7 @@ describe('debtSyncHandler', () => {
       ownerId: 'alice',
       row: debt('mom', 16, { person: 'แม่ (ยืม)' }),
     })
-    await push.write(db, 'bob', debt('bobs', 17, { profileId: 'pb' }))
+    await push.write(db, 'bob', debt('bobs', 17, { bookId: 'pb' }))
     expect((await debtSyncHandler.pull(db, 'alice', 0, 100)).map((row) => row.id)).toEqual(['mom'])
     expect(await debtSyncHandler.pull(db, 'alice', 16, 100)).toEqual([])
   })
@@ -161,7 +161,7 @@ describe('debtSyncHandler', () => {
   it('validates the shape: direction, person, counting and its category, due date (rules 1–2)', () => {
     const valid = input(
       debt('00000000-0000-7000-8000-000000000001', 1, {
-        profileId: '00000000-0000-7000-8000-0000000000aa',
+        bookId: '00000000-0000-7000-8000-0000000000aa',
       })
     )
     expect(push.validate({ ...valid, person: ' แม่ ' })).toMatchObject({
@@ -195,17 +195,17 @@ describe('debtSyncHandler', () => {
     expect(push.validate({ ...valid, dueOn: '2070-02-28' })).toMatchObject({ ok: true })
   })
 
-  it('needs the live profile; direction, counting and currency never change', async () => {
+  it('needs the live book; direction, counting and currency never change', async () => {
     expect(await push.check(db, 'alice', input(debt('mom', 1)))).toBeNull()
-    expect(await push.check(db, 'alice', input(debt('x', 1, { profileId: 'pb' })))).toBe(
-      DEBT_MESSAGE.PROFILE_GONE
+    expect(await push.check(db, 'alice', input(debt('x', 1, { bookId: 'pb' })))).toBe(
+      DEBT_MESSAGE.BOOK_GONE
     )
     expect(await push.check(db, 'alice', input(debt('x', 1, { currencyCode: 'EUR' })))).toBe(
       DEBT_MESSAGE.CURRENCY_INACTIVE
     )
     await push.write(db, 'alice', debt('mom', 2))
-    expect(await push.check(db, 'alice', input(debt('mom', 2, { profileId: 'pa2' })))).toBe(
-      DEBT_MESSAGE.PROFILE_FIXED
+    expect(await push.check(db, 'alice', input(debt('mom', 2, { bookId: 'pa2' })))).toBe(
+      DEBT_MESSAGE.BOOK_FIXED
     )
     for (const change of [
       { direction: 'lent' },
@@ -216,11 +216,11 @@ describe('debtSyncHandler', () => {
     }
     // A tombstone breaks no rule.
     expect(
-      await push.check(db, 'alice', input(debt('mom', 2, { profileId: 'pa2', deletedAt: 5 })))
+      await push.check(db, 'alice', input(debt('mom', 2, { bookId: 'pa2', deletedAt: 5 })))
     ).toBeNull()
   })
 
-  it('needs an expense category of the profile for a repaid debt, and follows a merge', async () => {
+  it('needs an expense category of the book for a repaid debt, and follows a merge', async () => {
     const repaid = (categoryId: string) => input(debt('ktc', 1, { countAs: 'repaid', categoryId }))
     expect(await push.check(db, 'alice', repaid('shop'))).toBeNull()
     expect(await push.check(db, 'alice', repaid('gift'))).toBe(DEBT_MESSAGE.CATEGORY_NOT_EXPENSE)
@@ -230,14 +230,12 @@ describe('debtSyncHandler', () => {
       .update(categories)
       .set({ deletedAt: 5, mergedIntoId: 'shop' })
       .where(eq(categories.id, 'far'))
-    await db.update(categories).set({ profileId: 'pa' }).where(eq(categories.id, 'far'))
+    await db.update(categories).set({ bookId: 'pa' }).where(eq(categories.id, 'far'))
     expect(await push.resolve?.(db, 'alice', repaid('far'))).toMatchObject({ categoryId: 'shop' })
   })
 
-  it('holds at most 100 open debts per profile; closed ones and a stored one pass (rule 1)', async () => {
-    const rows = Array.from({ length: DEBT_LIMITS.OPEN_PER_PROFILE }, (_, i) =>
-      debt(`d${i}`, i + 1)
-    )
+  it('holds at most 100 open debts per book; closed ones and a stored one pass (rule 1)', async () => {
+    const rows = Array.from({ length: DEBT_LIMITS.OPEN_PER_BOOK }, (_, i) => debt(`d${i}`, i + 1))
     await db.insert(debts).values(rows.map((row) => ({ ...row, userId: 'alice' })))
     await db
       .insert(debtEntries)
@@ -275,13 +273,13 @@ describe('debtEntrySyncHandler', () => {
     expect(await debtEntrySyncHandler.pull(db, 'bob', 0, 10)).toEqual([])
   })
 
-  it('needs the live debt and a live wallet of the profile in the debt’s currency (rule 6)', async () => {
+  it('needs the live debt and a live wallet of the book in the debt’s currency (rule 6)', async () => {
     const check = async (extra: Partial<SyncRowWrite>) =>
       entryPush.check(db, 'alice', input(entry('e1', 1, extra)))
     expect(await check({})).toBeNull()
     expect(await check({ debtId: 'nope' })).toBe(DEBT_ENTRY_MESSAGE.DEBT_GONE)
     expect(await check({ walletId: 'dead' })).toBe(DEBT_ENTRY_MESSAGE.WALLET_GONE)
-    expect(await check({ walletId: 'other' })).toBe(DEBT_ENTRY_MESSAGE.OTHER_PROFILE)
+    expect(await check({ walletId: 'other' })).toBe(DEBT_ENTRY_MESSAGE.OTHER_BOOK)
     expect(await check({ walletId: 'usd' })).toBe(DEBT_ENTRY_MESSAGE.OTHER_CURRENCY)
     expect(await check({ walletId: null })).toBe(DEBT_ENTRY_MESSAGE.NO_WALLET)
     expect(await check({ walletId: null, debtId: 'ktc' })).toBeNull()
@@ -316,7 +314,7 @@ describe('debtEntrySyncHandler', () => {
     await db.insert(transactions).values({
       id: 't1',
       userId: 'alice',
-      profileId: 'pa',
+      bookId: 'pa',
       walletId: 'cash',
       categoryId: 'shop',
       amount: 300000,

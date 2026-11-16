@@ -4,7 +4,7 @@ import { validateTransfer } from './transfer.schema'
 
 const valid = {
   id: '0199a000-0000-7000-8000-000000000401',
-  profileId: '0199a000-0000-7000-8000-000000000001',
+  bookId: '0199a000-0000-7000-8000-000000000001',
   fromWalletId: '0199a000-0000-7000-8000-000000000101',
   toWalletId: '0199a000-0000-7000-8000-000000000102',
   amount: 100000,
@@ -62,7 +62,7 @@ describe('validateTransfer', () => {
   })
 
   it('needs UUIDs for the row and the rows it points at', () => {
-    for (const field of ['id', 'profileId', 'fromWalletId', 'toWalletId']) {
+    for (const field of ['id', 'bookId', 'fromWalletId', 'toWalletId']) {
       expect(messageOf({ [field]: 'nope' })).toBe(`Invalid ${field} format`)
     }
   })

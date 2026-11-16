@@ -2,7 +2,7 @@
 // layer's `Record<string, unknown>` rows.
 export type Wallet = {
   id: string
-  profileId: string
+  bookId: string
   name: string
   /** ISO 4217, e.g. `THB`. */
   currencyCode: string

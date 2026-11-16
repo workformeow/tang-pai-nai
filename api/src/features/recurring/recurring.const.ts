@@ -4,8 +4,8 @@ export const RECURRING_LIMITS = {
   NOTE_MAX: 500,
   INTERVAL_MAX: 99,
   COUNT_MAX: 999,
-  /** Live rules per profile (rule 1). */
-  PER_PROFILE: 100,
+  /** Live rules per book (rule 1). */
+  PER_BOOK: 100,
 } as const
 
 export const RecurringKind = {
@@ -23,18 +23,18 @@ export const RecurringFrequency = {
 } as const
 
 export const RECURRING_MESSAGE = {
-  PROFILE_GONE: 'The profile does not exist or was deleted',
-  PROFILE_FIXED: 'A recurring rule cannot move to another profile',
+  BOOK_GONE: 'The book does not exist or was deleted',
+  BOOK_FIXED: 'A recurring rule cannot move to another book',
   WALLET_GONE: 'The wallet does not exist or was deleted',
   TO_WALLET_GONE: 'The wallet to transfer to does not exist or was deleted',
   CATEGORY_GONE: 'The category does not exist or was deleted',
-  OTHER_PROFILE: 'The wallets and the category must belong to the rule’s profile',
+  OTHER_BOOK: 'The wallets and the category must belong to the rule’s book',
   OTHER_CURRENCY: 'Both wallets must have the same currency',
-  LIMIT: 'A profile holds at most 100 recurring rules',
+  LIMIT: 'A book holds at most 100 recurring rules',
   KIND_FIELDS:
     'A transaction rule needs a category, a transfer rule a wallet to transfer to, a debt rule a debt',
   DEBT_GONE: 'The debt does not exist or was deleted',
-  DEBT_OTHER_PROFILE: 'The debt must belong to the rule’s profile',
+  DEBT_OTHER_BOOK: 'The debt must belong to the rule’s book',
   DEBT_OTHER_CURRENCY: 'The wallet must have the debt’s currency',
   SAME_WALLET: 'A transfer needs two different wallets',
   END_BOTH: 'A rule ends on a date or after a count, not both',

@@ -3,14 +3,14 @@ description: >-
   A row of the `transfers` table (docs/features/transfer.md) as it travels in /sync/pull and in
   /sync/push: one row per transfer, both sides, never income or expense. Devices send the whole
   row on upsert; the server stamps changeSeq and updatedBy. Rules (each answers `CONFLICT`):
-  profileId is one of the user's live profiles and never changes; fromWalletId and toWalletId
-  are two different live wallets of the user in that profile (archived ones are accepted) with
+  bookId is one of the user's live books and never changes; fromWalletId and toWalletId
+  are two different live wallets of the user in that book (archived ones are accepted) with
   the same currency. A tombstone runs none of them. A wallet on either side of a live transfer
   keeps its currency.
 required:
   [
     id,
-    profileId,
+    bookId,
     fromWalletId,
     toWalletId,
     amount,
@@ -27,7 +27,7 @@ properties:
     type: string
     format: uuid
     description: UUIDv7 made on the device
-  profileId:
+  bookId:
     type: string
     format: uuid
   fromWalletId:
@@ -74,7 +74,7 @@ properties:
     type: string
 example:
   id: 0199b000-0000-7000-8000-000000000401
-  profileId: 0199b000-0000-7000-8000-000000000001
+  bookId: 0199b000-0000-7000-8000-000000000001
   fromWalletId: 0199b000-0000-7000-8000-000000000101
   toWalletId: 0199b000-0000-7000-8000-000000000102
   amount: 100000
