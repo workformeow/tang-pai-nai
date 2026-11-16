@@ -69,6 +69,16 @@ export const createMemoryAuthRepository = (
 
     findUserByPhone: async (phone) => state.users.find((user) => user.phone === phone) ?? null,
 
+    setDisplayName: async (userId, displayName, at) => {
+      const user = state.users.find((candidate) => candidate.id === userId)
+      if (!user) {
+        return null
+      }
+      user.displayName = displayName
+      user.updatedAt = at
+      return user
+    },
+
     setUserPhone: async (userId, phone, at) => {
       const user = state.users.find((candidate) => candidate.id === userId)
       if (!user) {

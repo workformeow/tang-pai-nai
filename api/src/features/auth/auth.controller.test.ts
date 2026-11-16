@@ -272,6 +272,47 @@ const bearerFor = async (ctx: ReturnType<typeof buildApp>) => {
   return { auth: `Bearer ${token}`, cookie }
 }
 
+describe('PATCH /auth/me', () => {
+  it('saves a trimmed display name and returns the user', async () => {
+    const ctx = buildApp()
+    const { auth } = await bearerFor(ctx)
+
+    const res = await request(ctx.app)
+      .patch('/auth/me')
+      .set('Authorization', auth)
+      .send({ displayName: '  สมชาย ใจดี  ' })
+
+    expect(res.status).toBe(HttpStatus.OK)
+    expect((res.body as AppResponse<AuthUserData>).data).toMatchObject({
+      email: EMAIL,
+      displayName: 'สมชาย ใจดี',
+    })
+    const me = await request(ctx.app).get('/auth/me').set('Authorization', auth)
+    expect((me.body as AppResponse<AuthUserData>).data?.displayName).toBe('สมชาย ใจดี')
+  })
+
+  it.each([
+    ['missing', {}],
+    ['blank', { displayName: '   ' }],
+    ['over 50 characters', { displayName: 'x'.repeat(51) }],
+  ])('answers 422 for a name that is %s', async (_case, body) => {
+    const ctx = buildApp()
+    const { auth } = await bearerFor(ctx)
+
+    const res = await request(ctx.app).patch('/auth/me').set('Authorization', auth).send(body)
+
+    expect(res.status).toBe(HttpStatus.UNPROCESSABLE_ENTITY)
+  })
+
+  it('answers 401 without a token', async () => {
+    const { app } = buildApp()
+
+    const res = await request(app).patch('/auth/me').send({ displayName: 'x' })
+
+    expect(res.status).toBe(HttpStatus.UNAUTHORIZED)
+  })
+})
+
 describe('PUT /auth/password', () => {
   it('saves the password and answers the user with hasPassword', async () => {
     const ctx = buildApp()

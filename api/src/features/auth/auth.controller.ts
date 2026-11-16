@@ -34,6 +34,7 @@ import type {
   ReauthVerifyInput,
   RecentAuthInput,
   SessionParams,
+  UpdateMeInput,
 } from './auth.schema'
 import type { AuthService } from './auth.service'
 import type {
@@ -629,6 +630,21 @@ export const createAuthController = (authService: AuthService, config: AuthContr
     }
   }
 
+  const updateMe = async (
+    req: Request<unknown, unknown, UpdateMeInput>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const user = await authService.updateMe(callerOf(req).userId, req.body.displayName)
+      const data: AuthUserData = toUserData(user)
+      const response = createResponse(AUTH_MESSAGE.PROFILE_SAVED, data)
+      res.status(HttpStatus.OK).json(response)
+    } catch (error) {
+      next(error)
+    }
+  }
+
   /** Rule 20, daily from Vercel Cron (`requireCronSecret` in front). */
   const cleanup = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -654,6 +670,7 @@ export const createAuthController = (authService: AuthService, config: AuthContr
     refresh,
     signOut,
     me,
+    updateMe,
     providers,
     phoneGate,
     botGate,

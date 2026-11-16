@@ -24,6 +24,8 @@ export interface AuthRepository {
   findUserByPhone(phone: string): Promise<User | null>
   /** Saves a verified number (`null` removes it) with `phoneVerifiedAt` = `at`. */
   setUserPhone(userId: string, phone: string | null, at: Date): Promise<User | null>
+  /** The name other people see (sharing) and the Settings tab shows. */
+  setDisplayName(userId: string, displayName: string, at: Date): Promise<User | null>
   createUser(data: NewUser): Promise<User>
   markEmailVerified(userId: string, at: Date): Promise<User | null>
   /** Sets `avatarUrl` only while the user has none. */

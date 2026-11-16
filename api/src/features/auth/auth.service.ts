@@ -1550,6 +1550,16 @@ export const createAuthService = ({
     return profileOf(user)
   }
 
+  /** The name the user goes by (already trimmed and checked by the schema). No recent auth: it's no credential. */
+  const updateMe = async (userId: string, displayName: string): Promise<UserProfile> => {
+    await getMe(userId)
+    const user = await authRepo.setDisplayName(userId, displayName, now())
+    if (!user) {
+      throw new UnauthorizedError(ERRORS.UNAUTHORIZED).withOperation('updateMe')
+    }
+    return profileOf(user)
+  }
+
   /** Privacy rule 10: what the delete page warns about before anything can be pressed. */
   const deletionSummary = async (caller: Caller): Promise<DeletionSummary> => {
     const { user } = await activeCaller(caller, now(), 'deletionSummary')
@@ -1615,6 +1625,7 @@ export const createAuthService = ({
     refresh,
     signOut,
     getMe,
+    updateMe,
     deletionSummary,
     deleteAccount,
     cleanup,

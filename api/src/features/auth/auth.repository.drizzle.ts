@@ -109,6 +109,17 @@ export const createDrizzleAuthRepository = (db: Executor): AuthRepository => {
         return row ? toUser(row) : null
       }),
 
+    setDisplayName: async (userId, displayName, at) =>
+      run('setDisplayName', async () => {
+        const rows = await db
+          .update(users)
+          .set({ displayName, updatedAt: at })
+          .where(eq(users.id, userId))
+          .returning()
+        const row = rows.at(0)
+        return row ? toUser(row) : null
+      }),
+
     createUser: async (data) =>
       run('createUser', async () => {
         const [row] = await db.insert(users).values(data).returning()
