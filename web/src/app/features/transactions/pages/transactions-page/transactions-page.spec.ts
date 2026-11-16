@@ -170,13 +170,25 @@ describe('TransactionsPage', () => {
     expect(rows()[0].textContent).toContain('Pay')
   })
 
-  it('shows "เพิ่มโดย …" on a row an editor added, named once the members are read', async () => {
-    transaction('a', { note: 'ก๋วยเตี๋ยว', addedBy: 'm1' })
-    transaction('b', { note: 'mine' })
+  it('shows who else touched a row last, named once the members are read (shared-activity rule 6)', async () => {
+    transaction('a', { note: 'ก๋วยเตี๋ยว', addedBy: 'm1', updatedBy: 'm1' })
+    transaction('b', { note: 'mine', updatedBy: 'u1' })
+    // Added by me, edited by the member two minutes later.
+    transaction('c', { note: 'ชาไทย', updatedBy: 'm1', createdAt: 1, updatedAt: 120_001 })
+    // Added by the member, then edited by me: the add still shows.
+    transaction('d', {
+      note: 'โจ๊ก',
+      addedBy: 'm1',
+      updatedBy: 'u1',
+      createdAt: 1,
+      updatedAt: 120_001,
+    })
     await settle()
     const row = (note: string) => rows().find((li) => li.textContent.includes(note))
-    expect(row('ก๋วยเตี๋ยว')?.textContent).toContain('เพิ่มโดย สมาชิก')
-    expect(row('mine')?.textContent).not.toContain('เพิ่มโดย')
+    expect(row('ก๋วยเตี๋ยว')?.textContent).toContain(`เพิ่มโดย ${th.sharing.member}`)
+    expect(row('mine')?.textContent).not.toContain('โดย')
+    expect(row('ชาไทย')?.textContent).toContain(`แก้ไขโดย ${th.sharing.member}`)
+    expect(row('โจ๊ก')?.textContent).toContain(`เพิ่มโดย ${th.sharing.member}`)
     // Sharing rule 15: the owner's members, read online once.
     TestBed.inject(HttpTestingController)
       .expectOne('/api/sharing/books/p1')
@@ -201,6 +213,7 @@ describe('TransactionsPage', () => {
     await new Promise((resolve) => setTimeout(resolve))
     await settle()
     expect(row('ก๋วยเตี๋ยว')?.textContent).toContain('เพิ่มโดย แม่')
+    expect(row('ชาไทย')?.textContent).toContain('แก้ไขโดย แม่')
   })
 
   it('shows the wallet badge and only the note on "ทุกกระเป๋า", no badge for one wallet', async () => {

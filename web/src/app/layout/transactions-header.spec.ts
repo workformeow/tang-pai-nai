@@ -10,7 +10,7 @@ import type { SyncStatus } from '@/core/offline'
 import { ReportService } from '@/core/report'
 import type { ReportUnit } from '@/core/report'
 import { TransactionService, TransferService } from '@/core/transaction'
-import type { PeriodUnit, TransferSheetState } from '@/core/transaction'
+import type { ActivityScope, PeriodUnit, TransferSheetState } from '@/core/transaction'
 import { TransactionsHeader } from './transactions-header'
 
 describe('TransactionsHeader', () => {
@@ -18,12 +18,14 @@ describe('TransactionsHeader', () => {
   const unit = signal<PeriodUnit>('month')
   const customSheet = signal(false)
   const transferSheet = signal<TransferSheetState | null>(null)
+  const activityScope = signal<ActivityScope | null>(null)
   const transactions = {
     viewWallet: signal(null),
     walletSheet: signal(false),
     customSheet,
     unit,
     selectUnit: (next: PeriodUnit) => unit.set(next),
+    activityScope,
   }
 
   const reportUnit = signal<ReportUnit>('month')
@@ -55,6 +57,7 @@ describe('TransactionsHeader', () => {
     reportCustomSheet.set(false)
     customSheet.set(false)
     transferSheet.set(null)
+    activityScope.set(null)
     TestBed.configureTestingModule({
       imports: [
         TranslocoTestingModule.forRoot({
@@ -147,6 +150,33 @@ describe('TransactionsHeader', () => {
     await settle()
     expect(navigate).toHaveBeenCalledWith('/account/recurring')
     expect(items()).toEqual([])
+  })
+
+  it('lists กิจกรรม after รายการซ้ำ only while the book has activity, and opens it', async () => {
+    menuButton()?.click()
+    await settle()
+    expect(item(th.activity.menu)).toBeUndefined()
+    activityScope.set({ walletIds: ['w1'], ended: false, expiresAt: null })
+    await settle()
+    const names = items()
+    expect(names.indexOf(th.activity.menu)).toBe(names.indexOf(th.recurring.menu) + 1)
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true)
+    item(th.activity.menu)?.click()
+    await settle()
+    expect(navigate).toHaveBeenCalledWith('/transactions/activity')
+  })
+
+  it('shows the days left in the last week of an ended share (shared-activity rule 7)', async () => {
+    activityScope.set({ walletIds: ['w1'], ended: true, expiresAt: Date.now() + 20 * 86400000 })
+    menuButton()?.click()
+    await settle()
+    expect(item(th.activity.menu)?.textContent.trim()).toBe(th.activity.menu)
+    activityScope.set({ walletIds: ['w1'], ended: true, expiresAt: Date.now() + 4.5 * 86400000 })
+    await settle()
+    expect(item(th.activity.menu)?.textContent).toContain('เหลือ 5 วัน')
+    activityScope.set({ walletIds: ['w1'], ended: true, expiresAt: Date.now() + 1000 })
+    await settle()
+    expect(item(th.activity.menu)?.textContent).toContain(th.activity.lastDay)
   })
 
   it('heads the Reports tab with only ดูตาม and the report units (report.md Q2)', async () => {
