@@ -6,7 +6,7 @@
 
 ## Purpose
 
-In a shared profile (a trip's "กองกลาง", a household wallet), everyone in the share can see **who
+In a shared book (a trip's "กองกลาง", a household wallet), everyone in the share can see **who
 added, edited or deleted which transaction**. Today the owner sees "เพิ่มโดย …" on rows a member
 added, but nobody sees who edited a row last, and a deleted row simply disappears: nobody knows
 who removed it.
@@ -22,7 +22,7 @@ The activity comes from what every transaction already carries: `addedBy`, `upda
   (backlog, see ROADMAP: kept 30 days, read online).
 - **History kept on the device.** A device only sees a row's state at each pull, so edits between
   two pulls are lost, each device would hold a different history, a new device would hold none,
-  and a member keeps nothing (a shared profile lives in memory only, offline-sync rule 15).
+  and a member keeps nothing (a shared book lives in memory only, offline-sync rule 15).
 - **Restoring** a row someone else deleted from the activity page (backlog).
 - Activity of anything but transactions: transfers, debts, events and recurring rules are not
   shared (sharing.md, out of scope).
@@ -32,15 +32,15 @@ The activity comes from what every transaction already carries: `addedBy`, `upda
 
 **What shows**
 
-1. The activity of a profile lists the **transactions of its shared wallets** whose `updatedAt`
+1. The activity of a book lists the **transactions of its shared wallets** whose `updatedAt`
    is within the **last 90 days** (the server's tombstone retention, `RETENTION_MS`), deleted
    ones included, newest first.
-   - A **member** (editor or viewer) sees every wallet of the shared profile in use: they are
+   - A **member** (editor or viewer) sees every wallet of the shared book in use: they are
      all shared with them.
    - The **owner** sees the wallets shared with at least one member, as read online
-     (`GET /sharing/profiles/:id`, kept in memory). Offline, before that read, it falls back to
+     (`GET /sharing/books/:id`, kept in memory). Offline, before that read, it falls back to
      the wallets holding a row someone else wrote (`addedBy` or `updatedBy` not the owner).
-   - The owner's private wallets of that profile never show.
+   - The owner's private wallets of that book never show.
 2. Everyone in the share sees the same activity, the owner's own actions included.
 3. Each line is one transaction: **who**, **what**, the row (category, amount with its sign,
    note), its wallet and the time.
@@ -64,17 +64,17 @@ The activity comes from what every transaction already carries: `addedBy`, `upda
    - last edited by someone else → "แก้ไขโดย <name>";
    - otherwise added by someone else → "เพิ่มโดย <name>".
      This replaces sharing rule 15's "เพิ่มโดย" (owner only): a member now also sees "เพิ่มโดย
-     <owner>" on the owner's rows. A profile nobody shares shows no names.
+     <owner>" on the owner's rows. A book nobody shares shows no names.
 
 **Where and when**
 
 7. The page opens from the Transactions tab's **⋮ menu** ("กิจกรรม"), shown only when the current
-   profile is shared: a shared profile in use (member), or an own profile with at least one
+   book is shared: a shared book in use (member), or an own book with at least one
    member (owner, rule 1).
 8. The owner's activity works **offline** (their local database); only names and the shared
-   wallets need one online read first (rules 1 and 5). A member's works while the shared profile
+   wallets need one online read first (rules 1 and 5). A member's works while the shared book
    is in use, which is online only (sharing rule 10).
-9. The page follows the data: a sync round, a shared-profile refresh or a live poke (#20)
+9. The page follows the data: a sync round, a shared-book refresh or a live poke (#20)
    updates it like the transaction list.
 
 **Opening a line**
@@ -101,11 +101,11 @@ The activity comes from what every transaction already carries: `addedBy`, `upda
 
 ## Interactions
 
-- `core/transaction`: `TransactionService.activity(profileId, walletIds)` (one SQL query over the
-  local tables, TEMP shadows included for a shared profile) and the names behind `addedBy` /
+- `core/transaction`: `TransactionService.activity(bookId, walletIds)` (one SQL query over the
+  local tables, TEMP shadows included for a shared book) and the names behind `addedBy` /
   `updatedBy` (today's `addPeople`, extended to `updatedBy`).
 - `core/sharing`: which of the owner's wallets are shared, from the read it already does
-  (`loadOwner`), and the people of a shared profile in use.
+  (`loadOwner`), and the people of a shared book in use.
 - `features/transactions`: the page and the ⋮ entry. It imports nothing from `core/sharing`
   directly beyond what the header already reads.
 

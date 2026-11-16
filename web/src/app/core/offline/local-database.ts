@@ -56,7 +56,7 @@ const MIGRATIONS: readonly string[] = [
     created_at INTEGER NOT NULL,
     seen_at INTEGER
   ) STRICT`,
-  // #6.1: profiles (docs/features/profile.md).
+  // #6.1: profiles, books since step 16 (docs/features/book.md).
   `CREATE TABLE profiles (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,

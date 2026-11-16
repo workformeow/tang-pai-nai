@@ -21,10 +21,10 @@ Three sets of values, never sharing a key or a database. Two branches: `develop`
 - `npm run setup-env` makes `.env.dev` and `.env.staging` from `api/.env.example`, and adds to
   existing ones any variable they lack.
 - **Staging is tried on the PC first**: fill `api/.env.staging`, run
-  `docker compose --profile staging up --build` (this PC's code against staging's real Turso,
+  `docker compose --book staging up --build` (this PC's code against staging's real Turso,
   Resend and Turnstile; compose only swaps the addresses to `localhost:8081`), then import the same
   file into Vercel (API project → Settings → Environment Variables → Import .env, environment
-  Preview, branch `develop`). Starting the profile **migrates the staging database**.
+  Preview, branch `develop`). Starting the book **migrates the staging database**.
 - The staging Turnstile widget lists two hostnames: the web's `develop` URL and `localhost`.
 - Production's values are typed or imported into Vercel straight from a password manager; they
   never sit in a file in the repo folder.

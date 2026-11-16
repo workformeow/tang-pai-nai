@@ -12,7 +12,6 @@ const OTHER: DefaultCategory = { th: 'อื่น ๆ', en: 'Other', icon: 'luc
 /**
  * The categories a new book starts with (docs/features/category.md rule 8), written by the
  * device that creates the book in the same local write, in the app's language at that moment.
- * `api/scripts/seed-default-categories.ts` holds the Thai copy for books made before #7.
  */
 export const DEFAULT_CATEGORIES: Readonly<
   Record<'expense' | 'income', readonly DefaultCategory[]>

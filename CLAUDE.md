@@ -29,6 +29,19 @@ decisions), then the feature's doc in `docs/features/`, then the `AGENTS.md` of 
   UI text exists in Thai (default) and English, as translation keys in `web/src/app/core/i18n/`
   (`web/AGENTS.md` → UI text).
 
+## Naming: book vs profile
+
+Owner's rule (2026-11): one name per thing, the same in the UI, the code, the API and the docs.
+
+| UI (TH / EN)            | Code, API, database                          | What it is                               |
+| ----------------------- | -------------------------------------------- | ---------------------------------------- |
+| สมุด / Book             | `book`, `books`, `bookId`, `BookService`     | A set of wallets and categories (#6.1)   |
+| โปรไฟล์ / Profile       | `user`, `AuthUser`, `UserProfile`, `/auth/me` | The person: display name, email          |
+
+Never use `profile` for a book. Until 2026-11 books were called profiles, so the migrations that
+shipped before then (`api/drizzle/0006_profiles.sql`, device steps 1–15) still say `profiles`;
+`0021_rename_profile_to_book` and device step 16 renamed them.
+
 ## Git
 
 Branches: **`develop`** is the working branch, and every change lands there first. **`main`** is

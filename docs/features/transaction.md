@@ -10,7 +10,7 @@
 ## Purpose
 
 The core of the app: record money in or out of a wallet, against a category, on a date. The
-Transactions tab (home) lists the current profile's transactions grouped by day for one month,
+Transactions tab (home) lists the current book's transactions grouped by day for one month,
 with the month's income, expense and net, like Money Lover's "Transactions" tab. Adding one takes
 a few taps from the centre ➕.
 
@@ -31,7 +31,7 @@ a few taps from the centre ➕.
 `api/src/core/database/schema/transaction.ts`
 
 - **transactions** (synced, like `categories`): `id` (UUIDv7 from the device), `userId` (the
-  **wallet's owner**, also for a row an editor added), `profileId` (FK profiles,
+  **wallet's owner**, also for a row an editor added), `bookId` (FK books,
   cascade), `walletId` (FK wallets, cascade), `categoryId` (FK categories, cascade), `amount`
   (integer, minor units, **always > 0**), `occurredOn` (`YYYY-MM-DD`, the device's local date),
   `note` (≤ 500 characters, `''` when empty), `excludeFromReport` (default `false`), `addedBy`
@@ -39,16 +39,16 @@ a few taps from the centre ➕.
   sync columns (`createdAt`, `updatedAt`, `deletedAt?`, `changeSeq`, `updatedBy`; see
   [offline-sync.md](offline-sync.md)).
 - Server indexes: (`userId`, `changeSeq`), (`changeSeq`), (`walletId`), (`categoryId`),
-  (`profileId`). The server never lists transactions by month (devices do), so it needs only the
+  (`bookId`). The server never lists transactions by month (devices do), so it needs only the
   sync and FK indexes.
-- `profileId` is stored although the wallet already implies it, so `PROFILE_CHILD_TABLES`, the
-  profile sweep and the monthly query work on the table alone; it always equals the wallet's and
-  the category's `profileId` (rule 1).
+- `bookId` is stored although the wallet already implies it, so `BOOK_CHILD_TABLES`, the
+  book sweep and the monthly query work on the table alone; it always equals the wallet's and
+  the category's `bookId` (rule 1).
 - The cascades only matter when the server purges a parent's 90-day-old tombstone: a live
   transaction never points at a tombstone for long (rules 9–10).
 - **The device** keeps `transactions` (snake_case, local schema step 8, a `SYNC_TABLES` entry,
-  listed in `PROFILE_CHILD_TABLES`) with local indexes for the screens (Volume below):
-  (`profile_id`, `occurred_on`), (`wallet_id`), (`category_id`).
+  listed in `BOOK_CHILD_TABLES`) with local indexes for the screens (Volume below):
+  (`book_id`, `occurred_on`), (`wallet_id`), (`category_id`).
 
 The **sign isn't stored**: income or expense comes from the category's `type`, so changing the
 category may flip it. The **currency** comes from the wallet. Balances and totals are computed,
@@ -60,10 +60,10 @@ never stored (ROADMAP → Money & data).
    on push, never visible on pull). There is no REST endpoint: the web app writes them locally
    and they travel through `/sync/push` and `/sync/pull` as table `transactions`. **Server check**
    (`CONFLICT`, the message tells the device what to fix) for a live row:
-   - `profileId` is one of the owner's live profiles, and a transaction never moves to another
-     profile;
-   - `walletId` is the owner's live wallet of that profile;
-   - `categoryId` is the owner's live category of that profile.
+   - `bookId` is one of the owner's live books, and a transaction never moves to another
+     book;
+   - `walletId` is the owner's live wallet of that book;
+   - `categoryId` is the owner's live category of that book.
 2. **Archived wallet or category** (decided at the start of #8): archived means "not in use", so
    the pickers offer only open wallets and open, non-hidden categories when adding or **changing
    to** one; an edit may keep the archived wallet or category the row already has. The server
@@ -83,14 +83,14 @@ never stored (ROADMAP → Money & data).
 7. **Delete** is a tombstone, acting at once with **undo** in the toast (DESIGN.md §6; an upsert
    of the tombstone the device has seen restores it, offline-sync rule 12). Screens read
    `deleted_at IS NULL` only.
-8. **Edit** can change every field except `profileId` (rule 1). Two devices editing the same row:
+8. **Edit** can change every field except `bookId` (rule 1). Two devices editing the same row:
    the later edit wins the whole row, delete beats edit, the loser gets a notice (offline-sync
    rule 12).
-9. **Profile delete** tombstones the profile's transactions in the same local write
-   (`PROFILE_CHILD_TABLES`, profile rule 8), and the confirm counts them ("ธุรกรรม n รายการ").
-   A device that pulls a profile tombstone tombstones its live transactions of that profile
-   (wallet rule 11's sweep). A refused profile create (made offline) refuses its transactions
-   too: they are grouped under the profile's one sync-sheet item ("ธุรกรรม n รายการ") and go
+9. **Book delete** tombstones the book's transactions in the same local write
+   (`BOOK_CHILD_TABLES`, book rule 8), and the confirm counts them ("ธุรกรรม n รายการ").
+   A device that pulls a book tombstone tombstones its live transactions of that book
+   (wallet rule 11's sweep). A refused book create (made offline) refuses its transactions
+   too: they are grouped under the book's one sync-sheet item ("ธุรกรรม n รายการ") and go
    again with it when it is fixed (category rule 12; the outbox keeps them after their wallet).
 10. **Wallets and categories with transactions** (wallet rules 4 and 6, category rules 4–6):
     - A wallet with live transactions can't change its **currency** (device + server check) and
@@ -99,7 +99,7 @@ never stored (ROADMAP → Money & data).
       can't be **deleted**, only archived (device). Moving it under another parent of the same
       type keeps its transactions (they point at it by id).
     - **A device that pulls a wallet or category tombstone tombstones its live transactions of
-      it** (decided at the start of #8), like the profile sweep. This only happens in a race (device A deletes
+      it** (decided at the start of #8), like the book sweep. This only happens in a race (device A deletes
       a wallet it sees as empty while offline device B adds to it, and B's add reaches the
       server first). The other order is already safe: B's add arrives after the tombstone, the
       check refuses it (rule 1) and B fixes it by picking another wallet.
@@ -111,7 +111,7 @@ never stored (ROADMAP → Money & data).
 11. **Month summary** for a month and a set of wallets: `income` = Σ amount of income-type rows,
     `expense` = Σ amount of expense-type rows, `net` = income − expense. All three leave out
     `excludeFromReport` rows and are **one line per currency** when the wallets span several.
-    **All wallets** ("ทุกกระเป๋า", decided at the start of #8) = the profile's wallets **without**
+    **All wallets** ("ทุกกระเป๋า", decided at the start of #8) = the book's wallets **without**
     `excludeFromTotal`, and credit cards ([credit-card.md](credit-card.md) rule 2), archived
     ones included (their history stays, wallet rule 6); any other wallet excluded from the total
     is seen by choosing it in the wallet switcher.
@@ -131,7 +131,7 @@ A family using the app daily reaches **tens of thousands of rows** over a few ye
 7,000 a year). The device must stay instant with that:
 
 - The local database is in memory, so reads are fast, but every screen query goes through an
-  index: the month list and summary use (`profile_id`, `occurred_on`) with
+  index: the month list and summary use (`book_id`, `occurred_on`) with
   `occurred_on BETWEEN first AND last`; balances use (`wallet_id`); "has transactions" uses
   `EXISTS` on (`wallet_id`) / (`category_id`).
 - Balances for all wallets come from **one** aggregate query (`GROUP BY wallet_id`, joined to
@@ -168,10 +168,10 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
 
 - **Transactions tab** (home; owner's choices in #8 from mock-ups, Money Lover style; DESIGN.md
   §2 and §5):
-  - header: the profile switcher left (a glass capsule, icon and ▾; opens the switch sheet), the **wallet switcher** in the
+  - header: the book switcher left (a glass capsule, icon and ▾; opens the switch sheet), the **wallet switcher** in the
     very centre (a pill; "ทุกกระเป๋า" or one wallet, opening a sheet with the total, the open
     wallets with their balances, "เพิ่มกระเป๋าเงิน" (closes it and opens the wallet sheet on the
-    same page; not in a shared profile or past 20, owner 2026-11) and the archived ones folded),
+    same page; not in a shared book or past 20, owner 2026-11) and the archived ones folded),
     and right the **sync icon**
     (the pill in its icon form, on every tab since #9) and the **⋮** menu (since #9 a two-level
     list: "โอนเงิน" and "ดูตาม · เดือน ›", which turns into day / week / month (default) / quarter /
@@ -190,7 +190,7 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
     (nothing when empty), "รอ sync" as a small cloud line, the signed amount right in income /
     expense colour without the currency symbol (it comes back when the rows mix currencies);
   - an empty period says so with "เพิ่มธุรกรรม". The chosen wallet and unit are remembered per
-    profile on the device. The first-wallet step stays (wallet rule 12).
+    book on the device. The first-wallet step stays (wallet rule 12).
 - **Transaction form** (the ➕ opens it to add, a row opens it to edit; owner's choices in #8
   from the Money Lover screenshot and mock-ups; no debt tab, no photo / chat buttons):
   - header: X left, "เพิ่มธุรกรรม" / "แก้ไขธุรกรรม" centred, delete (red, at once with undo)
@@ -222,7 +222,7 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
   - one main button "บันทึก" at the bottom; the keypad slides up **over** it (owner, 2026-11:
     one action at a time, ✓ then บันทึก, and the form never jumps), the row inert meanwhile.
     Errors: "ใส่จำนวนเงินที่มากกว่า 0", "เลือกหมวดหมู่ก่อน". Closing never asks: unsaved input goes with the sheet. When it can't write (a shared
-    profile offline, or an in-memory database) it shows the notice and a disabled save.
+    book offline, or an in-memory database) it shows the notice and a disabled save.
   - **Quick amounts** (8.2, owner's choices from a mock-up): a row of chips `20 · 50 · 100 · 500
 · 1,000` (major units, Thai banknotes) at the top of the keypad's panel, shown only while
     the keypad is. A chip **adds** like counting notes and the amount shows the total at once:
@@ -237,7 +237,7 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
     values with the date set to today (the row being edited is left as it was saved); an
     archived wallet or category falls back as when adding (rule 2).
   - The type (and so the picker's first tab) starts on the type of the last transaction added
-    in this profile on this device (8.2), else รายจ่าย; the picker opens on the form's type.
+    in this book on this device (8.2), else รายจ่าย; the picker opens on the form's type.
   - **Category picker**: above the tree, a row **"ใช้บ่อย"** of up to 4 categories (8.2): the
     type's categories with the most live transactions dated in the last 90 days, ties to the
     one recorded last, among those the picker offers (open, not hidden in the wallet). It is a
@@ -248,7 +248,7 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
   เก็บถาวรแทนได้") for a wallet or category with transactions; a category's type is read-only
   with a line once it has transactions.
 - **Wallets tab**: balances are real (rule 12).
-- **Profile delete confirm**: counts transactions too ("กระเป๋าเงิน 1 ใบ หมวดหมู่ 27 รายการ
+- **Book delete confirm**: counts transactions too ("กระเป๋าเงิน 1 ใบ หมวดหมู่ 27 รายการ
   และธุรกรรม 5 รายการ ในสมุดนี้…", `Intl.ListFormat`).
 - **Sync sheet**: a refused transaction reads as its category, amount and note; "แก้" opens it.
 - There is no separate detail screen: a row opens the form, whose header holds delete (undo in
@@ -262,7 +262,7 @@ delete online only (offline-sync rules 13–16, [sharing](sharing.md) rules 10�
 
 ## Interactions
 
-- **Profile**: `transactions.profileId`; deleting a profile takes its transactions (rule 9).
+- **Book**: `transactions.bookId`; deleting a book takes its transactions (rule 9).
 - **Wallet**: requires `walletId`, inherits its currency; its balance, "can change currency" and
   "can delete" read this table (rules 10, 12).
 - **Category**: requires `categoryId`; its `type` decides income or expense; "can change type"

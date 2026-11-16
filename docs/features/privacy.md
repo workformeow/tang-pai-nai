@@ -23,7 +23,7 @@ minimum the backlog's "open sign-up obligations" (PDPA) asked for.
   confirmations instead, rule 7).
 - Exporting your data before deleting: CSV export already exists (Account › ส่งออก CSV); the
   delete page links to it.
-- Deleting one profile's data only: that is deleting the profile (profile.md).
+- Deleting one book's data only: that is deleting the book (book.md).
 - Removing data from the providers' own backups and logs (Turso, Vercel, Resend). They expire on
   the providers' schedules; the notice says so (without the names).
 
@@ -34,7 +34,7 @@ minimum the backlog's "open sign-up obligations" (PDPA) asked for.
 1. One page, **ประกาศความเป็นส่วนตัว** (`/auth/privacy`), open **without signing in**, in Thai and
    English like every screen. It says, in plain words:
    - what is kept: email, display name, password hash (if set), sign-in sessions (device and
-     browser name, IP at sign-in), and the user's own data (profiles, wallets, categories,
+     browser name, IP at sign-in), and the user's own data (books, wallets, categories,
      transactions, transfers, debts, events, recurring rules);
    - where: the servers of our cloud providers, with a bot check at sign-in (named by kind, not
      by vendor: the notice prints no Turso, Vercel, Resend or Turnstile, owner 2026-11); a copy
@@ -59,7 +59,7 @@ minimum the backlog's "open sign-up obligations" (PDPA) asked for.
 4. Deletion needs the network and a live session; offline the page says it needs the internet.
 5. The page **ลบบัญชี** (Account › ความปลอดภัย, the last row, in destructive red) shows, before
    anything can be pressed:
-   - what goes: every profile, wallet and transaction of the account, on every device, and that
+   - what goes: every book, wallet and transaction of the account, on every device, and that
      it **can't be undone**;
    - a link to ส่งออก CSV to keep a copy first;
    - when the user **owns shared wallets**: "กระเป๋าที่แชร์อยู่กับ N คนจะหายไปจากพวกเขาด้วย"
@@ -73,7 +73,7 @@ minimum the backlog's "open sign-up obligations" (PDPA) asked for.
    3. the button **"ลบบัญชีถาวร"** (destructive).
 7. The deletion happens **at once**: no waiting period and no undo.
 8. On the server, in one transaction: the `users` row is deleted, and every table that
-   references it goes with it (`onDelete: 'cascade'`: sessions, identities, OTPs, profiles and
+   references it goes with it (`onDelete: 'cascade'`: sessions, identities, OTPs, books and
    everything under them, outbox records, change history, invites, memberships). Two kinds of
    rows hold the **email in plain text without a `userId`**, so the same transaction deletes
    them by address: sign-in codes (`otp_challenges` with that `destination`) and invites
@@ -88,7 +88,7 @@ minimum the backlog's "open sign-up obligations" (PDPA) asked for.
    `lang`, no link). The mail counts toward `EMAIL_DAILY_LIMIT`; a failed send is logged and
    doesn't undo anything.
 10. `GET /auth/account/deletion` answers the summary rule 5 shows: how many people the user's
-    shared wallets reach (members of their profiles, counted once each).
+    shared wallets reach (members of their books, counted once each).
 
 **After deleting**
 
@@ -97,8 +97,8 @@ minimum the backlog's "open sign-up obligations" (PDPA) asked for.
 12. **The user's other devices**: their sessions are gone, so the next refresh is refused like a
     revoked session and they wipe (offline-sync rule 7). A device that stays offline keeps its
     encrypted copy until it next goes online.
-13. **People the user shared with**: the owner's shared profile is gone; their next read answers
-    `404` and the app goes back to their own profile (sharing rules 8 and 10).
+13. **People the user shared with**: the owner's shared book is gone; their next read answers
+    `404` and the app goes back to their own book (sharing rules 8 and 10).
 14. **Owners the user was a member of**: rows the user added stay the owner's; `addedBy` /
     `updatedBy` keep the old id and read as **"สมาชิก"** (sharing rule 15).
 15. Signing in again later with the same email creates a **new, empty** account.
@@ -126,7 +126,7 @@ Error codes: `ACCOUNT_EMAIL_MISMATCH` (422), `REAUTH_REQUIRED` (403).
 
 - **Auth**: recent authentication and the reauth step (rule 13), the mail sender and its limits,
   sessions (their rows go with the user).
-- **Sharing**: rule 10 counts members of the user's profiles; rules 13–14 rely on sharing's
+- **Sharing**: rule 10 counts members of the user's books; rules 13–14 rely on sharing's
   existing `404` and "สมาชิก" behaviour.
 - **Offline** (web): `OfflineService.wipe()`, and the revoked-session path for other devices.
 - **Env**: `TEST_VERSION` in [docs/env.md](../env.md) (staging `true`).

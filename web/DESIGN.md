@@ -40,8 +40,8 @@ choice that isn't decided yet is marked **Proposal** until the owner confirms it
 - **Transactions tab header** (#8, Money Lover style; the Reports tab uses it too since #10,
   its ⋮ holding only "ดูตาม"): three columns of which the outer two
   are equal, so the **wallet switcher** (a pill: wallet badge, name, ▾) sits in the very
-  centre; the **profile switcher** left, the sync icon and the ⋮ menu right. The profile
-  switcher is the same on every data tab (owner, 2026-11): a glass capsule with the profile's
+  centre; the **book switcher** left, the sync icon and the ⋮ menu right. The book
+  switcher is the same on every data tab (owner, 2026-11): a glass capsule with the book's
   28px icon and a ▾, no name (it lives in the switch sheet). The Wallets tab uses the same
   three columns with its title in the centre, so the header never changes shape between tabs. The ⋮ menu (#9,
   owner's choice B, so later items fit) is a two-level nav list: rows with an icon ("โอนเงิน",
@@ -119,7 +119,7 @@ because `ThemeService` covers both the mode and the palette. Users only ever see
 changes with the look. `--income` / `--expense` pass 4.5:1 on both `--background` and `--card`.
 Don't reuse `destructive` for expenses: an expense isn't an error.
 
-**User colours** (profile, wallet and category `color`) arrive as data and are the only raw colours
+**User colours** (book, wallet and category `color`) arrive as data and are the only raw colours
 allowed. Use them for the icon circle's background with a **white glyph** (owner's choice in #7):
 every colour in `USER_COLORS` gives white at least 4.5:1, so a new colour must too (a test
 checks). Five colours were darkened one step in #7; a row saved with an old one is drawn with the
@@ -195,7 +195,7 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   error 4px under it, so a message reads as part of its field. In a sheet, the Save button stays
   fixed at the bottom, above the keyboard.
 - **Compact sheet forms** (owner's choice in #6.2, Money Lover style): a create / edit sheet for
-  a named thing with an icon (wallet, profile, later category) has no labels above its fields
+  a named thing with an icon (wallet, book, later category) has no labels above its fields
   and no hints. Row 1 is the icon on its colour (a 52px button with a small pencil) and the name
   across the rest (`app-name-icon-field`, the label read by screen readers and shown as the
   placeholder); tapping the icon opens an "ไอคอนและสี" view in the same sheet (colours, then the
@@ -232,7 +232,7 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   Closing never asks, even with unsaved input (owner, 2026-11): the forms are short, so typing
   them again costs less than a question on every close.
 - **Delete**: act at once, then offer **undo** in a toast (spartan `sonner`). Confirm first only
-  when undo is impossible (wiping local data, removing a shared member, deleting a profile or a
+  when undo is impossible (wiping local data, removing a shared member, deleting a book or a
   wallet, which go as tombstones other devices act on). The confirm is a view in the same sheet
   (‹ back, a line on what goes with it, a destructive button). **Archive** acts at once and offers
   undo in its toast.
@@ -242,7 +242,7 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   **No toast on a frequent save the screen already shows** (owner, 2026-11): adding or editing
   a transaction or a transfer, or paying a card, closes the sheet onto the list that shows the
   row, many times a day, so it gets none (it only covered the header). "บันทึกแล้วเพิ่มต่อ" keeps
-  the sheet open, so it still toasts. Saves done now and then (a wallet, a category, a profile,
+  the sheet open, so it still toasts. Saves done now and then (a wallet, a category, a book,
   a debt, an event, security settings) keep a short "saved" toast: rare enough not to annoy,
   and the confirmation reassures, since a local save is silent. Undo, errors and things that
   happen away from the screen (a rule recorded, a sync that failed, an invite sent) always toast.
@@ -382,20 +382,20 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
     the brand colour when set, × to clear); a tagged row on the Transactions tab carries a small
     gold-tint tag (plane + name) after its category name.
 - **Family sharing** (16.1, sharing.md → Web screens, mock-up `sharing.html`): managed from
-  **Account › แชร์กระเป๋า** for the current profile, never from the wallet sheet. People are
+  **Account › แชร์กระเป๋า** for the current book, never from the wallet sheet. People are
   list rows with an initial in a muted circle and a role tag (`bg-muted`, `text-xs`); an invite
   to me is a `brand/10` card with ปฏิเสธ (outline) and รับคำเชิญ (filled); wallets shared with
   nobody are `brand/10` cards too. The invite / member sheet: email, a segmented role with one
   hint line under it, then the wallets as a switch list (all on for an invite). Everything is
   online: offline, a `destructive/10` line says so and every action is disabled. Pending
   invitations to me put a small `destructive` dot on the Account tab icon.
-- **A profile shared with me** (16.2, mock-up `sharing-16.2.html`): a "แชร์กับฉัน" group under
-  my profiles in the switch sheet (badge, name, a role tag, "ของ <owner> · n กระเป๋า" with a
+- **A book shared with me** (16.2, mock-up `sharing-16.2.html`): a "แชร์กับฉัน" group under
+  my books in the switch sheet (badge, name, a role tag, "ของ <owner> · n กระเป๋า" with a
   users icon); offline the group is dimmed and disabled under a `destructive/10` line. In use,
-  every screen is the **same as an own profile's** (no special page, one ➕, the same sheet):
-  the header's profile switcher wears a small people badge (its label says "ของ <owner>"), and what isn't shared is simply not
-  there. Where nothing can show (offline, Reports, the profile's own setup pages) an empty state
-  says why with an outline "กลับไปโปรไฟล์ของฉัน". A row an editor added carries a muted
+  every screen is the **same as an own book's** (no special page, one ➕, the same sheet):
+  the header's book switcher wears a small people badge (its label says "ของ <owner>"), and what isn't shared is simply not
+  there. Where nothing can show (offline, Reports, the book's own setup pages) an empty state
+  says why with an outline "กลับไปสมุดของฉัน". A row an editor added carries a muted
   "เพิ่มโดย <name>" line (users icon, `text-xs`) under its note, on both sides.
 - **Bottom sheet** (owner's choice in #6.2): **every sheet is the same near-full height**
   (`92dvh`, the page's header still showing above it), so its main action always sits in the same
@@ -417,8 +417,8 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   headers, larger only inside empty-state circles.
 - Decorative icons get `aria-hidden="true"`. An icon that is the whole label of a control needs an
   `aria-label` on the control.
-- **Profile icons** (#6.1): 16 curated lucide icons in `shared/components/icon-badge/user-icons.ts`
-  (`PROFILE_ICONS`), on one of 10 `USER_COLORS`, shown by `app-icon-badge` (40px in rows, 28px
+- **Book icons** (#6.1): 16 curated lucide icons in `shared/components/icon-badge/user-icons.ts`
+  (`BOOK_ICONS`), on one of 10 `USER_COLORS`, shown by `app-icon-badge` (40px in rows, 28px
   in the header switcher). Never rename or remove a shipped icon; an unknown name shows
   `lucideUser`.
 - **Category and wallet icons**: the user picks from one curated catalogue (lucide + `tpn`),
@@ -449,7 +449,7 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   "จัดลำดับ" button) where each row has one grip handle (`lucideGripVertical`, CDK drag-drop):
   press and hold it for ~0.3 s on touch (at once with a mouse), then drag; the same handle moves
   its row with ↑ / ↓ for keyboards (the place is read at key press, so quick presses add up).
-  Profiles (Account › โปรไฟล์) are the reference; wallets
+  Books (Account › สมุด) are the reference; wallets
   follow.
 - **Motion**: 150–250 ms, ease-out. Sheets slide up, toasts fade and slide. Nothing bounces or
   loops. Honour `prefers-reduced-motion` by dropping the movement and keeping a fade.
@@ -521,7 +521,8 @@ WCAG 2.2 AA, as in `AGENTS.md`:
   | Concept          | Thai                                 | English                   | Note                                          |
   | ---------------- | ------------------------------------ | ------------------------- | --------------------------------------------- |
   | Transaction      | ธุรกรรม                              | Transaction               |                                               |
-  | Profile          | โปรไฟล์                              | Profile                   | #6.1; a separate area of money                |
+  | Book             | สมุด                                 | Book                      | #6.1; a separate area of money (code: book)   |
+  | Profile          | โปรไฟล์                              | Profile                   | The user: name, email (code: user)            |
   | Wallet           | กระเป๋าเงิน                          | Wallet                    | Thai tab bar label shortens to กระเป๋า        |
   | Category         | หมวดหมู่                             | Category                  |                                               |
   | Sub-category     | หมวดหมู่ย่อย / หมวดหมู่หลัก (parent) | Sub-category              | #7; "Parent category" in English              |
@@ -532,7 +533,7 @@ WCAG 2.2 AA, as in `AGENTS.md`:
   | Start / end bal. | ยอดเริ่มต้น / ยอดสุดท้าย             | Starting / Ending balance | #10, a period's balances (not ต้นงวด)         |
   | Report           | รายงาน                               | Report                    |                                               |
   | Recurring        | รายการซ้ำ / ทำซ้ำ (the form's row)   | Recurring / Repeat        | #12; ถึงกำหนด / Due, ข้าม / Skip              |
-  | Settings tab     | ตั้งค่า (the account tab)            | Settings                  | Not โปรไฟล์ (a data set) nor บัญชี (a bank)   |
+  | Settings tab     | ตั้งค่า (the account tab)            | Settings                  | Not โปรไฟล์ (the user) nor บัญชี (a bank)     |
   | Online / offline | ออนไลน์ / ออฟไลน์                    | Online / Offline          |                                               |
   | Sync             | sync                                 | Sync                      | Stays English in Thai: "รอ sync", "sync แล้ว" |
   | Undo             | เลิกทำ                               | Undo                      |                                               |

@@ -19,7 +19,7 @@ month's รายรับ / รายจ่าย stay what was really earned a
   (ROADMAP backlog, FX).
 - **A fee field** (Q3): a bank fee is an ordinary expense in a category, which the user enters
   as its own transaction.
-- Transfers between profiles (a profile is a separate area of money) and between users (#16).
+- Transfers between books (a book is a separate area of money) and between users (#16).
 - Budgets (backlog; transfers never count against a budget). Recurring transfers are built in
   #12 ([recurring.md](recurring.md), Q4): a rule records each occurrence as a transfer with
   `recurringId`.
@@ -30,16 +30,16 @@ month's รายรับ / รายจ่าย stay what was really earned a
 two `transactions` rows; on screen it reads as two transactions)
 
 - **transfers** (synced, like `transactions`): `id` (UUIDv7 from the device), `userId` (the
-  wallets' owner), `profileId` (FK profiles, cascade), `fromWalletId` (FK wallets, cascade),
+  wallets' owner), `bookId` (FK books, cascade), `fromWalletId` (FK wallets, cascade),
   `toWalletId` (FK wallets, cascade), `amount` (integer, minor units, **always > 0**),
   `occurredOn` (`YYYY-MM-DD`), `note` (≤ 500 characters, `''` when empty), plus the sync
   columns (`createdAt`, `updatedAt`, `deletedAt?`, `changeSeq`, `updatedBy`).
 - No `categoryId` (a transfer has no category, so it's never in a by-category report) and no
   `excludeFromReport` (a transfer is never in a report).
-- Server indexes: (`userId`, `changeSeq`), (`changeSeq`), (`profileId`), (`fromWalletId`),
+- Server indexes: (`userId`, `changeSeq`), (`changeSeq`), (`bookId`), (`fromWalletId`),
   (`toWalletId`).
 - **The device** keeps `transfers` (local schema step 9, a `SYNC_TABLES` entry, listed in
-  `PROFILE_CHILD_TABLES`) with indexes (`profile_id`, `occurred_on`), (`from_wallet_id`),
+  `BOOK_CHILD_TABLES`) with indexes (`book_id`, `occurred_on`), (`from_wallet_id`),
   (`to_wallet_id`).
 
 **Why one row** (Q1): the "two linked entries" are how a transfer **reads** (two rows in the
@@ -52,9 +52,9 @@ different amounts or dates, delete / undo / conflicts work exactly as for a tran
 
 1. **Own data, synced.** Like transaction rule 1: no REST endpoint, table `transfers` through
    `/sync/push` and `/sync/pull`. **Server check** (`CONFLICT`) for a live row:
-   - `profileId` is one of the owner's live profiles, and a transfer never moves to another
-     profile;
-   - `fromWalletId` and `toWalletId` are the owner's live wallets of that profile;
+   - `bookId` is one of the owner's live books, and a transfer never moves to another
+     book;
+   - `fromWalletId` and `toWalletId` are the owner's live wallets of that book;
    - `fromWalletId` ≠ `toWalletId`;
    - both wallets have the **same currency** (Q2).
 2. **Archived wallets**: as transaction rule 2: the pickers offer open wallets only (an edit may
@@ -75,8 +75,8 @@ different amounts or dates, delete / undo / conflicts work exactly as for a tran
    rule 10): its currency is fixed (device + server check, `wallets` handler) and it can only
    be archived, not deleted. A device that pulls a wallet tombstone tombstones the live
    transfers on either side of it (the race in transaction rule 10).
-9. **Profile delete** tombstones its transfers in the same write (`PROFILE_CHILD_TABLES`); the
-   confirm counts them with the transactions ("ธุรกรรม n รายการ"). A refused profile create
+9. **Book delete** tombstones its transfers in the same write (`BOOK_CHILD_TABLES`); the
+   confirm counts them with the transactions ("ธุรกรรม n รายการ"). A refused book create
    refuses its transfers too (category rule 12).
 10. **Order** with transactions: `occurredOn` desc, `createdAt` desc, `id` desc (transaction
     rule 13); a transfer's two rows sit together, the outgoing one first (Q5).
@@ -86,7 +86,7 @@ different amounts or dates, delete / undo / conflicts work exactly as for a tran
 ## Volume
 
 Transfers are a few a month, but read with transactions: the period's transfer sides are one
-`UNION ALL` (out, in) over (`profile_id`, `occurred_on`), merged in order into the period's
+`UNION ALL` (out, in) over (`book_id`, `occurred_on`), merged in order into the period's
 transactions (`entries`, one pass), and balances stay one aggregate (`UNION ALL` of the
 transactions and both sides, `GROUP BY` wallet). Still 100 rows drawn at a time. Not measured
 again with 20,000 rows in #9 (the transaction queries didn't change).
@@ -128,7 +128,7 @@ None of its own: table `transfers` in `/sync/pull` and `/sync/push` (OpenAPI
   "ทุกกระเป๋า" a transfer to or from a wallet excluded from the total.
 - **Wallets tab**: balances include transfers (rule 6). Beside "เพิ่มกระเป๋าเงิน" (outline) a
   **"โอนเงิน"** button tinted gold (`bg-brand/10 text-brand`; maia's `secondary` looked the
-  same as its outline, owner's request: the two must not read alike), shown while the profile
+  same as its outline, owner's request: the two must not read alike), shown while the book
   has two or more open wallets.
 - **Sync sheet**: a refused transfer is "การโอนเงิน", reading "โอนเงิน กสิกร → เงินสด · 500.00 ·
   note"; "แก้" opens its sheet (`/transactions?fix=`).
@@ -148,5 +148,5 @@ field, a fee is its own expense in a category; Q4 a sheet of its own, opened fro
 menu (choice B) and from the Wallets tab (a button that doesn't look like "เพิ่มกระเป๋าเงิน");
 Q5 two rows, outgoing first, red − / green + with "โอนไปยัง" / "ได้รับจาก" (replaces DESIGN.md
 §5's neutral transfers); Q6 editing or deleting either row changes the whole transfer; Q7 the
-to wallet remembered per from wallet; the summary's "โอน" line; profile delete counts
+to wallet remembered per from wallet; the summary's "โอน" line; book delete counts
 transfers with transactions; "Transactions" stays the English tab label (asked while building).

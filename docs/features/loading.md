@@ -40,9 +40,9 @@ anything that is already fast.
    taking longer than usual. / Please wait, or try again.) and a **ลองใหม่** / **Try again**
    button that reloads the page.
 4. **First pull on a new device** (the shell's `loading` gate): a device that has never finished a
-   round shows one loader in the middle of the profile tabs **until that round ends** (every page
+   round shows one loader in the middle of the book tabs **until that round ends** (every page
    pulled, or the round failed), so the first numbers seen are the whole ones and don't move as
-   later pages arrive (owner, 2026-11-15; `ProfileService.firstPull`). No other bar: an icon,
+   later pages arrive (owner, 2026-11-15; `BookService.firstPull`). No other bar: an icon,
    "กำลังโหลดข้อมูลของคุณ" / "Loading your data" and, once rows arrive, "ได้รับแล้ว n รายการ" /
    "n items received" (rows pulled in the running round, `SyncService.pulledRows`). A device that
    can't sync (offline, untrusted) doesn't wait.
