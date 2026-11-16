@@ -3,7 +3,7 @@
 > Status: **4.1 built** (email code + magic link, sessions, sign-out, `/auth/me`); **4.2 built**
 > (optional password, recent auth, step-up code); **4.3 built** (Google sign-in); **4.4a built**
 > (Account › Security: sessions, linking / unlinking Google, mail on credential change, rules
-> 28–31); **4.4b built** (phone OTP, rules 21–27). See
+> 28–31); **4.4b built** (phone OTP, rules 21–27); **profile built** (display name, rule 33). See
 > [ROADMAP](../../ROADMAP.md#done-auth-4).
 > Code lives in `src/features/auth/`, token helpers in
 > `src/core/security/`, the `authenticate` middleware in `src/core/middleware/`.
@@ -407,6 +407,13 @@ SMS provider prints the code, so the whole flow is testable without an SMS accou
       when the API gave a site key. `BOT_CHECK_FAILED` shows "ตรวจสอบว่าไม่ใช่บอทไม่สำเร็จ
       ลองใหม่อีกครั้ง".
 
+33. **Profile** (2026-11). "Profile" (โปรไฟล์) is the user, never a book (`CLAUDE.md` → Naming).
+    `PATCH /auth/me` `{ displayName }` (Bearer) sets the name the Settings tab shows and people
+    sharing a book see. It is trimmed and must be **1–50** characters, else `422`. No recent auth
+    (it is no credential) and no mail. It answers the user like `GET /auth/me`. This is account
+    data, not synced, so the web edits it online only. A new account still starts from the
+    email's local part (rule 9) or Google's `name` (rule 14).
+
 ## Endpoints
 
 All live under `/auth`, on the public router. "Bearer" = needs `authenticate`.
@@ -433,6 +440,7 @@ All live under `/auth`, on the public router. "Bearer" = needs `authenticate`.
 | POST   | `/auth/refresh`          | cookie | Rotate refresh token → new access token                        | 4.1  |
 | POST   | `/auth/sign-out`         | cookie | Revoke current session; clear cookie                           | 4.1  |
 | GET    | `/auth/me`               | Bearer | Current user + `hasPassword` (4.2) + `identities` (4.3)        | 4.1  |
+| PATCH  | `/auth/me`               | Bearer | `{ displayName }`: edit the profile (rule 33)                  | 2026-11 |
 | GET    | `/auth/sessions`         | Bearer | Active sessions (one per family), current one flagged          | 4.4a |
 | DELETE | `/auth/sessions/:id`     | Bearer | Revoke one other session family                                | 4.4a |
 | DELETE | `/auth/sessions`         | Bearer | Revoke all other session families → `{ revoked }`              | 4.4a |
@@ -509,6 +517,14 @@ REAUTH_REQUIRED` opens a confirm step in place: the current password (if one is 
   code, resend timer) or remove (asks first), with the same confirm step. After a confirm the
   page stays and shows the saved number with a "saved" line, like the password page. Typing the
   saved number again is refused in the field ("This is your current number"), no SMS.
+- **Edit profile** (rule 33, design A, owner 2026-11): on the Settings tab the card on top (initial,
+  display name, email) is one button with a ✎ disc; it opens "แก้ไขโปรไฟล์", a bottom sheet
+  (`features/account/components/profile-sheet`, `@defer`red) with "ชื่อที่แสดง" filled with the
+  current name, the line "สมาชิกที่แชร์สมุดด้วยจะเห็นชื่อนี้ · n/50" and "บันทึก" at the bottom.
+  Offline or with the server down, a red line says it needs the internet and บันทึก is off. Blank
+  shows "กรอกชื่อที่แสดง"; an unchanged name just closes. Saved: the sheet closes, a "บันทึกแล้ว"
+  toast, and the card shows the new name at once; a failure keeps the sheet open with "บันทึกไม่สำเร็จ
+  ลองใหม่อีกครั้ง".
 
 ## Interactions
 

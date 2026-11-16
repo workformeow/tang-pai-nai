@@ -298,6 +298,22 @@ must be able to read what is kept and delete their account themselves (PDPA mini
 
 ---
 
+## Done: Edit profile (display name, 2026-11)
+
+Owner: the name on the Settings tab came from the email's local part and couldn't be changed.
+Spec: [auth.md](docs/features/auth.md) rule 33 and Web screens → Edit profile.
+
+- **API**: `PATCH /auth/me` `{ displayName }` (trimmed, 1–50, `422` otherwise; no recent auth),
+  `authService.updateMe`, `authRepo.setDisplayName`, OpenAPI `updateMe`.
+- **Web**: design A (mock-up picked over a separate menu row): the name card on top of the
+  Settings tab opens the "แก้ไขโปรไฟล์" sheet (`features/account/components/profile-sheet`);
+  `AuthService.updateProfile`, `ApiClient.patch`, i18n `profile.*`. Online only.
+- **Tests**: repository, service and HTTP (`auth.*.test.ts`); the sheet, the card and
+  `AuthService.updateProfile` (`profile-sheet.spec.ts`, `account-page.spec.ts`,
+  `auth.service.spec.ts`).
+
+---
+
 ## Done: Profiles are books (2026-11)
 
 Owner: "โปรไฟล์" read as "me" (name, email) as in most apps, but here it was a set of wallets and
