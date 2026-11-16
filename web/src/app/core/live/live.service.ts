@@ -13,7 +13,7 @@ import { AuthStore } from '@/core/auth'
 import { NetworkStatusService } from '@/core/network'
 import { readEventStream } from './live-stream'
 import type { LiveListener, LivePoke, LiveProvider, LiveTokenData } from './live.type'
-import type * as Ably from 'ably'
+import type * as Ably from '@ably/pubsub-device'
 
 /** Rule 11: pokes within this time run one round. */
 export const POKE_DELAY_MS = 300
@@ -276,10 +276,11 @@ export class LiveService {
 
   /**
    * Rule 8: Ably Realtime, loaded only now (it stays out of the shell's bundle). The SDK asks
-   * `/live/token` for each new token and retries with its own back-off.
+   * `/live/token` for each new token and retries with its own back-off. `@ably/pubsub-device`
+   * declares this a device connection; the token carries the user's id as its `clientId`.
    */
   private async ably(userId: string, tokenRequest: unknown): Promise<Connection> {
-    const { Realtime } = await import('ably')
+    const { createClient } = await import('@ably/pubsub-device')
     let first: unknown = tokenRequest
     const nextToken = async (): Promise<unknown> => {
       if (first) {
@@ -293,7 +294,7 @@ export class LiveService {
       }
       return data.tokenRequest
     }
-    const realtime = new Realtime({
+    const realtime = createClient({
       authCallback: (_params, callback) => {
         nextToken().then(
           (token) => callback(null, token as Ably.TokenRequest),

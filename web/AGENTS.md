@@ -613,8 +613,9 @@ Spec: [live-sync.md](../docs/features/live-sync.md).
   runs `onPoke` once per 300 ms burst. Failures are quiet (no toast): `provider()` and
   `connected()` feed only the sync sheet's line.
 - `local` reads `/api/live/events` with `fetch` (bearer header, `ngsw-bypass`), parsed by
-  `readEventStream`; `ably` loads the SDK with `import('ably')` so it stays a lazy chunk. Never
-  import `ably` statically.
+  `readEventStream`; `ably` loads the SDK with `import('@ably/pubsub-device')` so it stays a lazy
+  chunk. Never import it statically, and never use `@ably/pubsub-server` or the old `ably` package
+  in the web app.
 - Specs: `provideNoLive()` for any spec whose TestBed builds `SyncService` or `SharingService`
   for real (else the real service asks `/live/token`); `fakeLive()` exposes `listeners` to
   drive `onPoke` (`sync.service.spec`, `sharing-testing.ts`).

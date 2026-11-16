@@ -29,8 +29,7 @@
                 "output": "sqlite"
               }
             ],
-            "styles": ["src/styles.css"],
-            "allowedCommonJsDependencies": ["ably"]
+            "styles": ["src/styles.css"]
           },
           "configurations": {
             "production": {

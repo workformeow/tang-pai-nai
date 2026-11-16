@@ -249,11 +249,17 @@ line shown, nothing in the background (spec → Decisions).
   `profile:<id>` while that shared profile is in use (a poke during a read reads once more).
   Own and old pokes are ignored, a 300 ms burst runs one round, failures are quiet. The `local`
   stream is `fetch` with the bearer (and `ngsw-bypass`); Ably's SDK is a dynamic `import()`
-  (211 kB lazy chunk, `allowedCommonJsDependencies`), the initial bundle 763 → 768 kB. Sync
+  (211 kB lazy chunk), the initial bundle 763 → 768 kB. Sync
   sheet: "อัปเดตทันที: เชื่อมต่อแล้ว / ไม่ได้เชื่อมต่อ", hidden with `disabled`.
 - Tests: API 686, web 734. Checked with `local` in Chromium: a push from another device id
   showed on the open app in about 0.8 s; the sheet line; a wrong Ably key leaves the push
   `applied` with a warning in the log.
+- **Ably SDK split** (after Ably error 40168 on an account billed by MAU): the old `ably` 2.30
+  package is refused there. The API now uses `@ably/pubsub-server` (a server: API key, not
+  counted as MAU) and the web `@ably/pubsub-device` (a device, ESM, so no
+  `allowedCommonJsDependencies`; lazy chunk 180 kB). The token request carries `clientId` =
+  user id, which a device connection on a MAU account must have. Tests: API 687, web 734. Not
+  yet checked against a real Ably app.
 - **Owner, to do**: create the staging Ably app (free plan), then set `LIVE_PROVIDER=ably` and
   `ABLY_API_KEY` on the API's Vercel Preview and in `api/.env.staging`
   ([deploy.md](docs/deploy.md) step 3c), and check step 7.5 on two devices. Until then staging
