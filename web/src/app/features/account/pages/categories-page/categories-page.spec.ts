@@ -144,7 +144,7 @@ describe('CategoriesPage', () => {
   })
 
   it('opens the profile switch sheet from the profile on top', () => {
-    button('เปลี่ยนโปรไฟล์ ตอนนี้ ส่วนตัว')?.click()
+    button('เปลี่ยนสมุด ตอนนี้ ส่วนตัว')?.click()
     expect(profiles.switchSheet()).toBe(true)
   })
 

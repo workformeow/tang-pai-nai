@@ -72,7 +72,7 @@ describe('ExportPage (docs/features/export.md rules 1–4)', () => {
   })
 
   it('starts on everything, with the data span and a live count', () => {
-    expect(text()).toContain('ธุรกรรมของโปรไฟล์ ครอบครัว')
+    expect(text()).toContain('ธุรกรรมของสมุด ครอบครัว')
     expect(text()).toContain('03/10/2026 – 01/11/2026')
     expect(text()).toContain('2 ใบ รวมที่เก็บถาวรแล้ว')
     expect(button(/ส่งออก 4 รายการ/)).toBeDefined()
