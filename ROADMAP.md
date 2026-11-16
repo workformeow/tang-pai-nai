@@ -260,6 +260,10 @@ line shown, nothing in the background (spec → Decisions).
   `allowedCommonJsDependencies`; lazy chunk 180 kB). The token request carries `clientId` =
   user id, which a device connection on a MAU account must have. Tests: API 687, web 734. Not
   yet checked against a real Ably app.
+- **Faster sync** (after live sync worked on staging): a local write now starts its round after
+  0.5 s instead of 2 s (offline-sync rule 11; one action's writes still go in one push), so
+  another device sees it about 1.5 s sooner. "sync ตอนนี้" closes the sync sheet when the round
+  leaves nothing to look at, with no toast. Tests: web 739.
 - **Owner, to do**: create the staging Ably app (free plan), then set `LIVE_PROVIDER=ably` and
   `ABLY_API_KEY` on the API's Vercel Preview and in `api/.env.staging`
   ([deploy.md](docs/deploy.md) step 3c), and check step 7.5 on two devices. Until then staging

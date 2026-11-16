@@ -128,6 +128,29 @@ describe('SyncSheet', () => {
     expect(sync.sync).toHaveBeenCalledOnce()
   })
 
+  it('closes itself after "sync now" leaves nothing to look at', async () => {
+    await open()
+    button(th.sync.syncNow)?.click()
+    await fixture.whenStable()
+    expect(fixture.componentInstance.open()).toBe(false)
+  })
+
+  it.each<[string, () => void]>([
+    ['the round failed', () => sync.status.set('failed')],
+    ['ops still wait', () => sync.status.set('pending')],
+    ['an op was rejected', () => sync.rejected.set([rejectedOp])],
+    ['a conflict notice came in', () => sync.notices.set([notice])],
+  ])('stays open after "sync now" when %s', async (_case, after) => {
+    sync.sync.mockImplementationOnce(async () => {
+      after()
+      return Promise.resolve()
+    })
+    await open()
+    button(th.sync.syncNow)?.click()
+    await fixture.whenStable()
+    expect(fixture.componentInstance.open()).toBe(true)
+  })
+
   it('says whether live updates are connected, and nothing when they are off (live-sync)', async () => {
     live.provider.set('ably')
     live.connected.set(true)
