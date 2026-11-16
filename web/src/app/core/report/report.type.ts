@@ -15,8 +15,8 @@ export const TREND_STEP_MONTHS: Readonly<Record<TrendStep, number>> = {
   year: 12,
 }
 
-/** Per profile on the device, wiped with it (`tpn-profile:` keys). */
-export const REPORT_PREF_PREFIX = 'tpn-profile:report:'
+/** Per book on the device, wiped with it (`tpn-book:` keys). */
+export const REPORT_PREF_PREFIX = 'tpn-book:report:'
 
 /** One currency's summary card (rules 1, 9–11). Amounts in minor units. */
 export interface ReportSummary {

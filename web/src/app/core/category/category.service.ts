@@ -1,4 +1,5 @@
 import { computed, effect, inject, Service, signal, untracked } from '@angular/core'
+import { BookService } from '@/core/book'
 import {
   deleteOp,
   fromSql,
@@ -9,7 +10,6 @@ import {
   uuidv7,
 } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
-import { ProfileService } from '@/core/profile'
 import {
   cleanHidden,
   DEBT_TABLE,
@@ -35,25 +35,25 @@ import type {
 const ORDER = 'ORDER BY sort_order, created_at, id'
 
 /**
- * The current profile's categories on this device (docs/features/category.md). Reads come from
+ * The current book's categories on this device (docs/features/category.md). Reads come from
  * the local database; every write goes through the outbox like any own data.
  */
 @Service()
 export class CategoryService {
   private offlineService = inject(OfflineService)
   private syncService = inject(SyncService)
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
 
-  /** The current profile's live categories in order (rule 10), archived ones included. */
+  /** The current book's live categories in order (rule 10), archived ones included. */
   categories = computed(() => {
-    const profileId = this.profileService.current()?.id
-    return profileId ? this.ofProfile(profileId) : []
+    const bookId = this.bookService.current()?.id
+    return bookId ? this.ofBook(bookId) : []
   })
   /** Open categories (rule 11 counts them). */
   openCategories = computed(() => this.categories().filter((category) => !category.isArchived))
-  atLimit = computed(() => this.openCategories().length >= CATEGORY_LIMITS.PER_PROFILE)
-  canWrite = this.profileService.canWrite
-  serverDown = this.profileService.serverDown
+  atLimit = computed(() => this.openCategories().length >= CATEGORY_LIMITS.PER_BOOK)
+  canWrite = this.bookService.canWrite
+  serverDown = this.bookService.serverDown
 
   /** Categories with an op still waiting to sync ("รอ sync"). */
   pendingIds = computed(
@@ -104,12 +104,10 @@ export class CategoryService {
     return this.toTree(this.categories(), type, archived)
   }
 
-  /** `tree()` of any profile on this device (a wallet being fixed may be another profile's). */
-  treeOf(profileId: string, type: CategoryType): CategoryNode[] {
+  /** `tree()` of any book on this device (a wallet being fixed may be another book's). */
+  treeOf(bookId: string, type: CategoryType): CategoryNode[] {
     const categories =
-      profileId === this.profileService.current()?.id
-        ? this.categories()
-        : this.ofProfile(profileId)
+      bookId === this.bookService.current()?.id ? this.categories() : this.ofBook(bookId)
     return this.toTree(categories, type, false)
   }
 
@@ -169,10 +167,10 @@ export class CategoryService {
     type: CategoryType,
     parentId: string | null,
     exceptId: string | null,
-    profileId = this.currentProfileId()
+    bookId = this.currentBookId()
   ): boolean {
     const wanted = name.trim().toLowerCase()
-    return this.ofProfile(profileId).some(
+    return this.ofBook(bookId).some(
       (category) =>
         !category.isArchived &&
         category.id !== exceptId &&
@@ -194,17 +192,17 @@ export class CategoryService {
     }
     const row = op.row
     const text = (key: string) => (typeof row[key] === 'string' ? row[key] : '')
-    const profileId = text('profileId')
+    const bookId = text('bookId')
     const parentId = text('parentId')
-    // A refused category of a profile that is gone is saved into the current one, and a parent
+    // A refused category of a book that is gone is saved into the current one, and a parent
     // that is gone or archived here is dropped (rules 1, 3).
-    const live = this.profileService.byId(profileId)
+    const live = this.bookService.byId(bookId)
     const parent = parentId ? this.byId(parentId) : null
     this.open({
       mode: 'fix',
       opId,
       id: op.rowId,
-      profileId: live ? profileId : (this.profileService.current()?.id ?? profileId),
+      bookId: live ? bookId : (this.bookService.current()?.id ?? bookId),
       values: {
         name: text('name'),
         icon: text('icon'),
@@ -216,16 +214,16 @@ export class CategoryService {
   }
 
   /**
-   * Creates (`id` null) or updates a category in `profileId` (the current profile by default); a
+   * Creates (`id` null) or updates a category in `bookId` (the current book by default); a
    * fix also drops the rejected op. A category that changes siblings goes last among the new ones.
-   * `hiddenIn` (the form's "ใช้ในกระเป๋า", rule 13): the profile's open wallets that list this
+   * `hiddenIn` (the form's "ใช้ในกระเป๋า", rule 13): the book's open wallets that list this
    * category's own id; the ones that change are written in the same write. Null leaves them.
    */
   save(
     id: string | null,
     values: CategoryValues,
     fixOpId: string | null = null,
-    profileId = this.currentProfileId(),
+    bookId = this.currentBookId(),
     hiddenIn: readonly string[] | null = null
   ): string {
     const now = Date.now()
@@ -233,14 +231,14 @@ export class CategoryService {
     this.offlineService.write((db) => {
       const current = this.find(db, rowId)
       const live = current?.deletedAt === null ? current : null
-      const owner = live?.profileId ?? profileId
+      const owner = live?.bookId ?? bookId
       const sameSiblings =
         live !== null && live.type === values.type && live.parentId === values.parentId
       queueWrite(db, CATEGORY_TABLE, 'upsert', {
         ...current,
         id: rowId,
-        // Rule 1: a category never moves to another profile.
-        profileId: owner,
+        // Rule 1: a category never moves to another book.
+        bookId: owner,
         type: values.type,
         parentId: values.parentId,
         name: values.name.trim(),
@@ -268,11 +266,11 @@ export class CategoryService {
     return rowId
   }
 
-  /** The profile's open wallets that list the category's own id (rule 13). */
-  hiddenIn(categoryId: string, profileId: string): string[] {
+  /** The book's open wallets that list the category's own id (rule 13). */
+  hiddenIn(categoryId: string, bookId: string): string[] {
     return this.read(
       (db) =>
-        this.openWallets(db, profileId)
+        this.openWallets(db, bookId)
           .filter((wallet) => wallet.hiddenCategoryIds.includes(categoryId))
           .map((wallet) => wallet.id),
       []
@@ -281,12 +279,12 @@ export class CategoryService {
 
   private writeHiddenIn(
     db: LocalDatabase,
-    profileId: string,
+    bookId: string,
     categoryId: string,
     hiddenIn: readonly string[],
     now: number
   ): void {
-    for (const wallet of this.openWallets(db, profileId)) {
+    for (const wallet of this.openWallets(db, bookId)) {
       const listed = wallet.hiddenCategoryIds.includes(categoryId)
       const wanted = hiddenIn.includes(wallet.id)
       if (listed === wanted) {
@@ -303,12 +301,12 @@ export class CategoryService {
     }
   }
 
-  private openWallets(db: LocalDatabase, profileId: string) {
+  private openWallets(db: LocalDatabase, bookId: string) {
     return db
       .selectObjects(
         `SELECT * FROM ${WALLET_TABLE}
-         WHERE profile_id = ? AND deleted_at IS NULL AND is_archived = 0`,
-        [profileId]
+         WHERE book_id = ? AND deleted_at IS NULL AND is_archived = 0`,
+        [bookId]
       )
       .map((row) => toWallet(fromSql(WALLET_TABLE, row)))
   }
@@ -342,8 +340,8 @@ export class CategoryService {
         const back = !archived
         if (
           back &&
-          (open >= CATEGORY_LIMITS.PER_PROFILE ||
-            this.nameTaken(child.name, child.type, child.parentId, child.id, child.profileId))
+          (open >= CATEGORY_LIMITS.PER_BOOK ||
+            this.nameTaken(child.name, child.type, child.parentId, child.id, child.bookId))
         ) {
           continue
         }
@@ -428,7 +426,7 @@ export class CategoryService {
   }
 
   /**
-   * Rule 15: the categories `id` may merge into, as a tree: every open category of its profile
+   * Rule 15: the categories `id` may merge into, as a tree: every open category of its book
    * and type, except itself and its own children. A sub-category's own parent comes first.
    */
   mergeTargets(id: string): CategoryNode[] {
@@ -436,7 +434,7 @@ export class CategoryService {
     if (!source) {
       return []
     }
-    const nodes = this.toTree(this.ofProfile(source.profileId), source.type, false)
+    const nodes = this.toTree(this.ofBook(source.bookId), source.type, false)
       .filter((node) => node.category.id !== source.id)
       .map((node) => ({
         ...node,
@@ -491,12 +489,7 @@ export class CategoryService {
       if (!steps) {
         return
       }
-      let sortOrder = this.nextSortOrder(
-        db,
-        steps.source.profileId,
-        steps.source.type,
-        steps.parentId
-      )
+      let sortOrder = this.nextSortOrder(db, steps.source.bookId, steps.source.type, steps.parentId)
       for (const child of steps.moves) {
         queueWrite(db, CATEGORY_TABLE, 'upsert', {
           ...child,
@@ -507,7 +500,7 @@ export class CategoryService {
         moveOpLast(db, CATEGORY_TABLE, child.id)
       }
       const gone = [...steps.merges.map((merge) => merge.child.id), sourceId]
-      this.dropHidden(db, steps.source.profileId, gone, now)
+      this.dropHidden(db, steps.source.bookId, gone, now)
       for (const { child, into } of [...steps.merges, { child: steps.source, into: targetId }]) {
         moveTransactions(db, child.id, into, now)
         queueWrite(db, CATEGORY_TABLE, 'upsert', {
@@ -545,7 +538,7 @@ export class CategoryService {
       target.isArchived ||
       source.id === target.id ||
       target.parentId === source.id ||
-      source.profileId !== target.profileId ||
+      source.bookId !== target.bookId ||
       source.type !== target.type
     ) {
       return null
@@ -591,11 +584,11 @@ export class CategoryService {
       .map((row) => fromSql(CATEGORY_TABLE, row) as unknown as Category)
   }
 
-  /** Rule 15: merged ids leave every live wallet's `hiddenCategoryIds` of the profile. */
-  private dropHidden(db: LocalDatabase, profileId: string, ids: string[], now: number): void {
+  /** Rule 15: merged ids leave every live wallet's `hiddenCategoryIds` of the book. */
+  private dropHidden(db: LocalDatabase, bookId: string, ids: string[], now: number): void {
     const wallets = db
-      .selectObjects(`SELECT * FROM ${WALLET_TABLE} WHERE profile_id = ? AND deleted_at IS NULL`, [
-        profileId,
+      .selectObjects(`SELECT * FROM ${WALLET_TABLE} WHERE book_id = ? AND deleted_at IS NULL`, [
+        bookId,
       ])
       .map((row) => toWallet(fromSql(WALLET_TABLE, row)))
     for (const wallet of wallets) {
@@ -643,39 +636,33 @@ export class CategoryService {
       return 'parentArchived'
     }
     if (
-      this.nameTaken(
-        category.name,
-        category.type,
-        category.parentId,
-        category.id,
-        category.profileId
-      )
+      this.nameTaken(category.name, category.type, category.parentId, category.id, category.bookId)
     ) {
       return 'nameTaken'
     }
-    if (this.openCategories().length >= CATEGORY_LIMITS.PER_PROFILE) {
+    if (this.openCategories().length >= CATEGORY_LIMITS.PER_BOOK) {
       return 'limit'
     }
     return null
   }
 
-  private currentProfileId(): string {
-    const profileId = this.profileService.current()?.id
-    if (!profileId) {
-      // The shell shows the create step before any category screen (profile rule 5).
-      throw new Error('No current profile')
+  private currentBookId(): string {
+    const bookId = this.bookService.current()?.id
+    if (!bookId) {
+      // The shell shows the create step before any category screen (book rule 5).
+      throw new Error('No current book')
     }
-    return profileId
+    return bookId
   }
 
-  /** A profile's live categories in order. */
-  private ofProfile(profileId: string): Category[] {
+  /** A book's live categories in order. */
+  private ofBook(bookId: string): Category[] {
     return this.read(
       (db) =>
         db
           .selectObjects(
-            `SELECT * FROM ${CATEGORY_TABLE} WHERE profile_id = ? AND deleted_at IS NULL ${ORDER}`,
-            [profileId]
+            `SELECT * FROM ${CATEGORY_TABLE} WHERE book_id = ? AND deleted_at IS NULL ${ORDER}`,
+            [bookId]
           )
           .map((row) => fromSql(CATEGORY_TABLE, row) as unknown as Category),
       []
@@ -685,14 +672,14 @@ export class CategoryService {
   /** A new category goes last among its siblings (rule 10). */
   private nextSortOrder(
     db: LocalDatabase,
-    profileId: string,
+    bookId: string,
     type: CategoryType,
     parentId: string | null
   ): number {
     const max = db.selectValue(
       `SELECT max(sort_order) FROM ${CATEGORY_TABLE}
-       WHERE profile_id = ? AND type = ? AND parent_id IS ? AND deleted_at IS NULL`,
-      [profileId, type, parentId]
+       WHERE book_id = ? AND type = ? AND parent_id IS ? AND deleted_at IS NULL`,
+      [bookId, type, parentId]
     )
     return typeof max === 'number' ? max + 1 : 0
   }

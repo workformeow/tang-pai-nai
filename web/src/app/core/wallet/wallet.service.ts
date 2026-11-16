@@ -1,7 +1,7 @@
 import { computed, inject, Service, signal } from '@angular/core'
+import { BookService } from '@/core/book'
 import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } from '@/core/offline'
 import type { LocalDatabase, SqlValue } from '@/core/offline'
-import { ProfileService } from '@/core/profile'
 import { DEBT_ENTRY_SIGN_SQL, DEBT_ENTRY_TABLE, DEBT_TABLE } from './debt-tables'
 import { cleanHidden, findWallet, toWallet } from './hidden-categories'
 import {
@@ -24,27 +24,27 @@ import type {
 const ORDER = 'ORDER BY sort_order, created_at, id'
 
 /**
- * The current profile's wallets on this device (docs/features/wallet.md). Reads come from the
+ * The current book's wallets on this device (docs/features/wallet.md). Reads come from the
  * local database; every write goes through the outbox like any own data.
  */
 @Service()
 export class WalletService {
   private offlineService = inject(OfflineService)
   private syncService = inject(SyncService)
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
 
-  /** The current profile's live wallets in order (rule 10), archived ones included. */
+  /** The current book's live wallets in order (rule 10), archived ones included. */
   wallets = computed(() => {
-    const profileId = this.profileService.current()?.id
-    if (!profileId) {
+    const bookId = this.bookService.current()?.id
+    if (!bookId) {
       return []
     }
     return this.read(
       (db) =>
         db
           .selectObjects(
-            `SELECT * FROM ${WALLET_TABLE} WHERE profile_id = ? AND deleted_at IS NULL ${ORDER}`,
-            [profileId]
+            `SELECT * FROM ${WALLET_TABLE} WHERE book_id = ? AND deleted_at IS NULL ${ORDER}`,
+            [bookId]
           )
           .map((row) => toWallet(fromSql(WALLET_TABLE, row))),
       []
@@ -55,9 +55,9 @@ export class WalletService {
   archived = computed(() => this.wallets().filter((wallet) => wallet.isArchived))
   /** Rule 12: the first-wallet step shows while this is false. */
   hasWallet = computed(() => this.wallets().length > 0)
-  atLimit = computed(() => this.openWallets().length >= WALLET_LIMITS.PER_PROFILE)
-  canWrite = this.profileService.canWrite
-  serverDown = this.profileService.serverDown
+  atLimit = computed(() => this.openWallets().length >= WALLET_LIMITS.PER_BOOK)
+  canWrite = this.bookService.canWrite
+  serverDown = this.bookService.serverDown
 
   /** Wallets with an op still waiting to sync ("รอ sync"). */
   pendingIds = computed(
@@ -142,14 +142,14 @@ export class WalletService {
   sheet = signal<WalletSheetState | null>(null)
 
   /**
-   * Σ income − Σ expense of every live transaction per wallet of the current profile
+   * Σ income − Σ expense of every live transaction per wallet of the current book
    * (transaction rule 12), in one aggregate query, − transfers out + transfers in (transfer
    * rule 6), ± debt entries (debt rule 7). `excludeFromReport` rows count here.
    */
   private sums = computed(() => {
-    const profileId = this.profileService.current()?.id
+    const bookId = this.bookService.current()?.id
     const sums = new Map<string, number>()
-    if (!profileId) {
+    if (!bookId) {
       return sums
     }
     const rows = this.read(
@@ -159,20 +159,20 @@ export class WalletService {
            FROM (
              SELECT t.wallet_id, CASE WHEN c.type = 'income' THEN t.amount ELSE -t.amount END AS amount
              FROM ${TRANSACTION_TABLE} t JOIN categories c ON c.id = t.category_id
-             WHERE t.profile_id = ? AND t.deleted_at IS NULL
+             WHERE t.book_id = ? AND t.deleted_at IS NULL
              UNION ALL
              SELECT from_wallet_id, -amount FROM ${TRANSFER_TABLE}
-             WHERE profile_id = ? AND deleted_at IS NULL
+             WHERE book_id = ? AND deleted_at IS NULL
              UNION ALL
              SELECT to_wallet_id, amount FROM ${TRANSFER_TABLE}
-             WHERE profile_id = ? AND deleted_at IS NULL
+             WHERE book_id = ? AND deleted_at IS NULL
              UNION ALL
              SELECT e.wallet_id, ${DEBT_ENTRY_SIGN_SQL}
              FROM ${DEBT_ENTRY_TABLE} e JOIN ${DEBT_TABLE} d ON d.id = e.debt_id
-             WHERE e.profile_id = ? AND e.deleted_at IS NULL AND e.wallet_id IS NOT NULL
+             WHERE e.book_id = ? AND e.deleted_at IS NULL AND e.wallet_id IS NOT NULL
            ) t
            GROUP BY t.wallet_id`,
-          [profileId, profileId, profileId, profileId]
+          [bookId, bookId, bookId, bookId]
         ),
       []
     )
@@ -257,14 +257,14 @@ export class WalletService {
     const row = op.row
     const text = (key: string, fallback = '') =>
       typeof row[key] === 'string' ? row[key] : fallback
-    // A refused wallet of a profile that is gone (rule 2) is saved into the current one.
-    const profileId = text('profileId')
-    const live = this.profileService.byId(profileId)
+    // A refused wallet of a book that is gone (rule 2) is saved into the current one.
+    const bookId = text('bookId')
+    const live = this.bookService.byId(bookId)
     this.open({
       mode: 'fix',
       opId,
       id: op.rowId,
-      profileId: live ? profileId : (this.profileService.current()?.id ?? profileId),
+      bookId: live ? bookId : (this.bookService.current()?.id ?? bookId),
       values: {
         name: text('name'),
         icon: text('icon'),
@@ -280,7 +280,7 @@ export class WalletService {
     })
   }
 
-  /** A live wallet of any profile on this device. */
+  /** A live wallet of any book on this device. */
   byId(id: string): Wallet | null {
     this.offlineService.changes()
     if (!this.offlineService.isOpen()) {
@@ -290,23 +290,23 @@ export class WalletService {
     return wallet?.deletedAt === null ? wallet : null
   }
 
-  /** Rule 3 as far as this device knows: among the profile's open wallets. */
-  nameTaken(name: string, exceptId: string | null, profileId = this.currentProfileId()): boolean {
+  /** Rule 3 as far as this device knows: among the book's open wallets. */
+  nameTaken(name: string, exceptId: string | null, bookId = this.currentBookId()): boolean {
     const wanted = name.trim().toLowerCase()
-    return this.openOf(profileId).some(
+    return this.openOf(bookId).some(
       (wallet) => wallet.id !== exceptId && wallet.name.toLowerCase() === wanted
     )
   }
 
   /**
-   * Creates (`id` null) or updates a wallet in `profileId` (the current profile by default); a
+   * Creates (`id` null) or updates a wallet in `bookId` (the current book by default); a
    * fix also drops the rejected op.
    */
   save(
     id: string | null,
     values: WalletValues,
     fixOpId: string | null = null,
-    profileId = this.currentProfileId()
+    bookId = this.currentBookId()
   ): string {
     const now = Date.now()
     const rowId = id ?? uuidv7(now)
@@ -316,8 +316,8 @@ export class WalletService {
       queueWrite(db, WALLET_TABLE, 'upsert', {
         ...current,
         id: rowId,
-        // Rule 2: a wallet never moves to another profile.
-        profileId: live?.profileId ?? profileId,
+        // Rule 2: a wallet never moves to another book.
+        bookId: live?.bookId ?? bookId,
         name: values.name.trim(),
         icon: values.icon,
         color: values.color,
@@ -328,7 +328,7 @@ export class WalletService {
         isCreditCard: values.isCreditCard,
         hiddenCategoryIds: cleanHidden(db, values.hiddenCategoryIds),
         isArchived: live?.isArchived ?? false,
-        sortOrder: live?.sortOrder ?? this.nextSortOrder(db, profileId),
+        sortOrder: live?.sortOrder ?? this.nextSortOrder(db, bookId),
         createdAt: current?.createdAt ?? now,
         updatedAt: now,
         deletedAt: null,
@@ -350,10 +350,10 @@ export class WalletService {
       return null
     }
     if (!archived) {
-      if (this.nameTaken(wallet.name, id, wallet.profileId)) {
+      if (this.nameTaken(wallet.name, id, wallet.bookId)) {
         return 'nameTaken'
       }
-      if (this.openOf(wallet.profileId).length >= WALLET_LIMITS.PER_PROFILE) {
+      if (this.openOf(wallet.bookId).length >= WALLET_LIMITS.PER_BOOK) {
         return 'limit'
       }
     }
@@ -401,18 +401,18 @@ export class WalletService {
     })
   }
 
-  private currentProfileId(): string {
-    const profileId = this.profileService.current()?.id
-    if (!profileId) {
-      // The shell shows the create step instead of any wallet screen (profile rule 5).
-      throw new Error('No current profile')
+  private currentBookId(): string {
+    const bookId = this.bookService.current()?.id
+    if (!bookId) {
+      // The shell shows the create step instead of any wallet screen (book rule 5).
+      throw new Error('No current book')
     }
-    return profileId
+    return bookId
   }
 
-  /** A profile's open wallets (the current one's from the signal, others from the database). */
-  openOf(profileId: string): Wallet[] {
-    if (profileId === this.profileService.current()?.id) {
+  /** A book's open wallets (the current one's from the signal, others from the database). */
+  openOf(bookId: string): Wallet[] {
+    if (bookId === this.bookService.current()?.id) {
       return this.openWallets()
     }
     return this.read(
@@ -420,19 +420,19 @@ export class WalletService {
         db
           .selectObjects(
             `SELECT * FROM ${WALLET_TABLE}
-             WHERE profile_id = ? AND deleted_at IS NULL AND is_archived = 0`,
-            [profileId]
+             WHERE book_id = ? AND deleted_at IS NULL AND is_archived = 0`,
+            [bookId]
           )
           .map((row) => toWallet(fromSql(WALLET_TABLE, row))),
       []
     )
   }
 
-  /** A new wallet goes last in its profile (rule 10). */
-  private nextSortOrder(db: LocalDatabase, profileId: string): number {
+  /** A new wallet goes last in its book (rule 10). */
+  private nextSortOrder(db: LocalDatabase, bookId: string): number {
     const max = db.selectValue(
-      `SELECT max(sort_order) FROM ${WALLET_TABLE} WHERE profile_id = ? AND deleted_at IS NULL`,
-      [profileId]
+      `SELECT max(sort_order) FROM ${WALLET_TABLE} WHERE book_id = ? AND deleted_at IS NULL`,
+      [bookId]
     )
     return typeof max === 'number' ? max + 1 : 0
   }

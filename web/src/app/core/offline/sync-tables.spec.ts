@@ -33,7 +33,7 @@ describe('sync tables', () => {
   it('stores a JSON column as text and parses it back, [] when the row has none', () => {
     const wallet = {
       id: 'w1',
-      profileId: 'p1',
+      bookId: 'p1',
       name: 'Cash',
       currencyCode: 'THB',
       initialBalance: 0,
@@ -67,7 +67,7 @@ describe('sync tables', () => {
 
   it('clears the synced tables for a full resync, but keeps the outbox', () => {
     putRow(db, 'currencies', THB)
-    queueWrite(db, 'profiles', 'upsert', {
+    queueWrite(db, 'books', 'upsert', {
       id: 'p1',
       name: 'A',
       icon: 'lucideHouse',
@@ -79,7 +79,7 @@ describe('sync tables', () => {
     })
     clearSyncTables(db)
     expect(getRow(db, 'currencies', 'THB')).toBeNull()
-    expect(getRow(db, 'profiles', 'p1')).toBeNull()
+    expect(getRow(db, 'books', 'p1')).toBeNull()
     expect(db.selectValue('SELECT count(*) FROM outbox')).toBe(1)
   })
 })

@@ -6,11 +6,11 @@ import { provideRouter, Router, TitleStrategy } from '@angular/router'
 import { provideServiceWorker } from '@angular/service-worker'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthStore } from '@/core/auth'
+import { BookService } from '@/core/book'
 import th from '@/core/i18n/th.json'
 import { NetworkStatusService } from '@/core/network'
 import { OfflineService, OPEN_LOCAL_DATABASE } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
-import { ProfileService } from '@/core/profile'
 import { DeviceStorageService } from '@/core/pwa'
 import { PageTitleStrategy } from '@/core/routing'
 import { App } from './app'
@@ -123,15 +123,15 @@ describe('App', () => {
     toaster?.remove()
   })
 
-  it('shows a note instead of what a shared profile lacks, and blocks it offline (sharing rule 10)', async () => {
+  it('shows a note instead of what a shared book lacks, and blocks it offline (sharing rule 10)', async () => {
     signIn()
     const fixture = TestBed.createComponent(App)
     const router = TestBed.inject(Router)
     await router.navigateByUrl('/transactions')
     await fixture.whenStable()
     TestBed.inject(OfflineService).enterShared()
-    TestBed.inject(ProfileService).shared.set({
-      profile: {
+    TestBed.inject(BookService).shared.set({
+      book: {
         id: 'pz',
         name: 'Family',
         icon: 'lucideHouse',

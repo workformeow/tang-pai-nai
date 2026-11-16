@@ -3,12 +3,12 @@ import { TestBed } from '@angular/core/testing'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
+import { BookService } from '@/core/book'
 import th from '@/core/i18n/th.json'
 import { NetworkStatusService } from '@/core/network'
 import { findOp, getRow, listOps, OfflineService, putRow, SyncService } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
-import { ProfileService } from '@/core/profile'
 import { WalletService } from '@/core/wallet'
 import { TransactionService } from './transaction.service'
 import { TransferService } from './transfer.service'
@@ -49,7 +49,7 @@ describe('TransferService', () => {
   const wallet = (id: string, extra: object = {}) =>
     pulled('wallets', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       name: id,
       currencyCode: 'THB',
       initialBalance: 0,
@@ -63,7 +63,7 @@ describe('TransferService', () => {
   const category = (id: string, type: string, extra: object = {}) =>
     pulled('categories', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       type,
       parentId: null,
       name: id,
@@ -76,7 +76,7 @@ describe('TransferService', () => {
   const transaction = (id: string, extra: object = {}) =>
     pulled('transactions', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       walletId: 'cash',
       categoryId: 'food',
       amount: 1000,
@@ -88,7 +88,7 @@ describe('TransferService', () => {
   const transfer = (id: string, extra: object = {}) =>
     pulled('transfers', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       fromWalletId: 'bank',
       toWalletId: 'cash',
       amount: 100000,
@@ -109,7 +109,7 @@ describe('TransferService', () => {
     db = await openTestDatabase()
     localStorage.clear()
     for (const id of ['p1', 'p2']) {
-      putRow(db, 'profiles', {
+      putRow(db, 'books', {
         ...base,
         id,
         name: id,
@@ -164,7 +164,7 @@ describe('TransferService', () => {
   it('saves one row for both sides, trims the note, and remembers the wallets (Q7)', () => {
     const id = transfers.save(null, values)
     expect(transfers.byId(id)).toMatchObject({
-      profileId: 'p1',
+      bookId: 'p1',
       fromWalletId: 'bank',
       toWalletId: 'cash',
       amount: 100000,
@@ -208,7 +208,7 @@ describe('TransferService', () => {
     transfer('r1', { occurredOn: '2026-11-02', createdAt: 9, note: 'ATM' })
     transfer('r0', { occurredOn: '2026-11-01', toWalletId: 'save' })
     transfer('gone', { deletedAt: 5 })
-    transfer('other', { profileId: 'p2' })
+    transfer('other', { bookId: 'p2' })
     const rows = service.entries(november, ['cash', 'bank'])
     expect(rows.map((row) => (row.kind === 'transfer' ? `${row.id}:${row.side}` : row.id))).toEqual(
       ['r1:out', 'r1:in', 't1', 'r0:out']
@@ -272,11 +272,11 @@ describe('TransferService', () => {
     expect(getRow(db, 'transfers', 'r3')?.['deletedAt']).toBeNull()
   })
 
-  it('counts transfers with the profile’s transactions and starts the tabs at the oldest one', () => {
+  it('counts transfers with the book’s transactions and starts the tabs at the oldest one', () => {
     service.today.set('2026-11-02')
     transaction('t1')
     transfer('r1', { occurredOn: '2026-09-15' })
-    expect(TestBed.inject(ProfileService).transactionCount('p1')).toBe(2)
+    expect(TestBed.inject(BookService).transactionCount('p1')).toBe(2)
     expect(service.tabs()).toEqual([-2, -1, 0, 'future'])
   })
 
@@ -288,7 +288,7 @@ describe('TransferService', () => {
     expect(transfers.sheet()).toMatchObject({
       mode: 'fix',
       opId: op.opId,
-      profileId: 'p1',
+      bookId: 'p1',
       values: { fromWalletId: 'bank', toWalletId: 'cash', amount: 100000 },
     })
   })

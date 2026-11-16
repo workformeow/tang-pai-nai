@@ -6,10 +6,10 @@ import { lucideArrowLeftRight, lucideCalendar, lucideDownload } from '@ng-icons/
 import { toast } from '@spartan-ng/brain/sonner'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSwitch } from '@spartan-ng/helm/switch'
+import { BookService } from '@/core/book'
 import { CATEGORY_DEFAULT_ICON } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
 import { OfflineService } from '@/core/offline'
-import { ProfileService } from '@/core/profile'
 import { WalletService } from '@/core/wallet'
 import { WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import { CustomRangeSheet } from '@/shared/components/period'
@@ -32,7 +32,7 @@ type Mode = 'all' | 'some'
 
 /**
  * Account › ส่งออก CSV (docs/features/export.md rules 1–6, mock-up frames 2–3 and 8): the current
- * profile's rows as one CSV file, built on the device, so it works offline.
+ * book's rows as one CSV file, built on the device, so it works offline.
  */
 @Component({
   selector: 'app-export-page',
@@ -41,7 +41,7 @@ type Mode = 'all' | 'some'
   template: `
     <div class="flex min-h-full flex-col gap-4 p-4">
       <p class="text-sm text-muted-foreground">
-        {{ 'export.intro' | transloco: { name: profileName() } }}
+        {{ 'export.intro' | transloco: { name: bookName() } }}
       </p>
 
       <section class="flex flex-col gap-2" aria-labelledby="export-dates">
@@ -220,7 +220,7 @@ export class ExportPage {
   private transloco = inject(TranslocoService)
   private languageService = inject(LanguageService)
   private offlineService = inject(OfflineService)
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
   private walletService = inject(WalletService)
 
   protected readonly walletIcon = WALLET_DEFAULT_ICON
@@ -237,7 +237,7 @@ export class ExportPage {
   protected pickerKey = signal<'wallets' | 'categories' | null>(null)
   protected isProcessing = signal(false)
 
-  protected profileName = computed(() => this.profileService.current()?.name ?? '')
+  protected bookName = computed(() => this.bookService.current()?.name ?? '')
 
   /** Reads re-run on every local write or pull (`changes()`), as other screens do. */
   private read<T>(work: (db: ReturnType<OfflineService['db']>) => T, fallback: T): T {
@@ -245,23 +245,23 @@ export class ExportPage {
     return this.offlineService.isOpen() ? work(this.offlineService.db()) : fallback
   }
 
-  private profileId = computed(() => this.profileService.current()?.id ?? '')
-  private wallets = computed(() => this.read((db) => walletChoices(db, this.profileId()), []))
+  private bookId = computed(() => this.bookService.current()?.id ?? '')
+  private wallets = computed(() => this.read((db) => walletChoices(db, this.bookId()), []))
   private categories = computed(() =>
     this.read(
       (db) => ({
-        expense: categoryChoices(db, this.profileId(), 'expense'),
-        income: categoryChoices(db, this.profileId(), 'income'),
+        expense: categoryChoices(db, this.bookId(), 'expense'),
+        income: categoryChoices(db, this.bookId(), 'income'),
       }),
       { expense: [] as PickRow[], income: [] as PickRow[] }
     )
   )
-  private span = computed(() => this.read((db) => dataSpan(db, this.profileId()), null))
+  private span = computed(() => this.read((db) => dataSpan(db, this.bookId()), null))
 
   private query = computed<ExportQuery>(() => {
     const custom = this.dateMode() === 'some' ? this.custom() : null
     return {
-      profileId: this.profileId(),
+      bookId: this.bookId(),
       from: custom?.from ?? null,
       to: custom?.to ?? null,
       walletIds: this.walletMode() === 'some' ? this.walletIds() : null,
@@ -432,7 +432,7 @@ export class ExportPage {
         (key) => this.transloco.translate(key),
         (code) => this.walletService.minorUnit(code)
       )
-      const name = exportFileName(this.profileName(), toDay())
+      const name = exportFileName(this.bookName(), toDay())
       const shared = await this.deliver(csv, name)
       if (shared) {
         toast.success(

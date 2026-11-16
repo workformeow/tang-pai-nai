@@ -5,12 +5,12 @@ import { TranslocoTestingModule } from '@jsverse/transloco'
 import { toastState } from '@spartan-ng/brain/sonner'
 import { AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
+import { BookService } from '@/core/book'
 import th from '@/core/i18n/th.json'
 import { NetworkStatusService } from '@/core/network'
 import { findOp, getRow, listOps, OfflineService, putRow, SyncService } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
-import { ProfileService } from '@/core/profile'
 import { occurrenceId, RecurringService } from '@/core/recurring'
 import { QuickAmountsService, TransactionService } from '@/core/transaction'
 import { TransactionSheet } from './transaction-sheet'
@@ -80,7 +80,7 @@ describe('TransactionSheet', () => {
     putRow(db, 'wallets', {
       ...base,
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       name: id,
       currencyCode: 'THB',
       initialBalance: 0,
@@ -97,7 +97,7 @@ describe('TransactionSheet', () => {
     putRow(db, 'categories', {
       ...base,
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       type: 'expense',
       parentId: null,
       name: id,
@@ -116,7 +116,7 @@ describe('TransactionSheet', () => {
     trusted.set(true)
     online.set(true)
     toastState.dismiss()
-    putRow(db, 'profiles', {
+    putRow(db, 'books', {
       ...base,
       id: 'p1',
       name: 'Home',
@@ -179,7 +179,7 @@ describe('TransactionSheet', () => {
     await submit()
     const [op] = listOps(db, 'pending')
     expect(getRow(db, 'transactions', op.rowId)).toMatchObject({
-      profileId: 'p1',
+      bookId: 'p1',
       walletId: 'Cash',
       categoryId: 'Coffee',
       amount: 18500,
@@ -243,7 +243,7 @@ describe('TransactionSheet', () => {
     putRow(db, 'transactions', {
       ...base,
       id: 't1',
-      profileId: 'p1',
+      bookId: 'p1',
       walletId: 'Cash',
       categoryId: 'Coffee',
       amount: 6500,
@@ -265,7 +265,7 @@ describe('TransactionSheet', () => {
     putRow(db, 'transactions', {
       ...base,
       id: 't1',
-      profileId: 'p1',
+      bookId: 'p1',
       walletId: 'Cash',
       categoryId: 'Coffee',
       amount: 6500,
@@ -285,7 +285,7 @@ describe('TransactionSheet', () => {
     putRow(db, 'transactions', {
       ...base,
       id: 't1',
-      profileId: 'p1',
+      bookId: 'p1',
       walletId: 'Cash',
       categoryId: 'Food',
       amount: 100,
@@ -308,7 +308,7 @@ describe('TransactionSheet', () => {
     putRow(db, 'transactions', {
       ...base,
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       walletId: 'Card',
       categoryId: 'Coffee',
       amount: 6500,
@@ -478,11 +478,11 @@ describe('TransactionSheet', () => {
     expect(button(th.transactions.save)?.disabled).toBe(true)
   })
 
-  describe('a shared profile (sharing rules 10, 11)', () => {
+  describe('a shared book (sharing rules 10, 11)', () => {
     const useShared = (role: 'editor' | 'viewer') => {
       offline.sharedActive.set(true)
-      TestBed.inject(ProfileService).shared.set({
-        profile: {
+      TestBed.inject(BookService).shared.set({
+        book: {
           id: 'p1',
           name: 'Family',
           icon: 'lucideHouse',
@@ -500,7 +500,7 @@ describe('TransactionSheet', () => {
     }
 
     afterEach(() => {
-      TestBed.inject(ProfileService).shared.set(null)
+      TestBed.inject(BookService).shared.set(null)
       offline.sharedActive.set(false)
     })
 
@@ -525,7 +525,7 @@ describe('TransactionSheet', () => {
       putRow(db, 'recurring_rules', {
         ...base,
         id,
-        profileId: 'p1',
+        bookId: 'p1',
         kind: 'transaction',
         walletId: 'Cash',
         categoryId: 'Food',
@@ -642,7 +642,7 @@ describe('TransactionSheet', () => {
       putRow(db, 'transactions', {
         ...base,
         id: 't1',
-        profileId: 'p1',
+        bookId: 'p1',
         walletId: 'Cash',
         categoryId: 'Food',
         amount: 85000,
@@ -664,7 +664,7 @@ describe('TransactionSheet', () => {
       putRow(db, 'events', {
         ...base,
         id,
-        profileId: 'p1',
+        bookId: 'p1',
         name: id,
         icon: 'lucidePlane',
         color: '#0e7490',
@@ -724,7 +724,7 @@ describe('TransactionSheet', () => {
       putRow(db, 'transactions', {
         ...base,
         id: 't1',
-        profileId: 'p1',
+        bookId: 'p1',
         walletId: 'Cash',
         categoryId: 'Food',
         amount: 100,

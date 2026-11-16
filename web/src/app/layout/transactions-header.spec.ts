@@ -3,10 +3,10 @@ import { TestBed } from '@angular/core/testing'
 import type { ComponentFixture } from '@angular/core/testing'
 import { Router } from '@angular/router'
 import { TranslocoTestingModule } from '@jsverse/transloco'
+import { BookService } from '@/core/book'
 import th from '@/core/i18n/th.json'
 import { SyncService } from '@/core/offline'
 import type { SyncStatus } from '@/core/offline'
-import { ProfileService } from '@/core/profile'
 import { ReportService } from '@/core/report'
 import type { ReportUnit } from '@/core/report'
 import { TransactionService, TransferService } from '@/core/transaction'
@@ -71,7 +71,7 @@ describe('TransactionsHeader', () => {
           useValue: { open: (state: TransferSheetState) => transferSheet.set(state) },
         },
         {
-          provide: ProfileService,
+          provide: BookService,
           useValue: {
             current: signal(null),
             isShared: signal(false),

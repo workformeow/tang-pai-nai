@@ -7,17 +7,17 @@ import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import { lucideChevronRight, lucideGripVertical, lucidePlus, lucideUsers } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
-import { ProfileService } from '@/core/profile'
-import type { Profile } from '@/core/profile'
+import { BookService } from '@/core/book'
+import type { Book } from '@/core/book'
 import { EmptyState } from '@/shared/components/empty-state'
 import { IconBadge } from '@/shared/components/icon-badge'
 
 /**
- * Account › สมุด (docs/features/profile.md → Web screens): the list in order, edit (in the
- * profile sheet, which also deletes), and an order mode with up / down buttons.
+ * Account › สมุด (docs/features/book.md → Web screens): the list in order, edit (in the
+ * book sheet, which also deletes), and an order mode with up / down buttons.
  */
 @Component({
-  selector: 'app-profiles-page',
+  selector: 'app-books-page',
   imports: [
     TranslocoPipe,
     NgIcon,
@@ -31,40 +31,39 @@ import { IconBadge } from '@/shared/components/icon-badge'
   ],
   providers: [provideIcons({ lucideChevronRight, lucideGripVertical, lucidePlus, lucideUsers })],
   template: `
-    @let profiles = profileService.profiles();
+    @let books = bookService.books();
     <div class="flex flex-col gap-6 p-4">
-      @if (!profileService.canWrite()) {
+      @if (!bookService.canWrite()) {
         <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {{
-            (profileService.serverDown() ? 'sync.serverDownWrite' : 'profiles.needsOnline')
-              | transloco
+            (bookService.serverDown() ? 'sync.serverDownWrite' : 'books.needsOnline') | transloco
           }}
         </p>
       }
-      @if (profiles.length === 0) {
+      @if (books.length === 0) {
         <app-empty-state
-          [heading]="'profiles.firstHeading' | transloco"
-          [description]="'profiles.firstText' | transloco"
+          [heading]="'books.firstHeading' | transloco"
+          [description]="'books.firstText' | transloco"
         >
           <ng-icon name="lucideUsers" />
         </app-empty-state>
       } @else {
-        <section class="flex flex-col gap-3" aria-labelledby="profiles-heading">
+        <section class="flex flex-col gap-3" aria-labelledby="books-heading">
           <div class="flex items-center justify-between gap-3">
-            <h2 id="profiles-heading" class="text-sm font-medium text-muted-foreground">
-              {{ 'profiles.listHeading' | transloco: { count: profiles.length } }}
+            <h2 id="books-heading" class="text-sm font-medium text-muted-foreground">
+              {{ 'books.listHeading' | transloco: { count: books.length } }}
             </h2>
-            @if (profiles.length > 1) {
+            @if (books.length > 1) {
               <button
                 hlmBtn
                 variant="ghost"
                 type="button"
                 class="-mr-2 h-11"
                 [attr.aria-pressed]="ordering()"
-                [disabled]="!profileService.canWrite()"
+                [disabled]="!bookService.canWrite()"
                 (click)="ordering.set(!ordering())"
               >
-                {{ (ordering() ? 'profiles.orderDone' : 'profiles.order') | transloco }}
+                {{ (ordering() ? 'books.orderDone' : 'books.order') | transloco }}
               </button>
             }
           </div>
@@ -75,7 +74,7 @@ import { IconBadge } from '@/shared/components/icon-badge'
             [cdkDropListDisabled]="!ordering()"
             (cdkDropListDropped)="drop($event)"
           >
-            @for (profile of profiles; track profile.id) {
+            @for (book of books; track book.id) {
               <li
                 class="flex min-h-14 items-center gap-3 bg-card py-2 pr-2 pl-4 first:rounded-t-xl last:rounded-b-xl"
                 cdkDrag
@@ -87,8 +86,8 @@ import { IconBadge } from '@/shared/components/icon-badge'
                   class="min-h-14 border-2 border-dashed border-border bg-muted"
                 ></div>
                 @if (ordering()) {
-                  <app-icon-badge [icon]="profile.icon" [color]="profile.color" />
-                  <span class="min-w-0 flex-1 truncate text-base">{{ profile.name }}</span>
+                  <app-icon-badge [icon]="book.icon" [color]="book.color" />
+                  <span class="min-w-0 flex-1 truncate text-base">{{ book.name }}</span>
                   <button
                     hlmBtn
                     variant="ghost"
@@ -96,9 +95,9 @@ import { IconBadge } from '@/shared/components/icon-badge'
                     type="button"
                     class="size-11 touch-none"
                     cdkDragHandle
-                    [attr.aria-label]="'profiles.dragItem' | transloco: { name: profile.name }"
-                    (keydown.arrowup)="moveBy($event, profile.id, -1)"
-                    (keydown.arrowdown)="moveBy($event, profile.id, 1)"
+                    [attr.aria-label]="'books.dragItem' | transloco: { name: book.name }"
+                    (keydown.arrowup)="moveBy($event, book.id, -1)"
+                    (keydown.arrowdown)="moveBy($event, book.id, 1)"
                   >
                     <ng-icon name="lucideGripVertical" size="20" aria-hidden="true" />
                   </button>
@@ -106,20 +105,20 @@ import { IconBadge } from '@/shared/components/icon-badge'
                   <button
                     type="button"
                     class="-my-2 -mr-2 -ml-4 flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2 pr-2 pl-4 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                    [attr.aria-label]="'profiles.editItem' | transloco: { name: profile.name }"
-                    (click)="edit(profile)"
+                    [attr.aria-label]="'books.editItem' | transloco: { name: book.name }"
+                    (click)="edit(book)"
                   >
-                    <app-icon-badge [icon]="profile.icon" [color]="profile.color" />
+                    <app-icon-badge [icon]="book.icon" [color]="book.color" />
                     <span class="flex min-w-0 flex-1 flex-col">
-                      <span class="truncate text-base">{{ profile.name }}</span>
-                      @if (profile.id === profileService.current()?.id) {
+                      <span class="truncate text-base">{{ book.name }}</span>
+                      @if (book.id === bookService.current()?.id) {
                         <span class="text-sm text-muted-foreground">
-                          {{ 'profiles.currentHere' | transloco }}
+                          {{ 'books.currentHere' | transloco }}
                         </span>
                       }
-                      @if (profileService.pendingIds().has(profile.id)) {
+                      @if (bookService.pendingIds().has(book.id)) {
                         <span class="text-sm text-muted-foreground">
-                          {{ 'profiles.pending' | transloco }}
+                          {{ 'books.pending' | transloco }}
                         </span>
                       }
                     </span>
@@ -135,32 +134,32 @@ import { IconBadge } from '@/shared/components/icon-badge'
             }
           </ul>
           @if (ordering()) {
-            <p class="text-sm text-muted-foreground">{{ 'profiles.orderHint' | transloco }}</p>
+            <p class="text-sm text-muted-foreground">{{ 'books.orderHint' | transloco }}</p>
           }
         </section>
       }
-      @if (!profileService.atLimit()) {
+      @if (!bookService.atLimit()) {
         <button
           hlmBtn
-          [variant]="profiles.length === 0 ? 'default' : 'outline'"
+          [variant]="books.length === 0 ? 'default' : 'outline'"
           type="button"
           class="h-11 w-full"
-          [disabled]="!profileService.canWrite()"
-          (click)="profileService.open({ mode: 'create' })"
+          [disabled]="!bookService.canWrite()"
+          (click)="bookService.open({ mode: 'create' })"
         >
           <ng-icon name="lucidePlus" size="20" aria-hidden="true" />
-          {{ 'profiles.add' | transloco }}
+          {{ 'books.add' | transloco }}
         </button>
       } @else {
-        <p class="text-sm text-muted-foreground">{{ 'profiles.limit' | transloco }}</p>
+        <p class="text-sm text-muted-foreground">{{ 'books.limit' | transloco }}</p>
       }
     </div>
   `,
 })
-export class ProfilesPage {
+export class BooksPage {
   private route = inject(ActivatedRoute)
   private router = inject(Router)
-  protected profileService = inject(ProfileService)
+  protected bookService = inject(BookService)
 
   protected ordering = signal(false)
 
@@ -169,7 +168,7 @@ export class ProfilesPage {
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
       const fix = params.get('fix')
       if (fix) {
-        this.profileService.openFix(fix)
+        this.bookService.openFix(fix)
         void this.router.navigate([], { queryParams: {}, replaceUrl: true })
       }
     })
@@ -179,9 +178,9 @@ export class ProfilesPage {
   protected dragDelay = { touch: 300, mouse: 0 }
 
   protected drop(event: CdkDragDrop<unknown>): void {
-    const profile = this.profileService.profiles().at(event.previousIndex)
-    if (profile) {
-      this.profileService.moveTo(profile.id, event.currentIndex)
+    const book = this.bookService.books().at(event.previousIndex)
+    if (book) {
+      this.bookService.moveTo(book.id, event.currentIndex)
     }
   }
 
@@ -189,14 +188,14 @@ export class ProfilesPage {
   protected moveBy(event: Event, id: string, step: -1 | 1): void {
     event.preventDefault()
     // The row's place now, not the rendered one: a second press may come before the re-render.
-    const index = this.profileService.profiles().findIndex((item) => item.id === id)
-    this.profileService.moveTo(id, index + step)
+    const index = this.bookService.books().findIndex((item) => item.id === id)
+    this.bookService.moveTo(id, index + step)
     const target = event.target
     // The row re-renders in its new place; keep the focus on its handle.
     queueMicrotask(() => target instanceof HTMLElement && target.focus())
   }
 
-  protected edit(profile: Profile): void {
-    this.profileService.open({ mode: 'edit', id: profile.id })
+  protected edit(book: Book): void {
+    this.bookService.open({ mode: 'edit', id: book.id })
   }
 }

@@ -16,9 +16,8 @@ export const fakeLive = () => {
     provider: signal(null),
     connected: signal(false),
     listenUser: (listener: LiveListener) => listen('user', listener),
-    listenProfile: (profileId: string, listener: LiveListener) =>
-      listen(`profile:${profileId}`, listener),
-  } satisfies Pick<LiveService, 'provider' | 'connected' | 'listenUser' | 'listenProfile'>
+    listenBook: (bookId: string, listener: LiveListener) => listen(`book:${bookId}`, listener),
+  } satisfies Pick<LiveService, 'provider' | 'connected' | 'listenUser' | 'listenBook'>
   return { listeners, provider: { provide: LiveService, useValue: value } satisfies Provider }
 }
 

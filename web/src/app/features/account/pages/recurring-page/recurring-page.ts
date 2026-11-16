@@ -35,7 +35,7 @@ interface RuleRow {
 
 /**
  * Account › รายการซ้ำ (docs/features/recurring.md → Web screens, mock-up frames 5 and 7): the
- * current profile's rules, "ใช้อยู่" by next date, "หยุดไว้" (paused, or stopped by an archived
+ * current book's rules, "ใช้อยู่" by next date, "หยุดไว้" (paused, or stopped by an archived
  * wallet or category), then "สิ้นสุดแล้ว" folded. A row opens the rule in its sheet.
  */
 @Component({

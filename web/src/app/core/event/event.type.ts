@@ -3,7 +3,7 @@ import type { UserIcon } from '@/shared/components/icon-badge'
 /** An event / trip as the device stores it (docs/features/event.md → Data model). */
 export interface TripEvent {
   id: string
-  profileId: string
+  bookId: string
   name: string
   icon: string
   color: string
@@ -70,8 +70,8 @@ export const EVENTS_ROUTE = '/transactions/events'
 
 export const EVENT_LIMITS = {
   NAME_MAX: 50,
-  /** Open events per profile (event rule 1). */
-  OPEN_PER_PROFILE: 50,
+  /** Open events per book (event rule 1). */
+  OPEN_PER_BOOK: 50,
   FIRST_DAY: '2000-01-01',
 } as const
 

@@ -10,9 +10,9 @@ interface DefaultCategory {
 const OTHER: DefaultCategory = { th: 'อื่น ๆ', en: 'Other', icon: 'lucideShapes', color: '#475569' }
 
 /**
- * The categories a new profile starts with (docs/features/category.md rule 8), written by the
- * device that creates the profile in the same local write, in the app's language at that moment.
- * `api/scripts/seed-default-categories.ts` holds the Thai copy for profiles made before #7.
+ * The categories a new book starts with (docs/features/category.md rule 8), written by the
+ * device that creates the book in the same local write, in the app's language at that moment.
+ * `api/scripts/seed-default-categories.ts` holds the Thai copy for books made before #7.
  */
 export const DEFAULT_CATEGORIES: Readonly<
   Record<'expense' | 'income', readonly DefaultCategory[]>
@@ -77,11 +77,11 @@ export const DEFAULT_CATEGORIES: Readonly<
 }
 
 /**
- * The default set as rows of `categories` for a new profile, parents before their children (so
+ * The default set as rows of `categories` for a new book, parents before their children (so
  * they are pushed in that order). `newId` makes the ids (UUIDv7).
  */
 export const defaultCategoryRows = (
-  profileId: string,
+  bookId: string,
   language: 'th' | 'en',
   now: number,
   newId: () => string
@@ -92,7 +92,7 @@ export const defaultCategoryRows = (
       const parentId = newId()
       const row = (item: DefaultCategory, id: string, parent: string | null, order: number) => ({
         id,
-        profileId,
+        bookId,
         type,
         parentId: parent,
         name: item[language],

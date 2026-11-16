@@ -225,7 +225,7 @@ type View = 'form' | 'wallet' | 'category'
                 (leading)="view.set('form')"
               >
                 <app-debt-category-pick
-                  [profileId]="item()?.debt?.profileId ?? ''"
+                  [bookId]="item()?.debt?.bookId ?? ''"
                   [type]="item()?.debt?.direction === 'lent' ? 'expense' : 'income'"
                   [chosen]="categoryId()"
                   (picked)="categoryId.set($event); view.set('form')"
@@ -281,7 +281,7 @@ export class DebtCloseSheet {
     const debt = this.item()?.debt
     return debt
       ? this.walletService
-          .openOf(debt.profileId)
+          .openOf(debt.bookId)
           .filter((wallet) => wallet.currencyCode === debt.currencyCode)
       : []
   })

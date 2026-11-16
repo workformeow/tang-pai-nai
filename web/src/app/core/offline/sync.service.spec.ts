@@ -28,8 +28,8 @@ const user: AuthUser = {
   identities: [],
 }
 
-/** A profile row: any pushable table behaves the same in the outbox and sync. */
-const profile = (id: string, name: string, extra: Record<string, unknown> = {}) => ({
+/** A book row: any pushable table behaves the same in the outbox and sync. */
+const book = (id: string, name: string, extra: Record<string, unknown> = {}) => ({
   id,
   name,
   icon: 'lucideHouse',
@@ -119,7 +119,7 @@ describe('SyncService', () => {
     notices: [],
     cursor: since,
     hasMore: false,
-    tables: ['currencies', 'profiles'],
+    tables: ['currencies', 'books'],
   })
 
   beforeEach(async () => {
@@ -153,7 +153,7 @@ describe('SyncService', () => {
   afterEach(() => db.close())
 
   it('pushes queued ops, keeps the server rows, then pulls and stores the cursor', async () => {
-    offline.write((tx) => queueWrite(tx, 'profiles', 'upsert', profile('p1', 'Coffee')))
+    offline.write((tx) => queueWrite(tx, 'books', 'upsert', book('p1', 'Coffee')))
     expect(service.status()).toBe('pending')
     pullData = (since) => ({
       changes: [
@@ -174,7 +174,7 @@ describe('SyncService', () => {
       notices: [],
       cursor: Math.max(since, 21),
       hasMore: false,
-      tables: ['currencies', 'profiles'],
+      tables: ['currencies', 'books'],
     })
     const pushed: PushedOp[] = []
     await drive(service.sync(), (ops, req) => {
@@ -191,13 +191,13 @@ describe('SyncService', () => {
       )
     })
     expect(pushed).toMatchObject([
-      { table: 'profiles', op: 'upsert', baseSeq: null, row: { name: 'Coffee' } },
+      { table: 'books', op: 'upsert', baseSeq: null, row: { name: 'Coffee' } },
     ])
     expect(countOps(db, 'pending')).toBe(0)
-    expect(getRow(db, 'profiles', 'p1')).toMatchObject({ changeSeq: 20, updatedBy: 'u1' })
+    expect(getRow(db, 'books', 'p1')).toMatchObject({ changeSeq: 20, updatedBy: 'u1' })
     expect(getRow(db, 'currencies', 'THB')).toMatchObject({ isActive: true })
     expect(offline.syncMeta('cursor')).toBe('21')
-    expect(service.serverTables()).toEqual(['currencies', 'profiles'])
+    expect(service.serverTables()).toEqual(['currencies', 'books'])
     expect(service.lastSyncedAt()).not.toBeNull()
     expect(service.status()).toBe('synced')
   })
@@ -243,14 +243,12 @@ describe('SyncService', () => {
   })
 
   it('stores the winner and a notice when an op was overridden', async () => {
-    offline.write((tx) =>
-      queueWrite(tx, 'profiles', 'upsert', profile('p1', 'Tea', { changeSeq: 5 }))
-    )
+    offline.write((tx) => queueWrite(tx, 'books', 'upsert', book('p1', 'Tea', { changeSeq: 5 })))
     const notice = {
       id: 'h1',
-      table: 'profiles',
+      table: 'books',
       rowId: 'p1',
-      previous: profile('p1', 'Tea'),
+      previous: book('p1', 'Tea'),
       createdAt: 9,
     }
     await drive(service.sync(), (ops, req) =>
@@ -260,7 +258,7 @@ describe('SyncService', () => {
             {
               opId: ops[0].opId,
               status: 'overridden',
-              row: { ...profile('p1', 'Latte'), changeSeq: 7 },
+              row: { ...book('p1', 'Latte'), changeSeq: 7 },
               changeSeq: 7,
               notice,
             },
@@ -268,7 +266,7 @@ describe('SyncService', () => {
         })
       )
     )
-    expect(getRow(db, 'profiles', 'p1')).toMatchObject({ name: 'Latte', changeSeq: 7 })
+    expect(getRow(db, 'books', 'p1')).toMatchObject({ name: 'Latte', changeSeq: 7 })
     expect(countOps(db, 'pending')).toBe(0)
     expect(service.notices()).toMatchObject([{ id: 'h1', previous: { name: 'Tea' } }])
     service.dismissNotice('h1')
@@ -276,7 +274,7 @@ describe('SyncService', () => {
   })
 
   it('takes the winner with no notice when the server kept its row quietly (recurring rule 9)', async () => {
-    offline.write((tx) => queueWrite(tx, 'profiles', 'upsert', profile('p1', 'Tea')))
+    offline.write((tx) => queueWrite(tx, 'books', 'upsert', book('p1', 'Tea')))
     await drive(service.sync(), (ops, req) =>
       req.flush(
         envelope({
@@ -284,24 +282,24 @@ describe('SyncService', () => {
             {
               opId: ops[0].opId,
               status: 'overridden',
-              row: { ...profile('p1', 'Latte'), changeSeq: 7 },
+              row: { ...book('p1', 'Latte'), changeSeq: 7 },
               changeSeq: 7,
             },
           ],
         })
       )
     )
-    expect(getRow(db, 'profiles', 'p1')).toMatchObject({ name: 'Latte', changeSeq: 7 })
+    expect(getRow(db, 'books', 'p1')).toMatchObject({ name: 'Latte', changeSeq: 7 })
     expect(countOps(db, 'pending')).toBe(0)
     expect(service.notices()).toEqual([])
     expect(service.rounds()).toBeGreaterThan(0)
   })
 
   it("keeps a rejected op aside and puts the server's row back", async () => {
-    putRow(db, 'profiles', { ...profile('p1', 'Coffee'), changeSeq: 5 })
+    putRow(db, 'books', { ...book('p1', 'Coffee'), changeSeq: 5 })
     offline.write((tx) => {
-      queueWrite(tx, 'profiles', 'upsert', { ...profile('p1', 'Tea'), changeSeq: 5 })
-      queueWrite(tx, 'profiles', 'upsert', profile('p2', 'Tea'))
+      queueWrite(tx, 'books', 'upsert', { ...book('p1', 'Tea'), changeSeq: 5 })
+      queueWrite(tx, 'books', 'upsert', book('p2', 'Tea'))
     })
     await drive(service.sync(), (ops, req) =>
       req.flush(
@@ -310,7 +308,7 @@ describe('SyncService', () => {
             {
               opId: ops[0].opId,
               status: 'rejected',
-              row: { ...profile('p1', 'Coffee'), changeSeq: 5 },
+              row: { ...book('p1', 'Coffee'), changeSeq: 5 },
               code: 'CONFLICT',
               message: 'x',
             },
@@ -319,8 +317,8 @@ describe('SyncService', () => {
         })
       )
     )
-    expect(getRow(db, 'profiles', 'p1')).toMatchObject({ name: 'Coffee' })
-    expect(getRow(db, 'profiles', 'p2')).toBeNull()
+    expect(getRow(db, 'books', 'p1')).toMatchObject({ name: 'Coffee' })
+    expect(getRow(db, 'books', 'p2')).toBeNull()
     expect(service.rejected()).toMatchObject([
       { rowId: 'p1', code: 'CONFLICT', row: { name: 'Tea' } },
       { rowId: 'p2', code: 'CONFLICT' },
@@ -333,13 +331,13 @@ describe('SyncService', () => {
   })
 
   it('keeps a newer edit made while its op was in flight, now based on the server row', async () => {
-    offline.write((tx) => queueWrite(tx, 'profiles', 'upsert', profile('p1', 'Coffee')))
+    offline.write((tx) => queueWrite(tx, 'books', 'upsert', book('p1', 'Coffee')))
     const pushed: PushedOp[][] = []
     await drive(service.sync(), (ops, req) => {
       pushed.push(ops)
       if (pushed.length === 1) {
         offline.write((tx) =>
-          queueWrite(tx, 'profiles', 'upsert', profile('p1', 'Latte', { updatedAt: 2000 }))
+          queueWrite(tx, 'books', 'upsert', book('p1', 'Latte', { updatedAt: 2000 }))
         )
       }
       req.flush(
@@ -359,29 +357,29 @@ describe('SyncService', () => {
       ['Latte', 21],
     ])
     expect(countOps(db, 'pending')).toBe(0)
-    expect(getRow(db, 'profiles', 'p1')).toMatchObject({ name: 'Latte', changeSeq: 22 })
+    expect(getRow(db, 'books', 'p1')).toMatchObject({ name: 'Latte', changeSeq: 22 })
   })
 
   it('never lets a pulled row overwrite a local edit that is still pending', async () => {
     offline.isOpen.set(true)
     TestBed.inject(NetworkStatusService).isOnline.set(true)
-    offline.write((tx) => queueWrite(tx, 'profiles', 'upsert', profile('p1', 'Mine')))
+    offline.write((tx) => queueWrite(tx, 'books', 'upsert', book('p1', 'Mine')))
     pullData = (since) => ({
       ...emptyPull(since),
-      changes: [{ table: 'profiles', row: { ...profile('p1', 'Theirs'), changeSeq: 30 } }],
+      changes: [{ table: 'books', row: { ...book('p1', 'Theirs'), changeSeq: 30 } }],
       cursor: 30,
     })
     // The push fails (API down), the pull is never reached; then the pull alone runs.
     await drive(service.sync(), (_ops, req) => req.flush(null, { status: 503, statusText: 'down' }))
-    expect(findPending(db, 'profiles', 'p1')).not.toBeNull()
+    expect(findPending(db, 'books', 'p1')).not.toBeNull()
     const pull = (service as unknown as { pull: () => Promise<void> }).pull.bind(service)
     await drive(pull())
-    expect(getRow(db, 'profiles', 'p1')).toMatchObject({ name: 'Mine' })
+    expect(getRow(db, 'books', 'p1')).toMatchObject({ name: 'Mine' })
     expect(offline.syncMeta('cursor')).toBe('30')
   })
 
   it('starts over from 0 when the cursor is past the retention (410)', async () => {
-    putRow(db, 'profiles', { ...profile('p9', 'Old'), changeSeq: 3 })
+    putRow(db, 'books', { ...book('p9', 'Old'), changeSeq: 3 })
     offline.write((tx) => tx.exec(`INSERT OR REPLACE INTO sync_meta VALUES ('cursor', '3')`))
     const asked: number[] = []
     let first = true
@@ -406,7 +404,7 @@ describe('SyncService', () => {
     }
     await round
     expect(asked).toEqual([3, 0])
-    expect(getRow(db, 'profiles', 'p9')).toBeNull()
+    expect(getRow(db, 'books', 'p9')).toBeNull()
     expect(offline.syncMeta('cursor')).toBe('40')
   })
 
@@ -415,7 +413,7 @@ describe('SyncService', () => {
     const listener = live.listeners.get('user')
     expect(listener?.deviceId()).toBe('d1')
     expect(listener?.cursor()).toBe(0)
-    offline.write((tx) => queueWrite(tx, 'profiles', 'upsert', profile('p1', 'Coffee')))
+    offline.write((tx) => queueWrite(tx, 'books', 'upsert', book('p1', 'Coffee')))
     await drive(Promise.resolve(listener?.onPoke()).then(async () => service.idle()))
     expect(service.pendingCount()).toBe(0)
     offline.isOpen.set(false)
@@ -426,7 +424,7 @@ describe('SyncService', () => {
   it('does nothing offline or without a live session, and says so', async () => {
     const network = TestBed.inject(NetworkStatusService)
     network.isOnline.set(false)
-    offline.write((tx) => queueWrite(tx, 'profiles', 'upsert', profile('p1', 'A')))
+    offline.write((tx) => queueWrite(tx, 'books', 'upsert', book('p1', 'A')))
     await service.sync()
     expect(http.match(() => true)).toEqual([])
     expect(service.status()).toBe('offline')
@@ -436,15 +434,15 @@ describe('SyncService', () => {
     expect(service.status()).toBe('pending')
   })
 
-  it('waits while a shared profile is in use, and pushes its TEMP outbox alone on demand', async () => {
-    offline.write((tx) => queueWrite(tx, 'profiles', 'upsert', profile('p1', 'Mine')))
+  it('waits while a shared book is in use, and pushes its TEMP outbox alone on demand', async () => {
+    offline.write((tx) => queueWrite(tx, 'books', 'upsert', book('p1', 'Mine')))
     db.createShadows(SHARED_TABLES)
     offline.sharedActive.set(true)
     expect(service.canSync()).toBe(false)
     await service.sync()
     expect(http.match(() => true)).toEqual([])
 
-    offline.write((tx) => queueWrite(tx, 'profiles', 'upsert', profile('p2', 'Theirs')))
+    offline.write((tx) => queueWrite(tx, 'books', 'upsert', book('p2', 'Theirs')))
     const sent: string[] = []
     let pulls = 0
     pullData = (since) => {
@@ -504,7 +502,7 @@ describe('SyncService', () => {
         }
         return real(run, delay)
       }) as typeof setTimeout)
-      offline.write((tx) => queueWrite(tx, 'profiles', 'upsert', profile('p1', 'A')))
+      offline.write((tx) => queueWrite(tx, 'books', 'upsert', book('p1', 'A')))
     })
     afterEach(() => {
       // Offline stops the retries, so no timer outlives the test.
@@ -534,7 +532,7 @@ describe('SyncService', () => {
       expect(service.status()).toBe('synced')
       expect(listOps(db, 'pending')).toEqual([])
       // The next outage starts again from 5 seconds.
-      offline.write((tx) => queueWrite(tx, 'profiles', 'upsert', profile('p2', 'B')))
+      offline.write((tx) => queueWrite(tx, 'books', 'upsert', book('p2', 'B')))
       const before = retries().length
       await drive(service.sync(), down)
       expect(retries().slice(before)).toEqual([5_000])
@@ -574,7 +572,7 @@ describe('SyncService', () => {
 
       // A new streak toasts again.
       toastState.dismiss()
-      offline.write((tx) => queueWrite(tx, 'profiles', 'upsert', profile('p2', 'B')))
+      offline.write((tx) => queueWrite(tx, 'books', 'upsert', book('p2', 'B')))
       await drive(service.sync(), broken)
       expect(toasts()).toEqual([th.sync.failedToast])
       toastState.dismiss()
@@ -616,7 +614,7 @@ describe('SyncService', () => {
   })
 
   it('answers how many ops a sign-out would lose after trying to push', async () => {
-    offline.write((tx) => queueWrite(tx, 'profiles', 'upsert', profile('p1', 'A')))
+    offline.write((tx) => queueWrite(tx, 'books', 'upsert', book('p1', 'A')))
     let lost = 0
     await drive(
       service.flush().then((count) => {

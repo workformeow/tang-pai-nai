@@ -15,24 +15,24 @@ import {
   uuidv7,
 } from '@/core/offline'
 import type { LocalDatabase, OutboxOp } from '@/core/offline'
-import { defaultCategoryRows } from './default-categories'
 import {
   DEFAULT_CATEGORY_TABLE,
-  PROFILE_CHILD_TABLES,
-  PROFILE_KEY_PREFIX,
-  PROFILE_LIMITS,
-  PROFILE_TABLE,
-} from './profile.type'
-import type { Profile, ProfileSheetState, ProfileValues, SharedProfile } from './profile.type'
+  BOOK_CHILD_TABLES,
+  BOOK_KEY_PREFIX,
+  BOOK_LIMITS,
+  BOOK_TABLE,
+} from './book.type'
+import { defaultCategoryRows } from './default-categories'
+import type { Book, BookSheetState, BookValues, SharedBook } from './book.type'
 
 const ORDER = 'ORDER BY sort_order, created_at, id'
 
 /**
- * The user's profiles on this device and the current one (docs/features/profile.md). Reads come
+ * The user's books on this device and the current one (docs/features/book.md). Reads come
  * from the local database; every write goes through the outbox like any own data.
  */
 @Service()
-export class ProfileService {
+export class BookService {
   private window = inject(DOCUMENT).defaultView
   private transloco = inject(TranslocoService)
   private authStore = inject(AuthStore)
@@ -41,17 +41,17 @@ export class ProfileService {
   private syncService = inject(SyncService)
   private languageService = inject(LanguageService)
 
-  /** Live profiles in order (rule 7). */
-  profiles = computed(() =>
+  /** Live books in order (rule 7). */
+  books = computed(() =>
     this.read(
       (db) =>
         db
-          .selectObjects(`SELECT * FROM ${PROFILE_TABLE} WHERE deleted_at IS NULL ${ORDER}`)
-          .map((row) => fromSql(PROFILE_TABLE, row) as unknown as Profile),
+          .selectObjects(`SELECT * FROM ${BOOK_TABLE} WHERE deleted_at IS NULL ${ORDER}`)
+          .map((row) => fromSql(BOOK_TABLE, row) as unknown as Book),
       []
     )
   )
-  /** Profiles with an op still waiting to sync ("รอ sync"). */
+  /** Books with an op still waiting to sync ("รอ sync"). */
   pendingIds = computed(
     () =>
       new Set(
@@ -59,7 +59,7 @@ export class ProfileService {
           (db) =>
             db
               .selectObjects(`SELECT row_id FROM outbox WHERE tbl = ? AND status = 'pending'`, [
-                PROFILE_TABLE,
+                BOOK_TABLE,
               ])
               .map((row) => String(row['row_id'])),
           []
@@ -67,37 +67,37 @@ export class ProfileService {
       )
   )
   /**
-   * The shared profile in use (sharing rule 10), set by `SharingService`; null = an own one. It is
-   * never stored: opening the app starts on an own profile.
+   * The shared book in use (sharing rule 10), set by `SharingService`; null = an own one. It is
+   * never stored: opening the app starts on an own book.
    */
-  shared = signal<SharedProfile | null>(null)
+  shared = signal<SharedBook | null>(null)
   isShared = computed(() => this.shared() !== null)
   /**
-   * The device's current profile: the shared one in use, else the stored one while live, else
+   * The device's current book: the shared one in use, else the stored one while live, else
    * the first (rule 6).
    */
   current = computed(() => {
     const shared = this.shared()
     if (shared) {
-      return shared.profile
+      return shared.book
     }
-    const profiles = this.profiles()
-    return profiles.find((profile) => profile.id === this.storedId()) ?? profiles.at(0) ?? null
+    const books = this.books()
+    return books.find((book) => book.id === this.storedId()) ?? books.at(0) ?? null
   })
   /**
-   * The current profile's id. `current()` is a new object after every local write or pull (the
-   * rows are read again), so an effect that should run only when the profile **changes** (a
+   * The current book's id. `current()` is a new object after every local write or pull (the
+   * rows are read again), so an effect that should run only when the book **changes** (a
    * screen's remembered view) reads this instead.
    */
   currentId = computed(() => this.current()?.id ?? null)
   /**
-   * Whether the device knows its profiles: false only while a new device waits for its first
-   * pull, so the create step doesn't flash before the user's profiles arrive.
+   * Whether the device knows its books: false only while a new device waits for its first
+   * pull, so the create step doesn't flash before the user's books arrive.
    */
   ready = computed(
     () =>
       this.offlineService.isOpen() &&
-      (this.profiles().length > 0 ||
+      (this.books().length > 0 ||
         this.syncService.lastSyncedAt() !== null ||
         this.roundEnded() ||
         !this.syncService.canSync())
@@ -134,16 +134,16 @@ export class ProfileService {
     return this.offlineService.isOpen() && (this.offlineService.isTrusted() || online)
   })
   /**
-   * Why a shared profile (or an in-memory database) can't write right now: the network is up but the server isn't
+   * Why a shared book (or an in-memory database) can't write right now: the network is up but the server isn't
    * answering (rule 11), rather than no network. Picks the notice's wording.
    */
   serverDown = computed(
     () => this.networkStatusService.isOnline() && !this.networkStatusService.serverReachable()
   )
-  atLimit = computed(() => this.profiles().length >= PROFILE_LIMITS.PER_USER)
-  /** The open profile sheet (layout/profile-sheet), if any. */
-  sheet = signal<ProfileSheetState | null>(null)
-  /** Whether the switch sheet (layout/profile-switch-sheet) is open: the header and Account › หมวดหมู่ open it. */
+  atLimit = computed(() => this.books().length >= BOOK_LIMITS.PER_USER)
+  /** The open book sheet (layout/book-sheet), if any. */
+  sheet = signal<BookSheetState | null>(null)
+  /** Whether the switch sheet (layout/book-switch-sheet) is open: the header and Account › หมวดหมู่ open it. */
   switchSheet = signal(false)
 
   private storedId = signal<string | null>(null)
@@ -162,7 +162,7 @@ export class ProfileService {
         this.storedId.set(userId ? this.storage(trusted).getItem(this.key(userId)) : null)
       )
     })
-    // Locked or closed while a shared profile was in use: its rows are gone with the database.
+    // Locked or closed while a shared book was in use: its rows are gone with the database.
     effect(() => {
       if (!this.offlineService.sharedActive() && this.shared()?.status === 'ready') {
         untracked(() => this.shared.set(null))
@@ -176,7 +176,7 @@ export class ProfileService {
       }
       wasSyncing = syncing
     })
-    // Rule 9: the current profile was deleted on another device.
+    // Rule 9: the current book was deleted on another device.
     effect(() => {
       const storedId = this.storedId()
       this.offlineService.changes()
@@ -189,12 +189,12 @@ export class ProfileService {
           return
         }
         if (!this.deletingHere.delete(storedId)) {
-          toast(this.transloco.translate('profiles.deletedElsewhere', { name: row.name }))
+          toast(this.transloco.translate('books.deletedElsewhere', { name: row.name }))
         }
         this.select(this.current()?.id ?? null)
       })
     })
-    // Wallet rule 11: a profile deleted on a device that didn't know all its wallets leaves live
+    // Wallet rule 11: a book deleted on a device that didn't know all its wallets leaves live
     // ones behind; whichever device sees that tombstones the ones it holds.
     effect(() => {
       this.offlineService.changes()
@@ -203,21 +203,21 @@ export class ProfileService {
       }
       untracked(() => {
         const db = this.offlineService.db()
-        if (PROFILE_CHILD_TABLES.some((table) => this.orphans(db, table).length > 0)) {
+        if (BOOK_CHILD_TABLES.some((table) => this.orphans(db, table).length > 0)) {
           this.offlineService.write((tx) => this.tombstoneChildren(tx, null, Date.now()))
         }
       })
     })
   }
 
-  open(state: ProfileSheetState): void {
+  open(state: BookSheetState): void {
     this.sheet.set(state)
   }
 
-  /** "Fix" from the sync sheet: the refused values of a rejected profile op. */
+  /** "Fix" from the sync sheet: the refused values of a rejected book op. */
   openFix(opId: string): void {
     const op = this.syncService.rejectedOp(opId)
-    if (!op || op.table !== PROFILE_TABLE) {
+    if (!op || op.table !== BOOK_TABLE) {
       return
     }
     const text = (key: string) => (typeof op.row[key] === 'string' ? op.row[key] : '')
@@ -229,8 +229,8 @@ export class ProfileService {
     })
   }
 
-  byId(id: string): Profile | null {
-    return this.profiles().find((profile) => profile.id === id) ?? null
+  byId(id: string): Book | null {
+    return this.books().find((book) => book.id === id) ?? null
   }
 
   select(id: string | null): void {
@@ -248,7 +248,7 @@ export class ProfileService {
     }
   }
 
-  /** Back to an own profile: the shared one's TEMP tables go (sharing rule 15). */
+  /** Back to an own book: the shared one's TEMP tables go (sharing rule 15). */
   leaveShared(): void {
     if (this.shared()) {
       this.shared.set(null)
@@ -259,24 +259,22 @@ export class ProfileService {
   /** Rule 2 as far as this device knows. */
   nameTaken(name: string, exceptId: string | null): boolean {
     const wanted = name.trim().toLowerCase()
-    return this.profiles().some(
-      (profile) => profile.id !== exceptId && profile.name.toLowerCase() === wanted
-    )
+    return this.books().some((book) => book.id !== exceptId && book.name.toLowerCase() === wanted)
   }
 
-  /** Creates (`id` null) or updates a profile; a fix also drops the rejected op. */
-  save(id: string | null, values: ProfileValues, fixOpId: string | null = null): string {
+  /** Creates (`id` null) or updates a book; a fix also drops the rejected op. */
+  save(id: string | null, values: BookValues, fixOpId: string | null = null): string {
     const now = Date.now()
     const rowId = id ?? uuidv7(now)
-    const last = this.profiles().at(-1)
+    const last = this.books().at(-1)
     // A new row (also a "fix" of a refused create, whose local row went away) becomes current.
     const isNew = this.byId(rowId) === null
     this.offlineService.write((db) => {
       const current = this.find(db, rowId)
       const live = current?.deletedAt === null ? current : null
-      // Read before the profile's row comes back, which ends the "refused create" state.
+      // Read before the book's row comes back, which ends the "refused create" state.
       const refused = fixOpId ? this.refusedChildrenIn(db, fixOpId) : []
-      queueWrite(db, PROFILE_TABLE, 'upsert', {
+      queueWrite(db, BOOK_TABLE, 'upsert', {
         ...current,
         id: rowId,
         name: values.name.trim(),
@@ -287,7 +285,7 @@ export class ProfileService {
         updatedAt: now,
         deletedAt: null,
       })
-      // Category rule 8: a profile made here comes with the default set, in the same write.
+      // Category rule 8: a book made here comes with the default set, in the same write.
       // A fixed refused create gets its refused child rows back instead (category rule 12).
       if (!current && !fixOpId) {
         const language = this.languageService.language().id
@@ -296,12 +294,12 @@ export class ProfileService {
         }
       }
       if (fixOpId) {
-        // Category rule 12: the refused create's child rows go again, after the profile.
+        // Category rule 12: the refused create's child rows go again, after the book.
         for (const child of refused) {
           queueWrite(db, child.table, 'upsert', {
             ...child.row,
             id: child.rowId,
-            profileId: rowId,
+            bookId: rowId,
             updatedAt: now,
             deletedAt: null,
           })
@@ -326,13 +324,13 @@ export class ProfileService {
       const current = this.find(db, id)
       if (current) {
         this.tombstoneChildren(db, id, now)
-        queueWrite(db, PROFILE_TABLE, 'delete', { ...current, updatedAt: now, deletedAt: now })
+        queueWrite(db, BOOK_TABLE, 'delete', { ...current, updatedAt: now, deletedAt: now })
       }
     })
   }
 
   /**
-   * The rejected ops as the user sees them (category rule 12): a refused profile create with the
+   * The rejected ops as the user sees them (category rule 12): a refused book create with the
    * refused child rows that went with it, and every other rejected op on its own.
    */
   rejectedItems = computed<{ op: OutboxOp; children: OutboxOp[] }[]>(() => {
@@ -343,7 +341,7 @@ export class ProfileService {
     const db = this.offlineService.db()
     const grouped = new Map<string, OutboxOp[]>()
     for (const op of rejected) {
-      if (op.table === PROFILE_TABLE) {
+      if (op.table === BOOK_TABLE) {
         grouped.set(op.opId, this.refusedChildrenIn(db, op.opId))
       }
     }
@@ -353,47 +351,47 @@ export class ProfileService {
       .map((op) => ({ op, children: grouped.get(op.opId) ?? [] }))
   })
 
-  /** Discards a rejected profile op with its refused child rows (category rule 12). */
-  discardRefused(profileOpId: string): void {
+  /** Discards a rejected book op with its refused child rows (category rule 12). */
+  discardRefused(bookOpId: string): void {
     this.offlineService.write((db) => {
-      for (const child of this.refusedChildrenIn(db, profileOpId)) {
+      for (const child of this.refusedChildrenIn(db, bookOpId)) {
         deleteOp(db, child.opId)
       }
-      deleteOp(db, profileOpId)
+      deleteOp(db, bookOpId)
     })
   }
 
-  /** How many live wallets go with the profile (the delete confirm, rule 8). */
+  /** How many live wallets go with the book (the delete confirm, rule 8). */
   walletCount(id: string): number {
     return this.childCount('wallets', id)
   }
 
-  /** The profile's live categories (rule 8's confirm, category rule 12). */
+  /** The book's live categories (rule 8's confirm, category rule 12). */
   categoryCount(id: string): number {
     return this.childCount('categories', id)
   }
 
-  /** The profile's live transactions and transfers (rule 8's confirm, transfer rule 9). */
+  /** The book's live transactions and transfers (rule 8's confirm, transfer rule 9). */
   transactionCount(id: string): number {
     return this.childCount('transactions', id) + this.childCount('transfers', id)
   }
 
-  /** The profile's live debts (the delete confirm, debt rule 10). */
+  /** The book's live debts (the delete confirm, debt rule 10). */
   debtCount(id: string): number {
     return this.childCount('debts', id)
   }
 
-  /** The profile's live events (the delete confirm, event rule 8). */
+  /** The book's live events (the delete confirm, event rule 8). */
   eventCount(id: string): number {
     return this.childCount('events', id)
   }
 
-  /** The profile's live recurring rules (Account › รายการซ้ำ, the delete confirm). */
+  /** The book's live recurring rules (Account › รายการซ้ำ, the delete confirm). */
   ruleCount(id: string): number {
     return this.childCount('recurring_rules', id)
   }
 
-  private childCount(table: (typeof PROFILE_CHILD_TABLES)[number], id: string): number {
+  private childCount(table: (typeof BOOK_CHILD_TABLES)[number], id: string): number {
     this.offlineService.changes()
     if (!this.offlineService.isOpen()) {
       return 0
@@ -401,43 +399,41 @@ export class ProfileService {
     return Number(
       this.offlineService
         .db()
-        .selectValue(`SELECT count(*) FROM ${table} WHERE profile_id = ? AND deleted_at IS NULL`, [
-          id,
-        ])
+        .selectValue(`SELECT count(*) FROM ${table} WHERE book_id = ? AND deleted_at IS NULL`, [id])
     )
   }
 
-  /** Rule 7: moves a profile to `to` (an index in the list); rewrites `sortOrder` where it changed. */
+  /** Rule 7: moves a book to `to` (an index in the list); rewrites `sortOrder` where it changed. */
   moveTo(id: string, to: number): void {
-    const profiles = [...this.profiles()]
-    const from = profiles.findIndex((profile) => profile.id === id)
-    if (from < 0 || to < 0 || to >= profiles.length || from === to) {
+    const books = [...this.books()]
+    const from = books.findIndex((book) => book.id === id)
+    if (from < 0 || to < 0 || to >= books.length || from === to) {
       return
     }
-    const [moved] = profiles.splice(from, 1)
-    profiles.splice(to, 0, moved)
+    const [moved] = books.splice(from, 1)
+    books.splice(to, 0, moved)
     const now = Date.now()
     this.offlineService.write((db) => {
-      profiles.forEach((profile, index) => {
-        if (profile.sortOrder !== index) {
-          queueWrite(db, PROFILE_TABLE, 'upsert', { ...profile, sortOrder: index, updatedAt: now })
+      books.forEach((book, index) => {
+        if (book.sortOrder !== index) {
+          queueWrite(db, BOOK_TABLE, 'upsert', { ...book, sortOrder: index, updatedAt: now })
         }
       })
     })
   }
 
   /**
-   * Tombstones the live child rows of `profileId`, or (null) of every deleted profile on the
+   * Tombstones the live child rows of `bookId`, or (null) of every deleted book on the
    * device (wallet rule 11).
    */
-  private tombstoneChildren(db: LocalDatabase, profileId: string | null, now: number): void {
-    for (const table of PROFILE_CHILD_TABLES) {
+  private tombstoneChildren(db: LocalDatabase, bookId: string | null, now: number): void {
+    for (const table of BOOK_CHILD_TABLES) {
       const rows =
-        profileId === null
+        bookId === null
           ? this.orphans(db, table)
           : db
-              .selectObjects(`SELECT * FROM ${table} WHERE profile_id = ? AND deleted_at IS NULL`, [
-                profileId,
+              .selectObjects(`SELECT * FROM ${table} WHERE book_id = ? AND deleted_at IS NULL`, [
+                bookId,
               ])
               .map((row) => fromSql(table, row))
       for (const row of rows) {
@@ -451,39 +447,39 @@ export class ProfileService {
     }
   }
 
-  private refusedChildrenIn(db: LocalDatabase, profileOpId: string): OutboxOp[] {
-    const op = findOp(db, profileOpId)
-    if (!op || op.table !== PROFILE_TABLE || op.status !== 'rejected' || op.op !== 'upsert') {
+  private refusedChildrenIn(db: LocalDatabase, bookOpId: string): OutboxOp[] {
+    const op = findOp(db, bookOpId)
+    if (!op || op.table !== BOOK_TABLE || op.status !== 'rejected' || op.op !== 'upsert') {
       return []
     }
-    // Only a refused create: the server has no such profile, so the device has no row left.
+    // Only a refused create: the server has no such book, so the device has no row left.
     if (this.find(db, op.rowId)) {
       return []
     }
-    const tables: readonly string[] = PROFILE_CHILD_TABLES
+    const tables: readonly string[] = BOOK_CHILD_TABLES
     return listOps(db, 'rejected').filter(
       (child) =>
-        tables.includes(child.table) && child.op === 'upsert' && child.row['profileId'] === op.rowId
+        tables.includes(child.table) && child.op === 'upsert' && child.row['bookId'] === op.rowId
     )
   }
 
-  /** Live rows of `table` whose profile is a tombstone here. */
+  /** Live rows of `table` whose book is a tombstone here. */
   private orphans(db: LocalDatabase, table: string): Record<string, unknown>[] {
     return db
       .selectObjects(
-        `SELECT c.* FROM ${table} c JOIN ${PROFILE_TABLE} p ON p.id = c.profile_id
+        `SELECT c.* FROM ${table} c JOIN ${BOOK_TABLE} p ON p.id = c.book_id
          WHERE c.deleted_at IS NULL AND p.deleted_at IS NOT NULL`
       )
       .map((row) => fromSql(table, row))
   }
 
-  private find(db: LocalDatabase, id: string): Profile | null {
-    const row = db.selectObjects(`SELECT * FROM ${PROFILE_TABLE} WHERE id = ?`, [id]).at(0)
-    return row ? (fromSql(PROFILE_TABLE, row) as unknown as Profile) : null
+  private find(db: LocalDatabase, id: string): Book | null {
+    const row = db.selectObjects(`SELECT * FROM ${BOOK_TABLE} WHERE id = ?`, [id]).at(0)
+    return row ? (fromSql(BOOK_TABLE, row) as unknown as Book) : null
   }
 
   private key(userId: string): string {
-    return `${PROFILE_KEY_PREFIX}${userId}`
+    return `${BOOK_KEY_PREFIX}${userId}`
   }
 
   /** Rule 6: lasting on a trusted device, for the tab's life on an untrusted one. */

@@ -5,18 +5,18 @@ import { TranslocoTestingModule } from '@jsverse/transloco'
 import { toastState } from '@spartan-ng/brain/sonner'
 import { AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
+import { BookService } from '@/core/book'
 import th from '@/core/i18n/th.json'
 import { NetworkStatusService } from '@/core/network'
 import { findOp, listOps, OfflineService, putRow, SyncService } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
-import { ProfileService } from '@/core/profile'
-import { ProfileSheet } from './profile-sheet'
+import { BookSheet } from './book-sheet'
 
-describe('ProfileSheet', () => {
-  let fixture: ComponentFixture<ProfileSheet>
+describe('BookSheet', () => {
+  let fixture: ComponentFixture<BookSheet>
   let db: LocalDatabase
-  let profiles: ProfileService
+  let books: BookService
   const changes = signal(0)
   const trusted = signal(true)
   const online = signal(true)
@@ -58,8 +58,8 @@ describe('ProfileSheet', () => {
     await fixture.whenStable()
     fixture.detectChanges()
   }
-  const open = async (state: Parameters<ProfileService['open']>[0]) => {
-    profiles.open(state)
+  const open = async (state: Parameters<BookService['open']>[0]) => {
+    books.open(state)
     await settle()
   }
   const submit = async () => {
@@ -67,7 +67,7 @@ describe('ProfileSheet', () => {
     await settle()
   }
   const pulled = (id: string, name: string, sortOrder = 0) => {
-    putRow(db, 'profiles', {
+    putRow(db, 'books', {
       id,
       name,
       icon: 'lucideHouse',
@@ -105,8 +105,8 @@ describe('ProfileSheet', () => {
       ],
     })
     TestBed.inject(AuthStore).user.set({ id: 'u1' } as AuthUser)
-    profiles = TestBed.inject(ProfileService)
-    fixture = TestBed.createComponent(ProfileSheet)
+    books = TestBed.inject(BookService)
+    fixture = TestBed.createComponent(BookSheet)
     await settle()
   })
 
@@ -117,13 +117,13 @@ describe('ProfileSheet', () => {
     toastState.dismiss()
   })
 
-  it('creates a profile with the picked icon and colour, then closes', async () => {
+  it('creates a book with the picked icon and colour, then closes', async () => {
     await open({ mode: 'create' })
-    expect(body().textContent).toContain(th.profiles.createHeading)
+    expect(body().textContent).toContain(th.books.createHeading)
     type('  ร้านกาแฟ ')
-    button(th.profiles.changeIcon)?.click()
+    button(th.books.changeIcon)?.click()
     await settle()
-    expect(body().textContent).toContain(th.profiles.iconHeading)
+    expect(body().textContent).toContain(th.books.iconHeading)
     const orange = body().querySelector('input[aria-label="สีที่ 6"]') as HTMLInputElement
     orange.click()
     await settle()
@@ -133,36 +133,36 @@ describe('ProfileSheet', () => {
     store.click()
     await settle()
     // Picking only selects: the view stays until ‹.
-    expect(body().textContent).toContain(th.profiles.iconHeading)
+    expect(body().textContent).toContain(th.books.iconHeading)
     button(th.sheet.back)?.click()
     await settle()
     expect(nameInput().value).toBe('  ร้านกาแฟ ')
     await submit()
-    expect(profiles.profiles()).toMatchObject([
+    expect(books.books()).toMatchObject([
       { name: 'ร้านกาแฟ', icon: 'lucideStore', color: '#c2410c' },
     ])
-    expect(profiles.current()?.name).toBe('ร้านกาแฟ')
-    expect(profiles.sheet()).toBeNull()
+    expect(books.current()?.name).toBe('ร้านกาแฟ')
+    expect(books.sheet()).toBeNull()
   })
 
   it('refuses an empty name and a name already in use, in place', async () => {
     pulled('p1', 'Home')
     await open({ mode: 'create' })
     await submit()
-    expect(body().textContent).toContain(th.profiles.nameRequired)
+    expect(body().textContent).toContain(th.books.nameRequired)
     type('HOME')
     await settle()
-    expect(body().textContent).toContain(th.profiles.nameTaken)
+    expect(body().textContent).toContain(th.books.nameTaken)
     expect(listOps(db, 'pending')).toHaveLength(0)
   })
 
-  it('edits a profile without counting its own name as taken', async () => {
+  it('edits a book without counting its own name as taken', async () => {
     pulled('p1', 'Home')
     await open({ mode: 'edit', id: 'p1' })
     expect(nameInput().value).toBe('Home')
     await submit()
     expect(listOps(db, 'pending')).toHaveLength(1)
-    expect(profiles.sheet()).toBeNull()
+    expect(books.sheet()).toBeNull()
   })
 
   it('closes at once with unsaved input, without asking', async () => {
@@ -170,33 +170,33 @@ describe('ProfileSheet', () => {
     type('ครอบครัว')
     button(th.sheet.close)?.click()
     await settle()
-    expect(profiles.sheet()).toBeNull()
-    expect(profiles.profiles()).toHaveLength(0)
+    expect(books.sheet()).toBeNull()
+    expect(books.books()).toHaveLength(0)
   })
 
-  it('deletes a profile only after the confirm step (rule 8)', async () => {
+  it('deletes a book only after the confirm step (rule 8)', async () => {
     pulled('p1', 'Home')
     pulled('p2', 'Work', 1)
     await open({ mode: 'edit', id: 'p2' })
-    button(th.profiles.delete)?.click()
+    button(th.books.delete)?.click()
     await settle()
     expect(body().textContent).toContain('ลบสมุด “Work” ใช่ไหม')
     button(th.sheet.back)?.click()
     await settle()
-    expect(profiles.profiles()).toHaveLength(2)
-    button(th.profiles.delete)?.click()
+    expect(books.books()).toHaveLength(2)
+    button(th.books.delete)?.click()
     await settle()
-    button(th.profiles.deleteConfirm)?.click()
+    button(th.books.deleteConfirm)?.click()
     await settle()
-    expect(profiles.profiles().map((profile) => profile.name)).toEqual(['Home'])
+    expect(books.books().map((book) => book.name)).toEqual(['Home'])
   })
 
-  it('says how many wallets go with the profile, and deletes them with it', async () => {
+  it('says how many wallets go with the book, and deletes them with it', async () => {
     pulled('p1', 'Home')
     for (const id of ['w1', 'w2']) {
       putRow(db, 'wallets', {
         id,
-        profileId: 'p1',
+        bookId: 'p1',
         name: id,
         currencyCode: 'THB',
         initialBalance: 0,
@@ -214,16 +214,16 @@ describe('ProfileSheet', () => {
     }
     changes.update((n) => n + 1)
     await open({ mode: 'edit', id: 'p1' })
-    button(th.profiles.delete)?.click()
+    button(th.books.delete)?.click()
     await settle()
     expect(body().textContent).toContain('กระเป๋าเงิน 2 ใบ')
-    button(th.profiles.deleteConfirm)?.click()
+    button(th.books.deleteConfirm)?.click()
     await settle()
     expect(db.selectValue('SELECT count(*) FROM wallets WHERE deleted_at IS NULL')).toBe(0)
     expect(listOps(db, 'pending').map((op) => `${op.table}:${op.op}`)).toEqual([
       'wallets:delete',
       'wallets:delete',
-      'profiles:delete',
+      'books:delete',
     ])
   })
 
@@ -231,7 +231,7 @@ describe('ProfileSheet', () => {
     pulled('p1', 'Home')
     const row = (id: string) => ({
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       type: 'expense',
       parentId: null,
       name: id,
@@ -250,12 +250,12 @@ describe('ProfileSheet', () => {
     }
     changes.update((n) => n + 1)
     await open({ mode: 'edit', id: 'p1' })
-    button(th.profiles.delete)?.click()
+    button(th.books.delete)?.click()
     await settle()
     expect(body().textContent).toContain('หมวดหมู่ 3 รายการ ในสมุดนี้จะถูกลบไปด้วย และเลิกทำไม่ได้')
     putRow(db, 'wallets', {
       id: 'w1',
-      profileId: 'p1',
+      bookId: 'p1',
       name: 'w1',
       currencyCode: 'THB',
       initialBalance: 0,
@@ -285,16 +285,16 @@ describe('ProfileSheet', () => {
       id: 'p9',
       values: { name: 'home', icon: 'lucideStar', color: '#2563eb' },
     })
-    expect(body().textContent).toContain(th.profiles.fixHeading)
+    expect(body().textContent).toContain(th.books.fixHeading)
     expect(nameInput().value).toBe('home')
-    expect(body().textContent).toContain(th.profiles.nameTaken)
+    expect(body().textContent).toContain(th.books.nameTaken)
   })
 
   it('says an untrusted device must be online, and blocks saving', async () => {
     trusted.set(false)
     online.set(false)
     await open({ mode: 'create' })
-    expect(body().textContent).toContain(th.profiles.needsOnline)
-    expect(button(th.profiles.save)?.disabled).toBe(true)
+    expect(body().textContent).toContain(th.books.needsOnline)
+    expect(button(th.books.save)?.disabled).toBe(true)
   })
 })

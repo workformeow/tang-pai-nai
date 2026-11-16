@@ -52,7 +52,7 @@ describe('ExportPage (docs/features/export.md rules 1–4)', () => {
     setup.transaction('t2', { occurredOn: '2026-11-01', categoryId: 'gift', walletId: 'cash' })
     setup.pulled('transfers', {
       id: 'r1',
-      profileId: 'p1',
+      bookId: 'p1',
       fromWalletId: 'bank',
       toWalletId: 'cash',
       amount: 100000,

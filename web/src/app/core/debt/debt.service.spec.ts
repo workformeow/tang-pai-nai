@@ -168,7 +168,7 @@ describe('DebtService', () => {
     setup.transaction('fee', { debtId: 'coop', categoryId: 'interest', amount: 40000 })
     setup.pulled('recurring_rules', {
       id: 'r1',
-      profileId: 'p1',
+      bookId: 'p1',
       kind: 'debt',
       walletId: 'bank',
       categoryId: null,
@@ -268,7 +268,7 @@ describe('DebtService', () => {
     expect(categories.hasTransactions('shop')).toBe(true)
     setup.pulled('categories', {
       id: 'shop2',
-      profileId: 'p1',
+      bookId: 'p1',
       type: 'expense',
       parentId: null,
       name: 'shop2',

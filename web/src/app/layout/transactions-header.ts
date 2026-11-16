@@ -15,20 +15,20 @@ import {
   lucideRepeat,
   lucideWallet,
 } from '@ng-icons/lucide'
+import { BookService } from '@/core/book'
 import { LanguageService } from '@/core/i18n'
-import { ProfileService } from '@/core/profile'
 import { REPORT_UNITS, ReportService } from '@/core/report'
 import type { ReportUnit } from '@/core/report'
 import { PERIOD_UNITS, TransactionService, TransferService } from '@/core/transaction'
 import type { PeriodUnit } from '@/core/transaction'
 import { IconBadge } from '@/shared/components/icon-badge'
 import { Slide } from '@/shared/components/slide'
-import { ProfileSwitcher } from './profile-switcher'
+import { BookSwitcher } from './book-switcher'
 import { SyncStatus } from './sync-status'
 
 /**
  * The Transactions tab's header (transaction.md → Web screens; owner's choice in #8): the
- * profile switcher on the left, the wallet switcher in the very centre, the sync icon and the ⋮
+ * book switcher on the left, the wallet switcher in the very centre, the sync icon and the ⋮
  * menu on the right; both sides are the same width so the switcher stays centred. The menu is a
  * two-level list (transfer.md → Web screens, owner's choice B in #9): "โอนเงิน" and "ดูตาม ›",
  * which turns the menu into the units. The Reports tab uses it too (report.md Q2–Q3): the same
@@ -36,7 +36,7 @@ import { SyncStatus } from './sync-status'
  */
 @Component({
   selector: 'app-transactions-header',
-  imports: [TranslocoPipe, NgIcon, IconBadge, ProfileSwitcher, SyncStatus, Slide],
+  imports: [TranslocoPipe, NgIcon, IconBadge, BookSwitcher, SyncStatus, Slide],
   // The menu grows from the ⋮ (its top right) and fades; under reduced motion it only fades
   // (DESIGN.md §8).
   styles: `
@@ -92,7 +92,7 @@ import { SyncStatus } from './sync-status'
     '(keydown.escape)': 'closeMenu(true)',
   },
   template: `
-    <app-profile-switcher />
+    <app-book-switcher />
     <button
       type="button"
       class="tpn-hit flex h-9 max-w-48 min-w-0 items-center gap-2 tpn-glass rounded-full py-1 pr-3 pl-1 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
@@ -147,7 +147,7 @@ import { SyncStatus } from './sync-status'
         <!-- "ดูตาม ›" slides the units in from the right, ‹ the items back from the left. -->
         <div [appSlide]="level() === 'main' ? 0 : 1">
           @if (level() === 'main') {
-            @if (view() === 'transactions' && !profileService.isShared()) {
+            @if (view() === 'transactions' && !bookService.isShared()) {
               <button
                 type="button"
                 role="menuitem"
@@ -158,7 +158,7 @@ import { SyncStatus } from './sync-status'
                 <span class="flex-1">{{ 'transfers.open' | transloco }}</span>
               </button>
             }
-            @if (view() === 'transactions' && !profileService.isShared()) {
+            @if (view() === 'transactions' && !bookService.isShared()) {
               <!-- Debts (debt.md Q9): the debts page under the Wallets tab. -->
               <button
                 type="button"
@@ -176,7 +176,7 @@ import { SyncStatus } from './sync-status'
                 />
               </button>
             }
-            @if (view() === 'transactions' && !profileService.isShared()) {
+            @if (view() === 'transactions' && !bookService.isShared()) {
               <!-- Events (event.md Q6): the events page under the Transactions tab. -->
               <button
                 type="button"
@@ -194,7 +194,7 @@ import { SyncStatus } from './sync-status'
                 />
               </button>
             }
-            @if (view() === 'transactions' && !profileService.isShared()) {
+            @if (view() === 'transactions' && !bookService.isShared()) {
               <!-- Recurring (recurring.md Q5): the rules page in Account. -->
               <button
                 type="button"
@@ -260,7 +260,7 @@ import { SyncStatus } from './sync-status'
   `,
 })
 export class TransactionsHeader {
-  protected profileService = inject(ProfileService)
+  protected bookService = inject(BookService)
   protected transactionService = inject(TransactionService)
   private transferService = inject(TransferService)
   private reportService = inject(ReportService)

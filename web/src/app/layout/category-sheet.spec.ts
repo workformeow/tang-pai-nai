@@ -83,7 +83,7 @@ describe('CategorySheet', () => {
   const wallet = (id: string, extra: object = {}) => {
     putRow(db, 'wallets', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       name: id,
       currencyCode: 'THB',
       initialBalance: 0,
@@ -113,7 +113,7 @@ describe('CategorySheet', () => {
   const category = (id: string, extra: object = {}) => {
     putRow(db, 'categories', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       type: 'expense',
       parentId: null,
       name: id,
@@ -146,7 +146,7 @@ describe('CategorySheet', () => {
     trusted.set(true)
     online.set(true)
     toastState.dismiss()
-    putRow(db, 'profiles', {
+    putRow(db, 'books', {
       id: 'p1',
       name: 'Home',
       icon: 'lucideHouse',
@@ -251,7 +251,7 @@ describe('CategorySheet', () => {
     ])
   })
 
-  it('shows no wallets row while the profile has no open wallet', async () => {
+  it('shows no wallets row while the book has no open wallet', async () => {
     categories.open({ mode: 'create', type: 'expense', parentId: null })
     await settle()
     expect(row(th.categories.usedIn)).toBeUndefined()
@@ -340,7 +340,7 @@ describe('CategorySheet', () => {
     const transaction = (id: string, categoryId: string) => {
       putRow(db, 'transactions', {
         id,
-        profileId: 'p1',
+        bookId: 'p1',
         walletId: 'w',
         categoryId,
         amount: 1000,
@@ -451,7 +451,7 @@ describe('CategorySheet', () => {
     const transaction = (id: string, categoryId: string, walletId: string) => {
       putRow(db, 'transactions', {
         id,
-        profileId: 'p1',
+        bookId: 'p1',
         walletId,
         categoryId,
         amount: 1000,
@@ -567,7 +567,7 @@ describe('CategorySheet', () => {
     offline.write((tx) =>
       queueWrite(tx, 'categories', 'upsert', {
         id: 'c9',
-        profileId: 'p1',
+        bookId: 'p1',
         type: 'expense',
         parentId: 'Food',
         name: 'Coffee',

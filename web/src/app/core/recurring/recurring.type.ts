@@ -31,7 +31,7 @@ export interface RepeatValues extends Omit<RecurringSchedule, 'startOn'> {
 /** A rule as the device stores it (docs/features/recurring.md → Data model). */
 export interface RecurringRule extends RecurringSchedule {
   id: string
-  profileId: string
+  bookId: string
   kind: RecurringKind
   /** A transaction's wallet, or the wallet a transfer leaves. */
   walletId: string
@@ -104,8 +104,8 @@ export interface Occurrence {
 export const RECURRING_LIMITS = {
   INTERVAL_MAX: 99,
   COUNT_MAX: 999,
-  /** Live rules per profile (rule 1). */
-  PER_PROFILE: 100,
+  /** Live rules per book (rule 1). */
+  PER_BOOK: 100,
   /** Occurrences one rule records in one pass (rule 7). */
   PASS_MAX: 400,
   /** How far "อนาคต" shows occurrences to come (rule 17, Q8). */

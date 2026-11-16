@@ -6,7 +6,7 @@ import { HlmButton } from '@spartan-ng/helm/button'
 import { WalletService } from '@/core/wallet'
 import { EmptyState } from '@/shared/components/empty-state'
 
-/** Wallet rule 12: the current profile has no wallet yet, so the tabs ask for the first one. */
+/** Wallet rule 12: the current book has no wallet yet, so the tabs ask for the first one. */
 @Component({
   selector: 'app-wallet-first-step',
   imports: [TranslocoPipe, NgIcon, HlmButton, EmptyState],

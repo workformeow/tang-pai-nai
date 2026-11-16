@@ -1,8 +1,8 @@
 import { computed, inject, Service, signal } from '@angular/core'
+import { BookService } from '@/core/book'
 import { CATEGORY_TABLE } from '@/core/category'
 import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
-import { ProfileService } from '@/core/profile'
 import { EVENT_TABLE, TRANSACTION_TABLE, TransactionService } from '@/core/transaction'
 import { WALLET_TABLE, WalletService } from '@/core/wallet'
 import { EVENT_LIMITS } from './event.type'
@@ -24,29 +24,29 @@ import type {
 export class EventService {
   private offlineService = inject(OfflineService)
   private syncService = inject(SyncService)
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
   private walletService = inject(WalletService)
   private transactionService = inject(TransactionService)
 
-  canWrite = this.profileService.canWrite
-  serverDown = this.profileService.serverDown
+  canWrite = this.bookService.canWrite
+  serverDown = this.bookService.serverDown
 
   /** The open event sheet (the events pages render it). */
   sheet = signal<EventSheetState | null>(null)
 
-  /** The current profile's live events with their totals, by `startOn` desc. */
+  /** The current book's live events with their totals, by `startOn` desc. */
   items = computed<EventItem[]>(() => {
-    const profileId = this.profileService.current()?.id
+    const bookId = this.bookService.current()?.id
     const today = this.transactionService.today()
-    if (!profileId) {
+    if (!bookId) {
       return []
     }
     return this.read((db) => {
       const events = db
         .selectObjects(
-          `SELECT * FROM ${EVENT_TABLE} WHERE profile_id = ? AND deleted_at IS NULL
+          `SELECT * FROM ${EVENT_TABLE} WHERE book_id = ? AND deleted_at IS NULL
             ORDER BY start_on DESC, created_at DESC, id DESC`,
-          [profileId]
+          [bookId]
         )
         .map((row) => toEvent(fromSql(EVENT_TABLE, row)))
       // Event rule 4, in one query: every live tagged row, `excludeFromReport` ones too.
@@ -59,9 +59,9 @@ export class EventService {
            JOIN ${TRANSACTION_TABLE} t ON t.event_id = e.id AND t.deleted_at IS NULL
            JOIN ${CATEGORY_TABLE} c ON c.id = t.category_id
            JOIN ${WALLET_TABLE} w ON w.id = t.wallet_id
-          WHERE e.profile_id = ? AND e.deleted_at IS NULL
+          WHERE e.book_id = ? AND e.deleted_at IS NULL
           GROUP BY t.event_id, w.currency_code`,
-        [profileId]
+        [bookId]
       )
       const byEvent = new Map<string, { money: EventMoney[]; count: number; wallets: number }>()
       for (const row of sums) {
@@ -98,14 +98,14 @@ export class EventService {
   })
   openItems = computed(() => this.items().filter((item) => !item.event.isClosed))
   closedItems = computed(() => this.items().filter((item) => item.event.isClosed))
-  /** Event rule 1: at most 50 open events per profile. */
-  atLimit = computed(() => this.openItems().length >= EVENT_LIMITS.OPEN_PER_PROFILE)
+  /** Event rule 1: at most 50 open events per book. */
+  atLimit = computed(() => this.openItems().length >= EVENT_LIMITS.OPEN_PER_BOOK)
 
   item(id: string): EventItem | null {
     return this.items().find((item) => item.event.id === id) ?? null
   }
 
-  /** A live event of any profile on this device. */
+  /** A live event of any book on this device. */
   byId(id: string): TripEvent | null {
     return this.read((db) => {
       const row = find(db, id)
@@ -143,7 +143,7 @@ export class EventService {
     )
   }
 
-  /** Creates (`id` null) or updates an event of the current profile; a fix drops its op. */
+  /** Creates (`id` null) or updates an event of the current book; a fix drops its op. */
   save(id: string | null, values: EventValues, fixOpId: string | null = null): string {
     const now = Date.now()
     const rowId = id ?? uuidv7(now)
@@ -154,10 +154,10 @@ export class EventService {
         ...refused,
         ...current,
         id: rowId,
-        profileId:
-          current?.profileId ??
-          (typeof refused?.['profileId'] === 'string' ? refused['profileId'] : null) ??
-          this.profileService.current()?.id ??
+        bookId:
+          current?.bookId ??
+          (typeof refused?.['bookId'] === 'string' ? refused['bookId'] : null) ??
+          this.bookService.current()?.id ??
           '',
         name: values.name.trim(),
         icon: values.icon,
@@ -256,7 +256,7 @@ const find = (db: LocalDatabase, id: string): TripEvent | null => {
 
 export const toEvent = (row: Record<string, unknown>): TripEvent => ({
   id: String(row['id']),
-  profileId: String(row['profileId']),
+  bookId: String(row['bookId']),
   name: typeof row['name'] === 'string' ? row['name'] : '',
   icon: typeof row['icon'] === 'string' ? row['icon'] : '',
   color: typeof row['color'] === 'string' ? row['color'] : '',

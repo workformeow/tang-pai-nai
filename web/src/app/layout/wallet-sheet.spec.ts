@@ -83,7 +83,7 @@ describe('WalletSheet', () => {
   const wallet = (id: string, extra: object = {}) => {
     putRow(db, 'wallets', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       name: id,
       currencyCode: 'THB',
       initialBalance: 0,
@@ -104,7 +104,7 @@ describe('WalletSheet', () => {
   const category = (id: string, extra: object = {}) => {
     putRow(db, 'categories', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       type: 'expense',
       parentId: null,
       name: id,
@@ -148,7 +148,7 @@ describe('WalletSheet', () => {
     trusted.set(true)
     online.set(true)
     toastState.dismiss()
-    putRow(db, 'profiles', {
+    putRow(db, 'books', {
       id: 'p1',
       name: 'Home',
       icon: 'lucideHouse',
@@ -450,7 +450,7 @@ describe('WalletSheet', () => {
     db.transaction((tx) =>
       queueWrite(tx, 'wallets', 'upsert', {
         id: 'w9',
-        profileId: 'p1',
+        bookId: 'p1',
         name: 'cash',
         currencyCode: 'THB',
         initialBalance: 100,

@@ -2,8 +2,8 @@ import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { provideRouter, Router } from '@angular/router'
 import { TranslocoTestingModule } from '@jsverse/transloco'
+import { BookService } from '@/core/book'
 import th from '@/core/i18n/th.json'
-import { ProfileService } from '@/core/profile'
 import { TransactionService } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import { BottomTabBar } from './bottom-tab-bar'
@@ -27,7 +27,7 @@ describe('BottomTabBar', () => {
       providers: [
         provideRouter([]),
         { provide: WalletService, useValue: { hasWallet } },
-        { provide: ProfileService, useValue: { current, isShared, canWrite } },
+        { provide: BookService, useValue: { current, isShared, canWrite } },
         { provide: TransactionService, useValue: { open } },
       ],
     })
@@ -44,7 +44,7 @@ describe('BottomTabBar', () => {
     canWrite.set(true)
   })
 
-  it('sends ➕ to the Transactions tab while there is no profile or wallet (wallet rule 12)', () => {
+  it('sends ➕ to the Transactions tab while there is no book or wallet (wallet rule 12)', () => {
     hasWallet.set(false)
     current.set({ id: 'p1' })
     const fixture = render()
@@ -54,7 +54,7 @@ describe('BottomTabBar', () => {
     expect(open).not.toHaveBeenCalled()
   })
 
-  it('opens the transaction form once the profile has a wallet', () => {
+  it('opens the transaction form once the book has a wallet', () => {
     hasWallet.set(true)
     current.set({ id: 'p1' })
     const fixture = render()
@@ -62,7 +62,7 @@ describe('BottomTabBar', () => {
     expect(open).toHaveBeenCalledWith({ mode: 'create' })
   })
 
-  it("turns ➕ off in a shared profile that can't be written now (sharing rule 10)", () => {
+  it("turns ➕ off in a shared book that can't be written now (sharing rule 10)", () => {
     hasWallet.set(true)
     current.set({ id: 'pz' })
     isShared.set(true)

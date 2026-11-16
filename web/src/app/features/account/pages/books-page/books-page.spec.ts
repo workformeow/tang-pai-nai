@@ -5,12 +5,12 @@ import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angul
 import type { ParamMap } from '@angular/router'
 import { BehaviorSubject } from 'rxjs'
 import { TranslocoTestingModule } from '@jsverse/transloco'
+import { BookService } from '@/core/book'
+import type { Book } from '@/core/book'
 import th from '@/core/i18n/th.json'
-import { ProfileService } from '@/core/profile'
-import type { Profile } from '@/core/profile'
-import { ProfilesPage } from './profiles-page'
+import { BooksPage } from './books-page'
 
-const profile = (id: string, name: string, sortOrder: number): Profile => ({
+const book = (id: string, name: string, sortOrder: number): Book => ({
   id,
   name,
   icon: 'lucideHouse',
@@ -22,14 +22,14 @@ const profile = (id: string, name: string, sortOrder: number): Profile => ({
   changeSeq: 1,
 })
 
-describe('ProfilesPage', () => {
-  let fixture: ComponentFixture<ProfilesPage>
+describe('BooksPage', () => {
+  let fixture: ComponentFixture<BooksPage>
   let query: BehaviorSubject<ParamMap>
   let navigate: ReturnType<typeof vi.spyOn>
-  const list = signal<Profile[]>([])
+  const list = signal<Book[]>([])
   const service = {
-    profiles: list,
-    current: signal<Profile | null>(null),
+    books: list,
+    current: signal<Book | null>(null),
     pendingIds: signal(new Set<string>()),
     canWrite: signal(true),
     atLimit: signal(false),
@@ -53,7 +53,7 @@ describe('ProfilesPage', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks()
-    list.set([profile('a', 'Home', 0), profile('b', 'Work', 1), profile('c', 'Shop', 2)])
+    list.set([book('a', 'Home', 0), book('b', 'Work', 1), book('c', 'Shop', 2)])
     service.current.set(list()[0])
     service.pendingIds.set(new Set(['b']))
     service.atLimit.set(false)
@@ -68,40 +68,40 @@ describe('ProfilesPage', () => {
       ],
       providers: [
         provideRouter([]),
-        { provide: ProfileService, useValue: service },
+        { provide: BookService, useValue: service },
         { provide: ActivatedRoute, useValue: { queryParamMap: query } },
       ],
     })
     navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true)
-    fixture = TestBed.createComponent(ProfilesPage)
+    fixture = TestBed.createComponent(BooksPage)
     await settle()
   })
 
-  it('lists the profiles in order, with the current one and a pending one marked', () => {
+  it('lists the books in order, with the current one and a pending one marked', () => {
     const rows = [...page().querySelectorAll('li')].map((li) => li.textContent)
     expect(rows).toHaveLength(3)
-    expect(rows[0]).toContain(th.profiles.currentHere)
-    expect(rows[1]).toContain(th.profiles.pending)
+    expect(rows[0]).toContain(th.books.currentHere)
+    expect(rows[1]).toContain(th.books.pending)
   })
 
-  it('opens a profile in the sheet when its row is tapped', () => {
+  it('opens a book in the sheet when its row is tapped', () => {
     button('แก้ไข Work')?.click()
     expect(service.open).toHaveBeenCalledWith({ mode: 'edit', id: 'b' })
   })
 
   it('shows one drag handle per row in order mode, and none outside it', async () => {
     expect(handle('Home')).toBeNull()
-    button(th.profiles.order)?.click()
+    button(th.books.order)?.click()
     await settle()
     expect(page().querySelectorAll('button[aria-label^="ย้าย"]')).toHaveLength(3)
-    expect(page().textContent).toContain(th.profiles.orderHint)
-    button(th.profiles.orderDone)?.click()
+    expect(page().textContent).toContain(th.books.orderHint)
+    button(th.books.orderDone)?.click()
     await settle()
     expect(handle('Home')).toBeNull()
   })
 
   it('moves a row with the arrow keys on its handle', async () => {
-    button(th.profiles.order)?.click()
+    button(th.books.order)?.click()
     await settle()
     handle('Work').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp' }))
     expect(service.moveTo).toHaveBeenLastCalledWith('b', 0)
@@ -119,10 +119,10 @@ describe('ProfilesPage', () => {
     })
   })
 
-  it('hides "add" at 20 profiles and says why', async () => {
+  it('hides "add" at 20 books and says why', async () => {
     service.atLimit.set(true)
     await settle()
-    expect(button(th.profiles.add)).toBeUndefined()
-    expect(page().textContent).toContain(th.profiles.limit)
+    expect(button(th.books.add)).toBeUndefined()
+    expect(page().textContent).toContain(th.books.limit)
   })
 })

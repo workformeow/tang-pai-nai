@@ -9,11 +9,11 @@ import { NetworkStatusService } from '@/core/network'
 import { findOp, listOps, OfflineService, putRow, SyncService } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
-import { ProfileService } from './profile.service'
+import { BookService } from './book.service'
 
-describe('ProfileService', () => {
+describe('BookService', () => {
   let db: LocalDatabase
-  let service: ProfileService
+  let service: BookService
   const changes = signal(0)
   const trusted = signal(true)
   const online = signal(true)
@@ -63,10 +63,10 @@ describe('ProfileService', () => {
   })
   /** A row as a pull would write it, outside the outbox. */
   const pulled = (value: ReturnType<typeof row>) => {
-    putRow(db, 'profiles', value)
+    putRow(db, 'books', value)
     changes.update((n) => n + 1)
   }
-  const names = () => service.profiles().map((profile) => profile.name)
+  const names = () => service.books().map((book) => book.name)
   const ops = () => listOps(db, 'pending')
   const values = { name: ' Shop ', icon: 'lucideStore', color: '#ea580c' }
 
@@ -89,7 +89,7 @@ describe('ProfileService', () => {
       ],
     })
     TestBed.inject(AuthStore).user.set(user())
-    service = TestBed.inject(ProfileService)
+    service = TestBed.inject(BookService)
     TestBed.tick()
   }
 
@@ -109,7 +109,7 @@ describe('ProfileService', () => {
 
   afterEach(() => db.close())
 
-  it('lists live profiles by sortOrder, then createdAt, without tombstones', () => {
+  it('lists live books by sortOrder, then createdAt, without tombstones', () => {
     start()
     pulled(row('p1', 'B', 1))
     pulled(row('p2', 'A', 0, { createdAt: 2000 }))
@@ -118,8 +118,8 @@ describe('ProfileService', () => {
     expect(names()).toEqual(['C', 'A', 'B'])
   })
 
-  it('shows the profile stored for this user on this device, else the first (rule 6)', () => {
-    localStorage.setItem('tpn-profile:u1', 'p2')
+  it('shows the book stored for this user on this device, else the first (rule 6)', () => {
+    localStorage.setItem('tpn-book:u1', 'p2')
     start()
     pulled(row('p1', 'One', 0))
     pulled(row('p2', 'Two', 1))
@@ -128,25 +128,25 @@ describe('ProfileService', () => {
     expect(service.current()?.id).toBe('p1')
   })
 
-  it('creates a profile last in the order, queues it and makes it current', () => {
+  it('creates a book last in the order, queues it and makes it current', () => {
     start()
     pulled(row('p1', 'Home', 4))
     const id = service.save(null, values)
     expect(service.byId(id)).toMatchObject({ name: 'Shop', sortOrder: 5, deletedAt: null })
-    expect(ops()[0]).toMatchObject({ table: 'profiles', rowId: id, op: 'upsert', baseSeq: null })
+    expect(ops()[0]).toMatchObject({ table: 'books', rowId: id, op: 'upsert', baseSeq: null })
     expect(service.current()?.id).toBe(id)
-    expect(localStorage.getItem('tpn-profile:u1')).toBe(id)
+    expect(localStorage.getItem('tpn-book:u1')).toBe(id)
   })
 
-  it('keeps the current profile in sessionStorage on an untrusted device', () => {
+  it('keeps the current book in sessionStorage on an untrusted device', () => {
     trusted.set(false)
     start()
     const id = service.save(null, values)
-    expect(sessionStorage.getItem('tpn-profile:u1')).toBe(id)
-    expect(localStorage.getItem('tpn-profile:u1')).toBeNull()
+    expect(sessionStorage.getItem('tpn-book:u1')).toBe(id)
+    expect(localStorage.getItem('tpn-book:u1')).toBeNull()
   })
 
-  it('edits a profile in place: same order, same current, baseSeq from the row', () => {
+  it('edits a book in place: same order, same current, baseSeq from the row', () => {
     start()
     pulled(row('p1', 'Home', 0))
     pulled(row('p2', 'Work', 1))
@@ -161,7 +161,7 @@ describe('ProfileService', () => {
     pulled(row('p1', 'Home', 0))
     db.exec(
       `INSERT INTO outbox (op_id, tbl, row_id, op, row, base_seq, created_at, status, code)
-       VALUES ('o1', 'profiles', 'p9', 'upsert', ?, NULL, 1, 'rejected', 'CONFLICT')`,
+       VALUES ('o1', 'books', 'p9', 'upsert', ?, NULL, 1, 'rejected', 'CONFLICT')`,
       [JSON.stringify({ id: 'p9', name: 'Home', icon: 'lucideStar', color: '#2563eb' })]
     )
     service.openFix('o1')
@@ -176,8 +176,8 @@ describe('ProfileService', () => {
     expect(service.current()?.name).toBe('Home 2')
   })
 
-  it('deletes a profile as a tombstone and moves to the first one, quietly (rule 8)', () => {
-    localStorage.setItem('tpn-profile:u1', 'p2')
+  it('deletes a book as a tombstone and moves to the first one, quietly (rule 8)', () => {
+    localStorage.setItem('tpn-book:u1', 'p2')
     start()
     pulled(row('p1', 'Home', 0))
     pulled(row('p2', 'Work', 1))
@@ -186,12 +186,12 @@ describe('ProfileService', () => {
     expect(names()).toEqual(['Home'])
     expect(ops()[0]).toMatchObject({ rowId: 'p2', op: 'delete' })
     expect(service.current()?.id).toBe('p1')
-    expect(localStorage.getItem('tpn-profile:u1')).toBe('p1')
+    expect(localStorage.getItem('tpn-book:u1')).toBe('p1')
     expect(toastState.toasts()).toHaveLength(0)
   })
 
-  it('says so when the current profile was deleted on another device (rule 9)', () => {
-    localStorage.setItem('tpn-profile:u1', 'p2')
+  it('says so when the current book was deleted on another device (rule 9)', () => {
+    localStorage.setItem('tpn-book:u1', 'p2')
     start()
     pulled(row('p1', 'Home', 0))
     pulled(row('p2', 'Work', 1))
@@ -204,7 +204,7 @@ describe('ProfileService', () => {
     ])
   })
 
-  it('moves a profile and rewrites sortOrder only where it changed (rule 7)', () => {
+  it('moves a book and rewrites sortOrder only where it changed (rule 7)', () => {
     start()
     pulled(row('a', 'A', 0))
     pulled(row('b', 'B', 1))
@@ -218,7 +218,7 @@ describe('ProfileService', () => {
     expect(ops()).toHaveLength(3)
   })
 
-  it('knows a taken name in any case, except the profile itself', () => {
+  it('knows a taken name in any case, except the book itself', () => {
     start()
     pulled(row('p1', 'Home', 0))
     expect(service.nameTaken(' home ', null)).toBe(true)
@@ -237,7 +237,7 @@ describe('ProfileService', () => {
     expect(service.ready()).toBe(true)
   })
 
-  it('keeps a new device on its first pull until the round ends, profiles in or not (loading.md rule 4)', () => {
+  it('keeps a new device on its first pull until the round ends, books in or not (loading.md rule 4)', () => {
     canSync.set(true)
     start()
     expect(service.firstPull()).toBe(true)
@@ -281,9 +281,9 @@ describe('ProfileService', () => {
     expect(service.canWrite()).toBe(true)
   })
 
-  describe('a shared profile in use (sharing rules 10, 11)', () => {
+  describe('a shared book in use (sharing rules 10, 11)', () => {
     const shared = (role: 'editor' | 'viewer', status: 'loading' | 'ready' = 'ready') => ({
-      profile: { ...row('pz', 'Family', 0), changeSeq: null },
+      book: { ...row('pz', 'Family', 0), changeSeq: null },
       role,
       owner: { id: 'z', displayName: 'Dad' },
       status,
@@ -294,14 +294,14 @@ describe('ProfileService', () => {
       offline.leaveShared.mockClear()
     })
 
-    it('is the current profile while in use, never stored, and an own pick ends it', () => {
+    it('is the current book while in use, never stored, and an own pick ends it', () => {
       pulled(row('p1', 'Home', 0))
       start()
       service.shared.set(shared('editor'))
       offline.sharedActive.set(true)
       expect(service.current()?.name).toBe('Family')
       expect(service.isShared()).toBe(true)
-      expect(localStorage.getItem('tpn-profile:u1')).toBeNull()
+      expect(localStorage.getItem('tpn-book:u1')).toBeNull()
       service.select('p1')
       expect(service.shared()).toBeNull()
       expect(offline.leaveShared).toHaveBeenCalled()
@@ -334,10 +334,10 @@ describe('ProfileService', () => {
   })
 
   describe('with wallets (wallet rule 11)', () => {
-    const wallet = (id: string, profileId: string, extra: object = {}) => {
+    const wallet = (id: string, bookId: string, extra: object = {}) => {
       putRow(db, 'wallets', {
         id,
-        profileId,
+        bookId,
         name: id,
         currencyCode: 'THB',
         initialBalance: 0,
@@ -370,7 +370,7 @@ describe('ProfileService', () => {
       expect(service.walletCount('p1')).toBe(2)
     })
 
-    it("tombstones the profile's wallets in the same write as the profile", () => {
+    it("tombstones the book's wallets in the same write as the book", () => {
       start()
       pulled(row('p1', 'Home', 0))
       pulled(row('p2', 'Work', 1))
@@ -381,23 +381,23 @@ describe('ProfileService', () => {
       expect(liveWallets()).toEqual(['w2'])
       expect(ops().map((op) => `${op.table}:${op.rowId}:${op.op}`)).toEqual([
         'wallets:w1:delete',
-        'profiles:p1:delete',
+        'books:p1:delete',
       ])
     })
 
-    it("counts and tombstones the profile's transactions with it (transaction rule 9)", () => {
+    it("counts and tombstones the book's transactions with it (transaction rule 9)", () => {
       start()
       pulled(row('p1', 'Home', 0))
       pulled(row('p2', 'Work', 1))
       wallet('w1', 'p1')
-      for (const [id, profileId, deletedAt] of [
+      for (const [id, bookId, deletedAt] of [
         ['t1', 'p1', null],
         ['t2', 'p1', 5],
         ['t3', 'p2', null],
       ] as const) {
         putRow(db, 'transactions', {
           id,
-          profileId,
+          bookId,
           walletId: 'w1',
           categoryId: 'c1',
           amount: 100,
@@ -423,7 +423,7 @@ describe('ProfileService', () => {
       )
     })
 
-    it('tombstones live wallets of a profile deleted on another device', () => {
+    it('tombstones live wallets of a book deleted on another device', () => {
       start()
       pulled(row('p1', 'Home', 0))
       pulled(row('p2', 'Work', 1))
@@ -459,7 +459,7 @@ describe('ProfileService', () => {
         )
         .map((r) => [r['name'], r['type'], r['parent_id'] === null ? 'top' : 'child'])
 
-    it('writes the default set with a new profile, parents first, in the same write', () => {
+    it('writes the default set with a new book, parents first, in the same write', () => {
       start()
       const id = service.save(null, values)
       const all = categories()
@@ -471,9 +471,9 @@ describe('ProfileService', () => {
       ])
       expect(all.filter(([, type]) => type === 'income')).toHaveLength(6)
       const pushed = ops().map((op) => op.table)
-      expect(pushed[0]).toBe('profiles')
+      expect(pushed[0]).toBe('books')
       expect(pushed.filter((table) => table === 'categories')).toHaveLength(27)
-      expect(db.selectValue('SELECT count(*) FROM categories WHERE profile_id = ?', [id])).toBe(27)
+      expect(db.selectValue('SELECT count(*) FROM categories WHERE book_id = ?', [id])).toBe(27)
     })
 
     it('names the default set in the language the app shows', () => {
@@ -493,7 +493,7 @@ describe('ProfileService', () => {
       expect(categories()).toHaveLength(0)
     })
 
-    it('tombstones its categories with a deleted profile, and those of one deleted elsewhere', () => {
+    it('tombstones its categories with a deleted book, and those of one deleted elsewhere', () => {
       start()
       const mine = service.save(null, values)
       const other = service.save(null, { ...values, name: 'Other' })
@@ -501,17 +501,16 @@ describe('ProfileService', () => {
       service.remove(mine)
       TestBed.tick()
       expect(
-        db.selectValue(
-          'SELECT count(*) FROM categories WHERE profile_id = ? AND deleted_at IS NULL',
-          [mine]
-        )
+        db.selectValue('SELECT count(*) FROM categories WHERE book_id = ? AND deleted_at IS NULL', [
+          mine,
+        ])
       ).toBe(0)
       pulled(row(other, 'Other', 1, { deletedAt: 5 }))
       TestBed.tick()
       expect(categories()).toHaveLength(0)
     })
 
-    /** A refused create of profile `p9` with two refused categories and one refused wallet. */
+    /** A refused create of book `p9` with two refused categories and one refused wallet. */
     const refusedCreate = () => {
       const insert = (opId: string, table: string, rowId: string, row: object) =>
         db.exec(
@@ -524,9 +523,9 @@ describe('ProfileService', () => {
             JSON.stringify({ id: rowId, createdAt: 1, updatedAt: 1, deletedAt: null, ...row }),
           ]
         )
-      insert('o1', 'profiles', 'p9', { name: 'Home', icon: 'lucideStar', color: '#2563eb' })
+      insert('o1', 'books', 'p9', { name: 'Home', icon: 'lucideStar', color: '#2563eb' })
       const category = {
-        profileId: 'p9',
+        bookId: 'p9',
         type: 'expense',
         icon: 'lucideShapes',
         color: '#475569',
@@ -535,7 +534,7 @@ describe('ProfileService', () => {
       insert('o2', 'categories', 'c1', { ...category, parentId: null, name: 'Food', sortOrder: 0 })
       insert('o3', 'categories', 'c2', { ...category, parentId: 'c1', name: 'Tea', sortOrder: 0 })
       insert('o4', 'wallets', 'w1', {
-        profileId: 'p9',
+        bookId: 'p9',
         name: 'Cash',
         currencyCode: 'THB',
         initialBalance: 0,
@@ -547,7 +546,7 @@ describe('ProfileService', () => {
       })
       insert('o5', 'categories', 'c3', {
         ...category,
-        profileId: 'p1',
+        bookId: 'p1',
         parentId: null,
         name: 'X',
         sortOrder: 0,
@@ -555,7 +554,7 @@ describe('ProfileService', () => {
       changes.update((n) => n + 1)
     }
 
-    it('groups the refused child rows of a refused profile create under it', () => {
+    it('groups the refused child rows of a refused book create under it', () => {
       start()
       pulled(row('p1', 'Work', 0))
       refusedCreate()
@@ -569,14 +568,14 @@ describe('ProfileService', () => {
       ])
     })
 
-    it('sends the refused child rows again when the profile is fixed, with no new set', () => {
+    it('sends the refused child rows again when the book is fixed, with no new set', () => {
       start()
       pulled(row('p1', 'Work', 0))
       refusedCreate()
       service.save('p9', { ...values, name: 'Home 2' }, 'o1')
       expect(listOps(db, 'rejected').map((op) => op.opId)).toEqual(['o5'])
       expect(ops().map((op) => `${op.table}:${op.rowId}`)).toEqual([
-        'profiles:p9',
+        'books:p9',
         'categories:c1',
         'categories:c2',
         'wallets:w1',
@@ -587,7 +586,7 @@ describe('ProfileService', () => {
       ])
     })
 
-    it('discards a refused profile with its refused child rows', () => {
+    it('discards a refused book with its refused child rows', () => {
       start()
       pulled(row('p1', 'Work', 0))
       refusedCreate()

@@ -24,7 +24,7 @@ describe('csv', () => {
     ).toBe('﻿a,b\r\n1,"x,y"\r\n')
   })
 
-  it('keeps an ASCII profile name in the file name and leaves a Thai one out (rule 5)', () => {
+  it('keeps an ASCII book name in the file name and leaves a Thai one out (rule 5)', () => {
     expect(exportFileName('Home budget', '2026-11-09')).toBe(
       'tangpainai-Home-budget-2026-11-09.csv'
     )

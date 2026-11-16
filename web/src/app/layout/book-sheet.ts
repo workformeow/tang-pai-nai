@@ -7,9 +7,9 @@ import { lucideTrash2 } from '@ng-icons/lucide'
 import { toast } from '@spartan-ng/brain/sonner'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
+import { BOOK_LIMITS, BookService } from '@/core/book'
+import type { BookSheetState } from '@/core/book'
 import { LanguageService } from '@/core/i18n'
-import { PROFILE_LIMITS, ProfileService } from '@/core/profile'
-import type { ProfileSheetState } from '@/core/profile'
 import {
   ColorField,
   FORM_IMPORTS,
@@ -17,21 +17,21 @@ import {
   NameIconField,
   withMessage,
 } from '@/shared/components/form'
-import { PROFILE_ICON_NAMES, USER_COLORS, userColor } from '@/shared/components/icon-badge'
+import { BOOK_ICON_NAMES, USER_COLORS, userColor } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
-import type { ProfileFormGroup } from './profile-form.type'
+import type { BookFormGroup } from './book-form.type'
 
 type View = 'form' | 'icons' | 'confirmDelete'
 
 /**
- * The profile form (docs/features/profile.md → Web screens), a compact sheet (DESIGN.md §6): icon +
+ * The book form (docs/features/book.md → Web screens), a compact sheet (DESIGN.md §6): icon +
  * name, the icon opening an icon-and-colour view. Create, edit, "fix" a rejected op, and delete
- * (header icon) after a confirm view. Opened from anywhere through `ProfileService.open()`; the
+ * (header icon) after a confirm view. Opened from anywhere through `BookService.open()`; the
  * shell loads it on first use.
  */
 @Component({
-  selector: 'app-profile-sheet',
+  selector: 'app-book-sheet',
   imports: [
     FORM_IMPORTS,
     TranslocoPipe,
@@ -69,8 +69,8 @@ type View = 'form' | 'icons' | 'confirmDelete'
                         size="icon"
                         type="button"
                         class="tpn-hit size-9 text-destructive"
-                        [disabled]="!profileService.canWrite()"
-                        [attr.aria-label]="'profiles.delete' | transloco"
+                        [disabled]="!bookService.canWrite()"
+                        [attr.aria-label]="'books.delete' | transloco"
                         (click)="view.set('confirmDelete')"
                       >
                         <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
@@ -78,22 +78,20 @@ type View = 'form' | 'icons' | 'confirmDelete'
                     </div>
                   }
                   <div class="flex flex-col gap-5">
-                    @if (!profileService.canWrite()) {
+                    @if (!bookService.canWrite()) {
                       <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
                         {{
-                          (profileService.serverDown()
-                            ? 'sync.serverDownWrite'
-                            : 'profiles.needsOnline'
-                          ) | transloco
+                          (bookService.serverDown() ? 'sync.serverDownWrite' : 'books.needsOnline')
+                            | transloco
                         }}
                       </p>
                     }
                     <app-name-icon-field
                       [control]="f.name"
-                      [label]="'profiles.name' | transloco"
+                      [label]="'books.name' | transloco"
                       [icon]="f.icon.value"
                       [color]="f.color.value"
-                      [iconLabel]="'profiles.changeIcon' | transloco"
+                      [iconLabel]="'books.changeIcon' | transloco"
                       (iconClick)="view.set('icons')"
                     />
                   </div>
@@ -102,9 +100,9 @@ type View = 'form' | 'icons' | 'confirmDelete'
                       hlmBtn
                       type="submit"
                       class="h-11 w-full text-base"
-                      [disabled]="!profileService.canWrite()"
+                      [disabled]="!bookService.canWrite()"
                     >
-                      {{ 'profiles.save' | transloco }}
+                      {{ 'books.save' | transloco }}
                     </button>
                   </div>
                 </app-sheet-frame>
@@ -112,7 +110,7 @@ type View = 'form' | 'icons' | 'confirmDelete'
             }
             @case ('icons') {
               <app-sheet-frame
-                [title]="'profiles.iconHeading' | transloco"
+                [title]="'books.iconHeading' | transloco"
                 leadingIcon="back"
                 [leadingLabel]="'sheet.back' | transloco"
                 (leading)="view.set('form')"
@@ -120,12 +118,12 @@ type View = 'form' | 'icons' | 'confirmDelete'
                 <div class="flex flex-col gap-6">
                   <app-color-field
                     [control]="f.color"
-                    [label]="'profiles.color' | transloco"
+                    [label]="'books.color' | transloco"
                     [colors]="colors"
                   />
                   <app-icon-field
                     [control]="f.icon"
-                    [label]="'profiles.icon' | transloco"
+                    [label]="'books.icon' | transloco"
                     [icons]="icons"
                     [color]="f.color.value"
                   />
@@ -134,14 +132,14 @@ type View = 'form' | 'icons' | 'confirmDelete'
             }
             @case ('confirmDelete') {
               <app-sheet-frame
-                [title]="'profiles.delete' | transloco"
+                [title]="'books.delete' | transloco"
                 leadingIcon="back"
                 [leadingLabel]="'sheet.back' | transloco"
                 (leading)="view.set('form')"
               >
                 <div class="flex flex-col gap-2">
                   <p class="text-base font-semibold">
-                    {{ 'profiles.deleteHeading' | transloco: { name: editingName() } }}
+                    {{ 'books.deleteHeading' | transloco: { name: editingName() } }}
                   </p>
                   <p class="text-sm text-muted-foreground">
                     {{ deleteText() }}
@@ -155,7 +153,7 @@ type View = 'form' | 'icons' | 'confirmDelete'
                     class="h-11 w-full text-base"
                     (click)="remove()"
                   >
-                    {{ 'profiles.deleteConfirm' | transloco }}
+                    {{ 'books.deleteConfirm' | transloco }}
                   </button>
                 </div>
               </app-sheet-frame>
@@ -166,48 +164,44 @@ type View = 'form' | 'icons' | 'confirmDelete'
     </hlm-drawer>
   `,
 })
-export class ProfileSheet {
+export class BookSheet {
   private nnfb = inject(NonNullableFormBuilder)
   private transloco = inject(TranslocoService)
   private languageService = inject(LanguageService)
-  protected profileService = inject(ProfileService)
+  protected bookService = inject(BookService)
 
-  protected icons = PROFILE_ICON_NAMES
+  protected icons = BOOK_ICON_NAMES
   protected colors = USER_COLORS
-  protected state = this.profileService.sheet
+  protected state = this.bookService.sheet
   protected view = signal<View>('form')
   /** How deep the view is: a deeper one slides in from the right, going back from the left. */
   protected depth = computed(() => (this.view() === 'form' ? 0 : 1))
 
-  /** The profile being edited (edit and fix), null when creating. */
+  /** The book being edited (edit and fix), null when creating. */
   protected editingId = computed(() => {
     const state = this.state()
     return state && state.mode !== 'create' ? state.id : null
   })
   protected editingName = computed(() => {
     const id = this.editingId()
-    return (id && this.profileService.byId(id)?.name) ?? ''
+    return (id && this.bookService.byId(id)?.name) ?? ''
   })
   /**
    * Rule 8 (category rule 12, transaction rule 9): the confirm step says how many wallets,
-   * categories and transactions go with the profile.
+   * categories and transactions go with the book.
    */
   protected deleteText = computed(() => {
     this.languageService.language()
     const id = this.editingId()
-    const t = (key: string, params?: object) => this.transloco.translate(`profiles.${key}`, params)
-    // [one, many] translation keys and how many go with the profile.
+    const t = (key: string, params?: object) => this.transloco.translate(`books.${key}`, params)
+    // [one, many] translation keys and how many go with the book.
     const counts: [string, string, number][] = [
-      ['deleteWallet', 'deleteWallets', id ? this.profileService.walletCount(id) : 0],
-      ['deleteCategory', 'deleteCategories', id ? this.profileService.categoryCount(id) : 0],
-      [
-        'deleteTransaction',
-        'deleteTransactions',
-        id ? this.profileService.transactionCount(id) : 0,
-      ],
-      ['deleteRule', 'deleteRules', id ? this.profileService.ruleCount(id) : 0],
-      ['deleteDebt', 'deleteDebts', id ? this.profileService.debtCount(id) : 0],
-      ['deleteEvent', 'deleteEvents', id ? this.profileService.eventCount(id) : 0],
+      ['deleteWallet', 'deleteWallets', id ? this.bookService.walletCount(id) : 0],
+      ['deleteCategory', 'deleteCategories', id ? this.bookService.categoryCount(id) : 0],
+      ['deleteTransaction', 'deleteTransactions', id ? this.bookService.transactionCount(id) : 0],
+      ['deleteRule', 'deleteRules', id ? this.bookService.ruleCount(id) : 0],
+      ['deleteDebt', 'deleteDebts', id ? this.bookService.debtCount(id) : 0],
+      ['deleteEvent', 'deleteEvents', id ? this.bookService.eventCount(id) : 0],
     ]
     const items = counts
       .filter(([, , count]) => count > 0)
@@ -221,31 +215,30 @@ export class ProfileSheet {
   protected heading = computed(() => {
     switch (this.state()?.mode) {
       case 'edit':
-        return 'profiles.editHeading'
+        return 'books.editHeading'
       case 'fix':
-        return 'profiles.fixHeading'
+        return 'books.fixHeading'
       default:
-        return 'profiles.createHeading'
+        return 'books.createHeading'
     }
   })
 
   private nameFree: ValidatorFn = (control) =>
-    typeof control.value === 'string' &&
-    this.profileService.nameTaken(control.value, this.editingId())
-      ? { nameTaken: 'profiles.nameTaken' }
+    typeof control.value === 'string' && this.bookService.nameTaken(control.value, this.editingId())
+      ? { nameTaken: 'books.nameTaken' }
       : null
 
-  form: ProfileFormGroup = this.nnfb.group({
+  form: BookFormGroup = this.nnfb.group({
     name: [
       '',
       [
-        withMessage(Validators.required, 'profiles.nameRequired'),
-        withMessage(Validators.pattern(/\S/), 'profiles.nameRequired'),
-        Validators.maxLength(PROFILE_LIMITS.NAME_MAX),
+        withMessage(Validators.required, 'books.nameRequired'),
+        withMessage(Validators.pattern(/\S/), 'books.nameRequired'),
+        Validators.maxLength(BOOK_LIMITS.NAME_MAX),
         this.nameFree,
       ],
     ],
-    icon: [PROFILE_ICON_NAMES[0] as string],
+    icon: [BOOK_ICON_NAMES[0] as string],
     color: [USER_COLORS[0] as string],
   })
 
@@ -265,18 +258,18 @@ export class ProfileSheet {
 
   protected save(): void {
     const state = this.state()
-    if (!state || this.form.invalid || !this.profileService.canWrite()) {
+    if (!state || this.form.invalid || !this.bookService.canWrite()) {
       return
     }
     const value = this.form.getRawValue()
     const fixOpId = state.mode === 'fix' ? state.opId : null
-    this.profileService.save(
+    this.bookService.save(
       this.editingId(),
       { name: value.name, icon: value.icon, color: value.color },
       fixOpId
     )
     toast.success(
-      this.transloco.translate(state.mode === 'create' ? 'profiles.created' : 'profiles.saved')
+      this.transloco.translate(state.mode === 'create' ? 'books.created' : 'books.saved')
     )
     this.finish()
   }
@@ -284,10 +277,10 @@ export class ProfileSheet {
   protected remove(): void {
     const id = this.editingId()
     if (id) {
-      // Read before the delete: the profile is gone from the list right after.
+      // Read before the delete: the book is gone from the list right after.
       const name = this.editingName()
-      this.profileService.remove(id)
-      toast(this.transloco.translate('profiles.deleted', { name }))
+      this.bookService.remove(id)
+      toast(this.transloco.translate('books.deleted', { name }))
     }
     this.finish()
   }
@@ -298,10 +291,10 @@ export class ProfileSheet {
     this.state.set(null)
   }
 
-  private start(state: ProfileSheetState): void {
+  private start(state: BookSheetState): void {
     this.view.set('form')
     if (state.mode === 'create') {
-      this.form.reset({ name: '', icon: PROFILE_ICON_NAMES[0], color: USER_COLORS[0] })
+      this.form.reset({ name: '', icon: BOOK_ICON_NAMES[0], color: USER_COLORS[0] })
       return
     }
     if (state.mode === 'fix') {
@@ -310,11 +303,11 @@ export class ProfileSheet {
       this.form.markAsDirty()
       return
     }
-    const profile = this.profileService.byId(state.id)
-    if (!profile) {
+    const book = this.bookService.byId(state.id)
+    if (!book) {
       this.state.set(null)
       return
     }
-    this.form.reset({ name: profile.name, icon: profile.icon, color: userColor(profile.color) })
+    this.form.reset({ name: book.name, icon: book.icon, color: userColor(book.color) })
   }
 }

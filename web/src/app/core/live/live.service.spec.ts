@@ -123,20 +123,20 @@ describe('LiveService', () => {
     expect(pokes).toBe(1)
   })
 
-  it("hears a shared profile's pokes only while that profile is listened to", async () => {
-    let profilePokes = 0
+  it("hears a shared book's pokes only while that book is listened to", async () => {
+    let bookPokes = 0
     service.listenUser(listener)
-    const stop = service.listenProfile('pa', { ...listener, onPoke: () => profilePokes++ })
+    const stop = service.listenBook('pa', { ...listener, onPoke: () => bookPokes++ })
     TestBed.tick()
     await answerToken('local')
-    stream.poke({ channel: 'profile:pb', seq: 20, deviceId: 'other' })
-    stream.poke({ channel: 'profile:pa', seq: 20, deviceId: 'other' })
+    stream.poke({ channel: 'book:pb', seq: 20, deviceId: 'other' })
+    stream.poke({ channel: 'book:pa', seq: 20, deviceId: 'other' })
     await settle(POKE_DELAY_MS + 50)
-    expect(profilePokes).toBe(1)
+    expect(bookPokes).toBe(1)
     stop()
-    stream.poke({ channel: 'profile:pa', seq: 21, deviceId: 'other' })
+    stream.poke({ channel: 'book:pa', seq: 21, deviceId: 'other' })
     await settle(POKE_DELAY_MS + 50)
-    expect(profilePokes).toBe(1)
+    expect(bookPokes).toBe(1)
     expect(pokes).toBe(0)
   })
 

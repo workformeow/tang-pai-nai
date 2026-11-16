@@ -9,8 +9,8 @@ import {
 } from '@ng-icons/lucide'
 import { toast } from '@spartan-ng/brain/sonner'
 import { HlmButton } from '@spartan-ng/helm/button'
+import { BookService } from '@/core/book'
 import { LanguageService } from '@/core/i18n'
-import { ProfileService } from '@/core/profile'
 import { SharingService } from '@/core/sharing'
 import type { InviteToMe, ShareGroup } from '@/core/sharing'
 import { WalletService } from '@/core/wallet'
@@ -20,7 +20,7 @@ import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 
 /**
  * Account › แชร์กระเป๋า (docs/features/sharing.md → Web screens, mock-up frames 2 and 6): invites
- * to me, the current profile's members and pending invites, wallets shared with nobody, and what
+ * to me, the current book's members and pending invites, wallets shared with nobody, and what
  * others share with me. Online only; offline it shows what was read this session.
  */
 @Component({
@@ -98,9 +98,9 @@ import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
         </section>
       }
 
-      @if (profile(); as current) {
+      @if (book(); as current) {
         <p class="-mb-3 text-sm text-muted-foreground">
-          {{ 'sharing.profileNote' | transloco: { name: current.name } }}
+          {{ 'sharing.bookNote' | transloco: { name: current.name } }}
         </p>
         <section class="flex flex-col gap-3" aria-labelledby="sharing-members">
           <h2 id="sharing-members" class="text-sm font-medium text-muted-foreground">
@@ -223,7 +223,7 @@ import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
             {{ 'sharing.withMe' | transloco }}
           </h2>
           <ul class="divide-y divide-border rounded-xl border border-border bg-card">
-            @for (group of groups(); track group.profileId) {
+            @for (group of groups(); track group.bookId) {
               <li class="flex min-h-15 items-center gap-3 py-2 pr-1 pl-4">
                 <span
                   class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted font-semibold"
@@ -267,7 +267,7 @@ import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 })
 export class SharingPage {
   protected sharingService = inject(SharingService)
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
   private walletService = inject(WalletService)
   private languageService = inject(LanguageService)
   private transloco = inject(TranslocoService)
@@ -277,9 +277,9 @@ export class SharingPage {
   protected busy = signal(false)
   protected loadError = signal<string | null>(null)
 
-  protected profile = this.profileService.current
+  protected book = this.bookService.current
   private owner = computed(() => {
-    const id = this.profile()?.id
+    const id = this.book()?.id
     return id ? this.sharingService.owner(id) : null
   })
   protected members = computed(() => this.owner()?.members ?? [])
@@ -293,9 +293,9 @@ export class SharingPage {
   protected groups = computed(() => this.sharingService.withMe()?.shares ?? [])
 
   constructor() {
-    // Read again whenever the profile changes or the network comes back.
+    // Read again whenever the book changes or the network comes back.
     effect(() => {
-      const id = this.profile()?.id
+      const id = this.book()?.id
       const online = this.sharingService.canCall()
       if (id && online) {
         untracked(() => void this.load(id))
@@ -341,12 +341,9 @@ export class SharingPage {
     }
   }
 
-  private async load(profileId: string): Promise<void> {
+  private async load(bookId: string): Promise<void> {
     try {
-      await Promise.all([
-        this.sharingService.loadOwner(profileId),
-        this.sharingService.loadWithMe(),
-      ])
+      await Promise.all([this.sharingService.loadOwner(bookId), this.sharingService.loadWithMe()])
       this.loadError.set(null)
     } catch (error) {
       this.loadError.set(this.sharingService.failure(error))

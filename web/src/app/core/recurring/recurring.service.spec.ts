@@ -53,7 +53,7 @@ describe('RecurringService', () => {
   const wallet = (id: string, extra: object = {}) =>
     pulled('wallets', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       name: id,
       currencyCode: 'THB',
       initialBalance: 0,
@@ -67,7 +67,7 @@ describe('RecurringService', () => {
   const category = (id: string, type: string, extra: object = {}) =>
     pulled('categories', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       type,
       parentId: null,
       name: id,
@@ -80,7 +80,7 @@ describe('RecurringService', () => {
   const rule = (id: string, extra: object = {}) =>
     pulled('recurring_rules', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       kind: 'transaction',
       walletId: 'bank',
       categoryId: 'rent',
@@ -136,7 +136,7 @@ describe('RecurringService', () => {
     rounds.set(0)
     isSyncing.set(false)
     for (const id of ['p1', 'p2']) {
-      putRow(db, 'profiles', {
+      putRow(db, 'books', {
         ...base,
         id,
         name: id,
@@ -210,11 +210,11 @@ describe('RecurringService', () => {
     expect(nextOn(later)).toBe('2026-12-25')
   })
 
-  it('records what is due when the app opens, in every profile, and says so (rule 7)', () => {
+  it('records what is due when the app opens, in every book, and says so (rule 7)', () => {
     rule('r1')
-    rule('r2', { profileId: 'p2', walletId: 'p2w', categoryId: 'p2c', nextOn: '2026-11-01' })
-    wallet('p2w', { profileId: 'p2' })
-    category('p2c', 'expense', { profileId: 'p2' })
+    rule('r2', { bookId: 'p2', walletId: 'p2w', categoryId: 'p2c', nextOn: '2026-11-01' })
+    wallet('p2w', { bookId: 'p2' })
+    category('p2c', 'expense', { bookId: 'p2' })
     pass()
     expect(rows('transactions', 'r1')).toEqual(['2026-10-01', '2026-11-01'])
     expect(rows('transactions', 'r2')).toEqual(['2026-11-01'])
@@ -239,7 +239,7 @@ describe('RecurringService', () => {
   it('never writes an occurrence this device holds already, live or skipped (rule 9)', () => {
     pulled('transactions', {
       id: occurrenceId('r1', '2026-10-01'),
-      profileId: 'p1',
+      bookId: 'p1',
       walletId: 'bank',
       categoryId: 'rent',
       amount: 900000,
@@ -250,7 +250,7 @@ describe('RecurringService', () => {
     })
     pulled('transactions', {
       id: occurrenceId('r1', '2026-11-01'),
-      profileId: 'p1',
+      bookId: 'p1',
       walletId: 'bank',
       categoryId: 'rent',
       amount: 850000,

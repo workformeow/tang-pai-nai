@@ -8,7 +8,7 @@ import { levelOf, NavHistory, parentOf } from './nav-history'
 
 describe('parentOf', () => {
   it('goes back to the Account tab from a page inside it (owner A1 in #7)', () => {
-    for (const url of ['/account/categories', '/account/profiles?fix=o1', '/account/security#x']) {
+    for (const url of ['/account/categories', '/account/books?fix=o1', '/account/security#x']) {
       expect(parentOf(url)).toBe('/account')
     }
   })

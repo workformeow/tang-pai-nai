@@ -1,5 +1,5 @@
 import { glyphColor, USER_COLORS, userColor } from './user-colors'
-import { FALLBACK_ICON, knownIcon, PROFILE_ICON_NAMES } from './user-icons'
+import { FALLBACK_ICON, knownIcon, BOOK_ICON_NAMES } from './user-icons'
 
 describe('glyphColor', () => {
   it('picks the glyph with the higher contrast', () => {
@@ -44,6 +44,6 @@ describe('knownIcon', () => {
   it('keeps a curated icon and replaces an unknown one', () => {
     expect(knownIcon('lucideStore')).toBe('lucideStore')
     expect(knownIcon('lucideRocket')).toBe(FALLBACK_ICON)
-    expect(PROFILE_ICON_NAMES.every((name) => /^lucide[A-Z]/.test(name))).toBe(true)
+    expect(BOOK_ICON_NAMES.every((name) => /^lucide[A-Z]/.test(name))).toBe(true)
   })
 })

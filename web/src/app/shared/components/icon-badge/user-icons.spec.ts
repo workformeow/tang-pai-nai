@@ -4,7 +4,7 @@ import { TPN_ICONS } from './tpn-icons'
 import {
   FALLBACK_ICON,
   knownIcon,
-  PROFILE_ICON_NAMES,
+  BOOK_ICON_NAMES,
   USER_ICONS,
   WALLET_DEFAULT_ICON,
   WALLET_ICON_GROUPS,
@@ -37,7 +37,7 @@ describe('user icons', () => {
     for (const group of WALLET_ICON_GROUPS) {
       expect(th.iconGroups).toHaveProperty(group.key)
     }
-    expect(PROFILE_ICON_NAMES.every((name) => name.startsWith('lucide'))).toBe(true)
+    expect(BOOK_ICON_NAMES.every((name) => name.startsWith('lucide'))).toBe(true)
   })
 
   it("draws every tpn icon in lucide's style: 24 × 24, 2px round stroke, no fill", () => {

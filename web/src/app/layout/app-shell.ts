@@ -11,11 +11,11 @@ import { RouterOutlet } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import { lucideCloudDownload } from '@ng-icons/lucide'
+import { BookService } from '@/core/book'
 import { CategoryService } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
 import { SyncService } from '@/core/offline'
-import { ProfileService } from '@/core/profile'
 import { NavHistory } from '@/core/routing'
 import type { SharingService } from '@/core/sharing'
 import { TransactionService, TransferService } from '@/core/transaction'
@@ -25,13 +25,13 @@ import { FadeIn } from '@/shared/components/fade'
 import { CustomRangeSheet } from '@/shared/components/period'
 import { Slide } from '@/shared/components/slide'
 import { AppHeader } from './app-header'
+import { BookCreateStep } from './book-create-step'
+import { currentUrl, isBookTab, isWalletTab } from './book-routes'
+import { BookSheet } from './book-sheet'
+import { BookSwitchSheet } from './book-switch-sheet'
 import { BottomTabBar } from './bottom-tab-bar'
 import { CategorySheet } from './category-sheet'
-import { ProfileCreateStep } from './profile-create-step'
-import { currentUrl, isProfileTab, isWalletTab } from './profile-routes'
-import { ProfileSheet } from './profile-sheet'
-import { ProfileSwitchSheet } from './profile-switch-sheet'
-import { SharedProfileStep } from './shared-profile-step'
+import { SharedBookStep } from './shared-book-step'
 import { TransactionSheet } from './transaction-sheet'
 import { TransferSheet } from './transfer-sheet'
 import { ViewWalletSheet } from './view-wallet-sheet'
@@ -39,7 +39,7 @@ import { WalletFirstStep } from './wallet-first-step'
 import { WalletSheet } from './wallet-sheet'
 
 /**
- * Pages about the current profile that a shared one doesn't have (sharing rule 10): its
+ * Pages about the current book that a shared one doesn't have (sharing rule 10): its
  * categories, rules, debts, events, export and sharing are the owner's.
  */
 const OWN_ONLY = [
@@ -61,13 +61,13 @@ const OWN_ONLY = [
     NgIcon,
     AppHeader,
     BottomTabBar,
-    ProfileCreateStep,
-    SharedProfileStep,
-    ProfileSheet,
+    BookCreateStep,
+    SharedBookStep,
+    BookSheet,
     WalletFirstStep,
     WalletSheet,
     CategorySheet,
-    ProfileSwitchSheet,
+    BookSwitchSheet,
     ViewWalletSheet,
     CustomRangeSheet,
     TransactionSheet,
@@ -102,19 +102,19 @@ const OWN_ONLY = [
               </div>
             }
             @case ('create') {
-              <app-profile-create-step />
+              <app-book-create-step />
             }
             @case ('firstWallet') {
               <app-wallet-first-step />
             }
             @case ('sharedOffline') {
-              <app-shared-profile-step reason="offline" />
+              <app-shared-book-step reason="offline" />
             }
             @case ('sharedReports') {
-              <app-shared-profile-step reason="reports" />
+              <app-shared-book-step reason="reports" />
             }
             @case ('sharedMine') {
-              <app-shared-profile-step reason="mine" />
+              <app-shared-book-step reason="mine" />
             }
             @default {
               <router-outlet />
@@ -129,11 +129,11 @@ const OWN_ONLY = [
         [accountDot]="(sharing()?.inviteCount() ?? 0) > 0"
       />
     }
-    @defer (when profileService.switchSheet()) {
-      <app-profile-switch-sheet [(open)]="switchSheetOpen" [sharing]="sharing()" />
+    @defer (when bookService.switchSheet()) {
+      <app-book-switch-sheet [(open)]="switchSheetOpen" [sharing]="sharing()" />
     }
-    @defer (when profileService.sheet() !== null) {
-      <app-profile-sheet />
+    @defer (when bookService.sheet() !== null) {
+      <app-book-sheet />
     }
     @defer (when walletService.sheet() !== null) {
       <app-wallet-sheet />
@@ -161,7 +161,7 @@ const OWN_ONLY = [
 })
 export class AppShell {
   protected keyboardService = inject(KeyboardService)
-  protected profileService = inject(ProfileService)
+  protected bookService = inject(BookService)
   protected walletService = inject(WalletService)
   /** Also keeps its sweep of orphaned sub-categories running (category rule 6). */
   protected categoryService = inject(CategoryService)
@@ -169,7 +169,7 @@ export class AppShell {
   protected transactionService = inject(TransactionService)
   /** Also keeps its sweep of transfers whose wallet was deleted (transfer rule 8). */
   protected transferService = inject(TransferService)
-  protected switchSheetOpen = this.profileService.switchSheet
+  protected switchSheetOpen = this.bookService.switchSheet
   private syncService = inject(SyncService)
   private languageService = inject(LanguageService)
   /** Rows the first pull brought so far, formatted; null until some arrive. */
@@ -208,31 +208,31 @@ export class AppShell {
   protected tab = this.navHistory.tab
 
   /**
-   * Profile rule 5: the data tabs need a profile (wait for a new device's first pull); wallet
+   * Book rule 5: the data tabs need a book (wait for a new device's first pull); wallet
    * rule 12: the Transactions and Wallets tabs then need a wallet.
    */
   protected gate = computed(() => {
     const url = this.url()
-    const shared = this.profileService.shared()
+    const shared = this.bookService.shared()
     if (shared && OWN_ONLY.some((path) => url.startsWith(path))) {
       return 'sharedMine'
     }
-    if (!isProfileTab(url)) {
+    if (!isBookTab(url)) {
       return 'page'
     }
     if (shared) {
       return this.sharedGate(url, shared.status)
     }
-    if (this.profileService.firstPull()) {
+    if (this.bookService.firstPull()) {
       return 'loading'
     }
-    if (this.profileService.current() === null) {
-      return this.profileService.ready() ? 'create' : 'loading'
+    if (this.bookService.current() === null) {
+      return this.bookService.ready() ? 'create' : 'loading'
     }
     return isWalletTab(url) && !this.walletService.hasWallet() ? 'firstWallet' : 'page'
   })
 
-  /** Sharing rule 10: a shared profile shows only online, and has no reports. */
+  /** Sharing rule 10: a shared book shows only online, and has no reports. */
   private sharedGate(url: string, status: 'loading' | 'ready') {
     const online =
       this.networkStatusService.isOnline() && this.networkStatusService.serverReachable()

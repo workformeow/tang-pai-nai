@@ -3,8 +3,8 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router } from '@angular/router'
 import { filter, map } from 'rxjs'
 
-/** The tabs that show a profile's data: the switcher and the create step live there. */
-const PROFILE_TABS = ['/transactions', '/wallets', '/reports']
+/** The tabs that show a book's data: the switcher and the create step live there. */
+const BOOK_TABS = ['/transactions', '/wallets', '/reports']
 
 /** The tabs that need a wallet: the first-wallet step lives there (wallet rule 12). */
 const WALLET_TABS = ['/transactions', '/wallets']
@@ -12,7 +12,7 @@ const WALLET_TABS = ['/transactions', '/wallets']
 const under = (tabs: readonly string[], url: string): boolean =>
   tabs.some((tab) => url === tab || url.startsWith(`${tab}/`) || url.startsWith(`${tab}?`))
 
-export const isProfileTab = (url: string): boolean => under(PROFILE_TABS, url)
+export const isBookTab = (url: string): boolean => under(BOOK_TABS, url)
 
 export const isWalletTab = (url: string): boolean => under(WALLET_TABS, url)
 

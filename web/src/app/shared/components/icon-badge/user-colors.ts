@@ -1,5 +1,5 @@
 /**
- * The colours a user can pick for a profile, wallet or category. User colours are data, the only
+ * The colours a user can pick for a book, wallet or category. User colours are data, the only
  * raw colours allowed (DESIGN.md §3). Each is dark enough for a **white** glyph at ≥ 4.5:1
  * (owner's choice in #7: white icons everywhere), so `glyphColor` picks white on all of them.
  */

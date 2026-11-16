@@ -1,11 +1,11 @@
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { TranslocoTestingModule } from '@jsverse/transloco'
+import { BookService } from '@/core/book'
 import th from '@/core/i18n/th.json'
-import { ProfileService } from '@/core/profile'
-import { ProfileSwitcher } from './profile-switcher'
+import { BookSwitcher } from './book-switcher'
 
-describe('ProfileSwitcher', () => {
+describe('BookSwitcher', () => {
   const current = signal({ id: 'p1', name: 'บ้าน', icon: 'lucideHouse', color: '#2563eb' })
   const isShared = signal(false)
   const switchSheet = signal(false)
@@ -19,9 +19,9 @@ describe('ProfileSwitcher', () => {
           preloadLangs: true,
         }),
       ],
-      providers: [{ provide: ProfileService, useValue: { current, isShared, switchSheet } }],
+      providers: [{ provide: BookService, useValue: { current, isShared, switchSheet } }],
     })
-    const fixture = TestBed.createComponent(ProfileSwitcher)
+    const fixture = TestBed.createComponent(BookSwitcher)
     fixture.detectChanges()
     return { fixture, element: fixture.nativeElement as HTMLElement }
   }
@@ -35,15 +35,13 @@ describe('ProfileSwitcher', () => {
     const { element } = render()
     const button = element.querySelector('button')!
     expect(button.classList).toContain('tpn-glass')
-    expect(button.getAttribute('aria-label')).toBe(
-      th.profiles.switchLabel.replace('{{name}}', 'บ้าน')
-    )
+    expect(button.getAttribute('aria-label')).toBe(th.books.switchLabel.replace('{{name}}', 'บ้าน'))
     expect(button.textContent.trim()).toBe('')
     button.click()
     expect(switchSheet()).toBe(true)
   })
 
-  it('wears a people badge for a profile shared with me', () => {
+  it('wears a people badge for a book shared with me', () => {
     const { fixture, element } = render()
     expect(element.querySelector('.bg-primary')).toBeNull()
     isShared.set(true)

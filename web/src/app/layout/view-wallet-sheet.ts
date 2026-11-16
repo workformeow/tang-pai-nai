@@ -5,8 +5,8 @@ import { NgIcon, provideIcons } from '@ng-icons/core'
 import { lucideCheck, lucideChevronDown, lucidePlus, lucideWallet } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
+import { BookService } from '@/core/book'
 import { LanguageService } from '@/core/i18n'
-import { ProfileService } from '@/core/profile'
 import { TransactionService } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
@@ -80,8 +80,8 @@ import { formatMoney } from '@/shared/utils'
                   </li>
                 }
               </ul>
-              <!-- As on the Wallets tab: not in a shared profile (sharing rule 10), not past 20. -->
-              @if (!profileService.isShared()) {
+              <!-- As on the Wallets tab: not in a shared book (sharing rule 10), not past 20. -->
+              @if (!bookService.isShared()) {
                 @if (walletService.atLimit()) {
                   <p class="text-sm text-muted-foreground">{{ 'wallets.limit' | transloco }}</p>
                 } @else {
@@ -174,7 +174,7 @@ import { formatMoney } from '@/shared/utils'
 export class ViewWalletSheet {
   protected walletService = inject(WalletService)
   private transactionService = inject(TransactionService)
-  protected profileService = inject(ProfileService)
+  protected bookService = inject(BookService)
   private languageService = inject(LanguageService)
 
   open = model(false)

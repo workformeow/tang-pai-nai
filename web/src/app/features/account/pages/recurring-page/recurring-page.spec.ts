@@ -47,7 +47,7 @@ describe('RecurringPage', () => {
   const rule = (id: string, extra: object = {}) =>
     put('recurring_rules', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       kind: 'transaction',
       walletId: 'bank',
       categoryId: 'rent',
@@ -68,7 +68,7 @@ describe('RecurringPage', () => {
   const wallet = (id: string, extra: object = {}) =>
     put('wallets', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       name: id,
       currencyCode: 'THB',
       initialBalance: 0,
@@ -90,7 +90,7 @@ describe('RecurringPage', () => {
     toastState.dismiss()
     db = await openTestDatabase()
     localStorage.clear()
-    put('profiles', { id: 'p1', name: 'Home', icon: 'lucideHouse', color: '#16a34a', sortOrder: 0 })
+    put('books', { id: 'p1', name: 'Home', icon: 'lucideHouse', color: '#16a34a', sortOrder: 0 })
     putRow(db, 'currencies', {
       code: 'THB',
       minorUnit: 2,
@@ -125,7 +125,7 @@ describe('RecurringPage', () => {
     wallet('old', { sortOrder: 2, isArchived: true })
     put('categories', {
       id: 'rent',
-      profileId: 'p1',
+      bookId: 'p1',
       type: 'expense',
       parentId: null,
       name: 'Rent',

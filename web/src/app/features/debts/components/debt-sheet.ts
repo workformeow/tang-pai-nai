@@ -20,11 +20,11 @@ import {
 import { toast } from '@spartan-ng/brain/sonner'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
+import { BookService } from '@/core/book'
 import { CATEGORY_DEFAULT_ICON, CategoryService } from '@/core/category'
 import { DEBT_LIMITS, DEBTS_ROUTE, DebtService, toDebt } from '@/core/debt'
 import type { DebtCountAs, DebtDirection, PlanValues } from '@/core/debt'
 import { LanguageService } from '@/core/i18n'
-import { ProfileService } from '@/core/profile'
 import { describeRepeat, shortDate } from '@/core/recurring'
 import { NavHistory } from '@/core/routing'
 import {
@@ -516,7 +516,7 @@ type View = 'form' | 'wallet' | 'category' | 'note' | 'plan' | 'planWallet' | 'c
                 (leading)="view.set('form')"
               >
                 <app-debt-category-pick
-                  [profileId]="profileId()"
+                  [bookId]="bookId()"
                   type="expense"
                   [chosen]="f.categoryId.value"
                   (picked)="chooseCategory($event)"
@@ -700,7 +700,7 @@ export class DebtSheet {
   protected debtService = inject(DebtService)
   private walletService = inject(WalletService)
   private categoryService = inject(CategoryService)
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
   protected transactionService = inject(TransactionService)
   private quickAmountsService = inject(QuickAmountsService)
 
@@ -791,8 +791,8 @@ export class DebtSheet {
         ? 'debts.fixHeading'
         : `debts.createHeading.${this.direction()}`
   })
-  protected profileId = computed(() => this.profileService.current()?.id ?? '')
-  protected walletChoices = computed(() => this.walletService.openOf(this.profileId()))
+  protected bookId = computed(() => this.bookService.current()?.id ?? '')
+  protected walletChoices = computed(() => this.walletService.openOf(this.bookId()))
   protected walletItems = computed(() =>
     walletPickItems(
       this.walletChoices(),

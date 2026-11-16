@@ -11,17 +11,17 @@ import {
 } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
-import { ProfileService } from '@/core/profile'
+import { BookService } from '@/core/book'
 import type { SharingService, ShareGroup } from '@/core/sharing'
 import { IconBadge } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
 
 /**
- * The switcher's sheet: profiles in order, add (footer), manage (header icon); profile.md. Then
- * "แชร์กับฉัน": profiles shared with me, online only (sharing rule 10).
+ * The switcher's sheet: books in order, add (footer), manage (header icon); book.md. Then
+ * "แชร์กับฉัน": books shared with me, online only (sharing rule 10).
  */
 @Component({
-  selector: 'app-profile-switch-sheet',
+  selector: 'app-book-switch-sheet',
   imports: [TranslocoPipe, RouterLink, NgIcon, HlmButton, HlmDrawerImports, IconBadge, SheetFrame],
   providers: [
     provideIcons({ lucideCheck, lucidePlus, lucideSettings2, lucideUsers, lucideWifiOff }),
@@ -33,7 +33,7 @@ import { SheetFrame } from '@/shared/components/sheet'
         class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
       >
         <app-sheet-frame
-          [title]="'profiles.switchHeading' | transloco"
+          [title]="'books.switchHeading' | transloco"
           [leadingLabel]="'sheet.close' | transloco"
           (leading)="open.set(false)"
         >
@@ -43,31 +43,30 @@ import { SheetFrame } from '@/shared/components/sheet'
               variant="ghost"
               size="icon"
               class="tpn-hit size-9"
-              routerLink="/account/profiles"
-              [attr.aria-label]="'profiles.manage' | transloco"
+              routerLink="/account/books"
+              [attr.aria-label]="'books.manage' | transloco"
               (click)="open.set(false)"
             >
               <ng-icon name="lucideSettings2" size="18" aria-hidden="true" />
             </a>
           </div>
-          <ul class="flex flex-col" [attr.aria-label]="'profiles.switchHeading' | transloco">
-            @for (profile of profileService.profiles(); track profile.id) {
-              @let current =
-                !profileService.isShared() && profile.id === profileService.current()?.id;
+          <ul class="flex flex-col" [attr.aria-label]="'books.switchHeading' | transloco">
+            @for (book of bookService.books(); track book.id) {
+              @let current = !bookService.isShared() && book.id === bookService.current()?.id;
               <li>
                 <button
                   type="button"
                   class="flex min-h-14 w-full items-center gap-3 rounded-xl px-2 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                   [class.bg-muted]="current"
                   [attr.aria-current]="current ? 'true' : null"
-                  (click)="pick(profile.id)"
+                  (click)="pick(book.id)"
                 >
-                  <app-icon-badge [icon]="profile.icon" [color]="profile.color" />
+                  <app-icon-badge [icon]="book.icon" [color]="book.color" />
                   <span class="flex min-w-0 flex-1 flex-col">
-                    <span class="truncate text-base">{{ profile.name }}</span>
-                    @if (profileService.pendingIds().has(profile.id)) {
+                    <span class="truncate text-base">{{ book.name }}</span>
+                    @if (bookService.pendingIds().has(book.id)) {
                       <span class="text-sm text-muted-foreground">
-                        {{ 'profiles.pending' | transloco }}
+                        {{ 'books.pending' | transloco }}
                       </span>
                     }
                   </span>
@@ -88,12 +87,12 @@ import { SheetFrame } from '@/shared/components/sheet'
                   class="flex items-center gap-2 rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive"
                 >
                   <ng-icon name="lucideWifiOff" size="16" aria-hidden="true" />
-                  {{ 'sharing.profileOnline' | transloco }}
+                  {{ 'sharing.bookOnline' | transloco }}
                 </p>
               }
               <ul class="flex flex-col">
-                @for (group of groups(); track group.profileId) {
-                  @let current = profileService.shared()?.profile?.id === group.profileId;
+                @for (group of groups(); track group.bookId) {
+                  @let current = bookService.shared()?.book?.id === group.bookId;
                   <li>
                     <button
                       type="button"
@@ -103,10 +102,10 @@ import { SheetFrame } from '@/shared/components/sheet'
                       [disabled]="!canCall()"
                       (click)="pickShared(group)"
                     >
-                      <app-icon-badge [icon]="group.profile.icon" [color]="group.profile.color" />
+                      <app-icon-badge [icon]="group.book.icon" [color]="group.book.color" />
                       <span class="flex min-w-0 flex-1 flex-col">
                         <span class="flex min-w-0 items-center gap-2">
-                          <span class="truncate text-base">{{ group.profile.name }}</span>
+                          <span class="truncate text-base">{{ group.book.name }}</span>
                           <span
                             class="shrink-0 rounded-md bg-muted px-1.5 text-xs font-semibold text-muted-foreground"
                             >{{ 'sharing.' + group.role | transloco }}</span
@@ -138,7 +137,7 @@ import { SheetFrame } from '@/shared/components/sheet'
               </ul>
             </section>
           }
-          @if (!profileService.atLimit()) {
+          @if (!bookService.atLimit()) {
             <div sheetFooter class="pt-3">
               <button
                 hlmBtn
@@ -148,7 +147,7 @@ import { SheetFrame } from '@/shared/components/sheet'
                 (click)="add()"
               >
                 <ng-icon name="lucidePlus" size="20" aria-hidden="true" />
-                {{ 'profiles.add' | transloco }}
+                {{ 'books.add' | transloco }}
               </button>
             </div>
           }
@@ -157,8 +156,8 @@ import { SheetFrame } from '@/shared/components/sheet'
     </hlm-drawer>
   `,
 })
-export class ProfileSwitchSheet {
-  protected profileService = inject(ProfileService)
+export class BookSwitchSheet {
+  protected bookService = inject(BookService)
 
   open = model(false)
   /** Loaded by the shell after its first render (null until then). */
@@ -173,18 +172,16 @@ export class ProfileSwitchSheet {
   }
 
   protected pick(id: string): void {
-    this.profileService.select(id)
+    this.bookService.select(id)
     this.open.set(false)
   }
 
-  /** "เพิ่มสมุด" adds an own profile: what an own one could write. */
-  protected ownCanWrite = computed(
-    () => this.profileService.isShared() || this.profileService.canWrite()
-  )
+  /** "เพิ่มสมุด" adds an own book: what an own one could write. */
+  protected ownCanWrite = computed(() => this.bookService.isShared() || this.bookService.canWrite())
 
   protected add(): void {
-    this.profileService.leaveShared()
+    this.bookService.leaveShared()
     this.open.set(false)
-    this.profileService.open({ mode: 'create' })
+    this.bookService.open({ mode: 'create' })
   }
 }

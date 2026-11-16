@@ -1,10 +1,10 @@
 import { DOCUMENT } from '@angular/common'
 import { computed, effect, inject, Service, signal, untracked } from '@angular/core'
+import { BookService } from '@/core/book'
 import { CATEGORY_TABLE } from '@/core/category'
 import type { CategoryType } from '@/core/category'
 import { OfflineService } from '@/core/offline'
 import type { LocalDatabase, SqlValue } from '@/core/offline'
-import { ProfileService } from '@/core/profile'
 import {
   FUTURE,
   periodRange,
@@ -58,14 +58,14 @@ const stepStart = (day: string, step: TrendStep): string => {
 }
 
 /**
- * The Reports tab (docs/features/report.md): its own period (remembered per profile), the
+ * The Reports tab (docs/features/report.md): its own period (remembered per book), the
  * Transactions tab's chosen wallet (Q3), and every figure as one aggregate over the local
  * database (Volume). Nothing here writes.
  */
 @Service()
 export class ReportService {
   private offlineService = inject(OfflineService)
-  private profileService = inject(ProfileService)
+  private bookService = inject(BookService)
   private walletService = inject(WalletService)
   private transactionService = inject(TransactionService)
   private window = inject(DOCUMENT).defaultView
@@ -85,7 +85,7 @@ export class ReportService {
   /** "ทุกกระเป๋า" or the wallet chosen on either tab (Q3). */
   walletIds = this.transactionService.viewWalletIds
 
-  /** Oldest first back to the profile's oldest row; never the month view's "อนาคต". */
+  /** Oldest first back to the book's oldest row; never the month view's "อนาคต". */
   tabs = computed(() =>
     periodTabs(this.unit(), this.today(), this.transactionService.firstDay()).filter(
       (tab) => tab !== FUTURE
@@ -155,11 +155,11 @@ export class ReportService {
   })
 
   constructor() {
-    // Each profile has its own remembered unit; a new profile starts on the month.
+    // Each book has its own remembered unit; a new book starts on the month.
     effect(() => {
-      const profileId = this.profileService.currentId() ?? ''
+      const bookId = this.bookService.currentId() ?? ''
       untracked(() => {
-        this.unit.set(this.readUnit(profileId))
+        this.unit.set(this.readUnit(bookId))
         this.tab.set(0)
       })
     })
@@ -359,8 +359,8 @@ export class ReportService {
    */
   private balancesAt(day: string, walletIds: readonly string[]): Map<string, number> {
     const sums = new Map<string, number>()
-    const profileId = this.profileService.current()?.id
-    if (!profileId || walletIds.length === 0) {
+    const bookId = this.bookService.current()?.id
+    if (!bookId || walletIds.length === 0) {
       return sums
     }
     const inWallets = walletIds.map(() => '?').join(', ')
@@ -378,29 +378,29 @@ export class ReportService {
              SELECT t.wallet_id AS wallet_id,
                CASE WHEN c.type = 'income' THEN t.amount ELSE -t.amount END AS amount
              FROM ${TRANSACTION_TABLE} t JOIN ${CATEGORY_TABLE} c ON c.id = t.category_id
-             WHERE t.profile_id = ? AND t.deleted_at IS NULL AND t.occurred_on <= ?
+             WHERE t.book_id = ? AND t.deleted_at IS NULL AND t.occurred_on <= ?
                AND t.wallet_id IN (${inWallets})
              UNION ALL
              SELECT from_wallet_id, -amount FROM ${TRANSFER_TABLE}
-             WHERE profile_id = ? AND deleted_at IS NULL AND occurred_on <= ?
+             WHERE book_id = ? AND deleted_at IS NULL AND occurred_on <= ?
                AND from_wallet_id IN (${inWallets})
              UNION ALL
              SELECT to_wallet_id, amount FROM ${TRANSFER_TABLE}
-             WHERE profile_id = ? AND deleted_at IS NULL AND occurred_on <= ?
+             WHERE book_id = ? AND deleted_at IS NULL AND occurred_on <= ?
                AND to_wallet_id IN (${inWallets})
              UNION ALL
              SELECT e.wallet_id, ${DEBT_ENTRY_SIGN_SQL}
              FROM ${DEBT_ENTRY_TABLE} e JOIN ${DEBT_TABLE} d ON d.id = e.debt_id
-             WHERE e.profile_id = ? AND e.deleted_at IS NULL AND e.occurred_on <= ?
+             WHERE e.book_id = ? AND e.deleted_at IS NULL AND e.occurred_on <= ?
                AND e.wallet_id IN (${inWallets})
            ) x
            JOIN ${WALLET_TABLE} w ON w.id = x.wallet_id
            GROUP BY w.currency_code`,
           [
-            ...[profileId, day, ...walletIds],
-            ...[profileId, day, ...walletIds],
-            ...[profileId, day, ...walletIds],
-            ...[profileId, day, ...walletIds],
+            ...[bookId, day, ...walletIds],
+            ...[bookId, day, ...walletIds],
+            ...[bookId, day, ...walletIds],
+            ...[bookId, day, ...walletIds],
           ]
         ),
       []
@@ -448,19 +448,19 @@ export class ReportService {
     return result
   }
 
-  /** The current profile's live rows in `range` of `walletIds` (null: no profile / wallet). */
+  /** The current book's live rows in `range` of `walletIds` (null: no book / wallet). */
   private where(
     range: FullRange,
     walletIds: readonly string[]
   ): { sql: string; params: SqlValue[] } | null {
-    const profileId = this.profileService.current()?.id
-    if (!profileId || walletIds.length === 0) {
+    const bookId = this.bookService.current()?.id
+    if (!bookId || walletIds.length === 0) {
       return null
     }
     return {
-      sql: `t.profile_id = ? AND t.deleted_at IS NULL AND t.occurred_on >= ? AND t.occurred_on <= ?
+      sql: `t.book_id = ? AND t.deleted_at IS NULL AND t.occurred_on >= ? AND t.occurred_on <= ?
         AND t.wallet_id IN (${walletIds.map(() => '?').join(', ')})`,
-      params: [profileId, range.from, range.to, ...walletIds],
+      params: [bookId, range.from, range.to, ...walletIds],
     }
   }
 
@@ -470,9 +470,9 @@ export class ReportService {
     return { from: range.from ?? range.to ?? today, to: range.to ?? range.from ?? today }
   }
 
-  private readUnit(profileId: string): ReportUnit {
+  private readUnit(bookId: string): ReportUnit {
     try {
-      const saved = this.storage()?.getItem(`${REPORT_PREF_PREFIX}unit:${profileId}`)
+      const saved = this.storage()?.getItem(`${REPORT_PREF_PREFIX}unit:${bookId}`)
       // A custom range isn't kept, so it comes back as a month.
       return REPORT_UNITS.includes(saved as ReportUnit) && saved !== 'custom'
         ? (saved as ReportUnit)
@@ -483,17 +483,17 @@ export class ReportService {
   }
 
   private writeUnit(unit: ReportUnit): void {
-    const profileId = this.profileService.current()?.id
+    const bookId = this.bookService.current()?.id
     try {
-      if (profileId) {
-        this.storage()?.setItem(`${REPORT_PREF_PREFIX}unit:${profileId}`, unit)
+      if (bookId) {
+        this.storage()?.setItem(`${REPORT_PREF_PREFIX}unit:${bookId}`, unit)
       }
     } catch {
       // A blocked storage only loses the convenience.
     }
   }
 
-  /** Lasting on a trusted device, for the tab's life on an untrusted one (like the profile). */
+  /** Lasting on a trusted device, for the tab's life on an untrusted one (like the book). */
   private storage(): Storage | null {
     try {
       return this.offlineService.isTrusted()

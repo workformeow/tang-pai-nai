@@ -14,7 +14,7 @@ const findRow = (db: LocalDatabase, table: string, id: string): SyncRow | null =
 /**
  * Where rows of a merged category go (docs/features/category.md rule 15), as far as this device
  * knows: the live category its tombstone's `mergedIntoId` leads to, following later merges, of
- * the same profile and type and not one of its own children. Null otherwise. The server's
+ * the same book and type and not one of its own children. Null otherwise. The server's
  * `findMergeTarget` reads the same way.
  */
 export const mergeTargetOf = (db: LocalDatabase, categoryId: string): string | null => {
@@ -27,7 +27,7 @@ export const mergeTargetOf = (db: LocalDatabase, categoryId: string): string | n
     const next = findRow(db, CATEGORY_TABLE, current['mergedIntoId'])
     if (
       !next ||
-      next['profileId'] !== source['profileId'] ||
+      next['bookId'] !== source['bookId'] ||
       next['type'] !== source['type'] ||
       next['id'] === source['id']
     ) {

@@ -21,7 +21,7 @@ export interface SharingInvite {
   lastSentAt: number
 }
 
-/** The owner's view of one profile. */
+/** The owner's view of one book. */
 export interface OwnerSharing {
   members: SharingMember[]
   invites: SharingInvite[]
@@ -46,8 +46,8 @@ export interface InviteToMe {
 }
 
 export interface ShareGroup {
-  profileId: string
-  profile: { id: string; name: string; icon: string; color: string }
+  bookId: string
+  book: { id: string; name: string; icon: string; color: string }
   role: ShareRole
   owner: { id: string; displayName: string; email: string }
   wallets: SharedWalletView[]
@@ -58,9 +58,9 @@ export interface SharedWithMe {
   shares: ShareGroup[]
 }
 
-/** `GET /sharing/with-me/:profileId/rows` (sharing rule 9): rows as `/sync/pull` sends them. */
-export interface SharedProfileRows {
-  profile: { id: string; name: string; icon: string; color: string }
+/** `GET /sharing/with-me/:bookId/rows` (sharing rule 9): rows as `/sync/pull` sends them. */
+export interface SharedBookRows {
+  book: { id: string; name: string; icon: string; color: string }
   role: ShareRole
   owner: { id: string; displayName: string; email: string }
   people: { id: string; displayName: string }[]

@@ -4,6 +4,7 @@ import type { ComponentFixture } from '@angular/core/testing'
 import { Router } from '@angular/router'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthStore } from '@/core/auth'
+import { BookService } from '@/core/book'
 import { CategoryService } from '@/core/category'
 import th from '@/core/i18n/th.json'
 import { LiveService } from '@/core/live'
@@ -11,14 +12,13 @@ import type { LiveProvider } from '@/core/live'
 import { NetworkStatusService } from '@/core/network'
 import { SyncService } from '@/core/offline'
 import type { OutboxOp, SyncNotice, SyncStatus } from '@/core/offline'
-import { ProfileService } from '@/core/profile'
 import { WalletService } from '@/core/wallet'
 import { SyncSheet } from './sync-sheet'
 
 const rejectedOp: OutboxOp = {
   seq: 1,
   opId: 'op-1',
-  table: 'profiles',
+  table: 'books',
   rowId: 'p1',
   op: 'upsert',
   row: { id: 'p1', name: 'ชา' },
@@ -26,12 +26,12 @@ const rejectedOp: OutboxOp = {
   createdAt: 1,
   status: 'rejected',
   code: 'CONFLICT',
-  error: 'A profile with this name already exists',
+  error: 'A book with this name already exists',
 }
 
 const notice: SyncNotice = {
   id: 'h1',
-  table: 'profiles',
+  table: 'books',
   rowId: 'p2',
   previous: { id: 'p2', name: 'กาแฟเย็น' },
   createdAt: 1,
@@ -57,9 +57,9 @@ describe('SyncSheet', () => {
     byId: (id: string) => ({ w1: { name: 'Bank', currencyCode: 'THB' }, w2: { name: 'Cash' } })[id],
     minorUnit: () => 2,
   }
-  /** Child ops grouped under a refused profile create, by the profile op's id. */
+  /** Child ops grouped under a refused book create, by the book op's id. */
   const children = signal<Record<string, OutboxOp[]>>({})
-  const profiles = {
+  const books = {
     rejectedItems: computed(() => {
       const grouped = new Set(
         Object.values(children())
@@ -110,7 +110,7 @@ describe('SyncSheet', () => {
       providers: [
         { provide: SyncService, useValue: sync },
         { provide: WalletService, useValue: wallets },
-        { provide: ProfileService, useValue: profiles },
+        { provide: BookService, useValue: books },
         { provide: CategoryService, useValue: { byId: () => null } },
         { provide: LiveService, useValue: live },
       ],
@@ -189,8 +189,8 @@ describe('SyncSheet', () => {
     expect(text()).toContain(th.sync.codeCONFLICT)
     expect(text()).not.toContain('already exists')
     button(th.sync.discard)?.click()
-    // A profile op is discarded with any child rows refused with it (category rule 12).
-    expect(profiles.discardRefused).toHaveBeenCalledWith('op-1')
+    // A book op is discarded with any child rows refused with it (category rule 12).
+    expect(books.discardRefused).toHaveBeenCalledWith('op-1')
   })
 
   it('discards any other rejected op on its own', async () => {
@@ -201,13 +201,13 @@ describe('SyncSheet', () => {
     expect(sync.discard).toHaveBeenCalledWith('op-1')
   })
 
-  it("lists a refused profile's refused categories and wallet under it, once (category rule 12)", async () => {
+  it("lists a refused book's refused categories and wallet under it, once (category rule 12)", async () => {
     const child = (opId: string, table: string): OutboxOp => ({
       ...rejectedOp,
       opId,
       table,
       rowId: opId,
-      row: { id: opId, name: opId, profileId: 'p1' },
+      row: { id: opId, name: opId, bookId: 'p1' },
     })
     const kids = [child('c1', 'categories'), child('c2', 'categories'), child('w1', 'wallets')]
     sync.rejected.set([rejectedOp, ...kids])
@@ -243,7 +243,7 @@ describe('SyncSheet', () => {
     await open()
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true)
     button(th.sync.fix)?.click()
-    expect(navigate).toHaveBeenCalledWith(['/account/profiles'], { queryParams: { fix: 'op-1' } })
+    expect(navigate).toHaveBeenCalledWith(['/account/books'], { queryParams: { fix: 'op-1' } })
   })
 
   it('opens the wallet sheet on the Wallets tab to fix a rejected wallet', async () => {

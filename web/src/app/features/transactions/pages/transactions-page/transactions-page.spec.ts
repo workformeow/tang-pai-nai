@@ -58,7 +58,7 @@ describe('TransactionsPage', () => {
   const transaction = (id: string, extra: object = {}) =>
     put('transactions', {
       id,
-      profileId: 'p1',
+      bookId: 'p1',
       walletId: 'cash',
       categoryId: 'food',
       amount: 6500,
@@ -72,7 +72,7 @@ describe('TransactionsPage', () => {
   beforeEach(async () => {
     db = await openTestDatabase()
     localStorage.clear()
-    put('profiles', { id: 'p1', name: 'Home', icon: 'lucideHouse', color: '#16a34a', sortOrder: 0 })
+    put('books', { id: 'p1', name: 'Home', icon: 'lucideHouse', color: '#16a34a', sortOrder: 0 })
     putRow(db, 'currencies', {
       code: 'THB',
       minorUnit: 2,
@@ -88,7 +88,7 @@ describe('TransactionsPage', () => {
     ] as const) {
       put('wallets', {
         id,
-        profileId: 'p1',
+        bookId: 'p1',
         name: id,
         currencyCode: 'THB',
         initialBalance: 100000,
@@ -101,7 +101,7 @@ describe('TransactionsPage', () => {
     }
     put('categories', {
       id: 'food',
-      profileId: 'p1',
+      bookId: 'p1',
       type: 'expense',
       parentId: null,
       name: 'Food',
@@ -112,7 +112,7 @@ describe('TransactionsPage', () => {
     })
     put('categories', {
       id: 'pay',
-      profileId: 'p1',
+      bookId: 'p1',
       type: 'income',
       parentId: null,
       name: 'Pay',
@@ -179,7 +179,7 @@ describe('TransactionsPage', () => {
     expect(row('mine')?.textContent).not.toContain('เพิ่มโดย')
     // Sharing rule 15: the owner's members, read online once.
     TestBed.inject(HttpTestingController)
-      .expectOne('/api/sharing/profiles/p1')
+      .expectOne('/api/sharing/books/p1')
       .flush({
         message: 'ok',
         timestamp: '',
@@ -238,7 +238,7 @@ describe('TransactionsPage', () => {
     transaction('a', { amount: 6000 })
     put('transfers', {
       id: 'r1',
-      profileId: 'p1',
+      bookId: 'p1',
       fromWalletId: 'card',
       toWalletId: 'cash',
       amount: 100000,
@@ -268,7 +268,7 @@ describe('TransactionsPage', () => {
   it("shows one wallet's side only, with the transfer net as its own summary line", async () => {
     put('transfers', {
       id: 'r1',
-      profileId: 'p1',
+      bookId: 'p1',
       fromWalletId: 'card',
       toWalletId: 'cash',
       amount: 100000,
@@ -286,7 +286,7 @@ describe('TransactionsPage', () => {
 
   it('shows what a card in view owes, with "ชำระบัตร" opening its pay sheet (credit-card rule 7)', async () => {
     const visa = {
-      profileId: 'p1',
+      bookId: 'p1',
       name: 'Visa',
       currencyCode: 'THB',
       icon: 'lucideCreditCard',
@@ -321,7 +321,7 @@ describe('TransactionsPage', () => {
     const rule = (id: string, extra: object = {}) =>
       put('recurring_rules', {
         id,
-        profileId: 'p1',
+        bookId: 'p1',
         kind: 'transaction',
         walletId: 'cash',
         categoryId: 'food',

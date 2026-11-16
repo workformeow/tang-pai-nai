@@ -2,15 +2,15 @@ import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { provideRouter } from '@angular/router'
 import { TranslocoTestingModule } from '@jsverse/transloco'
+import { BookService } from '@/core/book'
 import th from '@/core/i18n/th.json'
-import { ProfileService } from '@/core/profile'
 import type { SharingService, ShareGroup } from '@/core/sharing'
-import { ProfileSwitchSheet } from './profile-switch-sheet'
+import { BookSwitchSheet } from './book-switch-sheet'
 
-describe('ProfileSwitchSheet › แชร์กับฉัน (sharing rule 10)', () => {
+describe('BookSwitchSheet › แชร์กับฉัน (sharing rule 10)', () => {
   const group: ShareGroup = {
-    profileId: 'pz',
-    profile: { id: 'pz', name: 'ครอบครัว', icon: 'lucideHouse', color: '#b45309' },
+    bookId: 'pz',
+    book: { id: 'pz', name: 'ครอบครัว', icon: 'lucideHouse', color: '#b45309' },
     role: 'editor',
     owner: { id: 'z', displayName: 'พ่อ', email: 'z@x' },
     wallets: [
@@ -25,8 +25,8 @@ describe('ProfileSwitchSheet › แชร์กับฉัน (sharing rule 10
     canCall,
     openShared,
   } as unknown as SharingService
-  const profileService = {
-    profiles: signal([{ id: 'p1', name: 'ส่วนตัว', icon: 'lucideUser', color: '#0f766e' }]),
+  const bookService = {
+    books: signal([{ id: 'p1', name: 'ส่วนตัว', icon: 'lucideUser', color: '#0f766e' }]),
     current: signal({ id: 'p1' }),
     shared: signal(null),
     isShared: signal(false),
@@ -47,9 +47,9 @@ describe('ProfileSwitchSheet › แชร์กับฉัน (sharing rule 10
           preloadLangs: true,
         }),
       ],
-      providers: [provideRouter([]), { provide: ProfileService, useValue: profileService }],
+      providers: [provideRouter([]), { provide: BookService, useValue: bookService }],
     })
-    const fixture = TestBed.createComponent(ProfileSwitchSheet)
+    const fixture = TestBed.createComponent(BookSwitchSheet)
     fixture.componentRef.setInput('open', true)
     fixture.componentRef.setInput('sharing', sharing)
     fixture.detectChanges()
@@ -63,7 +63,7 @@ describe('ProfileSwitchSheet › แชร์กับฉัน (sharing rule 10
     openShared.mockClear()
   })
 
-  it('lists profiles shared with me under my own, with owner, wallets and role', async () => {
+  it('lists books shared with me under my own, with owner, wallets and role', async () => {
     const fixture = render()
     await fixture.whenStable()
     const text = document.body.textContent.replace(/\s+/g, ' ')
@@ -80,7 +80,7 @@ describe('ProfileSwitchSheet › แชร์กับฉัน (sharing rule 10
     const fixture = render()
     await fixture.whenStable()
     expect(sharedButton()?.disabled).toBe(true)
-    expect(document.body.textContent).toContain(th.sharing.profileOnline)
+    expect(document.body.textContent).toContain(th.sharing.bookOnline)
     fixture.destroy()
   })
 })
