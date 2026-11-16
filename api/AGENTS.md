@@ -311,7 +311,8 @@ devices (`{ seq, deviceId }`, never data) so they run the round they already kno
 
 - `LIVE_PROVIDER` picks the provider like the notifier (`live.registry.ts`): `disabled`
   (default), `local` (in-memory SSE listeners: one process, dev / Docker), `ably` (needs
-  `ABLY_API_KEY`). Add one the same way: a value in `LiveProviderName` (`@/shared/types`), a
+  `ABLY_API_KEY`; the SDK is `@ably/pubsub-server`, never the old `ably` package or
+  `@ably/pubsub-device`). Add one the same way: a value in `LiveProviderName` (`@/shared/types`), a
   `live.<provider>.ts` implementing `LiveProvider`, an entry in the registry.
 - `features/sync` gets `livePublisher` (`createLivePublisher`): each poke within 1 s,
   failures only `logger.warn`, never thrown. The push awaits it before answering (Vercel may
