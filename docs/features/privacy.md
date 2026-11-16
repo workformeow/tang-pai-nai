@@ -15,8 +15,9 @@ minimum the backlog's "open sign-up obligations" (PDPA) asked for.
 
 ## Out of scope
 
-- A legal terms-of-service document, cookie banner or consent checkbox. Signing in after the
-  notice's line counts as accepting it (rule 3); the app sets no tracking cookies (only the
+- A legal terms-of-service document, cookie banner or consent checkbox. The notice informs
+  (PDPA section 23); the data is kept to provide the service (contract basis), not on consent,
+  so nothing asks the user to accept it (rule 3). The app sets no tracking cookies (only the
   sign-in cookie).
 - A waiting period or undo for a deletion (owner, 2026-11: delete at once, with several
   confirmations instead, rule 7).
@@ -24,7 +25,7 @@ minimum the backlog's "open sign-up obligations" (PDPA) asked for.
   delete page links to it.
 - Deleting one profile's data only: that is deleting the profile (profile.md).
 - Removing data from the providers' own backups and logs (Turso, Vercel, Resend). They expire on
-  the providers' schedules; the notice says so.
+  the providers' schedules; the notice says so (without the names).
 
 ## Business rules
 
@@ -35,9 +36,9 @@ minimum the backlog's "open sign-up obligations" (PDPA) asked for.
    - what is kept: email, display name, password hash (if set), sign-in sessions (device and
      browser name, IP at sign-in), and the user's own data (profiles, wallets, categories,
      transactions, transfers, debts, events, recurring rules);
-   - where: the database (Turso), the hosting (Vercel), sign-in mail (Resend), the bot check
-     (Cloudflare Turnstile); a copy of the user's data is kept **encrypted on each signed-in
-     device** (offline-sync rule 4);
+   - where: the servers of our cloud providers, with a bot check at sign-in (named by kind, not
+     by vendor: the notice prints no Turso, Vercel, Resend or Turnstile, owner 2026-11); a copy
+     of the user's data is kept **encrypted on each signed-in device** (offline-sync rule 4);
    - who sees it: only the user, and the people they share wallets with (sharing.md); never sold
      or given to anyone else; no ads or analytics;
    - how to delete it: Account › ความปลอดภัย › ลบบัญชี (rule 5), which also wipes this device;
@@ -46,11 +47,12 @@ minimum the backlog's "open sign-up obligations" (PDPA) asked for.
      No personal contact address is printed: deleting in the app needs nobody's help.
 2. **Test version**: while the API's `TEST_VERSION=true` (staging; `false` or unset in
    production), `GET /auth/providers` answers `testVersion: true` and the app shows
-   "เวอร์ชันทดสอบ: ข้อมูลอาจถูกล้างได้ และระบบอาจปิดปรับปรุงโดยไม่แจ้งล่วงหน้า" on the notice page
-   and as one muted line on the sign-in page.
-3. The sign-in page shows, under its forms, "การเข้าสู่ระบบถือว่าคุณยอมรับ
-   [ประกาศความเป็นส่วนตัว]" (a link to rule 1's page). Account › เกี่ยวกับ (or the last group of
-   the Account tab) has a row to the same page.
+   "เวอร์ชันทดสอบ · อาจล้างข้อมูลหรือปิดปรับปรุงโดยไม่แจ้งล่วงหน้า" on the notice page and as one
+   muted line on the sign-in page.
+3. The sign-in page shows, under its forms, "รายละเอียดการเก็บและใช้ข้อมูล:
+   [ประกาศความเป็นส่วนตัว]" (a link to rule 1's page; no "signing in means you accept" line,
+   owner 2026-11). Account › เกี่ยวกับ (or the last group of the Account tab) has a row to the same
+   page, its hint the same words.
 
 **Deleting the account**
 

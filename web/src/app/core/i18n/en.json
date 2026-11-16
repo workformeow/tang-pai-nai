@@ -433,7 +433,7 @@
     "sharingHintCount": "Of profile {{name}} · shared with {{count}} people",
     "sharingHintCountOne": "Of profile {{name}} · shared with {{count}} person",
     "privacy": "Privacy notice",
-    "privacyHint": "What is kept, where, and how to delete it"
+    "privacyHint": "How your data is kept and used"
   },
   "auth": {
     "signInHeading": "Sign in",
@@ -505,8 +505,8 @@
       "phone": "Phone"
     },
     "accountDeleted": "Account deleted. This device’s copy is cleared too.",
-    "testVersion": "Test version: data may be wiped, and the service may go down without notice.",
-    "acceptsNotice": "Signing in means you accept the"
+    "testVersion": "Test version · data may be wiped or the service paused for maintenance without notice",
+    "privacyLead": "How your data is kept and used:"
   },
   "security": {
     "offline": "You're offline. Ways to sign in and devices need an internet connection",
@@ -1443,23 +1443,23 @@
     "viewerReadOnly": "You're a viewer of this profile: read only"
   },
   "privacy": {
-    "intro": "Tang Pai Nai is a personal income and expense tracker. This page says what it keeps about you, where, who can see it and how to delete it.",
-    "testVersion": "Test version: data may be wiped, and the service may go down without notice.",
+    "intro": "Tang Pai Nai is a personal income and expense tracking application. This notice sets out the types of data collected, where they are stored, who may access them and how you can delete your data.",
+    "testVersion": "Test version · data may be wiped or the service paused for maintenance without notice",
     "heading": {
-      "kept": "What is kept",
+      "kept": "What we keep",
       "where": "Where it is kept",
       "who": "Who can see it",
       "delete": "How to delete it"
     },
-    "kept1": "Your email, display name and password (if set, stored as a one-way hash that can’t be read back)",
-    "kept2": "Each device’s sign-in: the device and browser name, and the IP address at sign-in",
-    "kept3": "What you record: profiles, wallets, categories, transactions, transfers, debts, events and recurring rules",
-    "where1": "The database is on Turso, the app and API on Vercel; sign-in mail goes through Resend, and Cloudflare Turnstile checks for bots at sign-in",
-    "where2": "Each signed-in device keeps an encrypted copy of your data so the app works offline",
-    "who1": "Only you, and the people you share wallets with (they see only those wallets)",
-    "who2": "Your data is never sold or passed on; there are no ads and no usage tracking",
-    "delete1": "Settings › Security › Delete account deletes the account and all its data at once, and clears this device",
-    "delete2": "The providers’ backups and logs (Turso, Vercel, Resend) expire on their own schedules",
+    "kept1": "Your email and a display name taken from it (people you share with see this name). Passwords are stored encrypted; no one can read them.",
+    "kept2": "The device, browser and IP address you sign in from.",
+    "kept3": "Everything you record in the app, such as wallets, transactions and debts.",
+    "where1": "Our cloud providers' servers, with bot protection at sign-in.",
+    "where2": "Each device you sign in on (encrypted), so the app works offline.",
+    "who1": "You, and the people you share with (only what you share).",
+    "who2": "We never sell or pass on your data. No ads, no usage tracking.",
+    "delete1": "Settings › Security › Delete account deletes everything at once, including this device’s copy.",
+    "delete2": "Providers' backups are deleted on their own when they expire.",
     "updated": "Last updated November 2026"
   },
   "deleteAccount": {
