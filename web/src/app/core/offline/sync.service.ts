@@ -56,7 +56,12 @@ const PUSH_BATCH = 100
 const PULL_LIMIT = 500
 /** Rounds per trigger at most, so a server that keeps answering "more" can't spin forever. */
 const MAX_PAGES = 50
-export const WRITE_DELAY_MS = 2_000
+/**
+ * Rule 11: a round starts this long after the first local write, so the writes of one action
+ * (and of a quick run of them) go in one push. Short, since live sync pokes the other devices
+ * right after the push.
+ */
+export const WRITE_DELAY_MS = 500
 const INTERVAL_MS = 5 * 60_000
 /** Rule 11: retries while the server is unreachable; the last one repeats. */
 export const RETRY_DELAYS_MS = [5_000, 15_000, 30_000, 60_000, 120_000, INTERVAL_MS] as const
@@ -176,7 +181,7 @@ export class SyncService {
       })
       onCleanup(stop)
     })
-    // About 2 seconds after a local write that queued an op.
+    // Half a second after a local write that queued an op.
     effect(() => {
       this.offlineService.changes()
       untracked(() => this.afterWrite())

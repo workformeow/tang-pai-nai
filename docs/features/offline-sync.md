@@ -241,7 +241,8 @@ status: pending | rejected, error? }`. It keeps **one pending op per row**: a ne
 11. **Push before pull.** Each sync round pushes, then pulls. Running two rounds at once is
     prevented with a Web Lock (`tpn-sync`), so two tabs don't sync together.
     - A round starts when the device unlocks or the shell opens, when it comes back online, when
-      the app comes back to the foreground, about 2 seconds after a local write, and every 5
+      the app comes back to the foreground, half a second after a local write (the writes of one
+      action go in one push), and every 5
       minutes while the app is open. Only online, with a live session (rule 7: an expired one
       waits for the same user to sign in again).
     - A failed round (offline, API down) changes nothing and the next trigger tries again.
@@ -339,7 +340,9 @@ opens.
   dot). Tapping it opens a bottom sheet: the last sync time (and, while the server is
   unreachable, a line saying so and that it retries by itself), a "sync ตอนนี้" button, rejected ops
   (with the refused values and the server's message, fix or discard) and conflict notices
-  (dismiss).
+  (dismiss). A "sync ตอนนี้" round that leaves nothing to look at (it got through, nothing waits,
+  nothing rejected, no notice) closes the sheet, with no toast: the list and the pill show the
+  result (owner, 2026-11).
 - **Sign-out with unsynced changes** (4a.2, rule 7): sign-out pushes first; if ops are still
   pending or rejected afterwards, the confirm sheet says how many will be lost.
 - **Sync test page** `/account/sync-test` (4a.2, dev only): removed in #6.2 with `sync_probes`;
