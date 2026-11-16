@@ -17,6 +17,11 @@ decisions), then the feature's doc in `docs/features/`, then the `AGENTS.md` of 
   nothing at build time.
 - Build a feature as a vertical slice: spec in `docs/features/` → API → web → update `ROADMAP.md`
   (details in ROADMAP → "How we build a feature").
+- **Edit until the owner says OK, then finish** (owner's rule, 2026-11): during a change, touch only
+  the code and the i18n files, show the result and wait. Specs, `docs/features/*`, `ROADMAP.md`,
+  the checks below and the commit / PR come once, after the owner says the change is stable or OK,
+  so they aren't rewritten and re-run each time the behavior moves. At the end of each round, list
+  what will need updating and ask. This applies to the first round of a new fix too.
 - Before calling a change done, run that app's checks: `npm run fix`, `npm run typecheck`,
   `npm test`, and in `web/` also `npm run build`. CI (`.github/workflows/api.yml` / `web.yml`) runs
   the same checks.
