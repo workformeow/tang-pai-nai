@@ -9,6 +9,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    globalSetup: ['./src/shared/testing/global-setup.ts'],
     env: {
       NODE_ENV: 'development',
       PORT: '3000',

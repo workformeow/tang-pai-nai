@@ -1,7 +1,5 @@
 import { eq } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/libsql/migrator'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { env } from '@/core/config'
@@ -15,6 +13,7 @@ import { recurringRules } from '@/core/database/schema/recurring'
 import { transactions } from '@/core/database/schema/transaction'
 import { wallets } from '@/core/database/schema/wallet'
 import type { SyncPushHandler, SyncRowWrite } from '@/core/sync'
+import { makeTempDir, removeTempDir } from '@/shared/testing/temp-dir'
 import { CATEGORY_MESSAGE } from './category.const'
 import { categorySyncHandler } from './category.repository.drizzle'
 
@@ -63,7 +62,7 @@ const profile = (id: string, userId: string, deletedAt: number | null = null) =>
 })
 
 beforeEach(async () => {
-  dir = mkdtempSync(join(tmpdir(), 'tpn-category-'))
+  dir = makeTempDir('category')
   const created = createDatabase({ ...env, DATABASE_URL: `file:${join(dir, 'test.db')}` })
   await migrate(created.db, { migrationsFolder: 'drizzle' })
   await created.db.insert(users).values([
@@ -84,7 +83,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   close()
-  rmSync(dir, { recursive: true, force: true })
+  removeTempDir(dir)
 })
 
 describe('categorySyncHandler', () => {

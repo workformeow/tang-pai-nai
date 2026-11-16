@@ -15,6 +15,12 @@
   },
   "private": true,
   "packageManager": "npm@11.19.0",
+  "author": "workformeow",
+  "license": "MIT",
+  "engines": {
+    "node": "^26.13.1"
+  },
+  "description": "Tang Pai Nai — personal income / expense tracker (Angular PWA)",
   "dependencies": {
     "@angular/cdk": "^22.2.0",
     "@angular/common": "^22.2.0",
@@ -44,7 +50,7 @@
     "@eslint/js": "^10.0.1",
     "@spartan-ng/cli": "^1.8.0",
     "@tailwindcss/postcss": "^4.1.12",
-    "@vercel/functions": "3.10.3",
+    "@vercel/functions": "3.11.3",
     "angular-eslint": "^22.6.0",
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
@@ -60,9 +66,5 @@
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.71.2",
     "vitest": "^5.0.0"
-  },
-  "description": "Tang Pai Nai — personal income / expense tracker (Angular PWA)",
-  "engines": {
-    "node": "^26.13.1"
   }
 }

@@ -1,7 +1,5 @@
 import { eq } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/libsql/migrator'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { env } from '@/core/config'
@@ -15,6 +13,7 @@ import { profiles } from '@/core/database/schema/profile'
 import { transactions } from '@/core/database/schema/transaction'
 import { wallets } from '@/core/database/schema/wallet'
 import type { SyncPushHandler, SyncRowWrite } from '@/core/sync'
+import { makeTempDir, removeTempDir } from '@/shared/testing/temp-dir'
 import { DEBT_ENTRY_MESSAGE, DEBT_LIMITS, DEBT_MESSAGE } from './debt.const'
 import { debtEntrySyncHandler, debtSyncHandler } from './debt.repository.drizzle'
 
@@ -71,7 +70,7 @@ const input = (row: ReturnType<typeof debt> | ReturnType<typeof entry>) => {
 }
 
 beforeEach(async () => {
-  dir = mkdtempSync(join(tmpdir(), 'tpn-debt-'))
+  dir = makeTempDir('debt')
   const created = createDatabase({ ...env, DATABASE_URL: `file:${join(dir, 'test.db')}` })
   await migrate(created.db, { migrationsFolder: 'drizzle' })
   await created.db.update(currencies).set({ isActive: true }).where(eq(currencies.code, 'USD'))
@@ -143,7 +142,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   close()
-  rmSync(dir, { recursive: true, force: true })
+  removeTempDir(dir)
 })
 
 describe('debtSyncHandler', () => {
