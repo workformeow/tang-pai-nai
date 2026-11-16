@@ -8,6 +8,7 @@ import {
   lucideHousePlus,
   lucideLogOut,
   lucidePalette,
+  lucidePencil,
   lucideRepeat,
   lucideScrollText,
   lucideShapes,
@@ -26,6 +27,7 @@ import { OfflineService, SyncService } from '@/core/offline'
 import { DeviceStorageService } from '@/core/pwa'
 import { SharingService } from '@/core/sharing'
 import { ThemeService } from '@/core/theme'
+import { ProfileSheet } from '@/features/account/components/profile-sheet'
 import { SheetFrame } from '@/shared/components/sheet'
 
 /** A row of the account page: a page to go to, with a short line on what's there. */
@@ -40,7 +42,16 @@ interface AccountItem {
 
 @Component({
   selector: 'app-account-page',
-  imports: [TranslocoPipe, RouterLink, NgIcon, HlmButton, HlmDrawerImports, HlmSpinner, SheetFrame],
+  imports: [
+    TranslocoPipe,
+    RouterLink,
+    NgIcon,
+    HlmButton,
+    HlmDrawerImports,
+    HlmSpinner,
+    ProfileSheet,
+    SheetFrame,
+  ],
   providers: [
     provideIcons({
       lucideChevronRight,
@@ -48,6 +59,7 @@ interface AccountItem {
       lucideHousePlus,
       lucideLogOut,
       lucidePalette,
+      lucidePencil,
       lucideRepeat,
       lucideScrollText,
       lucideShapes,
@@ -60,17 +72,29 @@ interface AccountItem {
   template: `
     <div class="flex flex-col gap-6 p-4">
       @if (authStore.user(); as user) {
-        <div class="flex items-center gap-3">
+        <!-- Design A: the whole card opens "แก้ไขโปรไฟล์". -->
+        <button
+          type="button"
+          class="flex min-h-18 w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left text-card-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          [attr.aria-label]="'profile.edit' | transloco"
+          (click)="editingProfile.set(true)"
+        >
           <span
             class="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-lg font-semibold"
             aria-hidden="true"
             >{{ initial(user.displayName) }}</span
           >
-          <div class="flex min-w-0 flex-col">
-            <p class="text-base font-semibold break-all">{{ user.displayName }}</p>
-            <p class="text-sm break-all text-muted-foreground">{{ user.email }}</p>
-          </div>
-        </div>
+          <span class="flex min-w-0 flex-1 flex-col">
+            <span class="text-base font-semibold break-all">{{ user.displayName }}</span>
+            <span class="text-sm break-all text-muted-foreground">{{ user.email }}</span>
+          </span>
+          <span
+            class="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
+            aria-hidden="true"
+          >
+            <ng-icon name="lucidePencil" size="18" />
+          </span>
+        </button>
       }
       @for (group of groups(); track group.key) {
         <section class="flex flex-col gap-3" [attr.aria-labelledby]="'account-' + group.key">
@@ -128,6 +152,10 @@ interface AccountItem {
         {{ 'account.signOut' | transloco }}
       </button>
     </div>
+
+    @defer (when editingProfile()) {
+      <app-profile-sheet [(open)]="editingProfile" />
+    }
 
     <!-- Sign-out asks first, in a bottom sheet like every other question (DESIGN.md §6). -->
     @defer (when confirming()) {
@@ -214,6 +242,8 @@ export class AccountPage {
 
   /** Sign-out asks first: it ends the session and wipes this device's copy of the data. */
   protected confirming = signal(false)
+  /** The "แก้ไขโปรไฟล์" sheet (design A). */
+  protected editingProfile = signal(false)
   protected isSigningOut = signal(false)
   protected signOutFailed = signal(false)
   /** Ops that would be lost by signing out now (still pending or rejected after a push). */

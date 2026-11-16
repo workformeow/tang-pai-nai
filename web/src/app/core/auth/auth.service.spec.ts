@@ -196,6 +196,18 @@ describe('AuthService', () => {
     expect(store.user()?.displayName).toBe('Mom')
   })
 
+  it('saves the display name with PATCH /auth/me and shows the answer at once', async () => {
+    store.setSession(session())
+    const done = service.updateProfile('สมชาย ใจดี')
+
+    const req = http.expectOne('/api/auth/me')
+    expect(req.request.method).toBe('PATCH')
+    expect(req.request.body).toEqual({ displayName: 'สมชาย ใจดี' })
+    req.flush(envelope({ ...session().user, displayName: 'สมชาย ใจดี' }))
+    await done
+    expect(store.user()?.displayName).toBe('สมชาย ใจดี')
+  })
+
   it('signs in with a password like a verified code', async () => {
     const done = service.signInWithPassword('mom@example.com', 'Gr33n Mango Tree')
 

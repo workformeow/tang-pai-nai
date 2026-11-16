@@ -854,6 +854,17 @@
     "familyLife": "Family & life",
     "income": "Income"
   },
+  "profile": {
+    "edit": "Edit profile",
+    "name": "Display name",
+    "hint": "People you share a book with see this name",
+    "nameRequired": "Enter a display name",
+    "save": "Save",
+    "saving": "Saving",
+    "saved": "Saved",
+    "saveFailed": "Couldn't save. Try again",
+    "needsOnline": "Go online to edit your profile"
+  },
   "sheet": {
     "close": "Close",
     "back": "Back"
