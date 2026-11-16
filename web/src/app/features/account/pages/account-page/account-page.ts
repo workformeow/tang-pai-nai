@@ -162,7 +162,7 @@ interface AccountItem {
       <hlm-drawer [state]="confirming() ? 'open' : 'closed'" (closed)="cancelSignOut()">
         <hlm-drawer-content
           *hlmDrawerPortal
-          class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
+          class="mx-auto h-[92dvh] w-full max-w-120 data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
         >
           <app-sheet-frame
             [title]="'account.signOut' | transloco"

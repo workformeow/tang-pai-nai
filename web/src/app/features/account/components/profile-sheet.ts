@@ -34,7 +34,7 @@ const NAME_MAX = 50
     <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="open.set(false)">
       <hlm-drawer-content
         *hlmDrawerPortal
-        class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
+        class="mx-auto h-[92dvh] w-full max-w-120 data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
       >
         <form [formGroup]="form" class="flex min-h-0 flex-1 flex-col" (ngSubmit)="save()">
           <app-sheet-frame

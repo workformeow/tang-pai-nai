@@ -282,7 +282,7 @@ reports) shows the **current book's** data.
   (24 × 24, `stroke-width="2"`, round caps, `fill="none"`); `user-icons.spec.ts` checks that.
 - Closing a sheet never asks (DESIGN.md §6): ✕ and `(closed)` both call `finish()`, and unsaved
   input goes with it. Don't add a "discard?" view.
-- **Sheets** (DESIGN.md §6): `hlm-drawer-content class="mx-auto h-[92dvh] w-full max-w-[480px]
+- **Sheets** (DESIGN.md §6): `hlm-drawer-content class="mx-auto h-[92dvh] w-full max-w-120
 data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"` holding one `app-sheet-frame`
   (`@/shared/components/sheet`: `title`, `leadingIcon` `close` | `back`, `leadingLabel`,
   `(leading)`; project `[sheetActions]` icon buttons and a `[sheetFooter]` with the main button).
