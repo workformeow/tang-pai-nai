@@ -126,7 +126,7 @@ const METHODS: readonly SignInMethod[] = ['email', 'password', 'phone']
           <p>{{ 'auth.testVersion' | transloco }}</p>
         }
         <p>
-          {{ 'auth.acceptsNotice' | transloco }}
+          {{ 'auth.privacyLead' | transloco }}
           <a routerLink="/auth/privacy" class="text-foreground underline underline-offset-4">
             {{ 'title.privacy' | transloco }}
           </a>

@@ -284,7 +284,7 @@ must be able to read what is kept and delete their account themselves (PDPA mini
   user's live wallets reach. `TEST_VERSION` (setup-env writes `true` for dev and staging) is
   `testVersion` in `GET /auth/providers`. The credential mails and this one share one sender.
 - **Web**: `/auth/privacy` (before sign-in) and `/account/privacy` (Account › เกี่ยวกับแอป) show
-  `PrivacyPage`; the sign-in page has the test-version line, "การเข้าสู่ระบบถือว่าคุณยอมรับ
+  `PrivacyPage`; the sign-in page has the test-version line, "รายละเอียดการเก็บและใช้ข้อมูล:
   ประกาศความเป็นส่วนตัว" and, after a deletion, "ลบบัญชีแล้ว". Security › บัญชีผู้ใช้ › ลบบัญชี
   (`/account/delete`, ‹ to Security): what goes (people shared with, unsynced changes), a link
   to CSV export, the confirm step (`ReauthFlow`), the typed email (button off until it matches),
