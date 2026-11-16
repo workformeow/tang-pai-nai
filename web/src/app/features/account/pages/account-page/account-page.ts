@@ -116,48 +116,54 @@ interface AccountItem {
       }
 
       <section class="flex flex-col gap-3">
-        <button
-          hlmBtn
-          variant="outline"
-          type="button"
-          class="h-11 w-full text-base"
-          [disabled]="isSigningOut()"
-          (click)="signOut(false)"
-        >
-          @if (isSigningOut()) {
-            <hlm-spinner [aria-label]="'account.signingOut' | transloco" />
-          } @else {
-            <ng-icon name="lucideLogOut" aria-hidden="true" />
-          }
-          {{ 'account.signOut' | transloco }}
-        </button>
-        @if (unsynced() > 0) {
+        @if (confirming()) {
           <div
             class="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 text-card-foreground"
           >
-            <p class="text-sm">
-              {{ 'account.signOutUnsynced' | transloco: { count: unsynced() } }}
-            </p>
+            @if (unsynced() > 0) {
+              <p class="text-sm">
+                {{ 'account.signOutUnsynced' | transloco: { count: unsynced() } }}
+              </p>
+            } @else {
+              <p class="text-sm">{{ 'account.signOutConfirmText' | transloco }}</p>
+            }
             <button
               hlmBtn
               variant="destructive"
               type="button"
               class="h-11 w-full text-base"
               [disabled]="isSigningOut()"
-              (click)="signOut(true)"
+              (click)="signOut(unsynced() > 0)"
             >
-              {{ 'account.signOutUnsyncedConfirm' | transloco }}
+              @if (isSigningOut()) {
+                <hlm-spinner [aria-label]="'account.signingOut' | transloco" />
+              }
+              {{
+                (unsynced() > 0 ? 'account.signOutUnsyncedConfirm' : 'account.signOut') | transloco
+              }}
             </button>
             <button
               hlmBtn
               variant="outline"
               type="button"
               class="h-11 w-full"
-              (click)="unsynced.set(0)"
+              [disabled]="isSigningOut()"
+              (click)="cancelSignOut()"
             >
               {{ 'account.cancel' | transloco }}
             </button>
           </div>
+        } @else {
+          <button
+            hlmBtn
+            variant="outline"
+            type="button"
+            class="h-11 w-full text-base"
+            (click)="confirming.set(true)"
+          >
+            <ng-icon name="lucideLogOut" aria-hidden="true" />
+            {{ 'account.signOut' | transloco }}
+          </button>
         }
         @if (signOutFailed()) {
           <p role="alert" class="text-center text-sm text-destructive">
@@ -185,6 +191,8 @@ export class AccountPage {
   protected authStore = inject(AuthStore)
   private sharingService = inject(SharingService)
 
+  /** Sign-out asks first: it ends the session and wipes this device's copy of the data. */
+  protected confirming = signal(false)
   protected isSigningOut = signal(false)
   protected signOutFailed = signal(false)
   /** Ops that would be lost by signing out now (still pending or rejected after a push). */
@@ -346,6 +354,13 @@ export class AccountPage {
     return [...name.trim()].at(0)?.toUpperCase() ?? ''
   }
 
+  protected cancelSignOut(): void {
+    this.confirming.set(false)
+    this.unsynced.set(0)
+    this.signOutFailed.set(false)
+  }
+
+  /** `confirmed`: the user already agreed to lose the ops that couldn't be pushed. */
   protected async signOut(confirmed: boolean): Promise<void> {
     this.isSigningOut.set(true)
     this.signOutFailed.set(false)

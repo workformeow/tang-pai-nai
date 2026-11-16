@@ -129,9 +129,27 @@ describe('AccountPage', () => {
     expect(text).toContain('เปิดในเบราว์เซอร์ · ไม่รองรับการเก็บถาวร')
   })
 
-  it('pushes first, then signs out and wipes when everything is synced (rule 7)', async () => {
+  /** Taps "ออกจากระบบ", then the same label on the confirm card. */
+  const confirmSignOut = async () => {
     button(th.account.signOut)?.click()
     await settle()
+    button(th.account.signOut)?.click()
+    await settle()
+  }
+
+  it('asks before signing out, and can cancel', async () => {
+    button(th.account.signOut)?.click()
+    await settle()
+    expect(page().textContent).toContain(th.account.signOutConfirmText)
+    expect(syncService.flush).not.toHaveBeenCalled()
+    button(th.account.cancel)?.click()
+    fixture.detectChanges()
+    expect(page().textContent).not.toContain(th.account.signOutConfirmText)
+    expect(authService.signOut).not.toHaveBeenCalled()
+  })
+
+  it('once confirmed, pushes first, then signs out and wipes (rule 7)', async () => {
+    await confirmSignOut()
     expect(syncService.flush).toHaveBeenCalledOnce()
     expect(authService.signOut).toHaveBeenCalledOnce()
     expect(offlineService.wipe).toHaveBeenCalledOnce()
@@ -139,8 +157,7 @@ describe('AccountPage', () => {
 
   it('asks before losing ops that could not be pushed, and can cancel', async () => {
     syncService.flush.mockResolvedValue(2)
-    button(th.account.signOut)?.click()
-    await settle()
+    await confirmSignOut()
     expect(page().textContent).toContain('ยังมี 2 รายการที่ยังไม่ได้ sync')
     expect(authService.signOut).not.toHaveBeenCalled()
     button(th.account.cancel)?.click()
@@ -148,10 +165,9 @@ describe('AccountPage', () => {
     expect(page().textContent).not.toContain('ยังมี 2 รายการ')
   })
 
-  it('signs out anyway once confirmed', async () => {
+  it('signs out anyway once the loss is confirmed', async () => {
     syncService.flush.mockResolvedValue(1)
-    button(th.account.signOut)?.click()
-    await settle()
+    await confirmSignOut()
     button(th.account.signOutUnsyncedConfirm)?.click()
     await settle()
     expect(authService.signOut).toHaveBeenCalledOnce()

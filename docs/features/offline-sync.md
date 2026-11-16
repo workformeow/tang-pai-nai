@@ -204,7 +204,8 @@ status: pending | rejected, error? }`. It keeps **one pending op per row**: a ne
      and that signing in as them keeps it.
    - **API unreachable** (offline, or the server down): the app opens on its local data (after the
      PIN, when it's on).
-   - **Sign-out** pushes the outbox first. If that fails (offline), it warns "มีรายการที่ยังไม่ได้
+   - **Sign-out** asks first ("ออกจากระบบจากเครื่องนี้?": the data on the device is deleted), then
+     pushes the outbox. If that fails (offline), it warns "มีรายการที่ยังไม่ได้
      sync" before wiping.
 
 **Sync protocol**
@@ -343,7 +344,8 @@ opens.
   (dismiss). A "sync ตอนนี้" round that leaves nothing to look at (it got through, nothing waits,
   nothing rejected, no notice) closes the sheet, with no toast: the list and the pill show the
   result (owner, 2026-11).
-- **Sign-out with unsynced changes** (4a.2, rule 7): sign-out pushes first; if ops are still
+- **Sign-out with unsynced changes** (4a.2, rule 7): Account's "ออกจากระบบ" opens a confirm card
+  first (owner, 2026-11); confirming pushes; if ops are still
   pending or rejected afterwards, the confirm sheet says how many will be lost.
 - **Sync test page** `/account/sync-test` (4a.2, dev only): removed in #6.2 with `sync_probes`;
   profiles and wallets are tried for real instead.

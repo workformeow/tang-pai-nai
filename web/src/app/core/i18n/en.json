@@ -364,6 +364,7 @@
     "signOut": "Sign out",
     "signingOut": "Signing out",
     "signOutFailed": "Couldn't sign out. Try again",
+    "signOutConfirmText": "Sign out of this device? The data on it is deleted, and you'll need to sign in again",
     "security": "Security",
     "securityHint": "Password, PIN and devices",
     "password": "Password",
