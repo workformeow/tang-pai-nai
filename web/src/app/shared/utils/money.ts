@@ -43,6 +43,10 @@ export const toMajorText = (minor: number, minorUnit: number): string => {
   return fraction === '' || /^0+$/.test(fraction) ? grouped : `${grouped}.${fraction}`
 }
 
+/** A minor amount as an amount field's text: plain digits (no `,`), blank for nothing. */
+export const amountText = (minor: number, minorUnit: number): string =>
+  minor > 0 ? toMajorText(minor, minorUnit).replace(/,/g, '') : ''
+
 /**
  * A signed minor amount as an exact decimal string (for `Intl.NumberFormat` and CSV, no
  * grouping): `-5` (2) → `-0.05`.

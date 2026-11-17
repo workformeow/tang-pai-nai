@@ -1,7 +1,6 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
-import type { ValidatorFn } from '@angular/forms'
 import { Router } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
@@ -29,11 +28,10 @@ import { LanguageService } from '@/core/i18n'
 import { SyncService } from '@/core/offline'
 import {
   describeRepeat,
+  describeRepeatHint,
   describeRest,
   MONTHLY,
-  nextOnOrAfter,
   RecurringService,
-  shortDate,
   toRule as toRuleRow,
 } from '@/core/recurring'
 import type { RepeatValues } from '@/core/recurring'
@@ -43,6 +41,8 @@ import { isHiddenIn, WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
 import { DateRow } from '@/shared/components/date-row'
 import {
+  AmountKeypad,
+  amountValidator,
   CalcAmountField,
   CalcKeypad,
   FORM_IMPORTS,
@@ -56,12 +56,11 @@ import { RepeatRow } from '@/shared/components/repeat-row'
 import { SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
 import { WalletPick, walletPickItem } from '@/shared/components/wallet-pick'
-import { addDays, addQuickAmount, CALC_KEYBOARD, evaluate, pressKey, toDay } from '@/shared/utils'
-import type { CalcKey } from '@/shared/utils'
+import { addDays, amountText, evaluate, toDay } from '@/shared/utils'
 import { EventPick } from '@/sheets/event-pick/event-pick'
 import { RepeatView } from '@/sheets/repeat-view/repeat-view'
 import { TransactionCategoryPick } from '@/sheets/transaction-category-pick/transaction-category-pick'
-import { amountText, toRuleValues } from './transaction-values'
+import { toRuleValues } from './transaction-values'
 import type { TransactionFormGroup } from './transaction-form.type'
 
 type View = 'form' | 'wallet' | 'category' | 'note' | 'repeat' | 'event'
@@ -148,43 +147,26 @@ export class TransactionSheet {
   protected view = signal<View>('form')
   /** How deep the view is: a deeper one slides in from the right, going back from the left. */
   protected depth = computed(() => (this.view() === 'form' ? 0 : 1))
-  /** The amount keypad is showing (opens by itself when adding, owner's choice in #8). */
-  protected keypad = signal(false)
   /** The folded "เพิ่มเติม" options. */
   protected more = signal(false)
 
   // ── The form ──────────────────────────────────────────────────────────────
 
-  /** Rule 3: the expression works out to 1 … 10¹⁵ minor units. */
-  private amountValid: ValidatorFn = (control) => {
-    if (typeof control.value !== 'string') {
-      return null
-    }
-    // The form isn't built yet on the first run, so the wallet comes from the sibling control.
-    const walletId: unknown = control.parent?.get('walletId')?.value
-    const wallet =
-      typeof walletId === 'string' && walletId ? this.walletService.byId(walletId) : null
-    const result = evaluate(control.value, this.walletService.minorUnit(wallet?.currencyCode ?? ''))
-    if (!result.ok) {
-      return { amountFormat: 'transactions.amountFormat' }
-    }
-    if (result.minor <= 0) {
-      return { amountRequired: 'transactions.amountRequired' }
-    }
-    return result.minor > TRANSACTION_LIMITS.AMOUNT_MAX
-      ? { amountTooBig: 'transactions.amountTooBig' }
-      : null
-  }
-
   form: TransactionFormGroup = this.nnfb.group({
     type: ['expense'],
     walletId: [''],
-    amount: ['', [this.amountValid]],
+    amount: [
+      '',
+      [amountValidator('walletId', (id) => this.minorUnitOf(id), TRANSACTION_LIMITS.AMOUNT_MAX)],
+    ],
     categoryId: ['', [withMessage(Validators.required, 'transactions.categoryRequired')]],
     note: ['', [Validators.maxLength(TRANSACTION_LIMITS.NOTE_MAX)]],
     occurredOn: [toDay()],
     excludeFromReport: [false],
   })
+
+  /** The amount row's keypad: opens by itself when adding (owner's choice in #8). */
+  protected keypad = new AmountKeypad(this.form.controls.amount, () => this.minorUnit())
 
   private values = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() })
   protected note = computed(() => (this.values().note ?? '').trim())
@@ -357,35 +339,18 @@ export class TransactionSheet {
   protected repeatHint = computed(() => {
     this.languageService.language()
     const repeat = this.repeat()
-    const locale = this.languageService.locale()
     if (!repeat || !this.repeatable()) {
       return null
     }
-    const day = this.day()
-    const today = this.transactionService.today()
-    const schedule = { ...repeat, startOn: day }
     const rule = this.rule()
-    if (rule) {
-      const next = rule.nextOn
-      const recorded = this.recurringService.recordedCount(rule)
-      return [
-        next
-          ? this.t('recurring.nextLine', { date: shortDate(next, locale) })
-          : this.t('recurring.ended'),
-        this.t('recurring.recordedLine', { count: recorded }),
-        this.t('recurring.editNote'),
-      ].join(' · ')
-    }
-    if (day > today) {
-      return this.t('recurring.nextLine', { date: shortDate(day, locale) })
-    }
-    const next = nextOnOrAfter(schedule, addDays(today, 1))
-    return next
-      ? this.t('recurring.nextNow', {
-          date: shortDate(next, locale),
-          first: shortDate(day, locale, false),
-        })
-      : null
+    return describeRepeatHint(
+      repeat,
+      this.day(),
+      this.transactionService.today(),
+      rule ? { nextOn: rule.nextOn, recorded: this.recurringService.recordedCount(rule) } : null,
+      this.t,
+      this.languageService.locale()
+    )
   })
 
   constructor() {
@@ -418,64 +383,11 @@ export class TransactionSheet {
     })
   }
 
-  // ── Template actions: the amount keypad ───────────────────────────────────
-
-  /**
-   * The keypad shows only while the amount row is in use (owner, 8.2): a tap on, or focus moving
-   * to, any other control of the form settles the expression and closes it. Taps on blank space
-   * leave it open.
-   */
-  protected leaveAmount(event: Event): void {
-    const target = event.target
-    if (
-      !this.keypad() ||
-      !(target instanceof Element) ||
-      target.closest('app-calc-amount-field') ||
-      !target.closest('button, input, label, textarea, select, [role="switch"]')
-    ) {
-      return
-    }
-    this.settleAmount()
-    this.keypad.set(false)
-  }
-
-  protected press(key: CalcKey | '='): void {
-    const control = this.form.controls.amount
-    if (key === '=') {
-      this.settleAmount()
-      this.keypad.set(false)
-      return
-    }
-    control.setValue(pressKey(control.value, key, this.minorUnit()))
-    control.markAsDirty()
-  }
-
-  /** A quick amount adds to the expression, like counting notes (8.2). */
-  protected addQuick(major: number): void {
-    const control = this.form.controls.amount
-    control.setValue(addQuickAmount(control.value, major, this.minorUnit()))
-    control.markAsDirty()
-  }
-
-  /** A hardware keyboard types into the open keypad too. */
-  protected onKey(event: KeyboardEvent): void {
-    if (!this.keypad() || this.view() !== 'form' || event.target instanceof HTMLInputElement) {
-      return
-    }
-    const key = /^\d$/.test(event.key) ? (event.key as CalcKey) : CALC_KEYBOARD[event.key]
-    if (key) {
-      event.preventDefault()
-      event.stopPropagation()
-      this.press(key)
-    }
-  }
-
   // ── Template actions: rows and pickers ────────────────────────────────────
 
   /** Another row: the expression settles and the keypad closes, as in Money Lover. */
   protected pick(view: Exclude<View, 'form'>): void {
-    this.settleAmount()
-    this.keypad.set(false)
+    this.keypad.close()
     this.view.set(view)
   }
 
@@ -566,7 +478,7 @@ export class TransactionSheet {
   /** `addAnother` (8.2, adding only): the sheet stays with an empty amount and note. */
   protected save(addAnother = false): void {
     const state = this.state()
-    this.settleAmount()
+    this.keypad.settle()
     if (!state || this.form.invalid || !this.transactionService.canWrite()) {
       return
     }
@@ -616,7 +528,7 @@ export class TransactionSheet {
     }
     if (addAnother && state.mode === 'create') {
       this.form.reset({ ...value, amount: '', note: '' })
-      this.keypad.set(true)
+      this.keypad.open.set(true)
       return
     }
     this.finish()
@@ -710,7 +622,7 @@ export class TransactionSheet {
       excludeFromReport: copied?.excludeFromReport ?? false,
     })
     this.dropUnfit()
-    this.keypad.set(true)
+    this.keypad.open.set(true)
     // The rules page's +: "ทำซ้ำ" shows set, under an open "เพิ่มเติม".
     if (state.repeat || this.debtId()) {
       this.more.set(true)
@@ -729,7 +641,7 @@ export class TransactionSheet {
     }
     this.startWalletId.set(row.walletId)
     this.form.reset(this.toForm(row))
-    this.keypad.set(false)
+    this.keypad.open.set(false)
   }
 
   /** "Fix" a rejected op: its refused values, errors showing. */
@@ -738,7 +650,7 @@ export class TransactionSheet {
     this.form.reset(this.toForm(state.values))
     this.form.markAllAsTouched()
     this.form.markAsDirty()
-    this.keypad.set(false)
+    this.keypad.open.set(false)
   }
 
   /** A rule in this sheet: its template in the form, its schedule in "ทำซ้ำ" (recurring.md). */
@@ -769,7 +681,7 @@ export class TransactionSheet {
       confirm: source.confirm,
     })
     this.more.set(true)
-    this.keypad.set(false)
+    this.keypad.open.set(false)
     if (refused) {
       this.form.markAllAsTouched()
       this.form.markAsDirty()
@@ -819,13 +731,10 @@ export class TransactionSheet {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  /** "=": the expression becomes its result (`120+65` → `185`). */
-  private settleAmount(): void {
-    const control = this.form.controls.amount
-    const result = evaluate(control.value, this.minorUnit())
-    if (result.ok && result.minor > 0 && /[+\-×÷]/.test(control.value)) {
-      control.setValue(amountText(result.minor, this.minorUnit()))
-    }
+  /** A wallet's minor unit, read from the control (the validator runs before `wallet()` updates). */
+  private minorUnitOf(walletId: string): number {
+    const wallet = walletId ? this.walletService.byId(walletId) : null
+    return this.walletService.minorUnit(wallet?.currencyCode ?? '')
   }
 
   private dropUnfit(): void {

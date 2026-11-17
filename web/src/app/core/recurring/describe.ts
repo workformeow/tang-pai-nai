@@ -1,5 +1,5 @@
-import { fromDay } from '@/shared/utils'
-import { lastOccurrence, occurrencesBetween } from './schedule'
+import { addDays, fromDay } from '@/shared/utils'
+import { lastOccurrence, nextOnOrAfter, occurrencesBetween } from './schedule'
 import type { RecurringSchedule, RepeatValues, RuleItem } from './recurring.type'
 
 /** A translate function (`TranslocoService.translate`). */
@@ -47,6 +47,40 @@ export const describeEnd = (
 /** "ไม่สิ้นสุด · บันทึกให้อัตโนมัติ": the end and how a due one is recorded. */
 export const describeRest = (repeat: RepeatValues, t: Translate, locale: string): string =>
   `${describeEnd(repeat, t, locale)} · ${t(repeat.confirm ? 'recurring.ask' : 'recurring.auto')}`
+
+/**
+ * The line under a sheet's "ทำซ้ำ" card (recurring.md → Web screens). Adding: when the first or
+ * next one is recorded. On a rule (`rule`): its next date, how many are recorded, and that an
+ * edit changes the next ones only.
+ */
+export const describeRepeatHint = (
+  repeat: RepeatValues,
+  startOn: string,
+  today: string,
+  rule: { nextOn: string | null; recorded: number } | null,
+  t: Translate,
+  locale: string
+): string | null => {
+  if (rule) {
+    return [
+      rule.nextOn
+        ? t('recurring.nextLine', { date: shortDate(rule.nextOn, locale) })
+        : t('recurring.ended'),
+      t('recurring.recordedLine', { count: rule.recorded }),
+      t('recurring.editNote'),
+    ].join(' · ')
+  }
+  if (startOn > today) {
+    return t('recurring.nextLine', { date: shortDate(startOn, locale) })
+  }
+  const next = nextOnOrAfter({ ...repeat, startOn }, addDays(today, 1))
+  return next
+    ? t('recurring.nextNow', {
+        date: shortDate(next, locale),
+        first: shortDate(startOn, locale, false),
+      })
+    : null
+}
 
 /**
  * Rule 3's line for the 29th–31st of a month: the next few months that don't have that day use
