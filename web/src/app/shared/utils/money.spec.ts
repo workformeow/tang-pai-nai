@@ -52,4 +52,10 @@ describe('formatMoney', () => {
     expect(formatMoney(0, 'THB', 2, 'en-GB')).toBe('฿0.00')
     expect(formatMoney(15000, 'JPY', 0, 'en-GB')).toBe('¥15,000')
   })
+
+  it('marks a gain with + when signed, never zero', () => {
+    expect(formatMoney(4855000, 'THB', 2, 'th-TH', true)).toBe('+฿48,550.00')
+    expect(formatMoney(-1250, 'USD', 2, 'en-GB', true)).toBe('-$12.50')
+    expect(formatMoney(0, 'THB', 2, 'en-GB', true)).toBe('฿0.00')
+  })
 })

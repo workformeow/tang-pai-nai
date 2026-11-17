@@ -305,6 +305,36 @@ describe('ReportService', () => {
     expect(service.trend()?.points.at(9)).toMatchObject({ expense: 700, income: 0 })
   })
 
+  it('reads ภาพรวม over every counted wallet, whatever wallet the tabs chose (#24)', () => {
+    const all = service.summaries()
+    expect(all.map((line) => line.currencyCode)).toEqual(['THB'])
+    expect(all[0]).toMatchObject({ income: 50000, expense: 1450, start: 9600, end: 57450 })
+    transactions.selectWallet('card')
+    expect(service.summaries()[0]).toMatchObject({ income: 0, expense: 300 })
+    expect(service.overview()).toEqual(all)
+    // An out-of-total wallet stays out, as in the tabs' "ทุกกระเป๋า".
+    expect(service.allWalletIds()).toEqual(['cash', 'card'])
+  })
+
+  it('counts open wallets per currency and offers ภาพรวม only with more than one (#24)', () => {
+    expect(service.manyCurrencies()).toBe(false)
+    // An out-of-total wallet in another currency is not enough.
+    wallet('usd-save', { currencyCode: 'USD', sortOrder: 3, excludeFromTotal: true })
+    expect(service.manyCurrencies()).toBe(false)
+    wallet('usd', { currencyCode: 'USD', sortOrder: 4 })
+    wallet('usd-old', { currencyCode: 'USD', sortOrder: 5, isArchived: true })
+    transaction('2026-10-11', 'food', 700, { walletId: 'usd' })
+    expect(service.manyCurrencies()).toBe(true)
+    expect([...service.walletCounts()]).toEqual([
+      ['THB', 2],
+      ['USD', 1],
+    ])
+    expect(service.overview().map((line) => [line.currencyCode, line.expense])).toEqual([
+      ['THB', 1450],
+      ['USD', 700],
+    ])
+  })
+
   it('has no "อนาคต" tab, and the period before a custom range is as long as it', () => {
     expect(service.tabs()).toEqual([-2, -1, 0])
     service.selectCustom({ from: '2026-10-11', to: '2026-10-20' })

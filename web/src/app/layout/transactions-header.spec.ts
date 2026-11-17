@@ -30,8 +30,10 @@ describe('TransactionsHeader', () => {
 
   const reportUnit = signal<ReportUnit>('month')
   const reportCustomSheet = signal(false)
+  const manyCurrencies = signal(false)
   const reports = {
     unit: reportUnit,
+    manyCurrencies,
     customSheet: reportCustomSheet,
     selectUnit: (next: ReportUnit) => reportUnit.set(next),
   }
@@ -55,6 +57,7 @@ describe('TransactionsHeader', () => {
     unit.set('month')
     reportUnit.set('month')
     reportCustomSheet.set(false)
+    manyCurrencies.set(false)
     customSheet.set(false)
     transferSheet.set(null)
     activityScope.set(null)
@@ -204,5 +207,31 @@ describe('TransactionsHeader', () => {
     item(th.transactions.unit.custom)?.click()
     expect(reportCustomSheet()).toBe(true)
     expect(customSheet()).toBe(false)
+  })
+
+  it('opens ภาพรวม from the Reports menu only when the book holds more than one currency (#24)', async () => {
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true)
+    fixture.componentRef.setInput('view', 'reports')
+    await settle()
+    menuButton()?.click()
+    await settle()
+    expect(item(th.reports.overviewTitle)).toBeUndefined()
+    menuButton()?.click()
+    manyCurrencies.set(true)
+    await settle()
+    menuButton()?.click()
+    await settle()
+    expect(items()[0]).toBe(th.reports.overviewTitle)
+    item(th.reports.overviewTitle)?.click()
+    await settle()
+    expect(navigate).toHaveBeenCalledWith('/reports/currencies')
+    expect(items()).toHaveLength(0)
+  })
+
+  it('never shows ภาพรวม on the Transactions tab (#24)', async () => {
+    manyCurrencies.set(true)
+    menuButton()?.click()
+    await settle()
+    expect(item(th.reports.overviewTitle)).toBeUndefined()
   })
 })
