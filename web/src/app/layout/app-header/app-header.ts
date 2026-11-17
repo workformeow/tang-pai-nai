@@ -11,12 +11,12 @@ import {
   isReportCurrencies,
   isReportsTab,
   isTransactionsTab,
-} from './book-routes'
-import { BookSwitcher } from './book-switcher'
-import { ReportUnitMenu } from './report-unit-menu'
-import { SyncStatus } from './sync-status'
-import { TransactionsHeader } from './transactions-header'
-import { UpdateBanner } from './update-banner'
+} from '@/layout/book-routes'
+import { BookSwitcher } from '@/layout/book-switcher/book-switcher'
+import { ReportUnitMenu } from '@/layout/report-unit-menu/report-unit-menu'
+import { SyncStatus } from '@/layout/sync-status/sync-status'
+import { TransactionsHeader } from '@/layout/transactions-header/transactions-header'
+import { UpdateBanner } from '@/layout/update-banner/update-banner'
 
 @Component({
   selector: 'app-header',

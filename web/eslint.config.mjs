@@ -71,6 +71,52 @@ const ownFeatureConfigs = featureNames.map((name) => ({
   },
 }))
 
+// Folder per component (AGENTS.md §2): a component in `layout/` lives in `layout/<name>/<name>.ts`,
+// a routed page in `pages/<name>/<name>.ts`, the shape `ng g c <path>/<name>` writes. Files in a
+// page folder other than the page itself are its own child components, so only the page's own
+// name is checked there; spec test hosts are skipped.
+/** @type {import('eslint').Rule.RuleModule} */
+const componentFolderRule = {
+  meta: {
+    type: 'problem',
+    messages: {
+      folder:
+        "Component file '{{name}}.ts' must live in its own folder: {{root}}/{{name}}/{{name}}.ts",
+    },
+    schema: [
+      {
+        type: 'object',
+        properties: { root: { type: 'string' }, sameName: { type: 'boolean' } },
+        additionalProperties: false,
+      },
+    ],
+  },
+  create(context) {
+    const { root, sameName = true } = context.options[0] ?? {}
+    const parts = context.filename.replaceAll('\\', '/').split('/')
+    const name = (parts.at(-1) ?? '').replace(/\.ts$/, '')
+    const dir = parts.at(-2)
+    const misplaced = dir === root || (sameName && dir !== name)
+    if (!misplaced) {
+      return {}
+    }
+    return {
+      /** @param {import('estree').Node & { expression?: import('estree').Expression }} node */
+      Decorator(node) {
+        const call = node.expression
+        if (
+          call?.type === 'CallExpression' &&
+          call.callee.type === 'Identifier' &&
+          call.callee.name === 'Component'
+        ) {
+          context.report({ node, messageId: 'folder', data: { name, root } })
+        }
+      },
+    }
+  },
+}
+const localPlugin = { rules: { 'component-folder': componentFolderRule } }
+
 export default defineConfig(
   // ── Ignores ───────────────────────────────────────────────────────────────
   {
@@ -204,6 +250,20 @@ export default defineConfig(
     rules: {
       '@angular-eslint/template/label-has-associated-control': 'off',
     },
+  },
+
+  // ── Folder per component: layout/<name>/, pages/<name>/ (componentFolderRule) ──
+  {
+    files: ['src/app/layout/**/*.ts'],
+    ignores: ['**/*.spec.ts'],
+    plugins: { local: localPlugin },
+    rules: { 'local/component-folder': ['error', { root: 'layout' }] },
+  },
+  {
+    files: ['src/app/features/*/pages/**/*.ts'],
+    ignores: ['**/*.spec.ts'],
+    plugins: { local: localPlugin },
+    rules: { 'local/component-folder': ['error', { root: 'pages', sameName: false }] },
   },
 
   // ── A feature may import its own internals (see ownFeatureConfigs) ───────────

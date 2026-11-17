@@ -42,6 +42,8 @@ import { QuickAmountsService, TRANSACTION_LIMITS, TransactionService } from '@/c
 import type { EventOption, TransactionSheetState, TransactionValues } from '@/core/transaction'
 import { isHiddenIn, WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
+import { RepeatRow } from '@/layout/repeat-row/repeat-row'
+import { RepeatView } from '@/layout/repeat-view/repeat-view'
 import { DateRow } from '@/shared/components/date-row'
 import {
   CalcAmountField,
@@ -69,8 +71,6 @@ import {
   toMajorText,
 } from '@/shared/utils'
 import type { CalcKey } from '@/shared/utils'
-import { RepeatRow } from './repeat-row'
-import { RepeatView } from './repeat-view'
 import type { TransactionFormGroup } from './transaction-form.type'
 
 type View = 'form' | 'wallet' | 'category' | 'note' | 'repeat' | 'event'

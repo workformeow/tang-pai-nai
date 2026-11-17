@@ -46,7 +46,9 @@ in the same PR when a behavior change is intended. Put `<name>.spec.ts` beside t
 ```
 src/app/
   core/        # App-wide singletons: API client, auth/session, interceptors, guards, config
-  layout/      # App shell: bottom tab bar, page header, sheet host
+  layout/      # App shell: bottom tab bar, page header, the app-wide sheets
+    <name>/      # one folder per component (+ its form type / helpers used by it alone)
+    book-routes.ts  index.ts   # helpers shared by several layout components, the barrel
   features/    # One folder per feature (transactions, wallets, categories, budgets, ...)
   shared/
     ui/                # spartan helm components: GENERATED, don't edit (see §3 UI)
@@ -69,6 +71,24 @@ layout    ->  core, shared
 - Features never import other features' internals. Go through `@/features/<name>` (its `index.ts`),
   and prefer lifting shared logic into `core/` or `shared/`. This is enforced by ESLint.
 - `shared/` imports nothing from `core/`, `layout/` or `features/`.
+
+Where a component's files go (owner's rule, 2026-11):
+
+| Place                        | Shape                                                          |
+| ---------------------------- | -------------------------------------------------------------- |
+| `layout/`                    | **one folder per component**: `layout/<name>/<name>.ts`        |
+| `features/<f>/pages/`        | one folder per page: `pages/<name>/<name>.ts` (+ its children) |
+| `features/<f>/components/`   | flat files in the folder                                       |
+| `shared/components/<group>/` | flat files in the group's folder                               |
+
+- In `layout/`, a file only one component uses (its `<x>-form.type.ts`, a helper such as
+  `category-move-rows.ts`) lives in that component's folder. A helper several layout components
+  use stays at the `layout/` root (`book-routes.ts`).
+- Layout files import each other by `@/layout/<name>/<name>` (`../` is banned). Outside `layout/`,
+  only the barrel `@/layout` is used.
+- Lint enforces the folder (`local/component-folder` in `eslint.config.mjs`): a component directly
+  in `layout/` or `pages/`, or in a `layout/` folder of another name, is an error. Create one with
+  `npx ng g c layout/<name>` or `npx ng g c features/<f>/pages/<name>`, which makes the folder.
 
 ### Shared components
 
@@ -137,7 +157,7 @@ Owner's rule (after #16.1): **a component used in more than one place lives in
   the app never shows a blank screen. `BootSplash` (`core/boot`) sets its step
   (`AuthService.restore()` → `auth`, `shellGuard` → `data`) and `App` removes it when the first
   navigation ends; keep the splash's ids, classes and steps in sync with `index.html`.
-  `NavProgress` (`layout/nav-progress.ts`, in `App`'s template) is the 3px bar of a slow
+  `NavProgress` (`layout/nav-progress`, in `App`'s template) is the 3px bar of a slow
   navigation (over 300ms, creeps toward and holds under 90%, `transform` only). A new device's
   first pull is the shell's `loading` gate (`BookService.firstPull`, rows so far from
   `SyncService.pulledRows`). No spinners or bars for local reads or background sync.
@@ -233,15 +253,15 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
 - **Rejected ops**: the local row already went back to the server's version; the op keeps the
   refused values. A refused book create carries its refused child rows
   (`BookService.rejectedItems()`, read by the sheet and the pill): fixing the book re-sends
-  them in the same write, discarding it drops them (`discardRefused`). "Fix" opens the table's form via `FIX_ROUTES` in `layout/sync-sheet.ts` with
+  them in the same write, discarding it drops them (`discardRefused`). "Fix" opens the table's form via `FIX_ROUTES` in `layout/sync-sheet` with
   `?fix=<opId>` (a wallet goes to `/wallets` and calls `WalletService.openFix(opId)` itself,
   because the Wallets tab may be showing the first-wallet step); saving queues a new op and
   deletes the rejected one.
 - A round the server answers with an error (`failed`) toasts **once per streak from
   `SyncService.markFailed`**, never from the pill: `app-header` renders the pill in more than one
   branch, so a navigation re-creates it.
-- The header's sync status is `layout/sync-status.ts`, one 44px icon on every tab (#9); its
-  sheet (`layout/sync-sheet.ts`, spartan drawer) is `@defer`red until first opened. A new synced
+- The header's sync status is `layout/sync-status`, one 44px icon on every tab (#9); its
+  sheet (`layout/sync-sheet`, spartan drawer) is `@defer`red until first opened. A new synced
   table needs its `sync.table<name>` key there (the sheet labels items by table).
 
 ### Books (`core/book`, #6.1)
@@ -377,7 +397,7 @@ fixOpId?, bookId?, hiddenIn?)` (a row that changes siblings goes last among the 
   wallet's `hiddenCategoryIds`.
 - **Move transactions** (#15, [export.md](../docs/features/export.md) rules 7–10): the `move`
   view is `layout/category-move` (from wallet, to category, hide, confirm) on
-  `layout/category-move-rows.ts` (`moveSources`, `moveCategoryRows`, `undoCategoryMove`: row
+  `layout/category-move/category-move-rows.ts` (`moveSources`, `moveCategoryRows`, `undoCategoryMove`: row
   upserts with only `categoryId` changed in one write, the wallet's hidden list, undo from the
   toast). They sit beside the sheet, not in `core/category`: a module exported from a barrel
   the shell imports lands in the initial bundle even when only a lazy screen uses it.

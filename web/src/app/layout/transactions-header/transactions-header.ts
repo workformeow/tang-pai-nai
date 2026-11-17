@@ -29,10 +29,10 @@ import {
   TransferService,
 } from '@/core/transaction'
 import type { PeriodUnit } from '@/core/transaction'
+import { BookSwitcher } from '@/layout/book-switcher/book-switcher'
+import { SyncStatus } from '@/layout/sync-status/sync-status'
 import { IconBadge } from '@/shared/components/icon-badge'
 import { Slide } from '@/shared/components/slide'
-import { BookSwitcher } from './book-switcher'
-import { SyncStatus } from './sync-status'
 
 /**
  * The Transactions tab's header (transaction.md → Web screens; owner's choice in #8): the
