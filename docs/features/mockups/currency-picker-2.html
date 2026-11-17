@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Currency picker mock-up 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Mock-up only: the app will vendor the SVGs it needs (MIT, LICENSE kept), not load a CDN. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+<style>
+:root {
+  --background: oklch(0.975 0.007 265); --foreground: oklch(0.2 0.03 265);
+  --card: oklch(1 0 0); --muted: oklch(0.94 0.014 265); --muted-fg: oklch(0.48 0.03 265);
+  --primary: oklch(0.8 0.15 80); --primary-fg: oklch(0.2 0.03 70);
+  --destructive: oklch(0.55 0.22 27); --border: oklch(0.91 0.014 265); --brand: oklch(0.53 0.12 75);
+  --income: oklch(0.52 0.14 155); --expense: oklch(0.55 0.2 25);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+    --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+    --primary: oklch(0.82 0.15 82); --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82);
+    --income: oklch(0.78 0.16 155); --expense: oklch(0.72 0.17 22);
+  }
+}
+:root[data-theme="dark"] {
+  --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+  --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+  --primary: oklch(0.82 0.15 82); --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82);
+  --income: oklch(0.78 0.16 155); --expense: oklch(0.72 0.17 22);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--background); color: var(--foreground);
+  font-family: "Noto Sans Thai", system-ui, sans-serif; font-size: 15px; }
+header.page { max-width: 1340px; margin: 0 auto; padding: 24px 16px 8px; }
+header.page h1 { font-size: 20px; margin: 0 0 4px; }
+header.page p { margin: 0; color: var(--muted-fg); font-size: 14px; line-height: 1.5; }
+.toggles { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.toggle { display: inline-flex; gap: 4px; background: var(--muted); border-radius: 10px; padding: 3px; }
+.toggle button { border: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 8px; cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--card); font-weight: 600; }
+.grid { max-width: 1340px; margin: 0 auto; padding: 16px; display: flex; flex-wrap: wrap; gap: 24px; }
+figure { margin: 0; width: 320px; max-width: 100%; }
+figcaption { font-size: 13px; color: var(--muted-fg); margin-bottom: 6px; min-height: 92px; line-height: 1.45; }
+figcaption b { color: var(--foreground); }
+.phone { height: 690px; border: 1px solid var(--border); border-radius: 24px; overflow: hidden;
+  background: var(--background); display: flex; flex-direction: column; position: relative; }
+.dim { position: absolute; inset: 0; background: oklch(0 0 0 / 40%); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 92%; background: var(--card);
+  border-radius: 20px 20px 0 0; display: flex; flex-direction: column; overflow: hidden; }
+.shdr { height: 56px; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; padding: 0 8px; flex: none; }
+.shdr .ttl { text-align: center; font-weight: 600; font-size: 16px; }
+.glass { width: 36px; height: 36px; border-radius: 999px; display: grid; place-items: center;
+  background: color-mix(in oklch, var(--muted) 80%, transparent); border: 1px solid var(--border); font-size: 16px; }
+.body { flex: 1; overflow: auto; padding: 4px 16px 16px; }
+.foot { padding: 12px 16px 18px; border-top: 1px solid var(--border); flex: none; }
+.btn { width: 100%; height: 44px; border: 0; border-radius: 12px; background: var(--primary); color: var(--primary-fg); font: inherit; font-weight: 600; }
+.row { display: flex; align-items: center; gap: 12px; }
+.lbl { font-size: 14px; font-weight: 500; margin: 0 0 8px; }
+.badge { width: 44px; height: 44px; border-radius: 999px; display: grid; place-items: center; flex: none; color: #fff; font-size: 18px; }
+.input { flex: 1; height: 44px; border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; padding: 0 12px; font-size: 16px; background: var(--background); gap: 8px; }
+.input .num { flex: 1; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pm { width: 44px; height: 44px; border-radius: 12px; background: var(--muted); display: grid; place-items: center; font-weight: 700; flex: none; }
+.cchip { height: 36px; border-radius: 999px; background: var(--muted); display: inline-flex; align-items: center; gap: 6px; padding: 0 8px 0 6px; font-weight: 600; font-size: 15px; flex: none; }
+.cchip .chev { color: var(--muted-fg); font-size: 13px; }
+.fi.r { border-radius: 4px; box-shadow: 0 0 0 1px var(--border); }
+.fis.c { border-radius: 999px; box-shadow: 0 0 0 1px var(--border); }
+.sep { border-top: 1px solid var(--border); margin: 16px -16px; }
+.sw { display: flex; justify-content: space-between; align-items: center; font-size: 15px; }
+.track { width: 44px; height: 26px; border-radius: 999px; background: var(--muted); position: relative; }
+.track::after { content: ""; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 999px; background: var(--card); box-shadow: 0 1px 2px oklch(0 0 0 / 30%); }
+.ghead { font-size: 13px; color: var(--muted-fg); margin: 14px 0 8px; }
+.ghead:first-child { margin-top: 4px; }
+/* C1: list rows, flag + code */
+.list { border-radius: 14px; background: var(--muted); overflow: hidden; }
+.li { display: flex; align-items: center; gap: 12px; padding: 0 14px; height: 48px; border-top: 1px solid var(--border); }
+.li:first-child { border-top: 0; }
+.li .fis { width: 26px; height: 26px; }
+.li .cd { flex: 1; font-size: 16px; font-weight: 600; letter-spacing: .02em; }
+.li .ck { width: 20px; color: var(--brand); font-weight: 700; text-align: center; }
+.li.on { background: color-mix(in oklch, var(--primary) 18%, var(--muted)); }
+/* C2: list in two columns */
+.list2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.li2 { display: flex; align-items: center; gap: 10px; padding: 0 12px; height: 48px; border-radius: 12px; background: var(--muted); }
+.li2 .fis { width: 26px; height: 26px; }
+.li2 .cd { flex: 1; font-size: 16px; font-weight: 600; }
+.li2 .ck { color: var(--brand); font-weight: 700; }
+.li2.on { box-shadow: inset 0 0 0 2px var(--primary); background: color-mix(in oklch, var(--primary) 18%, var(--muted)); }
+/* Transaction sheet */
+.amtbig { text-align: center; padding: 10px 0 4px; }
+.amtbig .v { font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.amtbig .c { display: inline-flex; gap: 6px; align-items: center; color: var(--muted-fg); font-size: 14px; font-weight: 600; margin-left: 6px; }
+.frow { display: flex; align-items: center; gap: 12px; height: 52px; border-top: 1px solid var(--border); font-size: 15px; }
+.frow .k { width: 72px; color: var(--muted-fg); font-size: 14px; }
+.frow .v { flex: 1; display: flex; align-items: center; gap: 8px; }
+.quick { display: flex; gap: 6px; padding: 8px 0; }
+.quick span { flex: 1; text-align: center; background: var(--muted); border-radius: 999px; font-size: 13px; padding: 5px 0; font-weight: 600; }
+.keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: auto; }
+.keys span { height: 46px; border-radius: 12px; background: var(--muted); display: grid; place-items: center; font-size: 19px; font-weight: 600; }
+.keys span.off { opacity: .3; }
+.keys span.ok { background: var(--primary); color: var(--primary-fg); grid-row: span 2; height: auto; }
+.cmp { font-size: 12px; color: var(--muted-fg); background: var(--muted); border-radius: 10px; padding: 6px 10px; margin: 8px 0 0; line-height: 1.45; }
+/* Tabs: wallets, reports */
+.hdr { height: 52px; display: flex; align-items: center; justify-content: center; font-weight: 600; border-bottom: 1px solid var(--border); flex: none; }
+.scroll { flex: 1; overflow: auto; }
+.card { background: var(--card); border-radius: 16px; margin: 12px; padding: 12px 14px; }
+.ctitle { font-size: 13px; color: var(--muted-fg); margin: 0 0 6px; display: flex; justify-content: space-between; }
+.tot { display: flex; justify-content: space-between; align-items: center; height: 34px; font-variant-numeric: tabular-nums; }
+.tot .amt { font-weight: 700; font-size: 17px; }
+.tot .who { display: flex; align-items: center; gap: 8px; color: var(--muted-fg); font-size: 14px; font-weight: 600; }
+.wrow { display: flex; align-items: center; gap: 12px; height: 60px; border-top: 1px solid var(--border); }
+.wrow:first-child { border-top: 0; }
+.wrow .nm { flex: 1; } .wrow .nm small { display: flex; align-items: center; gap: 4px; color: var(--muted-fg); font-size: 12px; }
+.wrow .amt { font-weight: 600; font-variant-numeric: tabular-nums; }
+.tabbar { margin-top: auto; height: 60px; border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; color: var(--muted-fg); font-size: 11px; flex: none; }
+.tabbar .on { color: var(--brand); font-weight: 600; }
+.strip { display: flex; justify-content: space-around; font-size: 13px; color: var(--muted-fg); padding: 8px 0; border-bottom: 1px solid var(--border); }
+.strip .on { color: var(--foreground); font-weight: 600; border-bottom: 2px solid var(--brand); padding-bottom: 4px; }
+.chips { display: flex; gap: 6px; padding: 10px 12px 0; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 5px 10px; border-radius: 999px; background: var(--muted); font-weight: 600; }
+.chip.on { background: var(--primary); color: var(--primary-fg); }
+.sum { display: grid; grid-template-columns: 1fr auto; row-gap: 6px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.sum .i { color: var(--income); font-weight: 600; text-align: right; } .sum .e { color: var(--expense); font-weight: 600; text-align: right; }
+.sum .n { font-weight: 700; text-align: right; border-top: 1px solid var(--border); padding-top: 6px; } .sum .nl { border-top: 1px solid var(--border); padding-top: 6px; }
+.cur { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.cur:first-of-type { border-top: 0; }
+.cur .who { grid-row: span 2; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+.cur .io { font-size: 12px; color: var(--muted-fg); grid-column: 2 / 4; text-align: right; }
+.cur .net { grid-column: 2 / 4; text-align: right; font-weight: 700; }
+.cur.on { background: color-mix(in oklch, var(--primary) 14%, transparent); margin: 0 -14px; padding: 10px 14px; }
+.note { font-size: 12px; color: var(--muted-fg); margin: 4px 14px; line-height: 1.45; }
+.bars { display: flex; align-items: flex-end; gap: 10px; height: 70px; padding: 0 6px; }
+.bars span { flex: 1; border-radius: 4px 4px 0 0; }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1 id="h1"></h1>
+  <p id="intro"></p>
+  <div class="toggles">
+    <div class="toggle" id="lang">
+      <button data-v="th" aria-pressed="true">ไทย</button><button data-v="en" aria-pressed="false">English</button>
+    </div>
+    <div class="toggle" id="theme">
+      <button data-v="light" aria-pressed="true">สว่าง</button><button data-v="dark" aria-pressed="false">มืด</button>
+    </div>
+  </div>
+</header>
+<main class="grid" id="grid"></main>
+
+<script>
+// Round 2 set: round 1 + TRY + MOP. [code, flag, proposed minorUnit]. Order = sortOrder.
+const GROUPS = [
+  { th: 'เอเชีย', en: 'Asia', items: [
+    ['THB','th',2],['JPY','jp',0],['KRW','kr',0],['CNY','cn',2],['HKD','hk',2],['MOP','mo',2],['TWD','tw',0],
+    ['SGD','sg',2],['MYR','my',2],['VND','vn',0],['LAK','la',0],['KHR','kh',0],['IDR','id',0],
+    ['PHP','ph',2],['MMK','mm',0],['INR','in',2]] },
+  { th: 'ตะวันออกกลาง', en: 'Middle East', items: [['AED','ae',2]] },
+  { th: 'ยุโรป', en: 'Europe', items: [['EUR','eu',2],['GBP','gb',2],['CHF','ch',2],['TRY','tr',2]] },
+  { th: 'อเมริกา', en: 'Americas', items: [['USD','us',2],['CAD','ca',2]] },
+  { th: 'โอเชียเนีย', en: 'Oceania', items: [['AUD','au',2],['NZD','nz',2]] },
+]
+const BY_CODE = Object.fromEntries(GROUPS.flatMap(g => g.items).map(([c, f, m]) => [c, { flag: f, minor: m }]))
+const state = { lang: 'th' }
+const T = {
+  th: {
+    h1: '#23 เลือกสกุลเงิน: mock-up รอบ 2',
+    intro: 'แบบ C เหลือแค่ธง + รหัสสกุลเงิน (ชื่อเต็มอยู่ใน aria-label) · 25 สกุล (เพิ่ม MOP, TRY) · ปุ่มเงินด่วนเฉพาะ THB · ยอดรวมมีธง + code · รายงานมีการ์ด "ตามสกุลเงิน" (ข)',
+    newWallet: 'กระเป๋าใหม่', name: 'ชื่อกระเป๋า', start: 'ยอดเริ่มต้น', save: 'บันทึก',
+    card: 'บัตรเครดิต', exclude: 'ไม่รวมในยอดรวม', currency: 'สกุลเงิน', inBook: 'ใช้ในสมุดนี้',
+    cash: 'เงินสด', trip: 'เที่ยวญี่ปุ่น', usd: 'บัญชีดอลลาร์', food: 'อาหาร', wallet: 'กระเป๋า', category: 'หมวดหมู่', date: 'วันที่', today: 'วันนี้',
+    addTx: 'เพิ่มรายการ', wallets: 'กระเป๋าเงิน', total: 'ยอดรวม', reports: 'รายงาน',
+    tabs: ['รายการ','กระเป๋า','รายงาน','บัญชี'], income: 'รายรับ', expense: 'รายจ่าย', net: 'คงเหลือสุทธิ',
+    byCurrency: 'ตามสกุลเงิน', months: ['ก.ย.', 'ต.ค.', 'พ.ย. 2026'],
+    f1: '<b>1 · ฟอร์มกระเป๋าใหม่</b> (เหมือนรอบ 1) ชิป "ธง + code ›" แตะแล้วเข้า view สกุลเงิน',
+    fC1: '<b>2 C1 · แถวเดียว ธง + code</b> ตามที่เลือก (C) ตัดชื่อออก แถวสูง 48px แถวที่เลือกมีพื้นเหลืองอ่อน + ✓ เลื่อนยาวกว่า C2',
+    fC2: '<b>2 C2 · สองคอลัมน์ ธง + code</b> ข้อมูลเท่ากับ C1 แต่สั้นลงครึ่งหนึ่ง ทั้ง 25 สกุลเกือบพอดีจอเดียว ปุ่มยังกว้าง ≥ 44px',
+    fTx: '<b>3 · เพิ่มรายการในกระเป๋า JPY</b> code อยู่ข้างจำนวน (ไม่มีให้เลือก มาจากกระเป๋า) ไม่มีปุ่มเงินด่วน ปุ่มจุดทศนิยมปิด เพราะ JPY ไม่มีทศนิยม',
+    fW: '<b>4 · แท็บกระเป๋า</b> ยอดรวมมีธง + code ต่อบรรทัด เมื่อมีมากกว่า 1 สกุล (สกุลเดียวแสดงเหมือนเดิม) ใต้ชื่อกระเป๋าที่ไม่ใช่ THB มีธง + code',
+    fR: '<b>5 · รายงาน: การ์ด "ตามสกุลเงิน" (ข)</b> ใต้สรุป แต่ละสกุลในช่วงเวลานั้น: รายรับ / รายจ่าย / สุทธิ แตะแถวแล้วสลับชิปไปสกุลนั้น โชว์เฉพาะเมื่อมีมากกว่า 1 สกุล',
+    quickNote: 'กระเป๋า THB: แถวเงินด่วน 20 · 50 · 100 · 500 · 1,000 อยู่เหนือคีย์แพดเหมือนเดิม',
+  },
+  en: {
+    h1: '#23 Currency picker: mock-up round 2',
+    intro: 'Layout C with flag + currency code only (full name in the aria-label) · 25 currencies (MOP, TRY added) · quick amounts for THB only · totals with flag + code · a "By currency" card in Reports (option B)',
+    newWallet: 'New wallet', name: 'Wallet name', start: 'Starting balance', save: 'Save',
+    card: 'Credit card', exclude: 'Exclude from total', currency: 'Currency', inBook: 'Used in this book',
+    cash: 'Cash', trip: 'Japan trip', usd: 'Dollar account', food: 'Food', wallet: 'Wallet', category: 'Category', date: 'Date', today: 'Today',
+    addTx: 'Add transaction', wallets: 'Wallets', total: 'Total', reports: 'Reports',
+    tabs: ['Transactions','Wallets','Reports','Account'], income: 'Income', expense: 'Expense', net: 'Net',
+    byCurrency: 'By currency', months: ['Sep', 'Oct', 'Nov 2026'],
+    f1: '<b>1 · New wallet form</b> (as round 1) a "flag + code ›" chip opens the currency view.',
+    fC1: '<b>2 C1 · One column, flag + code</b> the chosen layout C without names; 48px rows, the picked one tinted with ✓. Scrolls longer than C2.',
+    fC2: '<b>2 C2 · Two columns, flag + code</b> the same content in half the height; all 25 almost fit one screen, targets stay ≥ 44px.',
+    fTx: '<b>3 · Adding in a JPY wallet</b> the code sits beside the amount (from the wallet, not pickable); no quick amounts; the decimal key is off since JPY has no decimals.',
+    fW: '<b>4 · Wallets tab</b> flag + code on each total line when there is more than one currency (one currency looks as today); non-THB wallets show flag + code under the name.',
+    fR: '<b>5 · Reports: "By currency" card (B)</b> under the summary: income / expense / net per currency for the period; tapping a row switches the chip. Shown only with more than one currency.',
+    quickNote: 'THB wallet: the quick-amount row 20 · 50 · 100 · 500 · 1,000 stays above the keypad as today.',
+  },
+}
+const t = (k) => T[state.lang][k]
+const locale = () => state.lang === 'th' ? 'th-TH' : 'en-GB'
+const curName = (code) => new Intl.DisplayNames(locale(), { type: 'currency' }).of(code)
+const digits = (code) => ({ minimumFractionDigits: BY_CODE[code].minor, maximumFractionDigits: BY_CODE[code].minor })
+const money = (major, code, sign) => new Intl.NumberFormat(locale(), { style: 'currency', currency: code, currencyDisplay: 'narrowSymbol',
+  signDisplay: sign ? 'exceptZero' : 'auto', ...digits(code) }).format(major)
+const num = (major, code) => new Intl.NumberFormat(locale(), digits(code)).format(major)
+const flag = (code, size = '') => `<span class="fi fi-${BY_CODE[code].flag} r" style="${size}"></span>`
+const flagSq = (code) => `<span class="fi fis fi-${BY_CODE[code].flag} c"></span>`
+
+const sheet = (title, lead, body, foot = '') => `
+  <div class="dim"></div>
+  <div class="sheet">
+    <div class="shdr"><span class="glass">${lead}</span><span class="ttl">${title}</span><span></span></div>
+    <div class="body" style="display:flex;flex-direction:column">${body}</div>
+    ${foot ? `<div class="foot">${foot}</div>` : ''}
+  </div>`
+
+const walletForm = () => sheet(t('newWallet'), '✕', `<div>
+  <p class="lbl">${t('name')}</p>
+  <div class="row"><span class="badge" style="background:#dc2626">✈️</span><div class="input">${t('trip')}</div></div>
+  <p class="lbl" style="margin-top:20px">${t('start')}</p>
+  <div class="row"><span class="pm">+</span>
+    <div class="input"><span class="num">${num(0, 'THB')}</span><span class="cchip">${flag('THB')} THB <span class="chev">›</span></span></div>
+  </div>
+  <div class="sep"></div><div class="sw">${t('card')}<span class="track"></span></div>
+  <div class="sep"></div><div class="sw">${t('exclude')}<span class="track"></span></div></div>
+`, `<button class="btn">${t('save')}</button>`)
+
+const inBook = ['THB', 'JPY', 'USD']
+const picker = (render) => {
+  let html = `<div class="ghead">${t('inBook')}</div>` + render(inBook)
+  for (const g of GROUPS) html += `<div class="ghead">${g[state.lang]}</div>` + render(g.items.map(i => i[0]))
+  return sheet(t('currency'), '‹', `<div>${html}</div>`)
+}
+const pickC1 = () => picker(codes => `<div class="list">${codes.map(c =>
+  `<div class="li ${c === 'THB' ? 'on' : ''}" title="${curName(c)}">${flagSq(c)}<span class="cd">${c}</span><span class="ck">${c === 'THB' ? '✓' : ''}</span></div>`).join('')}</div>`)
+const pickC2 = () => picker(codes => `<div class="list2">${codes.map(c =>
+  `<div class="li2 ${c === 'THB' ? 'on' : ''}" title="${curName(c)}">${flagSq(c)}<span class="cd">${c}</span><span class="ck">${c === 'THB' ? '✓' : ''}</span></div>`).join('')}</div>`)
+
+const txSheet = () => sheet(t('addTx'), '✕', `
+  <div class="amtbig"><span class="v" style="color:var(--expense)">${num(3500, 'JPY')}</span><span class="c">${flag('JPY')} JPY</span></div>
+  <div class="frow"><span class="k">${t('wallet')}</span><span class="v"><span class="badge" style="background:#dc2626;width:28px;height:28px;font-size:13px">✈️</span>${t('trip')}</span></div>
+  <div class="frow"><span class="k">${t('category')}</span><span class="v"><span class="badge" style="background:#ea580c;width:28px;height:28px;font-size:13px">🍜</span>${t('food')}</span></div>
+  <div class="frow"><span class="k">${t('date')}</span><span class="v">${t('today')}</span></div>
+  <p class="cmp">${t('quickNote')}</p>
+  <div class="keys" style="margin-top:12px">
+    <span>7</span><span>8</span><span>9</span><span>⌫</span>
+    <span>4</span><span>5</span><span>6</span><span>C</span>
+    <span>1</span><span>2</span><span>3</span><span class="ok">✓</span>
+    <span>000</span><span>0</span><span class="off">.</span>
+  </div>`)
+
+const walletsTab = () => {
+  const rows = [['💵', '#16a34a', t('cash'), 'THB', 12450.5], ['✈️', '#dc2626', t('trip'), 'JPY', 38500], ['🏦', '#2563eb', t('usd'), 'USD', 320]]
+  return `
+    <div class="hdr">${t('wallets')}</div>
+    <div class="scroll">
+      <div class="card"><p class="ctitle">${t('total')}</p>
+        ${rows.map(([, , , c, a]) => `<div class="tot"><span class="who">${flag(c)} ${c}</span><span class="amt">${money(a, c)}</span></div>`).join('')}
+      </div>
+      <div class="card">
+        ${rows.map(([i, col, n, c, a]) => `<div class="wrow"><span class="badge" style="background:${col}">${i}</span>
+          <span class="nm">${n}${c === 'THB' ? '' : `<small>${flag(c, 'width:16px;height:12px')} ${c}</small>`}</span><span class="amt">${money(a, c)}</span></div>`).join('')}
+      </div>
+    </div>
+    <div class="tabbar">${t('tabs').map((x, i) => `<span class="${i === 1 ? 'on' : ''}">${x}</span>`).join('')}</div>`
+}
+
+const reportsTab = () => {
+  const data = [['THB', 42000, 31850.75], ['JPY', 0, 86400], ['USD', 0, 120.5]]
+  return `
+    <div class="hdr">${t('reports')}</div>
+    <div class="strip">${t('months').map((m, i) => `<span class="${i === 2 ? 'on' : ''}">${m}</span>`).join('')}</div>
+    <div class="scroll">
+      <div class="chips">${data.map(([c], i) => `<span class="chip ${i === 0 ? 'on' : ''}">${flag(c, 'width:16px;height:12px')} ${c}</span>`).join('')}</div>
+      <div class="card">
+        <div class="sum">
+          <span>${t('income')}</span><span class="i">${money(42000, 'THB')}</span>
+          <span>${t('expense')}</span><span class="e">${money(31850.75, 'THB')}</span>
+          <span class="nl">${t('net')}</span><span class="n">${money(10149.25, 'THB', true)}</span>
+        </div>
+        <div class="bars" style="margin-top:12px">
+          <span style="height:60%;background:var(--income)"></span><span style="height:45%;background:var(--expense)"></span>
+          <span style="height:70%;background:var(--income)"></span><span style="height:52%;background:var(--expense)"></span>
+          <span style="height:95%;background:var(--income)"></span><span style="height:72%;background:var(--expense)"></span>
+        </div>
+      </div>
+      <div class="card"><p class="ctitle">${t('byCurrency')}<span>›</span></p>
+        ${data.map(([c, inc, exp], i) => `<div class="cur ${i === 0 ? 'on' : ''}">
+          <span class="who">${flag(c)} ${c}</span>
+          <span class="io"><span style="color:var(--income)">${money(inc, c, true)}</span> · <span style="color:var(--expense)">${money(-exp, c, true)}</span></span>
+          <span class="net">${money(inc - exp, c, true)}</span></div>`).join('')}
+      </div>
+    </div>
+    <div class="tabbar">${t('tabs').map((x, i) => `<span class="${i === 2 ? 'on' : ''}">${x}</span>`).join('')}</div>`
+}
+
+function render() {
+  document.documentElement.lang = state.lang
+  document.title = t('h1')
+  document.getElementById('h1').textContent = t('h1')
+  document.getElementById('intro').textContent = t('intro')
+  const frames = [['f1', walletForm()], ['fC1', pickC1()], ['fC2', pickC2()], ['fTx', txSheet()], ['fW', walletsTab()], ['fR', reportsTab()]]
+  document.getElementById('grid').innerHTML = frames.map(([k, html]) =>
+    `<figure><figcaption>${t(k)}</figcaption><div class="phone">${html}</div></figure>`).join('')
+}
+function wire(id, apply) {
+  const el = document.getElementById(id)
+  el.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return
+    el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)))
+    apply(b.dataset.v); render()
+  })
+}
+wire('lang', v => { state.lang = v })
+wire('theme', v => { document.documentElement.dataset.theme = v })
+render()
+</script>
+</body>
+</html>

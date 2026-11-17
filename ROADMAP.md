@@ -97,6 +97,7 @@ merging.
 | 20  | Live sync                      | ✅  | ✅  | a poke `{ seq, deviceId }` after a push that applied something; `user:` → a sync round, `book:` → a shared read; `local` SSE in dev, Ably on Vercel (staging on, 2026-11). [spec](docs/features/live-sync.md)                                         |
 | 21  | Shared activity                | —   | ✅  | who added, edited or deleted which transaction in a shared book (latest action per row, 90 days), under ⋮ after รายการซ้ำ; names on rows when not you; stays 90 days after sharing ends. Web only. [spec](docs/features/shared-activity.md)                                                            |
 | 22  | Privacy & account deletion     | ✅  | ✅  | a privacy notice open without sign-in (`/auth/privacy`, Account › เกี่ยวกับแอป), "test version" from `TEST_VERSION`, "signing in accepts the notice"; delete the account at once (recent auth + typed email + button). [spec](docs/features/privacy.md) |
+| 23  | Currency picker                | 🚧  | 🚧  | 25 travel currencies, all active (a migration; LAK / TWD to 0 digits); a flag grid per continent in the wallet sheet (2B); per-currency lists in wallet order; THB-only quick amounts. "By currency" report card: next PR. [spec](docs/features/currency.md) |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
 
