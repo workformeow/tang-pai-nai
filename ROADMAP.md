@@ -97,14 +97,57 @@ merging.
 | 20  | Live sync                      | ✅  | ✅  | a poke `{ seq, deviceId }` after a push that applied something; `user:` → a sync round, `book:` → a shared read; `local` SSE in dev, Ably on Vercel (staging on, 2026-11). [spec](docs/features/live-sync.md)                                         |
 | 21  | Shared activity                | —   | ✅  | who added, edited or deleted which transaction in a shared book (latest action per row, 90 days), under ⋮ after รายการซ้ำ; names on rows when not you; stays 90 days after sharing ends. Web only. [spec](docs/features/shared-activity.md)                                                            |
 | 22  | Privacy & account deletion     | ✅  | ✅  | a privacy notice open without sign-in (`/auth/privacy`, Account › เกี่ยวกับแอป), "test version" from `TEST_VERSION`, "signing in accepts the notice"; delete the account at once (recent auth + typed email + button). [spec](docs/features/privacy.md) |
-| 23  | Currency picker                | 🚧  | 🚧  | 25 travel currencies, all active (a migration; LAK / TWD to 0 digits); a flag grid per continent in the wallet sheet (2B); per-currency lists in wallet order; THB-only quick amounts. "By currency" report card: next PR. [spec](docs/features/currency.md) |
+| 23  | Currency picker                | ✅  | ✅  | 25 travel currencies, all active (migration 0022; LAK / TWD to 0 digits); a flag grid per continent in the wallet sheet (2B); per-currency lists in wallet order; THB-only quick amounts; Reports one currency at a time with the tiles as the switch (B). [spec](docs/features/currency.md) |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
 
-Order of work from here (owner, 2026-11): **#22 (done) → #20 (done) → #21 (done)**; then Playwright end-to-end tests (Backlog) once the wanted features are done. The number is a feature's id, not
+Order of work from here (owner, 2026-11): **#22 (done) → #20 (done) → #21 (done) → #23 (done)**; then Playwright end-to-end tests (Backlog) once the wanted features are done. The number is a feature's id, not
 its place in the queue, so numbers are never reused or shuffled. Each row gets its `docs/features/<feature>.md` before work starts. Rows 0–8 (with 4a) are the MVP.
 After #8 the app can replace Money Lover for daily use. Until #17, everything runs **locally only** (see locked
 decision "Local-first").
+
+---
+
+## Done: Currency picker (#23)
+
+Built and tested 2026-11-17 on `feat/currency-picker`. [spec](docs/features/currency.md).
+**Before staging runs the new web: `npm run db:migrate:staging`** (migration 0022).
+
+- **Decided at the start** (owner, three mock-ups: `currency-picker.html`,
+  `currency-picker-2.html`, `report-currency.html`): a curated set of 25 travel currencies,
+  one per country (MOP and TRY added in round 2), all active, `isActive` kept for later; the
+  digits used in practice (JPY KRW VND LAK KHR IDR MMK TWD = 0); continents and flags
+  hard-coded in the web (an admin page, if ever, moves them to columns); the picker is **2B**
+  (round flags + code, 5 columns, names only for screen readers, "ใช้ในสมุดนี้" first, no
+  search); no main currency per book (new wallets start at THB); flag + code wherever several
+  currencies are listed; quick amounts for THB only; real flags for TWD and HKD.
+- **Decided while building**: lists per currency follow the **book's wallet order** (owner:
+  the user orders wallets already; currency rule 6); the chip shows even with one active
+  currency; flags are static SVGs in `web/public/flags/` (prefetched by the service worker, no
+  bundle cost: initial 776.3 kB); the "." key is off and quick amounts hidden in all four
+  keypad sheets. **Reports** (owner, after seeing two identical summary cards): **B**, the
+  currency chips on top, one summary card naming its currency, its income / expense tiles
+  replacing the breakdown's tabs; the category page names its currency too. **C** (every
+  currency side by side) is a page of its own later (Backlog).
+- **API**: migration `0022_currency_picker` (inserts 11, activates all, sets `sortOrder`,
+  LAK / TWD to 0 only while no wallet uses them, a `changeSeq` per changed row). No code
+  change. **Web**: `shared/components/currency-flag` (`app-currency-flag`, `CURRENCY_GROUPS`,
+  `CURRENCY_FLAGS`), `layout/currency-pick`, the wallet sheet's chip and `currency` view,
+  `WalletService.currencyOrder` / `compareCurrency` / `bookCurrencies`,
+  `QuickAmountsService.forCurrency`, the keypad's `minorUnit`, the amount field's flag, the
+  Wallets tab's lines, the Reports summary card's tiles.
+- **Verified**: Playwright on 375×812, Thai (new wallet THB → picker → JPY → no decimals; three
+  wallets in three currencies on the Wallets tab; the JPY transaction sheet without quick
+  amounts and with "." off); the owner confirmed the behaviour (Reports B included).
+- **Tests**: API `currency.repository.drizzle.test.ts` (the set, order, digits, the LAK guard,
+  `changeSeq`s); the "active currency" tests switch one off; the sync counter starts at 38.
+  Web: the wallet sheet's picker, `compareCurrency` / `currencyOrder`, `forCurrency`, the
+  keypad, `app-currency-flag`, the Wallets tab's lines, the Reports tiles and chips, the
+  category page's currency. API 62 files (in Docker, Linux), web 778 tests.
+- **Known**: on Windows the API's DB tests still fail at teardown (`EPERM`); run them in a
+  Linux container (`docker run … node:26.13.1-bookworm-slim`, `npm ci` on a copy) or let CI
+  run them. The four sheets' quick amounts / "." wiring has no sheet-level test (the service
+  and the keypad have).
 
 ---
 
@@ -1712,8 +1755,11 @@ Agreed with the user. Do not re-propose alternatives unless asked.
 - **Debt / loan**: built in #13 (debt.md). Left for later if asked: interest from a rate,
   reminders before a due date (#17), weekly / yearly instalment plans, editing a repayment
   rule's schedule, a "หลังหักหนี้" line under ยอดรวม, a share text of a debt's history.
-- **FX / multi-currency reports**: convert to THB with daily rates. Out of scope until a non-THB
-  currency is actually used.
+- **FX / multi-currency reports**: convert to THB with daily rates. Not before the 25
+  currencies of #23 are used for a while.
+- **All currencies overview** (#23, mock-up `report-currency.html` C, owner 2026-11): a page
+  with every currency of the period side by side (income · expense · net each), opened from a
+  ⋮ menu or similar; tapping a currency opens Reports on it.
 - **Import from Money Lover** (CSV export → our transactions). Decide after #8.
 - **Full edit history in a share** (after #21, if the latest action per row isn't enough): a
   server table written on every applied push to a shared wallet, with the values before and

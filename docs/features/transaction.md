@@ -229,7 +229,9 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
     `500` then `100` reads `600` (8.2 appended `+100`, which needed the calculator). Money
     Lover has none, so
     Account › การแสดงผล has a switch "ปุ่มจำนวนเงินด่วน" (on by default, kept per device like
-    the theme, not synced); off, only the keys show.
+    the theme, not synced); off, only the keys show. They are Thai banknotes, so they show in
+    a **THB wallet only** (#23, currency.md), in every sheet with the keypad (transaction,
+    transfer, debt, debt entry). With a currency of 0 digits (JPY) the keypad's "." is off.
   - **Save and add another** (8.2, only when adding): an outline icon button beside "บันทึก"
     saves, keeps the sheet open with the same type, wallet, category, date and "เพิ่มเติม",
     clears the amount and the note, and opens the keypad again (for a pile of receipts).

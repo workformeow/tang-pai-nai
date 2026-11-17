@@ -63,7 +63,8 @@ transaction rule 12; built in #8.1, transfers in #9).
    it has some (or debt entries, #13), the form shows the currency read-only with a line saying why ("เปลี่ยนสกุลเงิน
    ไม่ได้เพราะกระเป๋านี้มีธุรกรรมแล้ว สร้างกระเป๋าใหม่สำหรับสกุลเงินอื่นแทน" / "This wallet has
    transactions, so its currency can't change. Create a new wallet for another currency."). The
-   picker shows only when more than one currency is active; otherwise the wallet is THB.
+   picker (a flag chip opening the "สกุลเงิน" view, #23, currency.md → Web screens) shows
+   whenever the currency may change; a new wallet starts at THB.
 5. `initialBalance` is an integer within ±10¹⁵, entered in the currency's major unit and stored in
    minor units (no floats). It may be negative (a card's debt): phone decimal keypads have no
    minus key, so the field has a **+/− button** on its left that flips the sign (decided at the
@@ -112,16 +113,19 @@ books (OpenAPI `SyncWalletRow`). Online `GET`s for members of shared wallets arr
 ## Web screens
 
 - **Wallets tab** (current book): the total per currency ("ยอดรวม", ฿0.00 while nothing
-  counts), 12px above the "กระเป๋าที่ใช้อยู่ (n)" heading and the wallet list (40px icon badge,
-  name, "ไม่รวมในยอดรวม" / "รอ sync" under it, balance on the right, negative in the expense
+  counts; with more than one currency each line starts with its flag and code, in wallet
+  order, #23), 12px above the "กระเป๋าที่ใช้อยู่ (n)" heading and the wallet list (40px icon
+  badge, name, the flag and code under it when not THB (#23), "ไม่รวมในยอดรวม" / "รอ sync"
+  under it, balance on the right, negative in the expense
   colour), "เพิ่มกระเป๋าเงิน" (a line saying why at 20), then a folded "เก็บถาวร (n)" group.
   Tapping a wallet opens it in the form (its transactions: the Transactions tab's wallet
   switcher, #8).
   "จัดลำดับ" = the drag-handle order mode (open wallets only).
 - **Wallet form** (a compact sheet, DESIGN.md §6; decided with the owner while building 6.2,
   from mock-ups): row 1 the icon on its colour (a button) and the name; row 2 the +/− button, the
-  starting balance in large figures and the currency code (a picker chip when more than one
-  currency is active; read-only with rule 4's line once there are transactions); row 3 the
+  starting balance in large figures and the currency chip (flag, code, › : it opens the
+  "สกุลเงิน" view, #23; read-only flag and code with rule 4's line once there are
+  transactions); row 3 the
   "ไม่รวมในยอดรวม" switch; row 4 (7.2) "หมวดหมู่ที่ใช้", opening a view of the book's
   categories with a switch each (category.md → Web screens, rule 13). No labels above fields and no hints. Tapping the icon opens the
   "ไอคอนและสี" view: colour swatches, then the catalogue grouped by meaning (ที่เก็บเงิน, บัตร,

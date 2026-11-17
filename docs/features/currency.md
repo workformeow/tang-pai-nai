@@ -2,9 +2,10 @@
 
 > Status: the master table was built with offline sync 4a.2 (#5): code in
 > `api/src/features/currency/`, the web app reads the pulled copy from its local database
-> (`currencies` table). **#23 Currency picker: Spec** (owner, 2026-11, from the mock-ups
-> `mockups/currency-picker.html` (the picker is layout **2B**) and `mockups/currency-picker-2.html`
-> (the transaction sheet, the Wallets tab)).
+> (`currencies` table). **#23 Currency picker: built** (owner, 2026-11, from the mock-ups
+> `mockups/currency-picker.html` (the picker is layout **2B**), `mockups/currency-picker-2.html`
+> (the transaction sheet, the Wallets tab) and `mockups/report-currency.html` (Reports, **B**)):
+> migration `0022_currency_picker`, `layout/currency-pick`, `shared/components/currency-flag`.
 
 ## Purpose
 
@@ -19,8 +20,9 @@ or area (Korea = South Korea's KRW only). More are added by a migration when nee
 - Every ISO 4217 currency, and a search in the picker.
 - Per-user currency lists. The table is global, so every user sees the same active currencies.
 - A book's main currency: a new wallet starts at THB (wallet rule 4), nothing is stored per book.
-- A "by currency" card in Reports (every currency of the period on one card): its own PR after
-  #23 (owner, 2026-11), see report.md.
+- Every currency of a period side by side (mock-up `report-currency.html` C): a page of its own
+  later, opened from a ⋮ menu or similar (owner, 2026-11; ROADMAP → Backlog "All currencies
+  overview").
 - Quick amounts (transaction 8.2) for other currencies: THB wallets only for now.
 
 ## Data model
@@ -103,13 +105,18 @@ no admin role.
   none), then the continents of rule 9. Each group is a 5-column grid of round flags with the
   code under each, the picked one ringed; a radio group whose labels are the full names
   (`Intl.DisplayNames`), no names on screen. Picking goes back to the form at once. No search.
-- **Transaction sheet**: the wallet's flag and code beside the amount (not pickable: it is the
-  wallet's); the quick-amount row only in a THB wallet; "." off with `minorUnit` 0 (rule 7).
+- **Amount keypads** (the transaction, transfer, debt and debt entry sheets): the wallet's flag
+  and code beside the amount (not pickable: it is the wallet's); the quick-amount row only in a
+  THB wallet (`QuickAmountsService.forCurrency`); "." off with `minorUnit` 0 (rule 7).
 - **Wallets tab**: rule 8 on the totals when there is more than one currency (one currency looks
   as before); the flag and code under the name of a wallet that isn't THB.
+- **Reports** (report.md Q6, mock-up B): the currency chips (flag + code) on top, one summary
+  card of the chosen currency naming it (one currency too), its income / expense tiles choosing
+  the breakdown (no tab bar); a category page names its currency in its card's corner.
 - **Flags**: SVGs from `flag-icons` (MIT, its `LICENSE` kept beside them), only the codes of the
-  set, served as static files (round 1:1 for the picker, 4:3 elsewhere) and never put in a
-  bundle, so the initial bundle doesn't grow. No emoji flags (Windows shows letters).
+  set, served as static files from `web/public/flags/` (`1x1/` round for the picker, `4x3/`
+  elsewhere; the service worker prefetches them like the other assets, so they work offline)
+  and never put in a bundle. No emoji flags (Windows shows letters).
 
 ## Interactions
 
