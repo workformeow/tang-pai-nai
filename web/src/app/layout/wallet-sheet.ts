@@ -19,6 +19,7 @@ import type { CategoryType } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
 import { WALLET_LIMITS, WalletService } from '@/core/wallet'
 import type { UnarchiveRefusal, WalletSheetState, WalletValues } from '@/core/wallet'
+import { CurrencyFlag } from '@/shared/components/currency-flag'
 import {
   AmountField,
   ColorField,
@@ -38,11 +39,11 @@ import {
 } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
-import type { SelectOption } from '@/shared/types'
 import { parseMajor, toMajorText } from '@/shared/utils'
+import { CurrencyPick } from './currency-pick'
 import type { WalletFormGroup } from './wallet-form.type'
 
-type View = 'form' | 'icons' | 'categories' | 'confirmDelete'
+type View = 'form' | 'icons' | 'currency' | 'categories' | 'confirmDelete'
 
 const CATEGORY_TABS: readonly CategoryType[] = ['expense', 'income']
 
@@ -71,6 +72,8 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
     ToggleListField,
     IconField,
     ColorField,
+    CurrencyFlag,
+    CurrencyPick,
     HlmButton,
     HlmDrawerImports,
     SheetFrame,
@@ -160,19 +163,31 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
                         [negative]="f.negative"
                         [label]="'wallets.initialBalance' | transloco"
                       >
-                        @if (!currencyLocked() && currencyOptions().length > 1) {
-                          <select
+                        @if (!currencyLocked()) {
+                          <button
                             amountSuffix
-                            class="h-9 max-w-28 shrink-0 rounded-full bg-muted px-3 text-base font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                            [formControl]="f.currencyCode"
-                            [attr.aria-label]="'wallets.currency' | transloco"
+                            type="button"
+                            class="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-muted pr-2 pl-1.5 text-base font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            [attr.aria-label]="
+                              'wallets.currencyPick' | transloco: { name: currencyName() }
+                            "
+                            (click)="view.set('currency')"
                           >
-                            @for (option of currencyOptions(); track option.value) {
-                              <option [value]="option.value">{{ option.label }}</option>
-                            }
-                          </select>
+                            <app-currency-flag class="h-4.5 w-6" [code]="f.currencyCode.value" />
+                            {{ f.currencyCode.value }}
+                            <ng-icon
+                              name="lucideChevronRight"
+                              size="16"
+                              class="text-muted-foreground"
+                              aria-hidden="true"
+                            />
+                          </button>
                         } @else {
-                          <span amountSuffix class="shrink-0 text-sm text-muted-foreground">
+                          <span
+                            amountSuffix
+                            class="flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground"
+                          >
+                            <app-currency-flag class="h-3 w-4" [code]="f.currencyCode.value" />
                             {{ f.currencyCode.value }}
                           </span>
                         }
@@ -257,6 +272,21 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
                     [color]="f.color.value"
                   />
                 </div>
+              </app-sheet-frame>
+            }
+            @case ('currency') {
+              <app-sheet-frame
+                [title]="'wallets.currency' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <app-currency-pick
+                  [value]="f.currencyCode.value"
+                  [own]="editing()?.currencyCode ?? null"
+                  [bookId]="categoryBookId()"
+                  (chosen)="pickCurrency($event)"
+                />
               </app-sheet-frame>
             }
             @case ('categories') {
@@ -432,14 +462,15 @@ export class WalletSheet {
   protected currencyLocked = computed(
     () => !this.walletService.canChangeCurrency(this.editing()?.id ?? null)
   )
-  /** Active currencies, plus the wallet's own if it was switched off since (currency rule 3). */
-  protected currencyOptions = computed<SelectOption[]>(() => {
-    this.languageService.locale()
-    const own = this.editing()?.currencyCode
-    return this.walletService
-      .currencies()
-      .filter((currency) => currency.isActive || currency.code === own)
-      .map((currency) => ({ value: currency.code, label: this.currencyLabel(currency.code) }))
+  /** The form's currency as a signal (the chip's label reads it). */
+  private currencyCode = signal('')
+  /** The chip's full name, for its label. */
+  protected currencyName = computed(() => {
+    const code = this.currencyCode()
+    return code
+      ? (new Intl.DisplayNames(this.languageService.locale(), { type: 'currency' }).of(code) ??
+          code)
+      : ''
   })
 
   // An archived wallet holds no name (rule 3); coming back is checked by `setArchived`.
@@ -505,9 +536,10 @@ export class WalletSheet {
       .pipe(takeUntilDestroyed())
       .subscribe((card) => this.lockExcluded(card))
     // The balance's allowed decimals follow the currency.
-    this.form.controls.currencyCode.valueChanges
-      .pipe(takeUntilDestroyed())
-      .subscribe(() => this.form.controls.initialBalance.updateValueAndValidity())
+    this.form.controls.currencyCode.valueChanges.pipe(takeUntilDestroyed()).subscribe((code) => {
+      this.currencyCode.set(code)
+      this.form.controls.initialBalance.updateValueAndValidity()
+    })
     effect(() => {
       const state = this.state()
       untracked(() => {
@@ -519,9 +551,11 @@ export class WalletSheet {
     })
   }
 
-  protected currencyLabel(code: string): string {
-    const names = new Intl.DisplayNames(this.languageService.locale(), { type: 'currency' })
-    return `${names.of(code) ?? code} (${code})`
+  /** The "สกุลเงิน" view's pick: back to the form at once (currency.md → Web screens). */
+  protected pickCurrency(code: string): void {
+    this.form.controls.currencyCode.setValue(code)
+    this.form.controls.currencyCode.markAsDirty()
+    this.view.set('form')
   }
 
   protected save(): void {

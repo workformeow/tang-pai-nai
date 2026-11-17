@@ -15,6 +15,11 @@ export class QuickAmountsService {
 
   enabled = signal(this.read())
 
+  /** The chips for a wallet's currency: Thai banknotes, so THB only (currency.md). */
+  forCurrency(code: string): readonly number[] {
+    return this.enabled() && code === 'THB' ? QUICK_AMOUNTS : []
+  }
+
   setEnabled(enabled: boolean): void {
     this.enabled.set(enabled)
     try {

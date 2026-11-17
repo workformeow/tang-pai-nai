@@ -3,6 +3,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import type { FormControl } from '@angular/forms'
 import { map, startWith, switchMap } from 'rxjs'
 import { TranslocoService } from '@jsverse/transloco'
+import { CurrencyFlag } from '@/shared/components/currency-flag'
 import { evaluate, formatAmount, groupExpression, hasOperator } from '@/shared/utils'
 import { firstErrorMessage } from './field-error'
 
@@ -14,6 +15,7 @@ import { firstErrorMessage } from './field-error'
  */
 @Component({
   selector: 'app-calc-amount-field',
+  imports: [CurrencyFlag],
   host: { class: 'block' },
   template: `
     <button
@@ -25,9 +27,10 @@ import { firstErrorMessage } from './field-error'
       (click)="activate.emit()"
     >
       <span
-        class="mb-1.5 flex w-10 shrink-0 justify-center rounded-md border border-input py-0.5 text-xs text-muted-foreground"
+        class="mb-1.5 flex w-10 shrink-0 flex-col items-center gap-1 text-xs font-semibold text-muted-foreground"
         aria-hidden="true"
       >
+        <app-currency-flag class="h-4.5 w-6" [code]="currencyCode()" />
         {{ currencyCode() }}
       </span>
       <span class="flex min-w-0 flex-1 flex-col" aria-hidden="true">

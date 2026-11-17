@@ -149,6 +149,7 @@
     "balanceTooBig": "ยอดเงินมากเกินไป",
     "currency": "สกุลเงิน",
     "currencyLocked": "เปลี่ยนสกุลเงินไม่ได้เพราะกระเป๋านี้มีธุรกรรมแล้ว สร้างกระเป๋าใหม่สำหรับสกุลเงินอื่นแทน",
+    "currencyPick": "สกุลเงิน: {{ name }}",
     "excludeFromTotal": "ไม่รวมในยอดรวม",
     "icon": "ไอคอน",
     "color": "สี",
@@ -840,6 +841,15 @@
     "lucideWine": "ไวน์",
     "lucideWrench": "ซ่อมแซม",
     "lucideZap": "ไฟฟ้า"
+  },
+  "currencyGroups": {
+    "inBook": "ใช้ในสมุดนี้",
+    "asia": "เอเชีย",
+    "middleEast": "ตะวันออกกลาง",
+    "europe": "ยุโรป",
+    "americas": "อเมริกา",
+    "oceania": "โอเชียเนีย",
+    "other": "อื่น ๆ"
   },
   "iconGroups": {
     "moneyPlaces": "ที่เก็บเงิน",

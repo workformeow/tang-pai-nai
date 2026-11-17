@@ -452,9 +452,8 @@ export class TransactionService {
       sum.debt += item.signed
       sums.set(item.currencyCode, sum)
     }
-    const order = this.walletService.currencies().map((currency) => currency.code)
     return [...sums.entries()]
-      .sort(([a], [b]) => order.indexOf(a) - order.indexOf(b) || a.localeCompare(b))
+      .sort(([a], [b]) => this.walletService.compareCurrency(a, b))
       .map(([currencyCode, { income, expense, transfer, debt }]) => ({
         currencyCode,
         minorUnit: this.walletService.minorUnit(currencyCode),
