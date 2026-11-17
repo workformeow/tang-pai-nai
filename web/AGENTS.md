@@ -711,6 +711,30 @@ except the feature's own `index.ts`.
   `ngStyle`. Don't import `CommonModule`.
 - Lazy-load every feature route from `app.routes.ts`.
 
+### Component files
+
+Owner's rule (2026-11): **every component is split into files, the way `ng generate component`
+writes them.** No inline `template:` or `styles:`, however small the component.
+
+```
+wallet-form.ts        # class + @Component metadata only
+wallet-form.html      # templateUrl: './wallet-form.html'
+wallet-form.css       # styleUrl: './wallet-form.css', only when Tailwind can't express it
+wallet-form.spec.ts   # tests (§1 Testing)
+```
+
+- Create components with `npx ng g c <path>/<name>`. `angular.json` sets the defaults (separate
+  template, no style file, spec), so the files come out in this shape.
+- The `.css` file exists only when the component has custom CSS (Tailwind first, §3 UI). Don't
+  keep an empty one; add it, and `styleUrl`, the first time a rule is needed.
+- `templateUrl` / `styleUrl` are relative to the component file (`./<name>.html`).
+- Lint enforces it: `@angular-eslint/component-max-inline-declarations` allows 0 inline template or
+  style lines.
+- **Size**: a component's `.ts` past ~400 lines, or a template past ~300, is doing too much. Split
+  out a child component (a section of a sheet, a row, a picker) or move logic into a helper /
+  service, instead of growing the file. Do it in the same PR when it's the code you touch, or list
+  it in ROADMAP.
+
 ### Members & naming (same as kixly-deck-admin)
 
 - Don't write `public`, because it's the default. Use `private` for internals and `protected` for
@@ -798,8 +822,9 @@ initialValue })`.
 
   Every field takes `[control]` (the typed control, so templates are type-checked) plus `label`,
   and optionally `hint` / `placeholder`. Labels are linked to the control automatically, so there's
-  no `id` input. Add a new `*-field` here (flat file, inline template, `HlmFieldImports` +
-  `fieldErrorMessage`) when a control type repeats, e.g. an amount field for money.
+  no `id` input. Add a new `*-field` here (flat files `<name>-field.ts` + `.html`,
+  `HlmFieldImports` + `fieldErrorMessage`) when a control type repeats, e.g. an amount field for
+  money.
 
 - **Validation messages**: Angular's built-in `Validators.*` already show a translated default
   message (`field-error.ts` → `form.*` keys). For a custom message, wrap the validator with a
@@ -813,24 +838,7 @@ initialValue })`.
   @Component({
     selector: 'app-wallet-form',
     imports: [FORM_IMPORTS, TranslocoPipe, InputField, SelectField, SwitchField, HlmButton],
-    template: `
-      @let f = form.controls;
-      <form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="onSubmit()">
-        <app-input-field [control]="f.name" [label]="'wallets.name' | transloco" />
-        <app-select-field
-          [control]="f.type"
-          [label]="'wallets.type' | transloco"
-          [options]="typeOptions()"
-        />
-        <app-switch-field
-          [control]="f.excludeFromTotal"
-          [label]="'wallets.excludeFromTotal' | transloco"
-        />
-        <button hlmBtn type="submit" [disabled]="isProcessing()">
-          {{ 'common.save' | transloco }}
-        </button>
-      </form>
-    `,
+    templateUrl: './wallet-form.html',
   })
   export class WalletForm {
     private nnfb = inject(NonNullableFormBuilder)
@@ -857,6 +865,26 @@ initialValue })`.
   }
   ```
 
+  ```html
+  <!-- wallet-form.html -->
+  @let f = form.controls;
+  <form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="onSubmit()">
+    <app-input-field [control]="f.name" [label]="'wallets.name' | transloco" />
+    <app-select-field
+      [control]="f.type"
+      [label]="'wallets.type' | transloco"
+      [options]="typeOptions()"
+    />
+    <app-switch-field
+      [control]="f.excludeFromTotal"
+      [label]="'wallets.excludeFromTotal' | transloco"
+    />
+    <button hlmBtn type="submit" [disabled]="isProcessing()">
+      {{ 'common.save' | transloco }}
+    </button>
+  </form>
+  ```
+
   `FORM_IMPORTS` = `ReactiveFormsModule` + `MarkTouchedOnSubmit`, which attaches to every
   `<form [formGroup]>` by itself.
 
@@ -872,8 +900,6 @@ initialValue })`.
   and owns `isProcessing`.
 - `NgOptimizedImage` for static images.
 - Prefer `@Service()` for new singleton services (v22+). Otherwise use `@Injectable({ providedIn: 'root' })`.
-- Prefer inline templates for small components. External template/style paths are relative to the
-  component file.
 
 ### Accessibility
 
