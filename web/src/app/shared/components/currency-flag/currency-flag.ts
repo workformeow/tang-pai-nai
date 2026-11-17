@@ -9,11 +9,7 @@ import { currencyFlagUrl } from './currency-flags'
  */
 @Component({
   selector: 'app-currency-flag',
-  template: `
-    @if (url(); as src) {
-      <img class="size-full object-cover" alt="" [src]="src" />
-    }
-  `,
+  templateUrl: './currency-flag.html',
   host: {
     'aria-hidden': 'true',
     class: 'inline-block shrink-0 overflow-hidden bg-muted ring-1 ring-border',

@@ -1,0 +1,20 @@
+<div class="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+  @if (error(); as message) {
+    <div
+      class="flex size-16 items-center justify-center rounded-full bg-muted text-3xl text-muted-foreground"
+      aria-hidden="true"
+    >
+      <ng-icon name="lucideCircleAlert" />
+    </div>
+    <h1 class="text-xl font-semibold">{{ 'auth.googleFailedHeading' | transloco }}</h1>
+    <p role="alert" class="max-w-xs text-sm text-muted-foreground">
+      {{ message.key | transloco: message.params }}
+    </p>
+    <a hlmBtn routerLink="/auth/sign-in" class="mt-4 h-11 w-full text-base">
+      {{ 'auth.backToSignIn' | transloco }}
+    </a>
+  } @else {
+    <hlm-spinner class="text-3xl text-brand" [aria-label]="'auth.signingIn' | transloco" />
+    <h1 class="text-xl font-semibold">{{ 'auth.signingIn' | transloco }}</h1>
+  }
+</div>

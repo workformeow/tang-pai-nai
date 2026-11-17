@@ -1,0 +1,32 @@
+@if (wallets().length > 0 || !empty()) {
+  <ul class="divide-y divide-border rounded-xl border border-border bg-card">
+    @for (item of wallets(); track item.id) {
+      <li>
+        <button
+          type="button"
+          class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+          [attr.aria-current]="item.id === chosen() ? 'true' : null"
+          (click)="picked.emit(item.id)"
+        >
+          <app-icon-badge [icon]="item.icon" [color]="item.color" [fallback]="walletIcon" />
+          <span class="flex min-w-0 flex-1 flex-col">
+            <span class="truncate text-base">{{ item.name }}</span>
+            @if (item.note) {
+              <span class="text-sm text-muted-foreground">{{ item.note }}</span>
+            }
+          </span>
+          @if (item.balance !== null) {
+            <span class="shrink-0 text-sm tabular-nums" [class.text-expense]="item.negative">{{
+              item.balance
+            }}</span>
+          }
+          @if (item.id === chosen()) {
+            <ng-icon name="lucideCheck" size="20" class="text-brand" aria-hidden="true" />
+          }
+        </button>
+      </li>
+    }
+  </ul>
+} @else {
+  <p class="text-sm text-muted-foreground">{{ empty() }}</p>
+}

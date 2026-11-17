@@ -1,0 +1,182 @@
+<div class="flex flex-col gap-6 p-4">
+  <button
+    hlmBtn
+    variant="ghost"
+    type="button"
+    class="tpn-hit -ms-1 h-9 gap-1 self-start tpn-glass rounded-full ps-2 pe-3.5"
+    (click)="back()"
+  >
+    <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
+    {{ 'title.security' | transloco }}
+  </button>
+
+  <div class="flex flex-col gap-1">
+    @if (savedPhone(); as phone) {
+      <p class="text-sm text-muted-foreground">{{ 'phone.saved' | transloco }}</p>
+      <p class="text-xl font-semibold tabular-nums">{{ phone }}</p>
+    } @else {
+      <p class="text-base font-medium">{{ 'phone.notAdded' | transloco }}</p>
+    }
+    <p class="text-sm text-muted-foreground">{{ 'phone.about' | transloco }}</p>
+  </div>
+
+  @if (!networkStatusService.isOnline()) {
+    <p role="status" class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {{ 'phone.offline' | transloco }}
+    </p>
+  } @else if (phoneEnabled() === false) {
+    <p role="status" class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {{ 'phone.unavailable' | transloco }}
+    </p>
+  }
+
+  <p role="status" class="text-sm text-income empty:hidden">
+    @if (done(); as key) {
+      {{ key | transloco }}
+    }
+  </p>
+
+  @if (reauth.pending(); as action) {
+    <app-reauth-step
+      [email]="email()"
+      [hasPassword]="hasPassword()"
+      [method]="reauth.method()"
+      [codeSent]="reauth.codeSent()"
+      [secondsLeft]="reauth.secondsLeft()"
+      [isProcessing]="isProcessing() || reauth.isBusy()"
+      [error]="reauth.error()"
+      (passwordSubmitted)="run(action, $event)"
+      (sendCode)="reauth.sendCode()"
+      (codeSubmitted)="confirmWithCode(action, $event)"
+      (methodChange)="reauth.switchMethod($event)"
+      (cancelled)="reauth.close()"
+    />
+  } @else if (codeSentTo(); as phone) {
+    <form [formGroup]="codeForm" class="flex flex-col gap-4" (ngSubmit)="confirm()">
+      <p class="text-sm text-muted-foreground">
+        {{ 'phone.codeSentTo' | transloco }}
+        <span class="font-medium whitespace-nowrap text-foreground">{{ format(phone) }}</span>
+      </p>
+      <app-otp-field [control]="codeForm.controls.code" [label]="'auth.code' | transloco" />
+      @if (error(); as message) {
+        <p role="alert" class="-mt-2 text-center text-sm text-destructive">
+          {{ message.key | transloco: message.params }}
+        </p>
+      }
+      <button
+        hlmBtn
+        type="submit"
+        class="h-11 w-full text-base"
+        [disabled]="isProcessing() || !networkStatusService.isOnline()"
+      >
+        @if (isProcessing()) {
+          <hlm-spinner [aria-label]="'account.confirming' | transloco" />
+        }
+        {{ 'phone.confirmNumber' | transloco }}
+      </button>
+      <p class="text-center text-sm text-muted-foreground">
+        {{ 'phone.codeHint' | transloco }}
+      </p>
+    </form>
+    <div class="flex flex-col items-center gap-1">
+      <button
+        hlmBtn
+        variant="ghost"
+        type="button"
+        class="h-11"
+        [disabled]="secondsLeft() > 0 || isProcessing() || !networkStatusService.isOnline()"
+        (click)="run({ kind: 'send', phone })"
+      >
+        @if (secondsLeft() > 0) {
+          {{ 'auth.resendIn' | transloco: { seconds: secondsLeft() } }}
+        } @else {
+          {{ 'auth.resend' | transloco }}
+        }
+      </button>
+      <button
+        hlmBtn
+        variant="ghost"
+        type="button"
+        class="h-11"
+        [disabled]="isProcessing()"
+        (click)="useOtherNumber()"
+      >
+        {{ 'phone.useOtherNumber' | transloco }}
+      </button>
+    </div>
+  } @else if (phoneEnabled()) {
+    <form [formGroup]="numberForm" class="flex flex-col gap-4" (ngSubmit)="sendCode()">
+      <app-input-field
+        [control]="numberForm.controls.phone"
+        [label]="(savedPhone() ? 'phone.changeNumber' : 'phone.newNumber') | transloco"
+        type="tel"
+        inputmode="tel"
+        autocomplete="tel-national"
+        placeholder="081-234-5678"
+      />
+      @if (error(); as message) {
+        <p role="alert" class="-mt-2 text-sm text-destructive">
+          {{ message.key | transloco: message.params }}
+        </p>
+      }
+      <button
+        hlmBtn
+        type="submit"
+        class="h-11 w-full text-base"
+        [disabled]="isProcessing() || !networkStatusService.isOnline()"
+      >
+        @if (isProcessing()) {
+          <hlm-spinner [aria-label]="'auth.sending' | transloco" />
+        }
+        {{ 'phone.sendCode' | transloco }}
+      </button>
+    </form>
+
+    @if (savedPhone()) {
+      <section class="flex flex-col gap-3 border-t border-border pt-6">
+        @if (confirmingRemove()) {
+          <p class="text-sm">{{ 'phone.removeConfirmText' | transloco }}</p>
+          @if (removeError(); as message) {
+            <p role="alert" class="text-sm text-destructive">
+              {{ message.key | transloco: message.params }}
+            </p>
+          }
+          <button
+            hlmBtn
+            variant="destructive"
+            type="button"
+            class="h-11 w-full text-base"
+            [disabled]="isProcessing() || !networkStatusService.isOnline()"
+            (click)="run({ kind: 'remove' })"
+          >
+            @if (isProcessing()) {
+              <hlm-spinner [aria-label]="'account.removing' | transloco" />
+            }
+            {{ 'phone.removeConfirm' | transloco }}
+          </button>
+          <button
+            hlmBtn
+            variant="outline"
+            type="button"
+            class="h-11 w-full"
+            [disabled]="isProcessing()"
+            (click)="confirmingRemove.set(false)"
+          >
+            {{ 'account.cancel' | transloco }}
+          </button>
+        } @else {
+          <button
+            hlmBtn
+            variant="outline"
+            type="button"
+            class="h-11 w-full text-destructive"
+            [disabled]="isProcessing() || !networkStatusService.isOnline()"
+            (click)="askRemove()"
+          >
+            {{ 'phone.remove' | transloco }}
+          </button>
+        }
+      </section>
+    }
+  }
+</div>

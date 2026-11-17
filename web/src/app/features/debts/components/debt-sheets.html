@@ -1,0 +1,9 @@
+@defer (when debtService.sheet()) {
+  <app-debt-sheet />
+}
+@defer (when debtService.entrySheet()) {
+  <app-debt-entry-sheet />
+}
+@defer (when debtService.closeSheet()) {
+  <app-debt-close-sheet />
+}

@@ -14,13 +14,7 @@ const DEMO_LIFETIME_MS = 24 * HOUR_MS
   selector: 'app-demo-banner',
   imports: [TranslocoPipe],
   host: { role: 'status' },
-  template: `
-    @if (hoursLeft(); as count) {
-      <p class="bg-primary px-4 text-center text-xs leading-6 font-medium text-primary-foreground">
-        {{ 'demo.banner' | transloco: { count } }}
-      </p>
-    }
-  `,
+  templateUrl: './demo-banner.html',
 })
 export class DemoBanner {
   private authStore = inject(AuthStore)

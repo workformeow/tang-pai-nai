@@ -15,42 +15,7 @@ let nextId = 0
 @Component({
   selector: 'app-currency-pick',
   imports: [TranslocoPipe, CurrencyFlag],
-  template: `
-    <div class="flex flex-col gap-3">
-      @for (group of groups(); track group.key) {
-        @let headingId = idPrefix + '-' + group.key;
-        <p class="-mb-1 text-sm text-muted-foreground" [id]="headingId">
-          {{ 'currencyGroups.' + group.key | transloco }}
-        </p>
-        <div
-          class="grid grid-cols-5 justify-items-center gap-x-1 gap-y-3"
-          role="group"
-          [attr.aria-labelledby]="headingId"
-        >
-          @for (code of group.codes; track code) {
-            @let picked = code === value();
-            <button
-              type="button"
-              class="flex w-full flex-col items-center gap-1 rounded-xl py-1 text-xs font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-              [class.text-brand]="picked"
-              [attr.aria-pressed]="picked"
-              [attr.aria-label]="names()[code] ?? code"
-              (click)="chosen.emit(code)"
-            >
-              <span
-                class="grid size-12 place-items-center rounded-full"
-                [class.ring-2]="picked"
-                [class.ring-primary]="picked"
-              >
-                <app-currency-flag class="size-10" shape="round" [code]="code" />
-              </span>
-              {{ code }}
-            </button>
-          }
-        </div>
-      }
-    </div>
-  `,
+  templateUrl: './currency-pick.html',
 })
 export class CurrencyPick {
   private walletService = inject(WalletService)

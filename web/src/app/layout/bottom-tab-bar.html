@@ -1,0 +1,42 @@
+<nav
+  [attr.aria-label]="'nav.main' | transloco"
+  class="mx-auto grid h-16 max-w-[480px] grid-cols-5 items-stretch border-t border-border bg-background"
+>
+  @for (tab of tabs; track tab.path) {
+    @if ($index === 2) {
+      <div class="flex items-center justify-center">
+        <button
+          type="button"
+          [attr.aria-label]="'nav.add' | transloco"
+          aria-haspopup="dialog"
+          class="-mt-6 flex size-14 items-center justify-center rounded-full bg-primary text-2xl text-primary-foreground shadow-lg ring-4 ring-background focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
+          [disabled]="sharedReadOnly()"
+          (click)="add()"
+        >
+          <ng-icon name="lucidePlus" aria-hidden="true" />
+        </button>
+      </div>
+    }
+    <a
+      [routerLink]="tab.path"
+      [class.active]="tab.path === '/' + navHistory.tab()"
+      [attr.aria-current]="tab.path === '/' + navHistory.tab() ? 'page' : null"
+      (click)="toTop(tab.path)"
+      class="group flex flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground focus-visible:outline-none [&.active]:font-semibold [&.active]:text-brand [&.active]:[--ng-icon__stroke-width:2.4]"
+    >
+      <span
+        class="relative flex h-7 w-12 items-center justify-center rounded-full text-xl group-focus-visible:ring-2 group-focus-visible:ring-ring"
+      >
+        <ng-icon [name]="tab.icon" aria-hidden="true" />
+        @if (tab.path === '/account' && accountDot()) {
+          <span
+            class="absolute top-0 right-2.5 size-2 rounded-full bg-destructive"
+            data-testid="account-dot"
+          ></span>
+          <span class="sr-only">{{ 'sharing.invitesPending' | transloco }}</span>
+        }
+      </span>
+      {{ tab.label | transloco }}
+    </a>
+  }
+</nav>

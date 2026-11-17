@@ -1,0 +1,22 @@
+<div class="flex flex-col gap-5 p-4">
+  <app-segmented-field
+    [control]="languageControl"
+    [label]="'account.language' | transloco"
+    [options]="languageOptions"
+    showLabel
+  />
+  <app-segmented-field
+    [control]="themeControl"
+    [label]="'account.mode' | transloco"
+    [options]="themeOptions()"
+    showLabel
+  />
+  <app-palette-picker [control]="paletteControl" [palettes]="palettes" />
+  <div class="border-t border-border pt-4">
+    <app-switch-field
+      [control]="quickAmountsControl"
+      [label]="'account.quickAmounts' | transloco"
+      [hint]="'account.quickAmountsHint' | transloco"
+    />
+  </div>
+</div>

@@ -1,0 +1,202 @@
+<app-book-switcher />
+<button
+  type="button"
+  class="tpn-hit flex h-9 max-w-48 min-w-0 items-center gap-2 tpn-glass rounded-full py-1 pr-3 pl-1 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+  aria-haspopup="dialog"
+  [attr.aria-label]="'transactions.walletSwitch' | transloco: { name: walletName() }"
+  (click)="transactionService.walletSheet.set(true)"
+>
+  @if (transactionService.viewWallet(); as wallet) {
+    <app-icon-badge [icon]="wallet.icon" [color]="wallet.color" [size]="28" />
+  } @else {
+    <span
+      class="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+    >
+      <ng-icon name="lucideWallet" size="16" aria-hidden="true" />
+    </span>
+  }
+  <span class="truncate text-base font-semibold">{{ walletName() }}</span>
+  <ng-icon
+    name="lucideChevronDown"
+    size="16"
+    class="shrink-0 text-muted-foreground"
+    aria-hidden="true"
+  />
+</button>
+<div class="flex items-center justify-end">
+  <app-sync-status />
+  <button
+    #menuButton
+    type="button"
+    class="tpn-hit ml-1 flex size-9 items-center justify-center tpn-glass rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+    aria-haspopup="menu"
+    [attr.aria-expanded]="menuOpen()"
+    [attr.aria-label]="'transfers.menu' | transloco"
+    (click)="toggleMenu()"
+  >
+    <ng-icon name="lucideEllipsisVertical" size="18" aria-hidden="true" />
+  </button>
+</div>
+@if (menuOpen()) {
+  <div
+    #menu
+    role="menu"
+    tabindex="-1"
+    class="absolute top-full right-2 z-30 -mt-1 min-w-56 origin-top-right overflow-x-clip rounded-xl border border-border bg-popover py-1.5 text-popover-foreground shadow-lg"
+    animate.enter="menu-enter"
+    animate.leave="menu-leave"
+    [attr.aria-label]="(level() === 'main' ? 'transfers.menu' : 'transactions.viewBy') | transloco"
+    (keydown)="onMenuKey($event)"
+  >
+    <!-- "ดูตาม ›" slides the units in from the right, ‹ the items back from the left. -->
+    <div [appSlide]="level() === 'main' ? 0 : 1">
+      @if (level() === 'main') {
+        @if (view() === 'transactions' && !bookService.isShared()) {
+          <button
+            type="button"
+            role="menuitem"
+            class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+            (click)="transfer()"
+          >
+            <ng-icon name="lucideArrowLeftRight" size="20" aria-hidden="true" />
+            <span class="flex-1">{{ 'transfers.open' | transloco }}</span>
+          </button>
+        }
+        @if (view() === 'transactions' && !bookService.isShared()) {
+          <!-- Debts (debt.md Q9): the debts page under the Wallets tab. -->
+          <button
+            type="button"
+            role="menuitem"
+            class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+            (click)="debts()"
+          >
+            <ng-icon name="lucideHandCoins" size="20" aria-hidden="true" />
+            <span class="flex-1">{{ 'debts.menu' | transloco }}</span>
+            <ng-icon
+              name="lucideChevronRight"
+              size="16"
+              class="text-muted-foreground"
+              aria-hidden="true"
+            />
+          </button>
+        }
+        @if (view() === 'transactions' && !bookService.isShared()) {
+          <!-- Events (event.md Q6): the events page under the Transactions tab. -->
+          <button
+            type="button"
+            role="menuitem"
+            class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+            (click)="events()"
+          >
+            <ng-icon name="lucidePlane" size="20" aria-hidden="true" />
+            <span class="flex-1">{{ 'events.menu' | transloco }}</span>
+            <ng-icon
+              name="lucideChevronRight"
+              size="16"
+              class="text-muted-foreground"
+              aria-hidden="true"
+            />
+          </button>
+        }
+        @if (view() === 'transactions' && !bookService.isShared()) {
+          <!-- Recurring (recurring.md Q5): the rules page in Account. -->
+          <button
+            type="button"
+            role="menuitem"
+            class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+            (click)="recurring()"
+          >
+            <ng-icon name="lucideRepeat" size="20" aria-hidden="true" />
+            <span class="flex-1">{{ 'recurring.menu' | transloco }}</span>
+            <ng-icon
+              name="lucideChevronRight"
+              size="16"
+              class="text-muted-foreground"
+              aria-hidden="true"
+            />
+          </button>
+        }
+        @if (view() === 'transactions' && transactionService.activityScope()) {
+          <!-- Shared activity (rule 7): after the recurring rules, while the book has any. -->
+          <button
+            type="button"
+            role="menuitem"
+            class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+            (click)="activity()"
+          >
+            <ng-icon name="lucideActivity" size="20" aria-hidden="true" />
+            <span class="flex-1">{{ 'activity.menu' | transloco }}</span>
+            @if (activityLeft(); as left) {
+              <span class="text-sm font-semibold text-brand">{{ left }}</span>
+            }
+            <ng-icon
+              name="lucideChevronRight"
+              size="16"
+              class="text-muted-foreground"
+              aria-hidden="true"
+            />
+          </button>
+        }
+        @if (view() === 'reports' && reportService.manyCurrencies()) {
+          <!-- #24: every currency side by side, only with more than one in the book. -->
+          <button
+            type="button"
+            role="menuitem"
+            class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+            (click)="currencies()"
+          >
+            <ng-icon name="lucideCoins" size="20" aria-hidden="true" />
+            <span class="flex-1">{{ 'reports.overviewTitle' | transloco }}</span>
+            <ng-icon
+              name="lucideChevronRight"
+              size="16"
+              class="text-muted-foreground"
+              aria-hidden="true"
+            />
+          </button>
+        }
+        <button
+          type="button"
+          role="menuitem"
+          aria-haspopup="menu"
+          class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+          (click)="showUnits()"
+        >
+          <ng-icon name="lucideCalendarRange" size="20" aria-hidden="true" />
+          <span class="flex-1">{{ 'transactions.viewBy' | transloco }}</span>
+          <span class="flex items-center gap-0.5 text-sm text-muted-foreground">
+            {{ 'transactions.unit.' + currentUnit() | transloco }}
+            <ng-icon name="lucideChevronRight" size="16" aria-hidden="true" />
+          </span>
+        </button>
+      } @else {
+        <button
+          type="button"
+          role="menuitem"
+          class="flex min-h-11 w-full items-center gap-2 px-3 text-left text-sm font-medium text-muted-foreground focus-visible:bg-muted focus-visible:outline-none"
+          [attr.aria-label]="'transfers.menuBack' | transloco"
+          (click)="showMain()"
+        >
+          <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
+          {{ 'transactions.viewBy' | transloco }}
+        </button>
+        @for (unit of units(); track unit) {
+          <button
+            type="button"
+            role="menuitemradio"
+            class="flex min-h-11 w-full items-center justify-between gap-6 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+            [class.font-semibold]="unit === currentUnit()"
+            [class.text-brand]="unit === currentUnit()"
+            [attr.aria-checked]="unit === currentUnit()"
+            (click)="choose(unit)"
+          >
+            {{ 'transactions.unit.' + unit | transloco }}
+            @if (unit === currentUnit()) {
+              <ng-icon name="lucideCheck" size="18" aria-hidden="true" />
+            }
+          </button>
+        }
+      }
+    </div>
+  </div>
+}

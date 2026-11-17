@@ -26,19 +26,7 @@ const HOLD = 0.9
 @Component({
   selector: 'app-nav-progress',
   host: { 'aria-hidden': 'true' },
-  template: `
-    @if (visible()) {
-      <div
-        class="pointer-events-none fixed inset-x-0 top-0 z-[1100] h-[3px] transition-opacity duration-200 motion-reduce:transition-none"
-        [class.opacity-0]="fading()"
-      >
-        <div
-          class="h-full origin-left bg-brand shadow-[0_0_6px_var(--brand)] transition-transform duration-200 ease-out motion-reduce:transition-none"
-          [style.transform]="'scaleX(' + progress() + ')'"
-        ></div>
-      </div>
-    }
-  `,
+  templateUrl: './nav-progress.html',
 })
 export class NavProgress {
   protected visible = signal(false)

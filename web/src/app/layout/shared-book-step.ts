@@ -15,42 +15,7 @@ import { EmptyState } from '@/shared/components/empty-state'
   selector: 'app-shared-book-step',
   imports: [TranslocoPipe, NgIcon, HlmButton, EmptyState],
   providers: [provideIcons({ lucideChartPie, lucideUser, lucideWifiOff })],
-  template: `
-    <div class="flex flex-col items-center gap-3 p-4">
-      @if (reason() === 'offline') {
-        <app-empty-state
-          [heading]="'sharing.offlineHeading' | transloco"
-          [description]="'sharing.offlineText' | transloco"
-        >
-          <ng-icon name="lucideWifiOff" />
-        </app-empty-state>
-      } @else if (reason() === 'reports') {
-        <app-empty-state
-          [heading]="'sharing.reportsHeading' | transloco"
-          [description]="'sharing.reportsText' | transloco"
-        >
-          <ng-icon name="lucideChartPie" />
-        </app-empty-state>
-      } @else {
-        <app-empty-state
-          [heading]="'sharing.mineHeading' | transloco"
-          [description]="'sharing.mineText' | transloco"
-        >
-          <ng-icon name="lucideUser" />
-        </app-empty-state>
-      }
-      <button
-        hlmBtn
-        variant="outline"
-        type="button"
-        class="-mt-8 h-11 px-6 text-base"
-        (click)="bookService.leaveShared()"
-      >
-        <ng-icon name="lucideUser" size="20" aria-hidden="true" />
-        {{ 'sharing.backToMine' | transloco }}
-      </button>
-    </div>
-  `,
+  templateUrl: './shared-book-step.html',
 })
 export class SharedBookStep {
   protected bookService = inject(BookService)

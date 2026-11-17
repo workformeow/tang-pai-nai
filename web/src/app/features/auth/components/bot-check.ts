@@ -23,7 +23,7 @@ import type { Turnstile } from '@/features/auth/turnstile'
 @Component({
   selector: 'app-bot-check',
   host: { class: 'flex justify-center', '[class.hidden]': '!visible()' },
-  template: `<div #box class="w-full"></div>`,
+  templateUrl: './bot-check.html',
 })
 export class BotCheck {
   private document = inject(DOCUMENT)

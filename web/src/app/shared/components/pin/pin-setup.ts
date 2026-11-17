@@ -10,28 +10,7 @@ import { PinPad } from './pin-pad'
   selector: 'app-pin-setup',
   imports: [TranslocoPipe, PinPad],
   host: { class: 'flex flex-col items-center gap-6' },
-  template: `
-    <div class="flex flex-col items-center gap-2 text-center">
-      <h2 class="text-xl font-semibold">
-        {{ (first() === null ? newHeading() : 'pin.confirmHeading') | transloco }}
-      </h2>
-      <p class="text-sm text-muted-foreground">
-        {{ (first() === null ? 'pin.newHint' : 'pin.confirmHint') | transloco }}
-      </p>
-    </div>
-    <p role="alert" class="min-h-5 text-center text-sm text-destructive">
-      @if (mismatch()) {
-        {{ 'pin.mismatch' | transloco }}
-      }
-    </p>
-    <app-pin-pad
-      #pad
-      [filledLabel]="'pin.filled' | transloco: { count: pad.length() }"
-      [deleteLabel]="'pin.delete' | transloco"
-      [disabled]="isProcessing()"
-      (completed)="onCompleted($event)"
-    />
-  `,
+  templateUrl: './pin-setup.html',
 })
 export class PinSetup {
   isProcessing = input(false)

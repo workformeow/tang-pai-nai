@@ -1,0 +1,330 @@
+<div class="flex flex-col items-center px-4 pt-1 pb-2 text-center">
+  <span class="text-sm text-muted-foreground">
+    {{
+      (transactionService.viewWallet()?.isCreditCard
+        ? 'wallets.owed'
+        : transactionService.viewWallet()
+          ? 'transactions.balance'
+          : 'transactions.total'
+      ) | transloco
+    }}
+  </span>
+  @for (line of balance(); track line.code) {
+    <span
+      class="text-2xl leading-snug font-bold tabular-nums"
+      [class.text-expense]="line.owing ? line.amount > 0 : line.amount < 0"
+    >
+      {{ line.text }}
+    </span>
+  }
+</div>
+<app-period-strip
+  [chips]="chips()"
+  [selected]="transactionService.tab()"
+  [label]="'transactions.periods' | transloco"
+  (chosen)="choose($event)"
+/>
+<div
+  class="flex flex-col gap-3 px-4 pt-1 pb-4"
+  appSwipe
+  [appSlide]="tabIndex()"
+  (swiped)="move($event)"
+>
+  @if (cardDue(); as card) {
+    <!-- Credit-card rule 7: a card in view that owes money, with its pay sheet. -->
+    <div
+      class="flex min-h-14 items-center gap-3 rounded-xl border border-brand/30 bg-brand/10 px-3 py-2.5"
+    >
+      <span
+        class="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-background"
+      >
+        <ng-icon name="lucideCreditCard" size="18" aria-hidden="true" />
+      </span>
+      <span class="min-w-0 flex-1 text-base font-semibold tabular-nums">
+        {{ 'transactions.cardOwed' | transloco: { amount: card.text } }}
+      </span>
+      <button
+        hlmBtn
+        type="button"
+        class="h-9 shrink-0 px-3"
+        [disabled]="!transactionService.canWrite()"
+        (click)="payCard(card.id)"
+      >
+        {{ 'transfers.payHeading' | transloco }}
+      </button>
+    </div>
+  }
+  @if (due(); as due) {
+    <!-- Ask-first recurring rules that are due (recurring rule 10), in every period. -->
+    <button
+      type="button"
+      class="flex min-h-14 items-center gap-3 rounded-xl border border-brand/30 bg-brand/10 px-3 py-2.5 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      aria-haspopup="dialog"
+      (click)="dueOpen.set(true)"
+    >
+      <span
+        class="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-background"
+      >
+        <ng-icon name="lucideBell" size="18" aria-hidden="true" />
+      </span>
+      <span class="flex min-w-0 flex-1 flex-col">
+        <span class="text-base font-semibold">
+          {{ 'recurring.due' | transloco: { count: due.count } }}
+        </span>
+        <span class="truncate text-sm text-muted-foreground">{{ due.text }}</span>
+      </span>
+      <ng-icon
+        name="lucideChevronRight"
+        size="18"
+        class="text-muted-foreground"
+        aria-hidden="true"
+      />
+    </button>
+  }
+  @for (line of summary(); track line.currencyCode) {
+    <app-money-summary-card [line]="line" />
+  }
+  @for (group of days(); track group.day) {
+    <section
+      class="rounded-2xl border border-border bg-card pt-1 pb-1.5"
+      [attr.aria-label]="group.title + ' ' + group.subtitle"
+    >
+      <div class="flex items-center gap-3 px-4 pt-3 pb-1.5">
+        <span
+          class="min-w-11 text-[2rem] leading-none font-semibold tabular-nums"
+          aria-hidden="true"
+        >
+          {{ group.number }}
+        </span>
+        <span
+          class="flex min-w-0 flex-1 flex-col text-[0.8125rem] leading-snug text-muted-foreground"
+        >
+          <span>{{ group.title }}</span>
+          <span>{{ group.subtitle }}</span>
+        </span>
+        <span class="text-base font-semibold tabular-nums">{{ group.total }}</span>
+      </div>
+      <ul>
+        @for (row of group.items; track row.key) {
+          <li>
+            <button
+              type="button"
+              class="flex min-h-15 w-full items-center gap-3 px-4 py-2.5 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+              (click)="openRow(row.item)"
+            >
+              <span class="relative shrink-0">
+                @if (row.item.kind === 'transfer') {
+                  <span
+                    class="flex size-10 items-center justify-center rounded-full bg-muted text-foreground"
+                  >
+                    <ng-icon name="lucideArrowLeftRight" size="20" aria-hidden="true" />
+                  </span>
+                } @else if (row.item.kind === 'debt') {
+                  <span
+                    class="flex size-10 items-center justify-center rounded-full bg-muted text-foreground"
+                  >
+                    <ng-icon name="lucideHandCoins" size="20" aria-hidden="true" />
+                  </span>
+                } @else {
+                  <app-icon-badge
+                    [icon]="row.item.categoryIcon"
+                    [color]="row.item.categoryColor"
+                    [fallback]="categoryIcon"
+                  />
+                }
+                @if (row.wallet; as wallet) {
+                  <!-- Which wallet, on "ทุกกระเป๋า" (owner's choice ก in #8). -->
+                  <app-icon-badge
+                    class="absolute -right-1 -bottom-1 rounded-full ring-2 ring-card"
+                    [icon]="wallet.icon"
+                    [color]="wallet.color"
+                    [fallback]="walletIcon"
+                    [size]="20"
+                  />
+                }
+              </span>
+              <span class="flex min-w-0 flex-1 flex-col">
+                @if (row.item.kind === 'transfer') {
+                  <span class="flex min-w-0 items-center gap-1">
+                    <span class="truncate text-base font-semibold">{{
+                      'transfers.title' | transloco
+                    }}</span>
+                    @if (row.item.recurringId) {
+                      <ng-icon
+                        name="lucideRepeat"
+                        size="13"
+                        class="shrink-0 text-muted-foreground"
+                        [attr.aria-label]="'recurring.fromRule' | transloco"
+                      />
+                    }
+                  </span>
+                  <span class="truncate text-sm text-muted-foreground">{{
+                    (row.item.side === 'out' ? 'transfers.toWallet' : 'transfers.fromWallet')
+                      | transloco: { name: row.item.otherWalletName }
+                  }}</span>
+                } @else if (row.item.kind === 'debt') {
+                  <!-- Money of a debt, not income or expense (debt → Web screens). -->
+                  <span class="flex min-w-0 items-center gap-1">
+                    <span class="truncate text-base font-semibold">{{
+                      'debts.entry.' + row.item.direction + '.' + row.item.entryKind | transloco
+                    }}</span>
+                    @if (row.item.recurringId) {
+                      <ng-icon
+                        name="lucideRepeat"
+                        size="13"
+                        class="shrink-0 text-muted-foreground"
+                        [attr.aria-label]="'recurring.fromRule' | transloco"
+                      />
+                    }
+                  </span>
+                  <span class="truncate text-sm text-muted-foreground">{{ row.item.person }}</span>
+                } @else {
+                  <span class="flex min-w-0 items-center gap-1">
+                    <span class="truncate text-base font-semibold">{{
+                      row.item.categoryName
+                    }}</span>
+                    @if (row.item.recurringId) {
+                      <!-- An occurrence of a recurring rule (recurring rule 11). -->
+                      <ng-icon
+                        name="lucideRepeat"
+                        size="13"
+                        class="shrink-0 text-muted-foreground"
+                        [attr.aria-label]="'recurring.fromRule' | transloco"
+                      />
+                    }
+                    @if (row.item.debtId) {
+                      <!-- Counted money of a debt: an instalment, interest (debt rule 3). -->
+                      <ng-icon
+                        name="lucideHandCoins"
+                        size="13"
+                        class="shrink-0 text-muted-foreground"
+                        [attr.aria-label]="'debts.linked' | transloco"
+                      />
+                    }
+                    @if (row.item.eventName; as eventName) {
+                      <!-- The event / trip it is tagged to (event → Web screens 4). -->
+                      <span
+                        class="flex min-w-0 shrink items-center gap-0.5 rounded-md bg-brand/10 px-1.5 text-xs font-semibold text-brand"
+                      >
+                        <ng-icon name="lucidePlane" size="11" class="shrink-0" aria-hidden="true" />
+                        <span class="sr-only">{{ 'events.field' | transloco }}</span>
+                        <span class="truncate">{{ eventName }}</span>
+                      </span>
+                    }
+                  </span>
+                }
+                @if (row.wallet; as wallet) {
+                  <span class="sr-only">{{ wallet.name }}</span>
+                }
+                @if (row.item.note) {
+                  <span class="truncate text-sm text-muted-foreground">{{ row.item.note }}</span>
+                }
+                @if (touchedBy(row.item, row.pending); as line) {
+                  <!-- Who else touched it last (shared-activity rule 6). -->
+                  <span class="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+                    <ng-icon name="lucideUsers" size="12" class="shrink-0" aria-hidden="true" />
+                    <span class="truncate">{{ line }}</span>
+                  </span>
+                }
+                @if (row.pending) {
+                  <span class="flex items-center gap-1 text-xs text-muted-foreground">
+                    <ng-icon name="lucideCloud" size="12" aria-hidden="true" />
+                    {{ 'transactions.pending' | transloco }}
+                  </span>
+                }
+              </span>
+              <span
+                class="shrink-0 text-right text-base tabular-nums"
+                [class.text-income]="row.positive"
+                [class.text-expense]="!row.positive"
+              >
+                {{ row.amount }}
+              </span>
+            </button>
+          </li>
+        }
+        @for (row of group.upcoming; track row.occurrence.id) {
+          <li>
+            <!-- Not recorded yet (recurring rule 17): faded, a dashed badge, opens its rule. -->
+            <button
+              type="button"
+              class="flex min-h-15 w-full items-center gap-3 px-4 py-2.5 text-left opacity-65 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+              (click)="recurringService.open(row.occurrence.item.rule.id)"
+            >
+              <span
+                class="relative shrink-0 rounded-full outline-[1.5px] outline-offset-2 outline-muted-foreground outline-dashed"
+              >
+                @if (row.occurrence.item.rule.kind !== 'transaction') {
+                  <span
+                    class="flex size-10 items-center justify-center rounded-full bg-muted text-foreground"
+                  >
+                    <ng-icon
+                      [name]="
+                        row.occurrence.item.rule.kind === 'debt'
+                          ? 'lucideHandCoins'
+                          : 'lucideArrowLeftRight'
+                      "
+                      size="20"
+                      aria-hidden="true"
+                    />
+                  </span>
+                } @else {
+                  <app-icon-badge
+                    [icon]="row.occurrence.item.icon"
+                    [color]="row.occurrence.item.color"
+                    [fallback]="categoryIcon"
+                  />
+                }
+                @if (row.wallet; as wallet) {
+                  <app-icon-badge
+                    class="absolute -right-1 -bottom-1 rounded-full ring-2 ring-card"
+                    [icon]="wallet.icon"
+                    [color]="wallet.color"
+                    [fallback]="walletIcon"
+                    [size]="20"
+                  />
+                }
+              </span>
+              <span class="flex min-w-0 flex-1 flex-col">
+                <span class="truncate text-base font-semibold">{{ row.title }}</span>
+                <span class="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+                  <ng-icon name="lucideRepeat" size="13" class="shrink-0" aria-hidden="true" />
+                  <span class="truncate">{{ row.sub }}</span>
+                </span>
+              </span>
+              <span
+                class="shrink-0 text-right text-base tabular-nums"
+                [class.text-income]="row.positive"
+                [class.text-expense]="!row.positive"
+              >
+                {{ row.amount }}
+              </span>
+            </button>
+          </li>
+        }
+      </ul>
+    </section>
+  } @empty {
+    <app-empty-state
+      [heading]="'transactions.emptyHeading' | transloco"
+      [description]="'transactions.emptyText' | transloco"
+    >
+      <ng-icon name="lucideReceiptText" />
+    </app-empty-state>
+    <button
+      hlmBtn
+      type="button"
+      class="-mt-10 h-11 self-center px-5 text-base"
+      [disabled]="!transactionService.canWrite()"
+      (click)="transactionService.open({ mode: 'create' })"
+    >
+      {{ 'transactions.add' | transloco }}
+    </button>
+  }
+  @if (hasMore()) {
+    <div #more class="h-px" aria-hidden="true"></div>
+  }
+</div>
+@defer (when dueOpen()) {
+  <app-due-sheet [(open)]="dueOpen" />
+}

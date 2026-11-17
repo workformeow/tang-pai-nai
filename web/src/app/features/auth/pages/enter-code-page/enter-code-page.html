@@ -1,0 +1,90 @@
+<div class="flex flex-1 flex-col gap-6">
+  <button
+    hlmBtn
+    variant="ghost"
+    type="button"
+    class="tpn-hit -ms-1 h-9 gap-1 self-start tpn-glass rounded-full ps-2 pe-3.5"
+    (click)="back()"
+  >
+    <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
+    {{ (phone() ? 'auth.changePhone' : 'auth.changeEmail') | transloco }}
+  </button>
+
+  <!-- The heading is for screen readers only: the line below and the six slots say it all. -->
+  <h1 class="sr-only">
+    {{ (phone() ? 'auth.smsCodeHeading' : 'auth.codeHeading') | transloco }}
+  </h1>
+  <p class="text-center text-base text-muted-foreground">
+    {{ (phone() ? 'auth.smsCodeSentTo' : 'auth.codeSentTo') | transloco }}
+    <span class="font-medium wrap-anywhere whitespace-nowrap text-foreground">
+      {{ phone() ? formattedPhone() : email() }}
+    </span>
+  </p>
+
+  <form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="onSubmit()">
+    <app-otp-field
+      [control]="form.controls.code"
+      [label]="'auth.code' | transloco"
+      [hideLabel]="true"
+    />
+    @if (error(); as message) {
+      <p role="alert" class="-mt-2 text-center text-sm text-destructive">
+        {{ message.key | transloco: message.params }}
+      </p>
+    }
+    <!-- As wide as the six 48px slots above it (w-72), so the two line up. -->
+    <button
+      hlmBtn
+      type="submit"
+      class="h-11 w-72 self-center text-base"
+      [disabled]="isProcessing()"
+    >
+      @if (isProcessing()) {
+        <hlm-spinner [aria-label]="'auth.signingIn' | transloco" />
+      }
+      {{ 'auth.signIn' | transloco }}
+    </button>
+  </form>
+
+  @if (phone()) {
+    <!-- The API answers every number the same (rule 22), so this names the rule, never the
+         number: someone whose number isn't on an account learns what to do instead. -->
+    <div class="flex flex-col gap-3 rounded-xl bg-muted px-4 py-3">
+      <p class="text-sm text-muted-foreground">{{ 'auth.smsHint' | transloco }}</p>
+      <button
+        hlmBtn
+        variant="outline"
+        type="button"
+        class="h-11 w-full text-base"
+        (click)="useEmail()"
+      >
+        <ng-icon name="lucideMail" aria-hidden="true" />
+        {{ 'auth.useEmailInstead' | transloco }}
+      </button>
+    </div>
+  }
+
+  <div class="mt-auto flex flex-col items-center gap-1">
+    <!-- Resending is another start (auth spec rule 32), so it needs its own bot check. -->
+    <app-bot-check class="w-full" />
+    <button
+      hlmBtn
+      variant="ghost"
+      type="button"
+      class="h-11"
+      [disabled]="secondsLeft() > 0 || isResending()"
+      (click)="resend()"
+    >
+      @if (secondsLeft() > 0) {
+        {{ 'auth.resendIn' | transloco: { seconds: secondsLeft() } }}
+      } @else {
+        {{ 'auth.resend' | transloco }}
+      }
+    </button>
+    <p role="status" class="min-h-5 text-sm text-muted-foreground">
+      @if (resent()) {
+        {{ (phone() ? 'auth.smsResent' : 'auth.resent') | transloco }}
+      }
+    </p>
+  </div>
+</div>

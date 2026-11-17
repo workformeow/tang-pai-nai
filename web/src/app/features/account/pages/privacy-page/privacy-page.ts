@@ -22,32 +22,7 @@ const SECTIONS: readonly NoticeSection[] = [
 @Component({
   selector: 'app-privacy-page',
   imports: [TranslocoPipe],
-  template: `
-    <div class="flex flex-col gap-6 p-4">
-      <p class="text-base">{{ 'privacy.intro' | transloco }}</p>
-
-      @if (testVersion()) {
-        <p role="note" class="rounded-xl bg-muted px-4 py-3 text-sm">
-          {{ 'privacy.testVersion' | transloco }}
-        </p>
-      }
-
-      @for (section of sections; track section.key) {
-        <section class="flex flex-col gap-2" [attr.aria-labelledby]="'privacy-' + section.key">
-          <h2 [id]="'privacy-' + section.key" class="text-base font-semibold">
-            {{ 'privacy.heading.' + section.key | transloco }}
-          </h2>
-          <ul class="flex list-disc flex-col gap-1.5 ps-5 text-sm text-muted-foreground">
-            @for (line of section.lines; track line) {
-              <li>{{ line | transloco }}</li>
-            }
-          </ul>
-        </section>
-      }
-
-      <p class="text-sm text-muted-foreground">{{ 'privacy.updated' | transloco }}</p>
-    </div>
-  `,
+  templateUrl: './privacy-page.html',
 })
 export class PrivacyPage {
   private authService = inject(AuthService)

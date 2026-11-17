@@ -1,0 +1,19 @@
+<div
+  #strip
+  class="flex [scrollbar-width:none] gap-1 overflow-x-auto px-2 pb-2 [&::-webkit-scrollbar]:hidden"
+  role="tablist"
+  [attr.aria-label]="label()"
+>
+  @for (chip of chips(); track chip.id) {
+    <button
+      type="button"
+      role="tab"
+      class="min-h-10 shrink-0 rounded-full px-3.5 text-sm whitespace-nowrap text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-selected:bg-muted aria-selected:font-semibold aria-selected:text-foreground"
+      [attr.aria-selected]="chip.id === selected()"
+      [attr.data-tab]="chip.id"
+      (click)="chosen.emit(chip.id)"
+    >
+      {{ chip.label }}
+    </button>
+  }
+</div>

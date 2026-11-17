@@ -8,17 +8,7 @@ import { DebtEntrySheet } from './entry-sheet'
 @Component({
   selector: 'app-debt-sheets',
   imports: [DebtSheet, DebtEntrySheet, DebtCloseSheet],
-  template: `
-    @defer (when debtService.sheet()) {
-      <app-debt-sheet />
-    }
-    @defer (when debtService.entrySheet()) {
-      <app-debt-entry-sheet />
-    }
-    @defer (when debtService.closeSheet()) {
-      <app-debt-close-sheet />
-    }
-  `,
+  templateUrl: './debt-sheets.html',
 })
 export class DebtSheets {
   protected debtService = inject(DebtService)

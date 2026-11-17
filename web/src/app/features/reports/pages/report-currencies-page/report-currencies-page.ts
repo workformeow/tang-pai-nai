@@ -21,77 +21,7 @@ import { formatAmount, formatMoney } from '@/shared/utils'
   imports: [TranslocoPipe, NgIcon, CurrencyFlag, EmptyState, PeriodStrip, Swipe, CustomRangeSheet],
   providers: [provideIcons({ lucideChartPie, lucideWallet })],
   host: { class: 'flex flex-col' },
-  template: `
-    <app-period-strip
-      class="pt-2"
-      [chips]="view.chips()"
-      [selected]="reportService.tab()"
-      [label]="'transactions.periods' | transloco"
-      (chosen)="view.choose($event)"
-    />
-    <div class="flex flex-col gap-3 px-4 pt-1 pb-4" appSwipe (swiped)="view.move($event)">
-      <p
-        class="flex items-center gap-1.5 self-start rounded-full bg-muted px-3 py-1 text-sm text-muted-foreground"
-      >
-        <ng-icon name="lucideWallet" size="14" aria-hidden="true" />
-        {{ 'reports.overviewScope' | transloco }}
-      </p>
-      @if (rows().length > 0) {
-        <ul
-          class="flex flex-col rounded-xl border border-border bg-card px-4 text-card-foreground"
-          [attr.aria-label]="'reports.overviewTitle' | transloco"
-        >
-          @for (row of rows(); track row.code) {
-            <li class="flex flex-col gap-1 border-b border-border py-3 last:border-b-0">
-              <div class="flex items-center gap-3">
-                <span class="flex w-16 shrink-0 items-center gap-1.5 text-sm font-semibold">
-                  <app-currency-flag class="h-3.5 w-5" [code]="row.code" />
-                  {{ row.code }}
-                </span>
-                <span class="min-w-0 flex-1 truncate text-sm tabular-nums">
-                  <span class="sr-only">{{ 'categories.income' | transloco }}</span>
-                  <span class="text-income">{{ row.income }}</span>
-                  <span class="text-muted-foreground" aria-hidden="true"> · </span>
-                  <span class="sr-only">{{ 'categories.expense' | transloco }}</span>
-                  <span class="text-expense">{{ row.expense }}</span>
-                </span>
-                <span class="shrink-0 text-lg font-semibold tabular-nums">
-                  <span class="sr-only">{{ 'reports.net' | transloco }}</span>
-                  {{ row.net }}
-                </span>
-              </div>
-              <div class="flex justify-between gap-3 pl-19 text-xs text-muted-foreground">
-                <span>
-                  @if (row.wallets > 0) {
-                    {{
-                      'reports.walletCount' + (row.wallets === 1 ? 'One' : '')
-                        | transloco: { count: row.wallets }
-                    }}
-                  }
-                </span>
-                <span class="tabular-nums">{{ 'reports.end' | transloco }} {{ row.end }}</span>
-              </div>
-            </li>
-          }
-        </ul>
-      } @else {
-        <app-empty-state
-          [heading]="'reports.emptyHeading' | transloco"
-          [description]="'reports.overviewEmpty' | transloco"
-        >
-          <ng-icon name="lucideChartPie" />
-        </app-empty-state>
-      }
-    </div>
-    <!-- The header's "ดูตาม › กำหนดเอง" on this page. -->
-    @defer (when reportService.customSheet()) {
-      <app-custom-range-sheet
-        [(open)]="reportService.customSheet"
-        [range]="reportService.custom()"
-        (applied)="reportService.selectCustom($event)"
-      />
-    }
-  `,
+  templateUrl: './report-currencies-page.html',
 })
 export class ReportCurrenciesPage {
   protected reportService = inject(ReportService)

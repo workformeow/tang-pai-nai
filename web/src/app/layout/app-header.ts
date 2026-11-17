@@ -34,54 +34,7 @@ import { UpdateBanner } from './update-banner'
     class:
       'sticky top-0 z-10 block border-b border-border bg-background/95 pt-[env(safe-area-inset-top)] backdrop-blur',
   },
-  template: `
-    @if (transactionsHeader()) {
-      <h1 class="sr-only">{{ pageTitleStrategy.pageTitle() }}</h1>
-      <!-- Its own chunk (initial bundle budget); the placeholder keeps the header's height. -->
-      @defer (on immediate) {
-        <app-transactions-header [view]="reportsHeader() ? 'reports' : 'transactions'" />
-      } @placeholder {
-        <div class="h-14"></div>
-      }
-    } @else if (showSwitcher()) {
-      <!-- The Transactions header's layout: book left, the title in the very centre, sync right. -->
-      <div class="grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-1 pr-1 pl-2">
-        <app-book-switcher />
-        <h1 class="max-w-48 truncate text-lg font-semibold">
-          {{ pageTitleStrategy.pageTitle() }}
-        </h1>
-        <div class="flex justify-end">
-          <app-sync-status />
-        </div>
-      </div>
-    } @else {
-      <div class="flex h-14 items-center justify-between gap-3 px-4">
-        <div class="flex min-w-0 items-center gap-2">
-          @if (parent()) {
-            <button
-              type="button"
-              class="tpn-hit flex size-9 shrink-0 items-center justify-center tpn-glass rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-              [attr.aria-label]="'header.back' | transloco"
-              (click)="navHistory.back()"
-            >
-              <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
-            </button>
-          }
-          <h1 class="truncate text-lg font-semibold">{{ pageTitleStrategy.pageTitle() }}</h1>
-        </div>
-        <div class="-mr-3 flex shrink-0 items-center">
-          @if (unitMenu()) {
-            <!-- The all-currencies page's "ดูตาม" (#24); its own chunk, like the header above. -->
-            @defer (on immediate) {
-              <app-report-unit-menu />
-            }
-          }
-          <app-sync-status />
-        </div>
-      </div>
-    }
-    <app-update-banner />
-  `,
+  templateUrl: './app-header.html',
 })
 export class AppHeader {
   protected pageTitleStrategy = inject(PageTitleStrategy)

@@ -1,0 +1,181 @@
+<div class="flex flex-col gap-6 p-4">
+  @if (authStore.user(); as user) {
+    <!-- Design A: the whole card opens "แก้ไขโปรไฟล์". -->
+    <button
+      type="button"
+      class="flex min-h-18 w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left text-card-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      [attr.aria-label]="'profile.edit' | transloco"
+      (click)="editingProfile.set(true)"
+    >
+      <span
+        class="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-lg font-semibold"
+        aria-hidden="true"
+        >{{ initial(user.displayName) }}</span
+      >
+      <span class="flex min-w-0 flex-1 flex-col">
+        <span class="text-base font-semibold break-all">{{ user.displayName }}</span>
+        <!-- A demo's address is a placeholder no mail reaches (demo.md → Data model). -->
+        <span class="text-sm break-all text-muted-foreground">{{
+          user.isDemo ? ('demo.profileLine' | transloco) : user.email
+        }}</span>
+      </span>
+      <span
+        class="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
+        aria-hidden="true"
+      >
+        <ng-icon name="lucidePencil" size="18" />
+      </span>
+    </button>
+  }
+  @for (group of groups(); track group.key) {
+    <section class="flex flex-col gap-3" [attr.aria-labelledby]="'account-' + group.key">
+      <h2 [id]="'account-' + group.key" class="text-sm font-medium text-muted-foreground">
+        {{ 'account.group.' + group.key | transloco }}
+      </h2>
+      <ul
+        class="divide-y divide-border rounded-xl border border-border bg-card text-card-foreground"
+      >
+        @for (item of group.items; track item.link) {
+          <li>
+            @if (item.disabled) {
+              <div
+                class="flex min-h-14 items-center gap-3 px-4 py-2 opacity-60"
+                aria-disabled="true"
+              >
+                <span
+                  class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xl text-muted-foreground"
+                  aria-hidden="true"
+                >
+                  <ng-icon [name]="item.icon" />
+                </span>
+                <span class="flex min-w-0 flex-1 flex-col">
+                  <span class="text-base">{{ item.label | transloco }}</span>
+                  <span class="truncate text-sm text-muted-foreground">{{ item.hint }}</span>
+                </span>
+              </div>
+            } @else {
+              <a
+                class="flex min-h-14 items-center gap-3 px-4 py-2 first:rounded-t-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                [routerLink]="item.link"
+              >
+                <span
+                  class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xl text-muted-foreground"
+                  aria-hidden="true"
+                >
+                  <ng-icon [name]="item.icon" />
+                </span>
+                <span class="flex min-w-0 flex-1 flex-col">
+                  <span class="text-base"
+                    >{{ item.label | transloco }}
+                    @if (item.badge) {
+                      <span
+                        class="ml-1 rounded-full bg-destructive px-1.5 text-xs font-semibold text-white"
+                        >{{ item.badge }}</span
+                      >
+                    }
+                  </span>
+                  <span class="truncate text-sm text-muted-foreground">{{ item.hint }}</span>
+                </span>
+                <ng-icon
+                  name="lucideChevronRight"
+                  size="20"
+                  class="text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </a>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  <button
+    hlmBtn
+    variant="outline"
+    type="button"
+    class="h-11 w-full text-base"
+    (click)="confirming.set(true)"
+  >
+    <ng-icon name="lucideLogOut" aria-hidden="true" />
+    {{ (isDemo() ? 'demo.end' : 'account.signOut') | transloco }}
+  </button>
+</div>
+
+@defer (when editingProfile()) {
+  <app-profile-sheet [(open)]="editingProfile" />
+}
+
+<!-- Sign-out asks first, in a bottom sheet like every other question (DESIGN.md §6). -->
+@defer (when confirming()) {
+  <hlm-drawer [state]="confirming() ? 'open' : 'closed'" (closed)="cancelSignOut()">
+    <hlm-drawer-content
+      *hlmDrawerPortal
+      class="mx-auto h-[92dvh] w-full max-w-120 data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
+    >
+      <app-sheet-frame
+        [title]="(isDemo() ? 'demo.end' : 'account.signOut') | transloco"
+        [leadingLabel]="'sheet.close' | transloco"
+        (leading)="cancelSignOut()"
+      >
+        <div class="flex flex-col items-center gap-4 pt-6 text-center">
+          <span
+            class="flex size-14 items-center justify-center rounded-full bg-muted text-2xl text-destructive"
+            aria-hidden="true"
+          >
+            <ng-icon name="lucideLogOut" />
+          </span>
+          @if (isDemo()) {
+            <!-- Demo rule 12: it asks once, then the account goes at once. -->
+            <p class="text-base">{{ 'demo.endConfirm' | transloco }}</p>
+          } @else if (unsynced() > 0) {
+            <p class="text-base">
+              {{ 'account.signOutUnsynced' | transloco: { count: unsynced() } }}
+            </p>
+          } @else {
+            <p class="text-base">{{ 'account.signOutConfirmText' | transloco }}</p>
+          }
+          @if (signOutFailed()) {
+            <p role="alert" class="text-sm text-destructive">
+              {{ (isDemo() ? 'demo.endFailed' : 'account.signOutFailed') | transloco }}
+            </p>
+          }
+        </div>
+        <div sheetFooter class="flex flex-col gap-2 pt-3">
+          <button
+            hlmBtn
+            variant="destructive"
+            type="button"
+            class="h-11 w-full text-base"
+            [disabled]="isSigningOut()"
+            (click)="isDemo() ? endDemo() : signOut(unsynced() > 0)"
+          >
+            @if (isSigningOut()) {
+              <hlm-spinner
+                [aria-label]="(isDemo() ? 'demo.ending' : 'account.signingOut') | transloco"
+              />
+            }
+            {{
+              (isDemo()
+                ? 'demo.end'
+                : unsynced() > 0
+                  ? 'account.signOutUnsyncedConfirm'
+                  : 'account.signOut'
+              ) | transloco
+            }}
+          </button>
+          <button
+            hlmBtn
+            variant="outline"
+            type="button"
+            class="h-11 w-full text-base"
+            [disabled]="isSigningOut()"
+            (click)="cancelSignOut()"
+          >
+            {{ 'account.cancel' | transloco }}
+          </button>
+        </div>
+      </app-sheet-frame>
+    </hlm-drawer-content>
+  </hlm-drawer>
+}

@@ -32,36 +32,7 @@ import { SyncSheet } from './sync-sheet'
       lucideRefreshCw,
     }),
   ],
-  template: `
-    <button
-      type="button"
-      class="relative flex size-11 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-      [class]="iconClass()"
-      aria-haspopup="dialog"
-      [attr.aria-label]="'sync.open' | transloco: { status: label() }"
-      (click)="sheetOpen.set(true)"
-    >
-      <span role="status" class="sr-only">{{ label() }}</span>
-      <ng-icon
-        [name]="icon()"
-        size="22"
-        [class.animate-spin]="status() === 'syncing'"
-        aria-hidden="true"
-      />
-      @if (count() > 0) {
-        <span
-          class="absolute top-1 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-none font-bold"
-          [class]="countClass()"
-          aria-hidden="true"
-        >
-          {{ count() }}
-        </span>
-      }
-    </button>
-    @defer (when sheetOpen()) {
-      <app-sync-sheet [(open)]="sheetOpen" />
-    }
-  `,
+  templateUrl: './sync-status.html',
 })
 export class SyncStatus {
   private languageService = inject(LanguageService)

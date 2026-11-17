@@ -11,33 +11,7 @@ import { EmptyState } from '@/shared/components/empty-state'
   selector: 'app-wallet-first-step',
   imports: [TranslocoPipe, NgIcon, HlmButton, EmptyState],
   providers: [provideIcons({ lucideWallet })],
-  template: `
-    <div class="flex flex-col items-center gap-3 p-4">
-      <app-empty-state
-        [heading]="'wallets.firstHeading' | transloco"
-        [description]="'wallets.firstText' | transloco"
-      >
-        <ng-icon name="lucideWallet" />
-      </app-empty-state>
-      @if (!walletService.canWrite()) {
-        <p class="w-full rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {{
-            (walletService.serverDown() ? 'sync.serverDownWrite' : 'wallets.needsOnline')
-              | transloco
-          }}
-        </p>
-      }
-      <button
-        hlmBtn
-        type="button"
-        class="-mt-8 h-11 px-6 text-base"
-        [disabled]="!walletService.canWrite()"
-        (click)="walletService.open({ mode: 'create' })"
-      >
-        {{ 'wallets.add' | transloco }}
-      </button>
-    </div>
-  `,
+  templateUrl: './wallet-first-step.html',
 })
 export class WalletFirstStep {
   protected walletService = inject(WalletService)

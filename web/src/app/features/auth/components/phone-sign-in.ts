@@ -28,35 +28,7 @@ import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
 @Component({
   selector: 'app-phone-sign-in',
   imports: [FORM_IMPORTS, TranslocoPipe, InputField, HlmButton, HlmSpinner, BotCheck],
-  template: `
-    <form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="onSubmit()">
-      <app-input-field
-        [control]="form.controls.phone"
-        [label]="'auth.phone' | transloco"
-        type="tel"
-        inputmode="tel"
-        autocomplete="tel-national"
-        placeholder="081-234-5678"
-      />
-      @if (error(); as message) {
-        <p role="alert" class="-mt-2 text-sm text-destructive">
-          {{ message.key | transloco: message.params }}
-        </p>
-      }
-      <app-bot-check />
-      <button
-        hlmBtn
-        type="submit"
-        class="h-11 w-full text-base"
-        [disabled]="isProcessing() || !networkStatusService.isOnline()"
-      >
-        @if (isProcessing()) {
-          <hlm-spinner [aria-label]="'auth.sending' | transloco" />
-        }
-        {{ 'auth.sendCode' | transloco }}
-      </button>
-    </form>
-  `,
+  templateUrl: './phone-sign-in.html',
 })
 export class PhoneSignIn {
   private nnfb = inject(NonNullableFormBuilder)

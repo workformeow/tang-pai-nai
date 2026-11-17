@@ -14,26 +14,7 @@ import { fieldErrorMessage } from './field-error'
 @Component({
   selector: 'app-select-field',
   imports: [ReactiveFormsModule, HlmFieldImports, HlmNativeSelectImports],
-  template: `
-    <div hlmField>
-      <label hlmFieldLabel>{{ label() }}</label>
-      <!-- 16px text: iOS Safari zooms in on a smaller control when it gets focus. -->
-      <hlm-native-select class="w-full" selectClass="text-base" [formControl]="control()">
-        @if (placeholder()) {
-          <option hlmNativeSelectOption value="" disabled>{{ placeholder() }}</option>
-        }
-        @for (option of options(); track option.value) {
-          <option hlmNativeSelectOption [value]="option.value" [disabled]="option.disabled">
-            {{ option.label }}
-          </option>
-        }
-      </hlm-native-select>
-      @if (hint()) {
-        <p hlmFieldDescription class="-mt-2">{{ hint() }}</p>
-      }
-      <hlm-field-error class="-mt-2">{{ error() }}</hlm-field-error>
-    </div>
-  `,
+  templateUrl: './select-field.html',
 })
 export class SelectField<T extends string = string> {
   control = input.required<FormControl<T | ''>>()

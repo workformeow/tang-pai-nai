@@ -19,57 +19,7 @@ import type { ReportUnit } from '@/core/report'
     '(document:click)': 'onDocumentClick($event)',
     '(keydown.escape)': 'close(true)',
   },
-  template: `
-    <button
-      #button
-      type="button"
-      class="tpn-hit flex h-9 items-center gap-1.5 tpn-glass rounded-full pr-2.5 pl-3 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-      aria-haspopup="menu"
-      [attr.aria-expanded]="open()"
-      [attr.aria-label]="
-        ('transactions.viewBy' | transloco) +
-        ' ' +
-        ('transactions.unit.' + reportService.unit() | transloco)
-      "
-      (click)="toggle()"
-    >
-      <ng-icon name="lucideCalendarRange" size="16" aria-hidden="true" />
-      {{ 'transactions.unit.' + reportService.unit() | transloco }}
-      <ng-icon
-        name="lucideChevronDown"
-        size="14"
-        class="text-muted-foreground"
-        aria-hidden="true"
-      />
-    </button>
-    @if (open()) {
-      <div
-        #menu
-        role="menu"
-        tabindex="-1"
-        class="absolute top-full right-0 z-30 mt-1 min-w-48 rounded-xl border border-border bg-popover py-1.5 text-popover-foreground shadow-lg"
-        [attr.aria-label]="'transactions.viewBy' | transloco"
-        (keydown)="onKey($event)"
-      >
-        @for (unit of units; track unit) {
-          <button
-            type="button"
-            role="menuitemradio"
-            class="flex min-h-11 w-full items-center justify-between gap-6 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
-            [class.font-semibold]="unit === reportService.unit()"
-            [class.text-brand]="unit === reportService.unit()"
-            [attr.aria-checked]="unit === reportService.unit()"
-            (click)="choose(unit)"
-          >
-            {{ 'transactions.unit.' + unit | transloco }}
-            @if (unit === reportService.unit()) {
-              <ng-icon name="lucideCheck" size="18" aria-hidden="true" />
-            }
-          </button>
-        }
-      </div>
-    }
-  `,
+  templateUrl: './report-unit-menu.html',
 })
 export class ReportUnitMenu {
   protected reportService = inject(ReportService)

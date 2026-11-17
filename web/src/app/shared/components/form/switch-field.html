@@ -1,0 +1,9 @@
+<div hlmField orientation="horizontal">
+  <div hlmFieldContent>
+    <label hlmFieldLabel>{{ label() }}</label>
+    @if (hint()) {
+      <p hlmFieldDescription>{{ hint() }}</p>
+    }
+  </div>
+  <hlm-switch [formControl]="control()" />
+</div>

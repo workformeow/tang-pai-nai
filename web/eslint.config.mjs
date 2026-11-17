@@ -96,7 +96,8 @@ export default defineConfig(
       angular.configs.tsRecommended,
       prettier, // MUST be last: turns off ESLint rules that conflict with Prettier
     ],
-    // Lints inline templates inside @Component({ template: `...` })
+    // Lints inline templates inside @Component({ template: `...` }). Only spec test hosts still
+    // have them; every app component uses a separate .html (AGENTS.md §3 Component files).
     processor: angular.processInlineTemplates,
     languageOptions: {
       parserOptions: {
@@ -178,6 +179,9 @@ export default defineConfig(
         'error',
         { type: 'element', prefix: 'app', style: 'kebab-case' },
       ],
+      // Every component is split into .ts / .html (/ .css), never an inline template or styles
+      // (AGENTS.md §3 Component files). Spec files are exempt below: test hosts stay inline.
+      '@angular-eslint/component-max-inline-declarations': ['error', { template: 0, styles: 0 }],
     },
   },
 
@@ -212,6 +216,7 @@ export default defineConfig(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
       'no-console': 'off',
+      '@angular-eslint/component-max-inline-declarations': 'off',
     },
   }
 )

@@ -23,28 +23,7 @@ const TOKEN_PATTERN = /^[\w-]{43}$/
   selector: 'app-magic-link-page',
   imports: [TranslocoPipe, RouterLink, NgIcon, HlmButton, HlmSpinner],
   providers: [provideIcons({ lucideLink2Off })],
-  template: `
-    <div class="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-      @if (error(); as message) {
-        <div
-          class="flex size-16 items-center justify-center rounded-full bg-muted text-3xl text-muted-foreground"
-          aria-hidden="true"
-        >
-          <ng-icon name="lucideLink2Off" />
-        </div>
-        <h1 class="text-xl font-semibold">{{ 'auth.linkFailedHeading' | transloco }}</h1>
-        <p role="alert" class="max-w-xs text-sm text-muted-foreground">
-          {{ message.key | transloco: message.params }}
-        </p>
-        <a hlmBtn routerLink="/auth/sign-in" class="mt-4 h-11 w-full text-base">
-          {{ 'auth.backToSignIn' | transloco }}
-        </a>
-      } @else {
-        <hlm-spinner class="text-3xl text-brand" [aria-label]="'auth.signingIn' | transloco" />
-        <h1 class="text-xl font-semibold">{{ 'auth.signingIn' | transloco }}</h1>
-      }
-    </div>
-  `,
+  templateUrl: './magic-link-page.html',
 })
 export class MagicLinkPage {
   private router = inject(Router)

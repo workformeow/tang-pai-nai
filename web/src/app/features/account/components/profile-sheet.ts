@@ -30,57 +30,7 @@ const NAME_MAX = 50
     InputField,
     SheetFrame,
   ],
-  template: `
-    <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="open.set(false)">
-      <hlm-drawer-content
-        *hlmDrawerPortal
-        class="mx-auto h-[92dvh] w-full max-w-120 data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
-      >
-        <form [formGroup]="form" class="flex min-h-0 flex-1 flex-col" (ngSubmit)="save()">
-          <app-sheet-frame
-            [title]="'profile.edit' | transloco"
-            [leadingLabel]="'sheet.close' | transloco"
-            (leading)="open.set(false)"
-          >
-            <div class="flex flex-col gap-5">
-              @if (!canSave()) {
-                <p
-                  role="status"
-                  class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
-                >
-                  {{ 'profile.needsOnline' | transloco }}
-                </p>
-              }
-              <app-input-field
-                [control]="form.controls.displayName"
-                [label]="'profile.name' | transloco"
-                [hint]="hint()"
-                autocomplete="nickname"
-              />
-              @if (failed()) {
-                <p role="alert" class="text-sm text-destructive">
-                  {{ 'profile.saveFailed' | transloco }}
-                </p>
-              }
-            </div>
-            <div sheetFooter class="pt-3">
-              <button
-                hlmBtn
-                type="submit"
-                class="h-11 w-full text-base"
-                [disabled]="!canSave() || isSaving()"
-              >
-                @if (isSaving()) {
-                  <hlm-spinner [aria-label]="'profile.saving' | transloco" />
-                }
-                {{ 'profile.save' | transloco }}
-              </button>
-            </div>
-          </app-sheet-frame>
-        </form>
-      </hlm-drawer-content>
-    </hlm-drawer>
-  `,
+  templateUrl: './profile-sheet.html',
 })
 export class ProfileSheet {
   open = model(false)

@@ -23,64 +23,7 @@ type PinMode = 'on' | 'change' | 'off'
   selector: 'app-pin-page',
   imports: [TranslocoPipe, NgIcon, HlmButton, HlmSpinner, PinPad, PinSetup],
   providers: [provideIcons({ lucideChevronLeft })],
-  template: `
-    <div class="flex flex-col gap-4 p-4">
-      <button
-        hlmBtn
-        variant="ghost"
-        type="button"
-        class="tpn-hit -ms-1 h-9 gap-1 self-start tpn-glass rounded-full ps-2 pe-3.5"
-        [disabled]="isProcessing()"
-        (click)="back()"
-      >
-        <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
-        {{ 'title.security' | transloco }}
-      </button>
-
-      @if (needsCurrent()) {
-        <div class="flex flex-col items-center gap-6">
-          <div class="flex flex-col items-center gap-2 text-center">
-            <h2 class="text-xl font-semibold">{{ 'pin.currentHeading' | transloco }}</h2>
-            <p class="text-sm text-muted-foreground">
-              {{ (mode === 'off' ? 'pin.offHint' : 'pin.currentHint') | transloco }}
-            </p>
-          </div>
-          <div role="alert" class="flex min-h-5 flex-col items-center text-center text-sm">
-            @if (wrong()) {
-              <p class="text-destructive">{{ 'lock.wrong' | transloco }}</p>
-            }
-            @if (showWarning()) {
-              <p class="text-destructive">
-                {{ 'lock.warning' | transloco: { count: offlineService.attemptsLeft() } }}
-              </p>
-            }
-          </div>
-          <app-pin-pad
-            #pad
-            [filledLabel]="'pin.filled' | transloco: { count: pad.length() }"
-            [deleteLabel]="'pin.delete' | transloco"
-            [disabled]="isProcessing()"
-            (completed)="checkCurrent($event)"
-          />
-        </div>
-      } @else if (mode !== 'off') {
-        <app-pin-setup
-          [isProcessing]="isProcessing()"
-          [newHeading]="mode === 'change' ? 'pin.changeHeading' : 'pin.newHeading'"
-          (chosen)="save($event)"
-        />
-      }
-
-      <p role="status" class="flex min-h-5 items-center justify-center gap-2 text-sm">
-        @if (isProcessing()) {
-          <hlm-spinner [aria-label]="'pin.saving' | transloco" />
-          <span class="text-muted-foreground">{{ 'pin.saving' | transloco }}</span>
-        } @else if (failed()) {
-          <span role="alert" class="text-destructive">{{ 'pin.failed' | transloco }}</span>
-        }
-      </p>
-    </div>
-  `,
+  templateUrl: './pin-page.html',
 })
 export class PinPage {
   private router = inject(Router)

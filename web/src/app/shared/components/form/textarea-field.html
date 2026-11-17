@@ -1,0 +1,15 @@
+<div hlmField>
+  <label hlmFieldLabel [class.sr-only]="hideLabel()">{{ label() }}</label>
+  <textarea
+    hlmTextarea
+    [formControl]="control()"
+    [rows]="rows()"
+    [style.min-height.lh]="rows()"
+    [placeholder]="placeholder()"
+    [attr.maxlength]="maxLength()"
+  ></textarea>
+  @if (hint()) {
+    <p hlmFieldDescription class="-mt-2">{{ hint() }}</p>
+  }
+  <hlm-field-error class="-mt-2">{{ error() }}</hlm-field-error>
+</div>
