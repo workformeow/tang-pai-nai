@@ -468,8 +468,14 @@ local database, nothing is stored.
   `currencyCode`).
 - Charts are plain elements with token colours (no chart library, owner's choice in #10):
   heights and widths as `%` styles, every bar pair a button with an `aria-label`.
-- The header is `layout/transactions-header` with `view="reports"` (only "ดูตาม", the report
-  units); `app-header` shows it on `/reports` itself (`isReportsTab`). The tab's custom range
+- The header is `layout/transactions-header` with `view="reports"` ("ภาพรวม" while
+  `manyCurrencies()`, and "ดูตาม", the report units); `app-header` shows it on `/reports`
+  itself (`isReportsTab`).
+- **ภาพรวม** (#24, [currency-overview.md](../docs/features/currency-overview.md)):
+  `/reports/currencies`, every currency side by side over `ReportService.allWalletIds()`
+  (every counted wallet, whatever the switcher chose): `overview()`, `walletCounts()`. Its
+  "ดูตาม" sits in `app-header` (`isReportCurrencies`, `layout/report-unit-menu`, `@defer`red
+  so the shell never loads `ReportService`) and sets the Reports tab's own unit. The tab's custom range
   sheet lives in the page (`@defer`), so the shell never loads `ReportService`.
 - Shared with the Transactions tab: `shared/components/period` (`app-period-strip`, the
   `appSwipe` directive, `app-custom-range-sheet` with `range` in and `applied` out).

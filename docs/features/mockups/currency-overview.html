@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Currency overview mock-up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Mock-up only: the app serves its own flag SVGs from public/flags/. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+<style>
+:root {
+  --background: oklch(0.975 0.007 265); --foreground: oklch(0.2 0.03 265);
+  --card: oklch(1 0 0); --muted: oklch(0.94 0.014 265); --muted-fg: oklch(0.48 0.03 265);
+  --primary: oklch(0.8 0.15 80); --primary-fg: oklch(0.2 0.03 70);
+  --border: oklch(0.91 0.014 265); --brand: oklch(0.53 0.12 75);
+  --income: oklch(0.52 0.14 155); --expense: oklch(0.55 0.2 25);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+    --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+    --primary: oklch(0.82 0.15 82); --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82);
+    --income: oklch(0.78 0.16 155); --expense: oklch(0.72 0.17 22);
+  }
+}
+:root[data-theme="dark"] {
+  --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+  --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+  --primary: oklch(0.82 0.15 82); --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82);
+  --income: oklch(0.78 0.16 155); --expense: oklch(0.72 0.17 22);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--background); color: var(--foreground);
+  font-family: "Noto Sans Thai", system-ui, sans-serif; font-size: 15px; }
+header.page { max-width: 1400px; margin: 0 auto; padding: 24px 16px 8px; }
+header.page h1 { font-size: 20px; margin: 0 0 4px; }
+header.page p { margin: 0; color: var(--muted-fg); font-size: 14px; line-height: 1.5; max-width: 920px; }
+.toggles { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.toggle { display: inline-flex; gap: 4px; background: var(--muted); border-radius: 10px; padding: 3px; }
+.toggle button { border: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 8px; cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--card); font-weight: 600; }
+.grid { max-width: 1400px; margin: 0 auto; padding: 16px; display: flex; flex-wrap: wrap; gap: 24px; }
+figure { margin: 0; width: 320px; max-width: 100%; }
+figcaption { font-size: 13px; color: var(--muted-fg); margin-bottom: 6px; min-height: 96px; line-height: 1.45; }
+figcaption b { color: var(--foreground); }
+.phone { height: 720px; border: 1px solid var(--border); border-radius: 24px; overflow: hidden;
+  background: var(--background); display: flex; flex-direction: column; position: relative; }
+.hdr { height: 54px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 8px; flex: none; }
+.hdr .l { display: flex; } .hdr .r { display: flex; justify-content: flex-end; gap: 4px; }
+.circle { width: 36px; height: 36px; border-radius: 999px; display: grid; place-items: center; background: var(--muted); font-size: 15px; }
+.wsw { display: inline-flex; align-items: center; gap: 6px; background: var(--muted); border-radius: 999px; padding: 3px 12px 3px 3px; font-weight: 600; font-size: 14px; }
+.wsw i { width: 26px; height: 26px; border-radius: 999px; background: var(--primary); display: grid; place-items: center; font-style: normal; font-size: 12px; }
+.ttl { font-weight: 600; font-size: 16px; }
+.strip { display: flex; gap: 6px; padding: 4px 12px 8px; flex: none; }
+.strip span { font-size: 13px; padding: 6px 12px; border-radius: 999px; color: var(--muted-fg); }
+.strip span.on { background: var(--foreground); color: var(--background); font-weight: 600; }
+.scroll { flex: 1; overflow: auto; padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 10px; }
+.tabbar { height: 56px; border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; color: var(--muted-fg); font-size: 11px; flex: none; }
+.tabbar .on { color: var(--brand); font-weight: 600; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; }
+.ch { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--muted-fg); font-weight: 500; }
+.cur { display: inline-flex; align-items: center; gap: 7px; color: var(--foreground); font-weight: 600; }
+.fi { border-radius: 3px; box-shadow: 0 0 0 1px var(--border); width: 22px; height: 16px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border-radius: 999px; background: var(--muted); color: var(--muted-fg); font-size: 13px; font-weight: 500; }
+.chip.on { background: var(--primary); color: var(--primary-fg); font-weight: 600; }
+.menu { position: absolute; right: 10px; top: 50px; width: 232px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 10px 30px oklch(0 0 0 / 18%); padding: 6px; z-index: 2; }
+.menu div { display: flex; align-items: center; gap: 10px; padding: 11px 10px; border-radius: 10px; font-size: 14px; }
+.menu div small { margin-left: auto; color: var(--muted-fg); font-size: 13px; }
+.menu div.new { background: color-mix(in oklch, var(--primary) 18%, transparent); font-weight: 600; }
+.dim { position: absolute; inset: 0; background: oklch(0 0 0 / 8%); z-index: 1; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.tile { border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 1px; }
+.tile small { font-size: 12px; color: var(--muted-fg); } .tile b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.tile.i { background: color-mix(in oklch, var(--income) 11%, transparent); } .tile.i b { color: var(--income); }
+.tile.e { background: color-mix(in oklch, var(--expense) 11%, transparent); } .tile.e b { color: var(--expense); }
+.net { display: flex; justify-content: space-between; font-size: 14px; margin-top: 8px; padding: 0 2px; }
+.net b { font-variant-numeric: tabular-nums; }
+.bal { display: flex; justify-content: space-between; border-top: 1px solid var(--border); margin-top: 8px; padding-top: 7px; font-size: 13px; color: var(--muted-fg); font-variant-numeric: tabular-nums; }
+.bal b { color: var(--foreground); font-weight: 600; }
+.link { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; border-radius: 12px; background: var(--card); border: 1px dashed var(--brand); color: var(--brand); font-weight: 600; font-size: 14px; }
+.row { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 10px; align-items: center; padding: 11px 2px; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.row:first-of-type { border-top: 0; }
+.row .who { grid-row: span 2; }
+.row .io { font-size: 12px; color: var(--muted-fg); text-align: right; grid-column: 2 / 4; }
+.row .n { font-weight: 700; font-size: 16px; text-align: right; grid-column: 2 / 4; }
+.row .end { font-size: 12px; color: var(--muted-fg); grid-column: 1 / 4; display: flex; justify-content: space-between; }
+.mrow { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; font-size: 15px; }
+.mrow:first-of-type { border-top: 0; }
+.mrow b { font-weight: 600; }
+.note { font-size: 12px; color: var(--muted-fg); padding: 0 4px; line-height: 1.45; }
+.scope { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted-fg); background: var(--muted); border-radius: 999px; padding: 5px 10px; align-self: flex-start; }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1 id="h1"></h1>
+  <p id="intro"></p>
+  <div class="toggles">
+    <div class="toggle" id="lang"><button data-v="th" aria-pressed="true">ไทย</button><button data-v="en" aria-pressed="false">English</button></div>
+    <div class="toggle" id="theme"><button data-v="light" aria-pressed="true">สว่าง</button><button data-v="dark" aria-pressed="false">มืด</button></div>
+  </div>
+</header>
+<main class="grid" id="grid"></main>
+<script>
+const FLAG = { THB: 'th', JPY: 'jp', USD: 'us' }
+const DIGITS = { THB: 2, JPY: 0, USD: 2 }
+const DATA = [
+  ['THB', 42000, 31850.75, 15000, 3],
+  ['JPY', 0, 86400, 120000, 1],
+  ['USD', 0, 120.5, 320, 1],
+]
+const state = { lang: 'th' }
+const T = {
+  th: {
+    h1: '#24 ภาพรวมทุกสกุล: mock-up รอบ 1',
+    intro: 'หน้าใหม่ที่เห็นทุกสกุลของช่วงเวลาเดียวกันพร้อมกัน (แบบ C จาก report-currency.html แยกเป็นหน้า) ทางเข้า E1 / E2 แล้วหน้าตา P1 / P2 / P3 แตะสกุลไหนก็กลับไปหน้ารายงานที่สกุลนั้น ใช้ช่วงเวลาเดียวกับหน้ารายงาน',
+    reports: 'รายงาน', overview: 'ภาพรวมทุกสกุล', allWallets: 'ทุกกระเป๋า', months: ['ก.ย.', 'ต.ค.', 'พ.ย. 2026'],
+    tabs: ['ธุรกรรม', 'กระเป๋า', 'รายงาน', 'ตั้งค่า'], viewBy: 'ดูตาม', month: 'เดือน',
+    income: 'รายรับ', expense: 'รายจ่าย', net: 'คงเหลือสุทธิ', start: 'ยอดเริ่มต้น', end: 'ยอดสุดท้าย',
+    wallets: (n) => `${n} กระเป๋า`, seeAll: 'ดูทุกสกุลพร้อมกัน', scope: 'ทุกกระเป๋าในสมุดนี้',
+    tapNote: 'แตะสกุลเพื่อดูรายงานของสกุลนั้น',
+    f1: '<b>E1 · ในเมนู ⋮ ของหน้ารายงาน</b> (แนะนำ) แถวใหม่ "ภาพรวมทุกสกุล" เหนือ "ดูตาม" แสดงเฉพาะเมื่อสมุดมีมากกว่า 1 สกุล',
+    f2: '<b>E2 · ลิงก์ใต้ชิปสกุลเงิน</b> เห็นง่ายกว่า E1 แต่เพิ่มของบนหน้ารายงานที่เพิ่งทำให้โล่ง',
+    f3: '<b>P1 · รายการกะทัดรัด</b> (แนะนำ) หนึ่งแถวต่อสกุล: ธง + code, รายรับ · รายจ่ายตัวเล็ก, สุทธิตัวใหญ่, ใต้แถวคือยอดสุดท้ายและจำนวนกระเป๋า เรียงตามลำดับกระเป๋า',
+    f4: '<b>P2 · การ์ดต่อสกุล</b> หน้าตาเหมือนการ์ดสรุปของหน้ารายงานแบบย่อ มีไทล์รายรับ / รายจ่าย สุทธิ และยอดเริ่มต้น → สุดท้าย ข้อมูลครบแต่ยาว 3 สกุลก็เต็มจอ',
+    f5: '<b>P3 · แบ่งตามหัวข้อ</b> การ์ดละหัวข้อ (รายรับ, รายจ่าย, สุทธิ, ยอดสุดท้าย) แต่ละการ์ดมีทุกสกุล เทียบหัวข้อเดียวกันข้ามสกุลง่าย แต่ดูภาพรวมของสกุลเดียวยากกว่า',
+  },
+  en: {
+    h1: '#24 All currencies overview: mock-up round 1',
+    intro: 'A new page with every currency of one period side by side (option C of report-currency.html, as its own page). Ways in E1 / E2, then layouts P1 / P2 / P3. Tapping a currency opens Reports on it; the period is the Reports tab\'s.',
+    reports: 'Reports', overview: 'All currencies', allWallets: 'All wallets', months: ['Sep', 'Oct', 'Nov 2026'],
+    tabs: ['Transactions', 'Wallets', 'Reports', 'Settings'], viewBy: 'View by', month: 'Month',
+    income: 'Income', expense: 'Expense', net: 'Net', start: 'Start', end: 'End',
+    wallets: (n) => `${n} wallet${n > 1 ? 's' : ''}`, seeAll: 'See every currency', scope: 'Every wallet in this book',
+    tapNote: 'Tap a currency to open its report',
+    f1: '<b>E1 · In the Reports ⋮ menu</b> (recommended) a new row "All currencies" above "View by", only when the book has more than one currency.',
+    f2: '<b>E2 · A link under the currency chips</b> easier to find than E1, but adds to the Reports page we just cleared.',
+    f3: '<b>P1 · Compact list</b> (recommended) one row per currency: flag + code, income · expense small, net large; the end balance and wallet count under it; wallet order.',
+    f4: '<b>P2 · A card per currency</b> a small copy of the Reports summary card: tiles, net, start → end. Complete but long; three currencies fill the screen.',
+    f5: '<b>P3 · By measure</b> one card per measure (income, expense, net, end balance), each listing every currency. Easy to compare one measure, harder to read one currency.',
+  },
+}
+const t = (k, ...a) => { const v = T[state.lang][k]; return typeof v === 'function' ? v(...a) : v }
+const loc = () => (state.lang === 'th' ? 'th-TH' : 'en-GB')
+const sym = (v, c, signed) => new Intl.NumberFormat(loc(), { style: 'currency', currency: c, currencyDisplay: 'narrowSymbol', minimumFractionDigits: DIGITS[c], maximumFractionDigits: DIGITS[c], signDisplay: signed ? 'exceptZero' : 'auto' }).format(v)
+const amt = (v, c, signed) => new Intl.NumberFormat(loc(), { minimumFractionDigits: DIGITS[c], maximumFractionDigits: DIGITS[c], signDisplay: signed ? 'exceptZero' : 'auto' }).format(v)
+const flag = (c) => `<span class="fi fi-${FLAG[c]}"></span>`
+const curTag = (c) => `<span class="cur">${flag(c)} ${c}</span>`
+const tabbar = () => `<div class="tabbar">${t('tabs').map((x, i) => `<span class="${i === 2 ? 'on' : ''}">${x}</span>`).join('')}</div>`
+const strip = () => `<div class="strip">${t('months').map((m, i) => `<span class="${i === 2 ? 'on' : ''}">${m}</span>`).join('')}</div>`
+const reportsHdr = () => `<div class="hdr"><div class="l"><span class="circle">👤</span></div><span class="wsw"><i>👛</i>${t('allWallets')} ▾</span><div class="r"><span class="circle">☁</span><span class="circle">⋮</span></div></div>`
+const pageHdr = () => `<div class="hdr"><div class="l"><span class="circle">‹</span></div><span class="ttl">${t('overview')}</span><div class="r"></div></div>`
+const miniSummary = (c) => {
+  const [, inc, exp, start] = DATA.find((d) => d[0] === c)
+  return `<div class="card"><div class="ch"><span>${t('months')[2]}</span>${curTag(c)}</div>
+    <div class="tiles"><div class="tile i"><small>${t('income')}</small><b>${amt(inc, c, true)}</b></div><div class="tile e"><small>${t('expense')}</small><b>${amt(-exp, c, true)}</b></div></div>
+    <div class="net"><span style="color:var(--muted-fg)">${t('net')}</span><b>${amt(inc - exp, c, true)}</b></div></div>`
+}
+const reportsBase = (extra = '') => `${reportsHdr()}${strip()}<div class="scroll">
+  <div class="chips">${DATA.map(([c], i) => `<span class="chip ${i === 0 ? 'on' : ''}">${flag(c)} ${c}</span>`).join('')}</div>
+  ${extra}${miniSummary('THB')}</div>${tabbar()}`
+
+const f1 = () => `<div class="dim"></div><div class="menu">
+  <div class="new">🌐 ${t('overview')}</div><div>📅 ${t('viewBy')}<small>${t('month')} ›</small></div></div>${reportsBase()}`
+const f2 = () => reportsBase(`<div class="link"><span>🌐 ${t('seeAll')}</span><span>›</span></div>`)
+const f3 = () => `${pageHdr()}${strip()}<div class="scroll"><span class="scope">👛 ${t('scope')}</span>
+  <div class="card" style="padding:4px 14px">${DATA.map(([c, inc, exp, start, n]) => `<div class="row">
+    <span class="who">${curTag(c)}</span>
+    <span class="io"><span style="color:var(--income)">${amt(inc, c, true)}</span> · <span style="color:var(--expense)">${amt(-exp, c, true)}</span></span>
+    <span class="n">${sym(inc - exp, c, true)}</span>
+    <span class="end"><span>${t('wallets', n)}</span><span>${t('end')} ${sym(start + inc - exp, c)} ›</span></span></div>`).join('')}</div>
+  <p class="note">${t('tapNote')}</p></div>${tabbar()}`
+const f4 = () => `${pageHdr()}${strip()}<div class="scroll">${DATA.map(([c, inc, exp, start]) => `<div class="card">
+  <div class="ch"><span>${t('wallets', DATA.find((d) => d[0] === c)[4])}</span>${curTag(c)}</div>
+  <div class="tiles"><div class="tile i"><small>${t('income')}</small><b>${amt(inc, c, true)}</b></div><div class="tile e"><small>${t('expense')}</small><b>${amt(-exp, c, true)}</b></div></div>
+  <div class="net"><span style="color:var(--muted-fg)">${t('net')}</span><b>${amt(inc - exp, c, true)}</b></div>
+  <div class="bal"><span>${t('start')} <b>${amt(start, c)}</b></span><span>→ ${t('end')} <b>${amt(start + inc - exp, c)}</b></span></div></div>`).join('')}</div>${tabbar()}`
+const f5 = () => {
+  const block = (title, color, fn) => `<div class="card"><div class="ch" style="margin-bottom:4px"><span>${title}</span></div>
+    ${DATA.map((d) => `<div class="mrow">${curTag(d[0])}<b style="color:${color}">${fn(d)}</b></div>`).join('')}</div>`
+  return `${pageHdr()}${strip()}<div class="scroll">
+    ${block(t('income'), 'var(--income)', ([c, inc]) => sym(inc, c, true))}
+    ${block(t('expense'), 'var(--expense)', ([c, , exp]) => sym(-exp, c, true))}
+    ${block(t('net'), 'var(--foreground)', ([c, inc, exp]) => sym(inc - exp, c, true))}
+    ${block(t('end'), 'var(--foreground)', ([c, inc, exp, start]) => sym(start + inc - exp, c))}</div>${tabbar()}`
+}
+
+function render() {
+  document.documentElement.lang = state.lang
+  document.title = t('h1')
+  document.getElementById('h1').textContent = t('h1')
+  document.getElementById('intro').textContent = t('intro')
+  const frames = [['f1', f1()], ['f2', f2()], ['f3', f3()], ['f4', f4()], ['f5', f5()]]
+  document.getElementById('grid').innerHTML = frames.map(([k, html]) => `<figure><figcaption>${t(k)}</figcaption><div class="phone">${html}</div></figure>`).join('')
+}
+function wire(id, apply) {
+  const el = document.getElementById(id)
+  el.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return
+    el.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)))
+    apply(b.dataset.v); render()
+  })
+}
+wire('lang', (v) => { state.lang = v })
+wire('theme', (v) => { document.documentElement.dataset.theme = v })
+render()
+</script>
+</body>
+</html>

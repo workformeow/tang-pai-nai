@@ -98,13 +98,35 @@ merging.
 | 21  | Shared activity                | —   | ✅  | who added, edited or deleted which transaction in a shared book (latest action per row, 90 days), under ⋮ after รายการซ้ำ; names on rows when not you; stays 90 days after sharing ends. Web only. [spec](docs/features/shared-activity.md)                                                            |
 | 22  | Privacy & account deletion     | ✅  | ✅  | a privacy notice open without sign-in (`/auth/privacy`, Account › เกี่ยวกับแอป), "test version" from `TEST_VERSION`, "signing in accepts the notice"; delete the account at once (recent auth + typed email + button). [spec](docs/features/privacy.md) |
 | 23  | Currency picker                | ✅  | ✅  | 25 travel currencies, all active (migration 0022; LAK / TWD to 0 digits); a flag grid per continent in the wallet sheet (2B); per-currency lists in wallet order; THB-only quick amounts; Reports one currency at a time with the tiles as the switch (B). [spec](docs/features/currency.md) |
+| 24  | Currency overview              | —   | ✅  | ภาพรวม: every currency of the Reports period side by side over every counted wallet (P1 rows: income · expense, net, wallets, end balance), from the Reports ⋮ (E1) with more than one currency; the Reports period, "ดูตาม" top right. Web only. [spec](docs/features/currency-overview.md) |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
 
-Order of work from here (owner, 2026-11): **#22 (done) → #20 (done) → #21 (done) → #23 (done)**; then Playwright end-to-end tests (Backlog) once the wanted features are done. The number is a feature's id, not
+Order of work from here (owner, 2026-11): **#22 (done) → #20 (done) → #21 (done) → #23 (done) → #24 (done)**; then Playwright end-to-end tests (Backlog) once the wanted features are done. The number is a feature's id, not
 its place in the queue, so numbers are never reused or shuffled. Each row gets its `docs/features/<feature>.md` before work starts. Rows 0–8 (with 4a) are the MVP.
 After #8 the app can replace Money Lover for daily use. Until #17, everything runs **locally only** (see locked
 decision "Local-first").
+
+---
+
+## Done: Currency overview (#24)
+
+Built and tested 2026-11-17 on `feat/currency-overview`. [spec](docs/features/currency-overview.md).
+Web only, no migration.
+
+- **Decided at the start** (owner, mock-up `currency-overview.html`): way in **E1** (a row in
+  the Reports ⋮, only with more than one currency; not a link on the page), layout **P1** (one
+  compact row per currency); every counted wallet whatever the switcher chose; the Reports
+  tab's own period, changeable from the top right; rows don't open Reports (‹ is the way
+  back); a shared book is kept out like every report page; a spec file of its own.
+- **Decided while building**: the name is **ภาพรวม** / **Overview** (owner, after seeing
+  "ภาพรวมทุกสกุล"); only currencies with money moving in the period get a row; "n กระเป๋า"
+  counts open wallets.
+- **Web**: `ReportService.allWalletIds` / `overview` / `walletCounts` / `manyCurrencies`,
+  `features/reports/pages/report-currencies-page`, `layout/report-unit-menu` (in
+  `app-header`, `@defer`red), the ⋮ row in `transactions-header`, `formatMoney`'s `signed`.
+- **Tests**: the page, the unit menu, the ⋮ row, `isReportCurrencies`, the service's
+  overview signals, signed `formatMoney`.
 
 ---
 
@@ -1757,9 +1779,6 @@ Agreed with the user. Do not re-propose alternatives unless asked.
   rule's schedule, a "หลังหักหนี้" line under ยอดรวม, a share text of a debt's history.
 - **FX / multi-currency reports**: convert to THB with daily rates. Not before the 25
   currencies of #23 are used for a while.
-- **All currencies overview** (#23, mock-up `report-currency.html` C, owner 2026-11): a page
-  with every currency of the period side by side (income · expense · net each), opened from a
-  ⋮ menu or similar; tapping a currency opens Reports on it.
 - **Import from Money Lover** (CSV export → our transactions). Decide after #8.
 - **Full edit history in a share** (after #21, if the latest action per row isn't enough): a
   server table written on every applied push to a shared wallet, with the values before and

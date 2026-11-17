@@ -113,9 +113,10 @@ Owner's choices in #10 (mock-up rounds 1–3; DESIGN.md → Reports):
 
 - **Reports tab** (`features/reports`, lazy):
   - header: the Transactions tab's (book icon, the **wallet switcher** in the centre, sync
-    icon, ⋮), the same chosen wallet (Q3); its ⋮ holds only "ดูตาม · เดือน ›" → เดือน / ไตรมาส /
-    ปี / กำหนดเอง… (Q2), its own choice kept per book on the device; custom opens the
-    tab's own range sheet;
+    icon, ⋮), the same chosen wallet (Q3); its ⋮ holds "ภาพรวม ›" (#24, only with more than
+    one currency, [currency-overview.md](currency-overview.md)) and "ดูตาม · เดือน ›" →
+    เดือน / ไตรมาส / ปี / กำหนดเอง… (Q2), its own choice kept per book on the device; custom
+    opens the tab's own range sheet;
   - the **period chips** (`09/2026 · เดือนที่แล้ว · เดือนนี้`, no "อนาคต"), a sideways swipe
     moves period;
   - **currency chips** (flag + code) right under the period chips, only when the view has
@@ -192,7 +193,7 @@ Ending balance), หมวดหมู่หลัก / ย่อย (DESIGN.md 
   `report-currency.html`, B): the chips moved to the top and the summary is **one card**, of
   the chosen currency (several cards had no way to say which was which); the card names its
   currency; its income / expense tiles replace the breakdown's tabs. Every currency side by
-  side (option C) is a page of its own later (ROADMAP → Backlog "All currencies overview").
+  side (option C) is the page **ภาพรวม** since #24 ([currency-overview.md](currency-overview.md)).
 - **Q7** no API: computed on the device.
 - **Extras**: E1 balances (labels **ยอดเริ่มต้น / ยอดสุดท้าย**, owner's wording, not
   ต้นงวด / ปลายงวด), E3 average per day, E4 the previous period on a category page, E5 the
