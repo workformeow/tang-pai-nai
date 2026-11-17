@@ -68,6 +68,8 @@ const recentAuthBody = z
   .default({ lang: 'th' })
 
 const reauthStartBody = z.object({ lang }).default({ lang: 'th' })
+// Demo rule 4: the seed's language; `botToken` was read (and dropped) by the bot gate.
+const demoStartBody = z.object({ lang })
 
 // Privacy rule 6: the typed email (checked against the account by the service), and the usual
 // recent-auth proof.
@@ -118,6 +120,7 @@ const googleCallbackQuery = z.object({
 })
 
 export const authSchema = {
+  demoStart: { body: demoStartBody },
   emailStart: { body: startBody },
   emailVerify: { body: verifyBody },
   passwordSignIn: { body: passwordSignInBody },
@@ -155,3 +158,4 @@ export type PhoneChangeInput = z.infer<typeof phoneChangeBody>
 export type PhoneConfirmInput = z.infer<typeof phoneConfirmBody>
 export type GoogleStartQuery = z.infer<typeof googleStartQuery>
 export type GoogleCallbackQuery = z.infer<typeof googleCallbackQuery>
+export type DemoStartInput = z.infer<typeof demoStartBody>

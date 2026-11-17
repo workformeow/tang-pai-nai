@@ -22,9 +22,11 @@ export const DEFAULT_CATEGORIES: Readonly<
       en: 'Food & drink',
       icon: 'lucideUtensils',
       color: '#c2410c',
+      // Owner, 2026-11-17: everyday meals and drinks apart; a pricier meal out (a buffet) goes on
+      // the parent itself.
       children: [
-        { th: 'กาแฟ', en: 'Coffee', icon: 'lucideCoffee', color: '#a16207' },
-        { th: 'ร้านอาหาร', en: 'Restaurants', icon: 'lucideUtensilsCrossed', color: '#c2410c' },
+        { th: 'อาหารประจำวัน', en: 'Daily meals', icon: 'tpnNoodleBowl', color: '#c2410c' },
+        { th: 'เครื่องดื่ม', en: 'Drinks', icon: 'lucideCoffee', color: '#a16207' },
       ],
     },
     {
@@ -34,7 +36,8 @@ export const DEFAULT_CATEGORIES: Readonly<
       color: '#2563eb',
       children: [
         { th: 'น้ำมัน', en: 'Fuel', icon: 'lucideFuel', color: '#2563eb' },
-        { th: 'ขนส่งสาธารณะ', en: 'Public transport', icon: 'lucideTrainFront', color: '#0e7490' },
+        { th: 'รถไฟฟ้า', en: 'Metro', icon: 'lucideTrainFront', color: '#0e7490' },
+        { th: 'ขนส่งสาธารณะ', en: 'Public transport', icon: 'lucideBus', color: '#15803d' },
         { th: 'แท็กซี่', en: 'Taxi', icon: 'lucideCarTaxiFront', color: '#a16207' },
       ],
     },

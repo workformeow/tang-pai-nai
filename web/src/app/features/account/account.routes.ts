@@ -1,7 +1,11 @@
 import { inject } from '@angular/core'
 import { Router } from '@angular/router'
 import type { Routes } from '@angular/router'
-import { PHONE_FEATURE } from '@/core/auth'
+import { AuthStore, PHONE_FEATURE } from '@/core/auth'
+
+/** Demo rule 9: pages a demo can't use; an old link or a typed address lands on the Account tab. */
+const notInDemo = () =>
+  inject(AuthStore).user()?.isDemo !== true || inject(Router).createUrlTree(['/account'])
 
 export default [
   {
@@ -22,11 +26,13 @@ export default [
     // Held back with the rest of phone (`PHONE_FEATURE`): an old link lands on Security.
     canActivate: [
       () => inject(PHONE_FEATURE) || inject(Router).createUrlTree(['/account/security']),
+      notInDemo,
     ],
     loadComponent: async () => import('./pages/phone-page/phone-page').then((m) => m.PhonePage),
   },
   {
     path: 'password',
+    canActivate: [notInDemo],
     title: 'title.password',
     loadComponent: async () =>
       import('./pages/password-page/password-page').then((m) => m.PasswordPage),
@@ -44,6 +50,7 @@ export default [
   },
   {
     path: 'sharing',
+    canActivate: [notInDemo],
     title: 'title.sharing',
     loadComponent: async () =>
       import('./pages/sharing-page/sharing-page').then((m) => m.SharingPage),
@@ -81,6 +88,7 @@ export default [
   {
     // Privacy rules 4–11, from Account › Security.
     path: 'delete',
+    canActivate: [notInDemo],
     title: 'title.deleteAccount',
     loadComponent: async () => import('./pages/delete-page/delete-page').then((m) => m.DeletePage),
   },

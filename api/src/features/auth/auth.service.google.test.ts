@@ -49,6 +49,7 @@ const existingUser = (overrides: Partial<User> = {}): User => ({
   phoneVerifiedAt: null,
   status: 'active',
   timezone: 'Asia/Bangkok',
+  isDemo: false,
   createdAt: START,
   updatedAt: START,
   ...overrides,

@@ -15,6 +15,8 @@ const session = (accessToken = 'access-1'): AuthSession => ({
     displayName: 'mom',
     avatarUrl: null,
     timezone: 'Asia/Bangkok',
+    isDemo: false,
+    createdAt: '2026-01-01T00:00:00.000Z',
     hasPassword: false,
     phone: null,
     identities: [],
@@ -326,6 +328,7 @@ describe('AuthService', () => {
       phone: false,
       botCheckSiteKey: null,
       testVersion: false,
+      demo: false,
     })
 
     const online = service.providers()
@@ -430,5 +433,94 @@ describe('googleStartUrl with a language', () => {
     expect(googleStartUrl('/wallets', 'en')).toBe(
       '/api/auth/google/start?returnUrl=%2Fwallets&lang=en'
     )
+  })
+})
+
+describe('AuthService › demo (docs/features/demo.md)', () => {
+  let service: AuthService
+  let store: AuthStore
+  let http: HttpTestingController
+
+  const demoSession = (): AuthSession => {
+    const base = session()
+    return { ...base, user: { ...base.user, isDemo: true, email: 'demo-1@demo.invalid' } }
+  }
+
+  beforeEach(() => {
+    localStorage.clear()
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    })
+    service = TestBed.inject(AuthService)
+    store = TestBed.inject(AuthStore)
+    http = TestBed.inject(HttpTestingController)
+  })
+
+  afterEach(() => http.verify())
+
+  it('starts a demo with the language and the bot token, signed in like any sign-in (rule 4)', async () => {
+    const done = service.startDemo('en', 'turnstile-token')
+
+    const req = http.expectOne('/api/auth/demo')
+    expect(req.request.method).toBe('POST')
+    expect(req.request.body).toEqual({ lang: 'en', botToken: 'turnstile-token' })
+    req.flush(envelope(demoSession()))
+    await done
+    TestBed.tick()
+
+    expect(store.user()?.isDemo).toBe(true)
+    expect(localStorage.getItem('tpn-demo')).toBe('1')
+  })
+
+  it('ends the demo with DELETE /auth/demo and forgets it (rule 12)', async () => {
+    store.setSession(demoSession())
+    TestBed.tick()
+    const done = service.endDemo()
+
+    http
+      .expectOne((req) => req.method === 'DELETE' && req.url === '/api/auth/demo')
+      .flush(envelope())
+    await done
+
+    expect(store.status()).toBe('signedOut')
+    expect(localStorage.getItem('tpn-demo')).toBeNull()
+  })
+
+  it('treats a refused refresh of a demo as revoked and says so once (rule 14)', async () => {
+    store.setSession(demoSession())
+    TestBed.tick()
+    const done = service.refresh()
+
+    http
+      .expectOne('/api/auth/refresh')
+      .flush({ message: 'expired', code: 'SESSION_EXPIRED' }, { status: 401, statusText: 'No' })
+    await expect(done).rejects.toBeTruthy()
+
+    expect(store.endedBy()).toBe('revoked')
+    expect(service.takeDemoExpired()).toBe(true)
+    expect(service.takeDemoExpired()).toBe(false)
+  })
+
+  it('keeps an ordinary account’s expired session as expired (offline-sync rule 7)', async () => {
+    store.setSession(session())
+    TestBed.tick()
+    const done = service.refresh()
+
+    http
+      .expectOne('/api/auth/refresh')
+      .flush({ message: 'expired', code: 'SESSION_EXPIRED' }, { status: 401, statusText: 'No' })
+    await expect(done).rejects.toBeTruthy()
+
+    expect(store.endedBy()).toBe('expired')
+    expect(service.takeDemoExpired()).toBe(false)
+  })
+
+  it('forgets an earlier demo once someone else signs in on the device', () => {
+    store.setSession(demoSession())
+    TestBed.tick()
+    store.setSession(session())
+    TestBed.tick()
+
+    expect(localStorage.getItem('tpn-demo')).toBeNull()
   })
 })

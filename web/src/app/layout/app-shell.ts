@@ -11,6 +11,7 @@ import { RouterOutlet } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import { lucideCloudDownload } from '@ng-icons/lucide'
+import { AuthStore } from '@/core/auth'
 import { BookService } from '@/core/book'
 import { CategoryService } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
@@ -31,6 +32,8 @@ import { BookSheet } from './book-sheet'
 import { BookSwitchSheet } from './book-switch-sheet'
 import { BottomTabBar } from './bottom-tab-bar'
 import { CategorySheet } from './category-sheet'
+import { DemoBanner } from './demo-banner'
+import { DemoLoader } from './demo-loader'
 import { SharedBookStep } from './shared-book-step'
 import { TransactionSheet } from './transaction-sheet'
 import { TransferSheet } from './transfer-sheet'
@@ -61,6 +64,8 @@ const OWN_ONLY = [
     NgIcon,
     AppHeader,
     BottomTabBar,
+    DemoBanner,
+    DemoLoader,
     BookCreateStep,
     SharedBookStep,
     BookSheet,
@@ -78,6 +83,7 @@ const OWN_ONLY = [
   template: `
     <div class="mx-auto flex min-h-dvh max-w-[480px] flex-col">
       <app-header />
+      <app-demo-banner />
       <main
         class="flex-1 overflow-x-clip pb-[calc(4rem+env(safe-area-inset-bottom))]"
         [appFadeIn]="tab()"
@@ -100,6 +106,12 @@ const OWN_ONLY = [
                   </p>
                 }
               </div>
+            }
+            @case ('demoLoading') {
+              <app-demo-loader />
+            }
+            @case ('demoFailed') {
+              <app-demo-loader [failed]="true" />
             }
             @case ('create') {
               <app-book-create-step />
@@ -178,6 +190,7 @@ export class AppShell {
     return count > 0 ? count.toLocaleString(this.languageService.locale()) : null
   })
   private networkStatusService = inject(NetworkStatusService)
+  private authStore = inject(AuthStore)
   private url = currentUrl()
   private injector = inject(Injector)
   /** Family sharing (#16): loaded after the first render, for the Account tab's invite dot. */
@@ -223,8 +236,13 @@ export class AppShell {
     if (shared) {
       return this.sharedGate(url, shared.status)
     }
+    // Demo rule 8: a demo's first pull is a checklist, and a failed one says so with ลองใหม่.
+    const demo = this.authStore.user()?.isDemo === true
     if (this.bookService.firstPull()) {
-      return 'loading'
+      return demo ? 'demoLoading' : 'loading'
+    }
+    if (demo && this.bookService.current() === null && this.syncService.lastSyncedAt() === null) {
+      return 'demoFailed'
     }
     if (this.bookService.current() === null) {
       return this.bookService.ready() ? 'create' : 'loading'

@@ -39,6 +39,8 @@ const CODE_MESSAGES = new Map<string, string>([
   ['PHONE_IN_USE', 'phone.inUse'],
   ['BOT_CHECK_FAILED', 'auth.botCheckFailed'],
   ['ACCOUNT_EMAIL_MISMATCH', 'deleteAccount.emailMismatch'],
+  ['DEMO_NOT_ALLOWED', 'demo.notAllowed'],
+  ['DEMO_DISABLED', 'demo.disabled'],
 ])
 
 /** What to tell the user about a failed auth call; `fallback` covers anything unexpected. */

@@ -137,7 +137,12 @@ const DAY = 24 * HOUR
           <div
             class="divide-y divide-border rounded-xl border border-border bg-card text-card-foreground"
           >
-            <a routerLink="/account/password" class="flex min-h-14 items-center gap-3 px-4 py-3">
+            <a
+              [routerLink]="isDemo() ? null : '/account/password'"
+              class="flex min-h-14 items-center gap-3 px-4 py-3"
+              [class.opacity-60]="isDemo()"
+              [attr.aria-disabled]="isDemo() || null"
+            >
               <span
                 class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl text-muted-foreground"
                 aria-hidden="true"
@@ -148,19 +153,33 @@ const DAY = 24 * HOUR
                 <span class="text-base">{{ 'account.password' | transloco }}</span>
                 <span class="text-sm text-muted-foreground">
                   {{
-                    (user.hasPassword ? 'account.passwordSet' : 'account.passwordUnset') | transloco
+                    (isDemo()
+                      ? 'demo.notAllowed'
+                      : user.hasPassword
+                        ? 'account.passwordSet'
+                        : 'account.passwordUnset'
+                    ) | transloco
                   }}
                 </span>
               </span>
-              <ng-icon
-                name="lucideChevronRight"
-                size="20"
-                class="text-muted-foreground"
-                aria-hidden="true"
-              />
+              @if (!isDemo()) {
+                <ng-icon
+                  name="lucideChevronRight"
+                  size="20"
+                  class="text-muted-foreground"
+                  aria-hidden="true"
+                />
+              }
             </a>
 
-            @if (phoneEnabled()) {
+            @if (phoneEnabled() && isDemo()) {
+              <div
+                class="flex min-h-14 items-center gap-3 px-4 py-3 opacity-60"
+                aria-disabled="true"
+              >
+                <ng-container [ngTemplateOutlet]="phoneRow" />
+              </div>
+            } @else if (phoneEnabled()) {
               <a routerLink="/account/phone" class="flex min-h-14 items-center gap-3 px-4 py-3">
                 <ng-container [ngTemplateOutlet]="phoneRow" />
                 <ng-icon
@@ -186,7 +205,11 @@ const DAY = 24 * HOUR
               <span class="flex min-w-0 flex-1 flex-col">
                 <span class="text-base">{{ 'account.phone' | transloco }}</span>
                 <span class="text-sm text-muted-foreground tabular-nums">
-                  {{ phone() ?? ('account.phoneNotAdded' | transloco) }}
+                  @if (isDemo()) {
+                    {{ 'demo.notAllowed' | transloco }}
+                  } @else {
+                    {{ phone() ?? ('account.phoneNotAdded' | transloco) }}
+                  }
                 </span>
               </span>
             </ng-template>
@@ -202,7 +225,9 @@ const DAY = 24 * HOUR
                 <span class="flex min-w-0 flex-1 flex-col">
                   <span class="text-base">{{ 'account.google' | transloco }}</span>
                   <span class="truncate text-sm text-muted-foreground">
-                    @if (google(); as identity) {
+                    @if (isDemo()) {
+                      {{ 'demo.notAllowed' | transloco }}
+                    } @else if (google(); as identity) {
                       {{ identity.email }}
                     } @else {
                       {{ 'account.googleNotLinked' | transloco }}
@@ -228,7 +253,9 @@ const DAY = 24 * HOUR
                     size="sm"
                     type="button"
                     class="h-10 shrink-0 px-3"
-                    [disabled]="isBusy() || !networkStatusService.isOnline() || !googleEnabled()"
+                    [disabled]="
+                      isBusy() || !networkStatusService.isOnline() || !googleEnabled() || isDemo()
+                    "
                     (click)="runGoogle('link')"
                   >
                     @if (busyWith() === 'link') {
@@ -534,8 +561,10 @@ const DAY = 24 * HOUR
           {{ 'security.deleteHeading' | transloco }}
         </h2>
         <a
-          routerLink="/account/delete"
+          [routerLink]="isDemo() ? null : '/account/delete'"
           class="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-destructive focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          [class.opacity-60]="isDemo()"
+          [attr.aria-disabled]="isDemo() || null"
         >
           <span
             class="flex size-10 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-xl"
@@ -546,10 +575,12 @@ const DAY = 24 * HOUR
           <span class="flex min-w-0 flex-1 flex-col">
             <span class="text-base">{{ 'security.deleteAccount' | transloco }}</span>
             <span class="text-sm text-muted-foreground">
-              {{ 'security.deleteAccountHint' | transloco }}
+              {{ (isDemo() ? 'demo.notAllowed' : 'security.deleteAccountHint') | transloco }}
             </span>
           </span>
-          <ng-icon name="lucideChevronRight" size="20" aria-hidden="true" />
+          @if (!isDemo()) {
+            <ng-icon name="lucideChevronRight" size="20" aria-hidden="true" />
+          }
         </a>
       </section>
     </div>
@@ -578,6 +609,8 @@ export class SecurityPage {
   })
   // Google is the only provider, linked at most once per user (rule 29).
   protected google = computed(() => this.authStore.user()?.identities.at(0) ?? null)
+  /** Demo rule 9: the credential rows show, turned off, with "ใช้ไม่ได้ในโหมด Demo". */
+  protected isDemo = computed(() => this.authStore.user()?.isDemo === true)
   protected googleError = signal<UiMessage | null>(null)
 
   private sessions = signal<AuthDeviceSession[] | null>(null)

@@ -38,6 +38,8 @@ interface AccountItem {
   hint: string
   /** A count on the row (invitations to me, sharing.md). */
   badge?: number
+  /** Demo rule 9: shown, but turned off, with "ใช้ไม่ได้ในโหมด Demo" as its hint. */
+  disabled?: boolean
 }
 
 @Component({
@@ -86,7 +88,10 @@ interface AccountItem {
           >
           <span class="flex min-w-0 flex-1 flex-col">
             <span class="text-base font-semibold break-all">{{ user.displayName }}</span>
-            <span class="text-sm break-all text-muted-foreground">{{ user.email }}</span>
+            <!-- A demo's address is a placeholder no mail reaches (demo.md → Data model). -->
+            <span class="text-sm break-all text-muted-foreground">{{
+              user.isDemo ? ('demo.profileLine' | transloco) : user.email
+            }}</span>
           </span>
           <span
             class="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
@@ -106,35 +111,53 @@ interface AccountItem {
           >
             @for (item of group.items; track item.link) {
               <li>
-                <a
-                  class="flex min-h-14 items-center gap-3 px-4 py-2 first:rounded-t-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                  [routerLink]="item.link"
-                >
-                  <span
-                    class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xl text-muted-foreground"
-                    aria-hidden="true"
+                @if (item.disabled) {
+                  <div
+                    class="flex min-h-14 items-center gap-3 px-4 py-2 opacity-60"
+                    aria-disabled="true"
                   >
-                    <ng-icon [name]="item.icon" />
-                  </span>
-                  <span class="flex min-w-0 flex-1 flex-col">
-                    <span class="text-base"
-                      >{{ item.label | transloco }}
-                      @if (item.badge) {
-                        <span
-                          class="ml-1 rounded-full bg-destructive px-1.5 text-xs font-semibold text-white"
-                          >{{ item.badge }}</span
-                        >
-                      }
+                    <span
+                      class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xl text-muted-foreground"
+                      aria-hidden="true"
+                    >
+                      <ng-icon [name]="item.icon" />
                     </span>
-                    <span class="truncate text-sm text-muted-foreground">{{ item.hint }}</span>
-                  </span>
-                  <ng-icon
-                    name="lucideChevronRight"
-                    size="20"
-                    class="text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                </a>
+                    <span class="flex min-w-0 flex-1 flex-col">
+                      <span class="text-base">{{ item.label | transloco }}</span>
+                      <span class="truncate text-sm text-muted-foreground">{{ item.hint }}</span>
+                    </span>
+                  </div>
+                } @else {
+                  <a
+                    class="flex min-h-14 items-center gap-3 px-4 py-2 first:rounded-t-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    [routerLink]="item.link"
+                  >
+                    <span
+                      class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xl text-muted-foreground"
+                      aria-hidden="true"
+                    >
+                      <ng-icon [name]="item.icon" />
+                    </span>
+                    <span class="flex min-w-0 flex-1 flex-col">
+                      <span class="text-base"
+                        >{{ item.label | transloco }}
+                        @if (item.badge) {
+                          <span
+                            class="ml-1 rounded-full bg-destructive px-1.5 text-xs font-semibold text-white"
+                            >{{ item.badge }}</span
+                          >
+                        }
+                      </span>
+                      <span class="truncate text-sm text-muted-foreground">{{ item.hint }}</span>
+                    </span>
+                    <ng-icon
+                      name="lucideChevronRight"
+                      size="20"
+                      class="text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </a>
+                }
               </li>
             }
           </ul>
@@ -149,7 +172,7 @@ interface AccountItem {
         (click)="confirming.set(true)"
       >
         <ng-icon name="lucideLogOut" aria-hidden="true" />
-        {{ 'account.signOut' | transloco }}
+        {{ (isDemo() ? 'demo.end' : 'account.signOut') | transloco }}
       </button>
     </div>
 
@@ -165,7 +188,7 @@ interface AccountItem {
           class="mx-auto h-[92dvh] w-full max-w-120 data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
         >
           <app-sheet-frame
-            [title]="'account.signOut' | transloco"
+            [title]="(isDemo() ? 'demo.end' : 'account.signOut') | transloco"
             [leadingLabel]="'sheet.close' | transloco"
             (leading)="cancelSignOut()"
           >
@@ -176,7 +199,10 @@ interface AccountItem {
               >
                 <ng-icon name="lucideLogOut" />
               </span>
-              @if (unsynced() > 0) {
+              @if (isDemo()) {
+                <!-- Demo rule 12: it asks once, then the account goes at once. -->
+                <p class="text-base">{{ 'demo.endConfirm' | transloco }}</p>
+              } @else if (unsynced() > 0) {
                 <p class="text-base">
                   {{ 'account.signOutUnsynced' | transloco: { count: unsynced() } }}
                 </p>
@@ -185,7 +211,7 @@ interface AccountItem {
               }
               @if (signOutFailed()) {
                 <p role="alert" class="text-sm text-destructive">
-                  {{ 'account.signOutFailed' | transloco }}
+                  {{ (isDemo() ? 'demo.endFailed' : 'account.signOutFailed') | transloco }}
                 </p>
               }
             </div>
@@ -196,14 +222,20 @@ interface AccountItem {
                 type="button"
                 class="h-11 w-full text-base"
                 [disabled]="isSigningOut()"
-                (click)="signOut(unsynced() > 0)"
+                (click)="isDemo() ? endDemo() : signOut(unsynced() > 0)"
               >
                 @if (isSigningOut()) {
-                  <hlm-spinner [aria-label]="'account.signingOut' | transloco" />
+                  <hlm-spinner
+                    [aria-label]="(isDemo() ? 'demo.ending' : 'account.signingOut') | transloco"
+                  />
                 }
                 {{
-                  (unsynced() > 0 ? 'account.signOutUnsyncedConfirm' : 'account.signOut')
-                    | transloco
+                  (isDemo()
+                    ? 'demo.end'
+                    : unsynced() > 0
+                      ? 'account.signOutUnsyncedConfirm'
+                      : 'account.signOut'
+                  ) | transloco
                 }}
               </button>
               <button
@@ -248,6 +280,8 @@ export class AccountPage {
   protected signOutFailed = signal(false)
   /** Ops that would be lost by signing out now (still pending or rejected after a push). */
   protected unsynced = signal(0)
+  /** Demo rules 9 and 12: sharing is off, and ออกจากระบบ becomes จบ Demo. */
+  protected isDemo = computed(() => this.authStore.user()?.isDemo === true)
 
   protected groups = computed<{ key: string; items: AccountItem[] }[]>(() => {
     this.languageService.language() // re-translate on a language switch
@@ -278,8 +312,13 @@ export class AccountPage {
             link: '/account/sharing',
             icon: 'lucideShare2',
             label: 'account.sharing',
-            hint: book ? this.sharingHint(book.id, book.name, t) : t('account.booksNone'),
+            hint: this.isDemo()
+              ? t('demo.notAllowed')
+              : book
+                ? this.sharingHint(book.id, book.name, t)
+                : t('account.booksNone'),
             badge: this.sharingService.inviteCount(),
+            disabled: this.isDemo(),
           },
           {
             link: '/account/recurring',
@@ -403,6 +442,21 @@ export class AccountPage {
     this.confirming.set(false)
     this.unsynced.set(0)
     this.signOutFailed.set(false)
+  }
+
+  /** Demo rule 12: the account is deleted at once (no push first: it all goes), then the device. */
+  protected async endDemo(): Promise<void> {
+    this.isSigningOut.set(true)
+    this.signOutFailed.set(false)
+    try {
+      await this.authService.endDemo()
+      await this.offlineService.wipe()
+      await this.router.navigateByUrl(SIGN_IN_URL, { replaceUrl: true })
+    } catch {
+      this.signOutFailed.set(true)
+    } finally {
+      this.isSigningOut.set(false)
+    }
   }
 
   /** `confirmed`: the user already agreed to lose the ops that couldn't be pushed. */

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createLivePublisher, createMemoryLiveProvider } from '@/core/live'
 import { createSyncRegistry } from '@/core/sync'
 import type { SyncPushHandler, SyncRow, SyncValidation } from '@/core/sync'
-import { SYNC_LIMITS, SyncErrorCode } from './sync.const'
+import { SYNC_LIMITS, SyncErrorCode, SyncRejectCode } from './sync.const'
 import { createMemorySyncRepository } from './sync.repository.memory'
 import { createSyncService } from './sync.service'
 import type { OpResult, PushOp } from './sync.entity'
@@ -779,5 +779,65 @@ describe('createSyncService › live pokes (live-sync rules 4, 6–7)', () => {
     live.published.length = 0
     await push(ALICE, { row: entry('e1', 'Rice', { walletId: 'cash' }), baseSeq: seq(moved) })
     expect(live.published.map((m) => m.channel)).toEqual([`user:${ALICE}`, 'book:pa'])
+  })
+})
+
+describe('createSyncService › a demo’s cap (demo rule 11)', () => {
+  const fill = async (service: ReturnType<typeof setup>['service'], userId: string) =>
+    service.push(
+      userId,
+      PHONE,
+      Array.from({ length: SYNC_LIMITS.DEMO_ROWS }, (_, i) =>
+        op({ row: note(`${userId}-${i}`, `${userId} ${i}`, NOW) })
+      )
+    )
+
+  it('refuses a new row past 2,000 live rows with DEMO_LIMIT, and applies nothing', async () => {
+    const { service, memory } = setup({ demoUsers: [ALICE] })
+    const filled = await fill(service, ALICE)
+
+    const over = await one(service, ALICE, PHONE, op({ row: note('extra', 'Extra', NOW) }))
+
+    expect(filled.every((result) => result.status === 'applied')).toBe(true)
+    expect(over).toMatchObject({ status: 'rejected', code: SyncRejectCode.DEMO_LIMIT })
+    expect(memory.row('notes', 'extra')).toBeNull()
+  })
+
+  it('still lets a full demo edit and delete its rows, which frees a place', async () => {
+    const { service } = setup({ demoUsers: [ALICE] })
+    const filled = await fill(service, ALICE)
+    const firstId = `${ALICE}-0`
+    const seq = filled[0].status === 'applied' ? filled[0].changeSeq : 0
+
+    const edited = await one(
+      service,
+      ALICE,
+      PHONE,
+      op({ baseSeq: seq, row: note(firstId, 'Edited', NOW, { updatedAt: NOW + 1 }) })
+    )
+    const removed = await one(
+      service,
+      ALICE,
+      PHONE,
+      op({
+        op: 'delete',
+        baseSeq: edited.status === 'applied' ? edited.changeSeq : 0,
+        row: { id: firstId, updatedAt: NOW + 2 },
+      })
+    )
+    const added = await one(service, ALICE, PHONE, op({ row: note('extra', 'Extra', NOW) }))
+
+    expect(edited.status).toBe('applied')
+    expect(removed.status).toBe('applied')
+    expect(added.status).toBe('applied')
+  })
+
+  it('caps no one else', async () => {
+    const { service } = setup({ demoUsers: [ALICE] })
+    await fill(service, BOB)
+
+    const result = await one(service, BOB, PHONE, op({ row: note('extra', 'Extra', NOW) }))
+
+    expect(result.status).toBe('applied')
   })
 })

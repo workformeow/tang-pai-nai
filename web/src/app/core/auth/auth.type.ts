@@ -11,6 +11,10 @@ export interface AuthUser {
   identities: AuthIdentity[]
   /** The verified mobile number in E.164 (4.4b), or `null`. */
   phone: string | null
+  /** A demo account (docs/features/demo.md): the banner, the turned-off rows, จบ Demo. */
+  isDemo: boolean
+  /** When the account was made (ISO): a demo's hours left count from it (demo rule 10). */
+  createdAt: string
 }
 
 /** Mirrors `AuthIdentityData` in the API. */
@@ -45,6 +49,8 @@ export interface AuthProviders {
   botCheckSiteKey: string | null
   /** Privacy rule 2: the API is a test copy (staging); the sign-in and privacy pages say so. */
   testVersion: boolean
+  /** Demo rule 1: the ทดลองใช้ Demo button and `/auth/demo` (`DEMO_ENABLED` on the API). */
+  demo: boolean
 }
 
 /** `GET /auth/account/deletion` (privacy rule 10). */
@@ -101,3 +107,5 @@ export type AuthErrorCode =
   | 'PHONE_DISABLED'
   | 'PHONE_UNCHANGED'
   | 'PHONE_IN_USE'
+  | 'DEMO_NOT_ALLOWED'
+  | 'DEMO_DISABLED'

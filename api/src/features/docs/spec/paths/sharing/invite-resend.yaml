@@ -27,6 +27,12 @@ post:
             $ref: '../../components/models/message-response.schema.yaml'
     '401':
       $ref: '../../components/responses/error.response.yaml'
+    '403':
+      description: '`DEMO_NOT_ALLOWED`: a demo account can’t share (demo rule 9)'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
     '404':
       description: 'Not the caller’s to see (404 hides whether it exists)'
       content:

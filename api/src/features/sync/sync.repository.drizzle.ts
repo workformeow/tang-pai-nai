@@ -1,5 +1,6 @@
 import { and, eq, gt, isNull, lt, lte, ne, sql } from 'drizzle-orm'
 import type { Executor } from '@/core/database'
+import { demoRowCount } from '@/core/database/demo-rows'
 import { sharedBookOf } from '@/core/database/live-access'
 import { changeHistory, syncOps, syncState } from '@/core/database/schema/sync'
 import { walletAccess } from '@/core/database/wallet-access'
@@ -147,6 +148,9 @@ export const createDrizzleSyncRepository = (
       run('walletAccess', async () => walletAccess(db, userId, walletId), { walletId }),
     sharedBookOf: async (walletId) =>
       run('sharedBookOf', async () => sharedBookOf(db, walletId), { walletId }),
+
+    demoRowCount: async (userId) =>
+      run('demoRowCount', async () => demoRowCount(db, userId), { userId }),
 
     pull: async (table, userId, since, limit) => handler(table).pull(db, userId, since, limit),
     find: async (table, id) => pushHandler(table).find(db, id),

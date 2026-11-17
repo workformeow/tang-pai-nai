@@ -69,6 +69,7 @@ export const envSchema: z.ZodType<EnvConfig> = z
     SIGNUP_ENABLED: z.stringbool().default(true),
     // Privacy rule 2: the app says it is a test version (staging).
     TEST_VERSION: z.stringbool().default(false),
+    DEMO_ENABLED: z.stringbool().default(false),
     EMAIL_DAILY_LIMIT: z.coerce.number().int().positive().max(100_000).default(100),
     // Global cap on SMS per day (auth rule 23): caps the bill if the other limits are bypassed.
     SMS_DAILY_LIMIT: z.coerce.number().int().positive().max(100_000).default(100),

@@ -84,10 +84,16 @@ shows when the book is created (rule 8).
    book, in the same local write** as the book, never seeded by the server, so two devices
    never seed one book twice. Names in the app's language at that moment (decided at the start
    of #7; Thai below, English in the web's default-set file), each with an icon and colour:
-   - Expense: อาหารและเครื่องดื่ม (กาแฟ, ร้านอาหาร), การเดินทาง (น้ำมัน, ขนส่งสาธารณะ, แท็กซี่),
-     ที่อยู่อาศัย (ค่าเช่า, ค่าน้ำ, ค่าไฟ, อินเทอร์เน็ต), ช้อปปิ้ง, บันเทิง, สุขภาพ, การศึกษา,
-     ครอบครัว, ของขวัญและบริจาค, ประกัน, ท่องเที่ยว, อื่น ๆ
+   - Expense: อาหารและเครื่องดื่ม (อาหารประจำวัน, เครื่องดื่ม), การเดินทาง (น้ำมัน, รถไฟฟ้า,
+     ขนส่งสาธารณะ, แท็กซี่), ที่อยู่อาศัย (ค่าเช่า, ค่าน้ำ, ค่าไฟ, อินเทอร์เน็ต), ช้อปปิ้ง, บันเทิง,
+     สุขภาพ, การศึกษา, ครอบครัว, ของขวัญและบริจาค, ประกัน, ท่องเที่ยว, อื่น ๆ
    - Income: เงินเดือน, โบนัส, ดอกเบี้ยและเงินปันผล, ขายของ, ได้รับเงิน, อื่น ๆ
+
+   28 categories. Owner, 2026-11-17 (#25): food splits into everyday meals (อาหารประจำวัน) and
+   drinks (เครื่องดื่ม: coffee, cocoa, green tea), and a pricier meal out (a buffet) goes on the
+   parent itself; รถไฟฟ้า joins การเดินทาง (ขนส่งสาธารณะ keeps buses and boats). It replaced
+   กาแฟ and ร้านอาหาร; books made before keep the set they were made with. The API holds the
+   same list for a demo's book (demo.md rule 6, `auth.demo-seed.ts`); change both together.
 
    Books made before #7 exist only in dev data and get the set from a one-off script in
    `api/scripts/` (Thai names, server writes with `changeSeq`).

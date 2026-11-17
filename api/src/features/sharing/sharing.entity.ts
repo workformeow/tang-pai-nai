@@ -21,6 +21,8 @@ export interface UserRef {
   displayName: string
   /** Only a verified email matches invitations (rule 6). */
   emailVerified: boolean
+  /** A demo account (demo rule 9: it can't share). */
+  isDemo?: boolean
 }
 
 /** A live wallet as sharing needs it. */

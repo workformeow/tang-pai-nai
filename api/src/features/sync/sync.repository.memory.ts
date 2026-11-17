@@ -25,6 +25,8 @@ export interface MemorySyncOptions {
   walletAccess?: (userId: string, walletId: string) => WalletAccess | null
   /** The shared book of a wallet (live-sync rule 6); none by default. */
   sharedBookOf?: (walletId: string) => string | null
+  /** Demo users (demo rule 11): their live rows across every table are counted. */
+  demoUsers?: string[]
 }
 
 type FollowUpRule = (row: SyncRow, firstSeq: number) => void
@@ -121,6 +123,20 @@ export const createMemorySyncRepository = (options: MemorySyncOptions = {}) => {
     walletAccess: async (userId, walletId) =>
       Promise.resolve(options.walletAccess?.(userId, walletId) ?? null),
     sharedBookOf: async (walletId) => Promise.resolve(options.sharedBookOf?.(walletId) ?? null),
+    demoRowCount: async (userId) => {
+      if (!options.demoUsers?.includes(userId)) {
+        return Promise.resolve(null)
+      }
+      let total = 0
+      for (const rows of state.tables.values()) {
+        for (const { ownerId, row } of rows.values()) {
+          if (ownerId === userId && !row.deletedAt) {
+            total++
+          }
+        }
+      }
+      return Promise.resolve(total)
+    },
     deleteOpsBefore: async (before) => {
       let removed = 0
       for (const [opId, op] of state.ops) {

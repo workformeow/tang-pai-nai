@@ -14,11 +14,14 @@ export interface User {
   phoneVerifiedAt: Date | null
   status: UserStatus
   timezone: string
+  /** A demo account (docs/features/demo.md): deleted 24 hours after `createdAt`. */
+  isDemo: boolean
   createdAt: Date
   updatedAt: Date
 }
 
-export type NewUser = Pick<User, 'email' | 'displayName'> & Partial<Pick<User, 'avatarUrl'>>
+export type NewUser = Pick<User, 'email' | 'displayName'> &
+  Partial<Pick<User, 'avatarUrl' | 'isDemo'>>
 
 /** Outside sign-in providers (rule 14). Only Google is built. */
 export type IdentityProvider = 'google'
@@ -136,6 +139,8 @@ export interface CleanupResult {
   challenges: number
   sessions: number
   rateLimitBuckets: number
+  /** Demo users past their 24 hours (demo rule 13). */
+  demoUsers: number
 }
 
 /** `{ email, code }` from the enter-code screen, or `{ token }` from the magic link. */

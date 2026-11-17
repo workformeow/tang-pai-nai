@@ -41,6 +41,10 @@ export const AUTH_LIMITS = {
   STARTS_PER_PHONE: { limit: 3, windowMs: HOUR },
   SMS_STARTS_PER_IP: { limit: 10, windowMs: HOUR },
   SMS_PER_DAY_WINDOW_MS: DAY,
+  /** Demo rule 5: demos started per IP. */
+  DEMOS_PER_IP: { limit: 5, windowMs: HOUR },
+  /** Demo rule 13: a demo user is deleted this long after it was created. */
+  DEMO_LIFETIME_MS: DAY,
 } as const
 
 /** Rule 14: what we ask Google for. */
@@ -101,6 +105,10 @@ export enum AuthErrorCode {
   BOT_CHECK_FAILED = 'BOT_CHECK_FAILED',
   /** Privacy rule 8: the typed email isn't the account's. */
   ACCOUNT_EMAIL_MISMATCH = 'ACCOUNT_EMAIL_MISMATCH',
+  /** Demo rule 1: `DEMO_ENABLED=false`; `POST /auth/demo` is `404`. */
+  DEMO_DISABLED = 'DEMO_DISABLED',
+  /** Demo rule 12: `DELETE /auth/demo` from an account that isn't a demo. */
+  NOT_DEMO = 'NOT_DEMO',
 }
 
 export const AUTH_MESSAGE = {
@@ -156,6 +164,11 @@ export const AUTH_MESSAGE = {
   PHONE_UNCHANGED: 'This is already your phone number',
   PHONE_IN_USE: 'This phone number cannot be used',
   PHONE_INVALID: 'Enter a Thai mobile number',
+  DEMO_STARTED: 'Demo started',
+  DEMO_ENDED: 'Demo ended',
+  NOT_DEMO: 'This account is not a demo',
+  /** Demo display name (spec → Data model), in the language of the request. */
+  DEMO_DISPLAY_NAME: { th: 'ผู้ทดลองใช้', en: 'Demo user' },
 }
 
 /** Name of the cookie that carries the Google round trip (rule 14). */

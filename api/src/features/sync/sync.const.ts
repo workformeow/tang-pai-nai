@@ -5,6 +5,8 @@ export const SYNC_LIMITS = {
   PULL_MAX: 1000,
   /** Tombstones and `sync_ops` older than this are purged (rule 9). */
   RETENTION_MS: 90 * 24 * 60 * 60 * 1000,
+  /** Demo rule 11: a demo user's own live rows, the seed included. */
+  DEMO_ROWS: 2000,
 } as const
 
 /** Error codes the web app switches on (offline-sync → Endpoints). */
@@ -23,6 +25,8 @@ export const SyncRejectCode = {
   STALE: 'STALE',
   /** The row's wallet isn't shared with the caller as editor (sharing rules 11, 13). */
   NOT_SHARED: 'NOT_SHARED',
+  /** A demo user already has `DEMO_ROWS` rows (demo rule 11). */
+  DEMO_LIMIT: 'DEMO_LIMIT',
 } as const
 export type SyncRejectCode = (typeof SyncRejectCode)[keyof typeof SyncRejectCode]
 
@@ -35,4 +39,5 @@ export const SYNC_MESSAGE = {
   READ_ONLY: 'This table is read-only for devices',
   STALE: 'This row changed since you read it; reload it',
   NOT_SHARED: 'This wallet is not shared with you as an editor',
+  DEMO_LIMIT: 'The demo holds at most 2,000 rows',
 }

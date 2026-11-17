@@ -463,17 +463,17 @@ describe('BookService', () => {
       start()
       const id = service.save(null, values)
       const all = categories()
-      expect(all).toHaveLength(27)
+      expect(all).toHaveLength(28)
       expect(all.slice(0, 3)).toEqual([
         ['อาหารและเครื่องดื่ม', 'expense', 'top'],
-        ['กาแฟ', 'expense', 'child'],
-        ['ร้านอาหาร', 'expense', 'child'],
+        ['อาหารประจำวัน', 'expense', 'child'],
+        ['เครื่องดื่ม', 'expense', 'child'],
       ])
       expect(all.filter(([, type]) => type === 'income')).toHaveLength(6)
       const pushed = ops().map((op) => op.table)
       expect(pushed[0]).toBe('books')
-      expect(pushed.filter((table) => table === 'categories')).toHaveLength(27)
-      expect(db.selectValue('SELECT count(*) FROM categories WHERE book_id = ?', [id])).toBe(27)
+      expect(pushed.filter((table) => table === 'categories')).toHaveLength(28)
+      expect(db.selectValue('SELECT count(*) FROM categories WHERE book_id = ?', [id])).toBe(28)
     })
 
     it('names the default set in the language the app shows', () => {
@@ -482,7 +482,7 @@ describe('BookService', () => {
       service.save(null, values)
       expect(categories().slice(0, 2)).toEqual([
         ['Food & drink', 'expense', 'top'],
-        ['Coffee', 'expense', 'child'],
+        ['Daily meals', 'expense', 'child'],
       ])
     })
 

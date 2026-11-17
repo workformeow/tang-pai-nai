@@ -63,7 +63,7 @@ describe('SignInPage', () => {
   /** Opens the page and answers `GET /auth/providers`. */
   const open = async (
     url: string,
-    providers: { google: boolean; phone?: boolean } | 'unreachable'
+    providers: { google: boolean; phone?: boolean; demo?: boolean } | 'unreachable'
   ) => {
     await TestBed.inject(Router).navigateByUrl(url)
     fixture = TestBed.createComponent(SignInPage)
@@ -80,6 +80,7 @@ describe('SignInPage', () => {
 
   beforeEach(async () => {
     sessionStorage.clear()
+    localStorage.clear()
     offline.meta.set(null)
     phoneFeature = true
     device.isInstalled.set(false)
@@ -119,6 +120,30 @@ describe('SignInPage', () => {
     offline.meta.set({ userId: 'u1', displayName: 'mom' })
     fixture.detectChanges()
     expect(page().textContent).toContain(th.auth.localData.replace('{{name}}', 'mom'))
+  })
+
+  const demoLink = () =>
+    [...page().querySelectorAll('a')].find((a) => a.textContent.includes(th.demo.signInButton))
+
+  it('links to the demo page under the forms while the demo is on (demo rule 2)', async () => {
+    await open('/auth/sign-in', { google: false, demo: true })
+
+    expect(demoLink()?.getAttribute('href')).toBe('/auth/demo')
+    expect(page().textContent).toContain(th.demo.signInDivider)
+  })
+
+  it('shows no demo link while the demo is off', async () => {
+    await open('/auth/sign-in', { google: false, demo: false })
+
+    expect(demoLink()).toBeUndefined()
+  })
+
+  it('says once that the demo this device held has ended (demo rule 14)', async () => {
+    localStorage.setItem('tpn-demo-expired', '1')
+    await open('/auth/sign-in', { google: false })
+
+    expect(page().textContent).toContain(th.demo.expired)
+    expect(TestBed.inject(AuthService).takeDemoExpired()).toBe(false)
   })
 
   it('links to the install steps in a browser tab, not inside the installed app', async () => {

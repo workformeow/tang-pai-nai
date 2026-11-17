@@ -14,6 +14,8 @@ export const createAuthRouter = (
 
   // Rule 32: the bot check sits in front of whatever sends mail or SMS, or checks a password.
   const botGate = authController.botGate
+  // Demo rule 9: credentials, mail and SMS are off for a demo (after `authenticate`).
+  const noDemo = authController.demoGate
 
   router.post('/email/start', botGate, validate(authSchema.emailStart), authController.emailStart)
   router.post('/email/verify', validate(authSchema.emailVerify), authController.emailVerify)
@@ -26,24 +28,28 @@ export const createAuthRouter = (
   router.put(
     '/password',
     authenticate,
+    noDemo,
     validate(authSchema.passwordSet),
     authController.passwordSet
   )
   router.delete(
     '/password',
     authenticate,
+    noDemo,
     validate(authSchema.passwordRemove),
     authController.passwordRemove
   )
   router.post(
     '/reauth/start',
     authenticate,
+    noDemo,
     validate(authSchema.reauthStart),
     authController.reauthStart
   )
   router.post(
     '/reauth/verify',
     authenticate,
+    noDemo,
     validate(authSchema.reauthVerify),
     authController.reauthVerify
   )
@@ -54,13 +60,21 @@ export const createAuthRouter = (
   router.post(
     '/phone/confirm',
     authenticate,
+    noDemo,
     validate(authSchema.phoneConfirm),
     authController.phoneConfirm
   )
-  router.post('/phone', authenticate, validate(authSchema.phoneChange), authController.phoneChange)
+  router.post(
+    '/phone',
+    authenticate,
+    noDemo,
+    validate(authSchema.phoneChange),
+    authController.phoneChange
+  )
   router.delete(
     '/phone',
     authenticate,
+    noDemo,
     validate(authSchema.phoneRemove),
     authController.phoneRemove
   )
@@ -69,14 +83,24 @@ export const createAuthRouter = (
   router.get('/me', authenticate, authController.me)
   router.patch('/me', authenticate, validate(authSchema.updateMe), authController.updateMe)
   // Privacy rules 5–10: what deleting takes with it, and deleting (recent auth + typed email).
-  router.get('/account/deletion', authenticate, authController.accountDeletion)
+  router.get('/account/deletion', authenticate, noDemo, authController.accountDeletion)
   router.delete(
     '/account',
     authenticate,
+    noDemo,
     validate(authSchema.accountDelete),
     authController.accountDelete
   )
   router.get('/providers', authController.providers)
+  // Demo rules 4 and 12: start one (bot check like a sign-in), or end it at once.
+  router.post(
+    '/demo',
+    authController.demoOn,
+    botGate,
+    validate(authSchema.demoStart),
+    authController.demoStart
+  )
+  router.delete('/demo', authenticate, authController.demoEnd)
   // Top-level navigations (no Origin check): the browser comes and goes through Google (rule 14).
   router.get('/google/start', validate(authSchema.googleStart), authController.googleStart)
   router.get('/google/callback', validate(authSchema.googleCallback), authController.googleCallback)
@@ -84,12 +108,14 @@ export const createAuthRouter = (
   router.post(
     '/google/link',
     authenticate,
+    noDemo,
     validate(authSchema.googleLink),
     authController.googleLink
   )
   router.delete(
     '/google/link',
     authenticate,
+    noDemo,
     validate(authSchema.googleUnlink),
     authController.googleUnlink
   )

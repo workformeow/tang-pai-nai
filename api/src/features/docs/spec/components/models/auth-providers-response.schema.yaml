@@ -10,7 +10,7 @@ properties:
     example: '2026-01-01T00:00:00.000Z'
   data:
     type: object
-    required: [google, phone, botCheckSiteKey, testVersion]
+    required: [google, phone, botCheckSiteKey, testVersion, demo]
     properties:
       google:
         type: boolean
@@ -32,4 +32,10 @@ properties:
         description: >-
           Whether the app says it is a test version on the sign-in and privacy pages
           (`TEST_VERSION`, privacy spec rule 2)
+        example: true
+      demo:
+        type: boolean
+        description: >-
+          Whether ทดลองใช้ Demo is on (`DEMO_ENABLED`, demo rule 1): the sign-in page's link and
+          `POST /auth/demo`
         example: true

@@ -8,9 +8,18 @@ import {
   userIdentities,
   users,
 } from '@/core/database/schema/auth'
+import { books } from '@/core/database/schema/book'
+import { categories } from '@/core/database/schema/category'
+import { debtEntries, debts } from '@/core/database/schema/debt'
+import { events } from '@/core/database/schema/event'
+import { recurringRules } from '@/core/database/schema/recurring'
 import { walletInvites } from '@/core/database/schema/sharing'
+import { syncState } from '@/core/database/schema/sync'
+import { transactions } from '@/core/database/schema/transaction'
+import { transfers } from '@/core/database/schema/transfer'
 import { walletMembers, wallets } from '@/core/database/schema/wallet'
 import { wrapUnexpected } from '@/core/error'
+import { demoSeedSize } from './auth.demo-seed'
 import type {
   ChallengeChannel,
   ChallengePurpose,
@@ -20,6 +29,9 @@ import type {
   UserIdentity,
 } from './auth.entity'
 import type { AuthRepository } from './auth.repository'
+
+/** Transactions per insert of the demo seed (SQLite caps the values one statement binds). */
+const SEED_SLICE = 100
 
 type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0]
 type Executor = Database | Transaction
@@ -37,6 +49,7 @@ const toUser = (row: UserRow): User => ({
   phoneVerifiedAt: row.phoneVerifiedAt,
   status: row.status,
   timezone: row.timezone,
+  isDemo: row.isDemo,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
 })
@@ -441,6 +454,102 @@ export const createDrizzleAuthRepository = (db: Executor): AuthRepository => {
           .where(eq(users.id, userId))
           .returning({ id: users.id })
         return deleted.length > 0
+      }),
+
+    seedDemo: async (userId, seed, at) =>
+      run('seedDemo', async () => {
+        const count = demoSeedSize(seed)
+        // A block of `changeSeq`s, as a push takes them (one counter for the whole database).
+        const [state] = await db
+          .update(syncState)
+          .set({ lastSeq: sql`${syncState.lastSeq} + ${count}` })
+          .where(eq(syncState.id, 1))
+          .returning({ lastSeq: syncState.lastSeq })
+        let seq = state.lastSeq - count
+        const time = at.getTime()
+        const sync = (createdAt = time) => ({
+          userId,
+          createdAt,
+          updatedAt: createdAt,
+          deletedAt: null,
+          changeSeq: ++seq,
+          updatedBy: userId,
+        })
+        // Parents before the rows that point at them (the FKs).
+        await db.insert(books).values({ ...seed.book, ...sync() })
+        await db.insert(wallets).values(seed.wallets.map((row) => ({ ...row, ...sync() })))
+        // Top-level categories first: children point at them.
+        const ordered = [
+          ...seed.categories.filter((row) => row.parentId === null),
+          ...seed.categories.filter((row) => row.parentId !== null),
+        ]
+        await db
+          .insert(categories)
+          .values(ordered.map((row) => ({ ...row, mergedIntoId: null, ...sync() })))
+        await db
+          .insert(events)
+          .values(seed.events.map((row) => ({ ...row, isClosed: true, ...sync() })))
+        await db.insert(recurringRules).values(
+          seed.recurringRules.map((row) => ({
+            ...row,
+            kind: 'transaction',
+            toWalletId: null,
+            debtId: null,
+            excludeFromReport: false,
+            frequency: 'month',
+            interval: 1,
+            endOn: null,
+            endCount: null,
+            isPaused: false,
+            ...sync(),
+          }))
+        )
+        await db.insert(debts).values(
+          seed.debts.map((row) => ({
+            ...row,
+            direction: 'lent',
+            countAs: 'spent',
+            categoryId: null,
+            ...sync(),
+          }))
+        )
+        await db.insert(debtEntries).values(
+          seed.debtEntries.map(({ createdAt, ...row }) => ({
+            ...row,
+            recurringId: null,
+            ...sync(createdAt),
+          }))
+        )
+        await db.insert(transfers).values(
+          seed.transfers.map(({ createdAt, ...row }) => ({
+            ...row,
+            recurringId: null,
+            ...sync(createdAt),
+          }))
+        )
+        // In slices: one statement's bound values are capped.
+        for (let start = 0; start < seed.transactions.length; start += SEED_SLICE) {
+          const slice = seed.transactions.slice(start, start + SEED_SLICE)
+          await db.insert(transactions).values(
+            slice.map(({ createdAt, ...row }) => ({
+              ...row,
+              debtId: null,
+              addedBy: null,
+              ...sync(createdAt),
+            }))
+          )
+        }
+      }),
+
+    deleteExpiredDemos: async (createdBefore) =>
+      run('deleteExpiredDemos', async () => {
+        // Every table that references `users` cascades (privacy rule 8); a demo holds no address
+        // anyone could have invited or mailed, so nothing is left by email.
+        const deleted = await db
+          .delete(users)
+          .where(and(eq(users.isDemo, true), lt(users.createdAt, createdBefore)))
+          .returning({ id: users.id })
+        return deleted.length
       }),
 
     deleteExpired: async (before) =>

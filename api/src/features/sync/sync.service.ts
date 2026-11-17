@@ -55,6 +55,13 @@ interface Write {
   editor: boolean
   deviceId: string
   now: number
+  /** Demo rule 11: the caller's own live rows so far, when the caller is a demo. */
+  demo: DemoCap | null
+}
+
+/** A demo user's rows, counted once per push and raised by each row it creates. */
+interface DemoCap {
+  rows: number
 }
 
 /** The stored version was written by someone other than the owner (an editor). */
@@ -83,9 +90,11 @@ export const createSyncService = ({
   const push = async (userId: string, deviceId: string, ops: PushOp[]): Promise<OpResult[]> => {
     const results: OpResult[] = []
     const touched: Touched[] = []
+    const rows = await syncRepo.demoRowCount(userId)
+    const demo = rows === null ? null : { rows }
     for (const op of ops) {
       const pending: Touched[] = []
-      results.push(await pushOne(userId, deviceId, op, pending))
+      results.push(await pushOne(userId, deviceId, op, pending, demo))
       // Only once the op's transaction committed.
       touched.push(...pending)
     }
@@ -132,7 +141,8 @@ export const createSyncService = ({
     userId: string,
     deviceId: string,
     op: PushOp,
-    touched: Touched[]
+    touched: Touched[],
+    demo: DemoCap | null
   ): Promise<OpResult> => {
     const handler = registry.get(op.table)
     if (!handler) {
@@ -150,7 +160,7 @@ export const createSyncService = ({
           ? stored.result
           : rejected(op.opId, SyncRejectCode.ID_TAKEN, SYNC_MESSAGE.ID_TAKEN)
       }
-      const result = await decide(tx, userId, deviceId, op, pushHandler, touched)
+      const result = await decide(tx, userId, deviceId, op, pushHandler, touched, demo)
       await tx.saveOp({ opId: op.opId, userId, deviceId, appliedAt: clock(), result })
       return result
     })
@@ -162,7 +172,8 @@ export const createSyncService = ({
     deviceId: string,
     op: PushOp,
     pushHandler: PushHandler,
-    touched: Touched[]
+    touched: Touched[],
+    demo: DemoCap | null
   ): Promise<OpResult> => {
     const now = clock()
     const existing = await tx.find(op.table, op.row.id)
@@ -184,12 +195,13 @@ export const createSyncService = ({
       editor: acting.editor,
       deviceId,
       now,
+      demo,
     }
 
     const result =
       op.op === 'delete'
         ? await remove(write, op, existing, conflict)
-        : await upsert(write, op, existing, conflict, pushHandler)
+        : await cappedUpsert(write, op, existing, conflict, pushHandler)
     const wrote = touchedBy(result, existing, acting.ownerId, pushHandler.shared)
     if (wrote) {
       touched.push(wrote)
@@ -302,6 +314,25 @@ export const createSyncService = ({
       await recordLoss(write, op.table, existing, row.changeSeq)
     }
     return { opId: op.opId, status: 'applied', row, changeSeq: row.changeSeq }
+  }
+
+  /** Demo rule 11: a demo creates rows up to its cap; edits and deletes still go through. */
+  const cappedUpsert = async (
+    write: Write,
+    op: PushOp,
+    existing: Stored | null,
+    conflict: boolean,
+    pushHandler: PushHandler
+  ): Promise<OpResult> => {
+    const demo = existing ? null : write.demo
+    if (demo && demo.rows >= SYNC_LIMITS.DEMO_ROWS) {
+      return rejected(op.opId, SyncRejectCode.DEMO_LIMIT, SYNC_MESSAGE.DEMO_LIMIT)
+    }
+    const result = await upsert(write, op, existing, conflict, pushHandler)
+    if (demo && result.status === 'applied') {
+      demo.rows++
+    }
+    return result
   }
 
   /** Fields only the owner or the server sets (sharing rule 12). */

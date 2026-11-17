@@ -22,6 +22,8 @@ export const users = sqliteTable('users', {
     .notNull()
     .default('active'),
   timezone: text().notNull().default('Asia/Bangkok'),
+  /** A demo account (docs/features/demo.md): seeded data, deleted 24 hours after `createdAt`. */
+  isDemo: integer({ mode: 'boolean' }).notNull().default(false),
   ...timestamps,
 })
 

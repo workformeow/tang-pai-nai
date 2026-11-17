@@ -47,6 +47,8 @@ describe('ReportCategoryPage', () => {
     expect(title()).toBe('food')
     // The page is one currency, named in the card's corner (currency rule 8).
     expect(element().querySelector('section app-currency-flag')).not.toBeNull()
+    // Its name under the icon, as a sub-category's path (owner, 2026-11-17).
+    expect(element().querySelector('section > span.mt-1')?.textContent.trim()).toBe('food')
     expect(text()).toContain('THB')
     expect(text()).toContain('-1,300.00')
     expect(text()).toContain('89.7% ของรายจ่าย · ต.ค. 2026')

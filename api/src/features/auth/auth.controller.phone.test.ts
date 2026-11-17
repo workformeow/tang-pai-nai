@@ -94,6 +94,7 @@ describe('GET /auth/providers', () => {
         phone: phoneEnabled,
         botCheckSiteKey: null,
         testVersion: false,
+        demo: false,
       })
     }
   })

@@ -13,4 +13,7 @@ const sharingService = createSharingService({
   config: { webOrigin: env.WEB_ORIGIN, emailDailyLimit: env.EMAIL_DAILY_LIMIT },
 })
 
-export const sharingRouter = createSharingRouter(createSharingController(sharingService))
+export const sharingRouter = createSharingRouter(
+  createSharingController(sharingService),
+  async (userId) => (await sharingRepo.findUser(userId))?.isDemo === true
+)

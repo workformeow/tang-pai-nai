@@ -1,4 +1,4 @@
-import { DOCUMENT, inject, Service } from '@angular/core'
+import { DOCUMENT, effect, inject, Service } from '@angular/core'
 import { ApiClient, isUnreachable, toApiError } from '@/core/api'
 import { BootSplash } from '@/core/boot'
 import { skipAuthRefresh } from './auth.context'
@@ -21,6 +21,7 @@ const NO_PROVIDERS: AuthProviders = {
   phone: false,
   botCheckSiteKey: null,
   testVersion: false,
+  demo: false,
 }
 
 /** Rule 32: the bot check's token travels in the body, and only when there is one. */
@@ -32,6 +33,14 @@ const withBotToken = <T extends object>(body: T, botToken: string | undefined) =
  * sent, start-up never refreshes the session it was meant to end.
  */
 const PENDING_SIGN_OUT = 'tpn-sign-out-pending'
+
+/**
+ * This device holds a demo (docs/features/demo.md rule 14): kept outside the session, because once
+ * the demo is deleted the server can only say "expired", and a demo's data must go then.
+ */
+const DEMO_DEVICE = 'tpn-demo'
+/** A demo ran out while away: the sign-in page says so once. */
+const DEMO_EXPIRED = 'tpn-demo-expired'
 
 /** Which refusals of `/auth/refresh` end a session for good (offline-sync rule 7). */
 const sessionEnd = (code: string | undefined): SessionEnd | null => {
@@ -74,6 +83,48 @@ export class AuthService {
   private refreshing: Promise<void> | null = null
   private restoring: Promise<AuthStatus> | null = null
   private providersRequest: Promise<AuthProviders> | null = null
+
+  constructor() {
+    // Whoever signs in, the device remembers whether it is a demo (rule 14).
+    effect(() => {
+      const user = this.authStore.user()
+      if (user?.isDemo) {
+        this.storage?.setItem(DEMO_DEVICE, '1')
+      } else if (user) {
+        this.storage?.removeItem(DEMO_DEVICE)
+      }
+    })
+  }
+
+  /**
+   * Demo rule 4: a demo account of its own, seeded on the server, signed in like any sign-in.
+   * `lang` is the language of its book and categories.
+   */
+  async startDemo(lang: string, botToken?: string): Promise<void> {
+    const response = await this.api.post<AuthSession>(
+      '/auth/demo',
+      withBotToken({ lang }, botToken),
+      { context: skipAuthRefresh() }
+    )
+    if (response.data) {
+      this.storage?.removeItem(DEMO_EXPIRED)
+      this.authStore.setSession(response.data)
+    }
+  }
+
+  /** Demo rule 12: จบ Demo deletes the account at once; the caller wipes this device. */
+  async endDemo(): Promise<void> {
+    await this.api.delete('/auth/demo')
+    this.storage?.removeItem(DEMO_DEVICE)
+    this.authStore.clear()
+  }
+
+  /** Demo rule 14: whether the demo this device held ran out (answered once, then forgotten). */
+  takeDemoExpired(): boolean {
+    const expired = this.storage?.getItem(DEMO_EXPIRED) === '1'
+    this.storage?.removeItem(DEMO_EXPIRED)
+    return expired
+  }
 
   /**
    * Which extra ways to sign in are on (`GET /auth/providers`), asked once per app start. When
@@ -377,6 +428,11 @@ export class AuthService {
         if (!this.authStore.isSignedIn()) {
           this.authStore.status.set('unreachable')
         }
+      } else if (this.storage?.getItem(DEMO_DEVICE) === '1') {
+        // Rule 14: the demo is gone (deleted after 24 hours): its data goes like a revoked one's.
+        this.storage.removeItem(DEMO_DEVICE)
+        this.storage.setItem(DEMO_EXPIRED, '1')
+        this.authStore.clear('revoked')
       } else {
         this.authStore.clear(sessionEnd(toApiError(error).code))
       }

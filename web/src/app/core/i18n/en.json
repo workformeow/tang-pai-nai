@@ -35,7 +35,8 @@
     "export": "Export CSV",
     "sharing": "Share wallets",
     "privacy": "Privacy notice",
-    "deleteAccount": "Delete account"
+    "deleteAccount": "Delete account",
+    "demo": "Try the demo"
   },
   "status": {
     "online": "Online",
@@ -1504,7 +1505,8 @@
     "who2": "We never sell or pass on your data. No ads, no usage tracking.",
     "delete1": "Settings › Security › Delete account deletes everything at once, including this device’s copy.",
     "delete2": "Providers' backups are deleted on their own when they expire.",
-    "updated": "Last updated November 2026"
+    "updated": "Last updated November 2026",
+    "delete3": "The demo keeps no personal data (no email or phone), and a demo account is deleted with all its data within 24 hours."
   },
   "deleteAccount": {
     "heading": "Delete the account for good",
@@ -1520,5 +1522,43 @@
     "emailMismatch": "The email doesn’t match this account",
     "emailRequired": "Type the account’s email",
     "failed": "Couldn’t delete the account. Try again"
+  },
+  "demo": {
+    "signInButton": "Try the demo",
+    "signInHint": "No email needed: see the app with sample data",
+    "heading": "Try ตังค์ไปไหน",
+    "intro": "ตังค์ไปไหน is a personal income and expense tracker. It works offline and syncs with the server automatically when you’re back online.",
+    "introDemo": "The demo account comes with sample data, without signing up by email.",
+    "holdsHeading": "What the demo holds",
+    "holdsRows": "About 3 months of income and expenses",
+    "holdsWallets": "Cash, a bank account, a credit card, savings and a yen wallet",
+    "holdsMore": "Recurring items, a debt and a trip to Japan",
+    "deletedIn24h": "The data is deleted when you end the demo, or after 24 hours",
+    "offHeading": "Turned off in the demo",
+    "offList": "Email, password, Google, phone, sharing and deleting the account",
+    "start": "Start the demo",
+    "starting": "Making the demo",
+    "startFailed": "Couldn’t start the demo. Try again.",
+    "disabled": "The demo is turned off right now",
+    "notAllowed": "Not available in the demo",
+    "expired": "The demo has ended and its data is deleted",
+    "again": "Start a new demo",
+    "banner": "Demo mode · data deleted in {{count}} h",
+    "loadingHeading": "Getting the demo ready",
+    "stepAccount": "Make the demo account",
+    "stepDevice": "Prepare this device",
+    "stepMaster": "Download wallets and categories",
+    "stepRows": "Download {{count}} items",
+    "stepRowsWaiting": "Download items",
+    "stepDone": "Done",
+    "stepWaiting": "Waiting",
+    "loadFailed": "Couldn’t load the data",
+    "retry": "Try again",
+    "end": "End the demo",
+    "endConfirm": "The demo’s data is deleted right away",
+    "ending": "Ending the demo",
+    "endFailed": "Couldn’t end the demo. Try again.",
+    "profileLine": "A demo account, no email",
+    "signInDivider": "Just looking?"
   }
 }

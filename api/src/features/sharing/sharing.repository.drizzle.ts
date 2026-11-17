@@ -30,6 +30,7 @@ const toUser = (row: UserRow): UserRef => ({
   email: row.email,
   displayName: row.displayName,
   emailVerified: row.emailVerifiedAt !== null,
+  isDemo: row.isDemo,
 })
 
 const toInvite = (row: InviteRow): Invite => ({ ...row, walletIds: [...row.walletIds] })

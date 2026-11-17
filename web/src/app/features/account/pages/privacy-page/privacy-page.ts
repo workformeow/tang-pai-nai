@@ -12,7 +12,7 @@ const SECTIONS: readonly NoticeSection[] = [
   { key: 'kept', lines: ['privacy.kept1', 'privacy.kept2', 'privacy.kept3'] },
   { key: 'where', lines: ['privacy.where1', 'privacy.where2'] },
   { key: 'who', lines: ['privacy.who1', 'privacy.who2'] },
-  { key: 'delete', lines: ['privacy.delete1', 'privacy.delete2'] },
+  { key: 'delete', lines: ['privacy.delete1', 'privacy.delete2', 'privacy.delete3'] },
 ]
 
 /**

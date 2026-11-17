@@ -40,6 +40,7 @@ const disabledUser: User = {
   phoneVerifiedAt: null,
   status: 'disabled',
   timezone: 'Asia/Bangkok',
+  isDemo: false,
   createdAt: START,
   updatedAt: START,
 }
@@ -571,6 +572,7 @@ describe('cleanup', () => {
       challenges: 0,
       sessions: 0,
       rateLimitBuckets: 0,
+      demoUsers: 0,
     })
     ctx.advance(AUTH_LIMITS.CHALLENGE_TTL_MS + 1)
     const removed = await ctx.service.cleanup()
