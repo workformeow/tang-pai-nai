@@ -33,6 +33,8 @@ export interface SyncRepository {
   walletAccess(userId: string, walletId: string): Promise<WalletAccess | null>
   /** The wallet's book when the wallet is shared with someone (live-sync rule 6), else null. */
   sharedBookOf(walletId: string): Promise<string | null>
+  /** Demo rule 11: the live rows a demo user owns; null for any other user. */
+  demoRowCount(userId: string): Promise<number | null>
 
   // Per-table work, through the table's registered handler.
   pull(table: string, userId: string, since: number, limit: number): Promise<SyncRow[]>

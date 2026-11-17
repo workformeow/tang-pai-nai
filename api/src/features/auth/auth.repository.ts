@@ -1,3 +1,4 @@
+import type { DemoSeed } from './auth.demo-seed'
 import type {
   ChallengeChannel,
   ChallengePurpose,
@@ -103,6 +104,14 @@ export interface AuthRepository {
    */
   deleteUser(userId: string, email: string): Promise<boolean>
 
+  /**
+   * Demo rule 4: writes the demo's seed as the user's own synced rows, each with a `changeSeq` of
+   * its own, so the first pull brings them like any device's.
+   */
+  seedDemo(userId: string, seed: DemoSeed, at: Date): Promise<void>
+  /** Demo rule 13: deletes demo users created before `createdBefore`; returns how many. */
+  deleteExpiredDemos(createdBefore: Date): Promise<number>
+
   /** Deletes challenges, sessions and buckets that ended before `before`. */
-  deleteExpired(before: Date): Promise<CleanupResult>
+  deleteExpired(before: Date): Promise<Omit<CleanupResult, 'demoUsers'>>
 }

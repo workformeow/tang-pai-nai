@@ -30,6 +30,8 @@ export type EnvConfig = {
   OTP_PEPPER: string
   SIGNUP_ENABLED: boolean
   TEST_VERSION: boolean
+  /** Demo rule 1: the ทดลองใช้ Demo button and `POST /auth/demo` (staging, production). */
+  DEMO_ENABLED: boolean
   EMAIL_DAILY_LIMIT: number
   SMS_DAILY_LIMIT: number
   PASSWORD_BREACH_CHECK: PasswordBreachCheck

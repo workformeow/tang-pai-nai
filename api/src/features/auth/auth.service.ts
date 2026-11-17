@@ -36,6 +36,7 @@ import { ERRORS, LOG } from '@/shared/constants'
 import { NotificationChannel } from '@/shared/types'
 import { maskPhone, phoneLastDigits } from '@/shared/utils'
 import { AUTH_LIMITS, AUTH_MESSAGE, AuthErrorCode, PASSWORD_POLICY } from './auth.const'
+import { buildDemoSeed, localDay } from './auth.demo-seed'
 import {
   buildAccountDeletedMail,
   buildCredentialChangeMail,
@@ -43,6 +44,7 @@ import {
   buildReauthMail,
   buildSignInMail,
 } from './auth.mail'
+import type { DemoLanguage } from './auth.demo-seed'
 import type {
   AccountDeletion,
   Caller,
@@ -76,6 +78,8 @@ export interface AuthServiceConfig {
   smsDailyLimit: number
   /** Privacy rule 2: the app is a test version (`TEST_VERSION`, staging). */
   testVersion?: boolean
+  /** Demo rule 1: `DEMO_ENABLED`; off by default. */
+  demoEnabled?: boolean
 }
 
 /** Rule 32: the bot check; absent when `TURNSTILE_SITE_KEY` / `_SECRET_KEY` aren't set. */
@@ -509,7 +513,8 @@ export const createAuthService = ({
     await countDailyEmail(at, 'startEmailSignIn')
 
     const user = await authRepo.findUserByEmail(email)
-    const shouldSend = user !== null || config.signupEnabled
+    // A demo's placeholder address never gets mail (demo rule 9).
+    const shouldSend = user ? !user.isDemo : config.signupEnabled
 
     const code = randomCode(L.CODE_DIGITS)
     const linkToken = randomToken()
@@ -1591,15 +1596,77 @@ export const createAuthService = ({
     )
   }
 
-  /** Rule 20: drop rows that ended more than 7 days ago. */
-  const cleanup = async (): Promise<CleanupResult> =>
-    authRepo.deleteExpired(new Date(now().getTime() - L.CLEANUP_AFTER_MS))
+  /**
+   * Demo rules 4–7: a demo user, its book and seed, and a session, all in one transaction (a
+   * failure leaves nothing). The bot check (rule 32) runs in front of it, like a sign-in.
+   */
+  const demoDisabled = () =>
+    new NotFoundError('Demo').withCode(AuthErrorCode.DEMO_DISABLED).withOperation('startDemo')
+
+  const startDemo = async (lang: DemoLanguage, client: ClientContext): Promise<SignInResult> => {
+    if (!config.demoEnabled) {
+      throw demoDisabled()
+    }
+    const at = now()
+    await enforceLimits(
+      [{ key: `demo:ip:${ipKey(client.ip)}`, ...L.DEMOS_PER_IP }],
+      at,
+      'startDemo'
+    )
+    const outcome = await authRepo.transaction(async (repo) => {
+      const user = await repo.createUser({
+        // `.invalid` is reserved (RFC 2606): no mail can ever reach it.
+        email: `demo-${uuidv7()}@demo.invalid`,
+        displayName:
+          lang === 'en' ? AUTH_MESSAGE.DEMO_DISPLAY_NAME.en : AUTH_MESSAGE.DEMO_DISPLAY_NAME.th,
+        isDemo: true,
+      })
+      const seed = buildDemoSeed({
+        lang,
+        today: localDay(at, user.timezone),
+        now: at.getTime(),
+      })
+      await repo.seedDemo(user.id, seed, at)
+      const { familyId, refresh } = await startSession(repo, user.id, client, at)
+      return { user, familyId, refresh }
+    })
+    logger.info(LOG.AUTH.demoStarted, {
+      userId: outcome.user.id,
+      sessionFamilyId: outcome.familyId,
+    })
+    return signedIn(await profileOf(outcome.user), outcome.familyId, outcome.refresh)
+  }
+
+  /** Demo rule 12: จบ Demo deletes the caller at once (a demo only; no mail, no recent auth). */
+  const endDemo = async (caller: Caller): Promise<void> => {
+    const { user } = await activeCaller(caller, now(), 'endDemo')
+    if (!user.isDemo) {
+      throw new ForbiddenError(AUTH_MESSAGE.NOT_DEMO)
+        .withCode(AuthErrorCode.NOT_DEMO)
+        .withOperation('endDemo')
+    }
+    await authRepo.transaction(async (repo) => repo.deleteUser(user.id, user.email))
+    logger.info(LOG.AUTH.demoEnded, { userId: user.id })
+  }
+
+  /** Demo rule 9: the lookup `refuseDemo` runs in front of the routes a demo can't use. */
+  const isDemo = async (userId: string): Promise<boolean> =>
+    (await authRepo.findUserById(userId))?.isDemo === true
+
+  /** Rule 20: drop rows that ended more than 7 days ago, and demos past 24 hours (demo rule 13). */
+  const cleanup = async (): Promise<CleanupResult> => {
+    const at = now().getTime()
+    const ended = await authRepo.deleteExpired(new Date(at - L.CLEANUP_AFTER_MS))
+    const demoUsers = await authRepo.deleteExpiredDemos(new Date(at - L.DEMO_LIFETIME_MS))
+    return { ...ended, demoUsers }
+  }
 
   return {
     googleEnabled: google !== null,
     phoneEnabled: config.phoneEnabled,
     botCheckSiteKey: botCheck?.siteKey ?? null,
     testVersion: config.testVersion ?? false,
+    demoEnabled: config.demoEnabled ?? false,
     checkHuman,
     startGoogleSignIn,
     finishGoogleSignIn,
@@ -1628,6 +1695,10 @@ export const createAuthService = ({
     updateMe,
     deletionSummary,
     deleteAccount,
+    demoDisabled,
+    startDemo,
+    endDemo,
+    isDemo,
     cleanup,
   }
 }

@@ -1,5 +1,6 @@
 import { AppError, ErrorLogger } from '@/core/error'
 import { logger } from '@/core/logger'
+import { refuseDemo } from '@/core/middleware'
 import { ERRORS, ErrorSeverity, HttpStatus, LOG, SUCCESS } from '@/shared/constants'
 import { createResponse } from '@/shared/utils'
 import {
@@ -20,6 +21,7 @@ import type {
 } from './auth.entity'
 import type {
   AccountDeleteInput,
+  DemoStartInput,
   EmailStartInput,
   EmailVerifyInput,
   GoogleCallbackQuery,
@@ -94,6 +96,8 @@ const toUserData = (user: UserProfile): AuthUserData => ({
     linkedAt: identity.linkedAt.toISOString(),
   })),
   phone: user.phone,
+  isDemo: user.isDemo,
+  createdAt: user.createdAt.toISOString(),
 })
 
 const toDeviceSessionData = (session: SessionSummary): AuthDeviceSessionData => ({
@@ -329,6 +333,7 @@ export const createAuthController = (authService: AuthService, config: AuthContr
       phone: authService.phoneEnabled,
       botCheckSiteKey: authService.botCheckSiteKey,
       testVersion: authService.testVersion,
+      demo: authService.demoEnabled,
     }
     res.status(HttpStatus.OK).json(createResponse(AUTH_MESSAGE.PROVIDERS, data))
   }
@@ -646,10 +651,45 @@ export const createAuthController = (authService: AuthService, config: AuthContr
   }
 
   /** Rule 20, daily from Vercel Cron (`requireCronSecret` in front). */
+  /** Demo rule 4: answers like a sign-in (the refresh cookie + `{ accessToken, user }`). */
+  const demoStart = async (
+    req: Request<unknown, unknown, DemoStartInput>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const result = await authService.startDemo(req.body.lang, clientOf(req))
+      sendSession(res, AUTH_MESSAGE.DEMO_STARTED, result)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /** Demo rule 12: the account is gone, so the refresh cookie goes too. */
+  const demoEnd = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await authService.endDemo(callerOf(req))
+      res.clearCookie(REFRESH_COOKIE, COOKIE_OPTIONS)
+      res.status(HttpStatus.OK).json(createResponse(AUTH_MESSAGE.DEMO_ENDED))
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /** Demo rule 1: `404` while `DEMO_ENABLED` is off, before the bot check looks at anything. */
+  const demoOn = (_req: Request, _res: Response, next: NextFunction): void => {
+    next(authService.demoEnabled ? undefined : authService.demoDisabled())
+  }
+
+  /** Demo rule 9: in front of the routes a demo can't use. */
+  const demoGate = refuseDemo(authService.isDemo)
+
   const cleanup = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const data: CleanupResult = await authService.cleanup()
-      logger.info(LOG.AUTH.cleanedUp(data.challenges, data.sessions, data.rateLimitBuckets))
+      logger.info(
+        LOG.AUTH.cleanedUp(data.challenges, data.sessions, data.rateLimitBuckets, data.demoUsers)
+      )
       const response = createResponse(SUCCESS.OK, data)
       res.status(HttpStatus.OK).json(response)
     } catch (error) {
@@ -658,6 +698,10 @@ export const createAuthController = (authService: AuthService, config: AuthContr
   }
 
   return {
+    demoStart,
+    demoEnd,
+    demoGate,
+    demoOn,
     emailStart,
     emailVerify,
     passwordSignIn,

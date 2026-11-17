@@ -1,4 +1,5 @@
 import { v7 as uuidv7 } from 'uuid'
+import type { DemoSeed } from './auth.demo-seed'
 import type { OtpChallenge, RateLimitHit, Session, User, UserIdentity } from './auth.entity'
 import type { AuthRepository } from './auth.repository'
 
@@ -10,6 +11,8 @@ export interface MemoryAuthState {
   challenges: OtpChallenge[]
   sessions: Session[]
   buckets: Map<string, RateLimitHit>
+  /** userId → the demo seed written for them (demo rule 4). */
+  demoSeeds: Map<string, DemoSeed>
 }
 
 const emptyState = (): MemoryAuthState => ({
@@ -19,6 +22,7 @@ const emptyState = (): MemoryAuthState => ({
   challenges: [],
   sessions: [],
   buckets: new Map(),
+  demoSeeds: new Map(),
 })
 
 const cloneState = (state: MemoryAuthState): MemoryAuthState => structuredClone(state)
@@ -48,7 +52,7 @@ export const createMemoryAuthRepository = (
     findUserById: async (id) => state.users.find((user) => user.id === id) ?? null,
     findUserByEmail: async (email) => state.users.find((user) => user.email === email) ?? null,
 
-    createUser: async ({ email, displayName, avatarUrl = null }) => {
+    createUser: async ({ email, displayName, avatarUrl = null, isDemo = false }) => {
       const now = new Date()
       const user: User = {
         id: uuidv7(),
@@ -60,6 +64,7 @@ export const createMemoryAuthRepository = (
         phoneVerifiedAt: null,
         status: 'active',
         timezone: 'Asia/Bangkok',
+        isDemo,
         createdAt: now,
         updatedAt: now,
       }
@@ -314,6 +319,7 @@ export const createMemoryAuthRepository = (
     countSharedPeople: async () => 0,
 
     deleteUser: async (userId, email) => {
+      state.demoSeeds.delete(userId)
       const before = state.users.length
       state.users = state.users.filter((user) => user.id !== userId)
       state.passwords.delete(userId)
@@ -325,6 +331,20 @@ export const createMemoryAuthRepository = (
           !(challenge.channel === 'email' && challenge.destination === email)
       )
       return state.users.length < before
+    },
+
+    seedDemo: async (userId, seed) => {
+      state.demoSeeds.set(userId, seed)
+    },
+
+    deleteExpiredDemos: async (createdBefore) => {
+      const expired = state.users.filter(
+        (user) => user.isDemo && user.createdAt.getTime() < createdBefore.getTime()
+      )
+      for (const user of expired) {
+        await repo.deleteUser(user.id, user.email)
+      }
+      return expired.length
     },
 
     deleteExpired: async (before) => {

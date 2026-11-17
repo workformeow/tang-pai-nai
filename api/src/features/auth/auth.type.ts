@@ -11,6 +11,10 @@ export interface AuthUserData {
   identities: AuthIdentityData[]
   /** The verified mobile number in E.164 (rule 25), or `null`. */
   phone: string | null
+  /** A demo account (docs/features/demo.md): the banner, the turned-off rows, จบ Demo. */
+  isDemo: boolean
+  /** When the account was made (ISO): a demo's hours left count from it (demo rule 10). */
+  createdAt: string
 }
 
 export interface AuthIdentityData {
@@ -29,6 +33,8 @@ export interface AuthProvidersData {
   botCheckSiteKey: string | null
   /** Privacy rule 2: the app shows it is a test version (`TEST_VERSION`). */
   testVersion: boolean
+  /** Demo rule 1: the ทดลองใช้ Demo button and `/auth/demo` (`DEMO_ENABLED`). */
+  demo: boolean
 }
 
 /** `data` of sign-in and refresh. The refresh token only travels in the cookie. */

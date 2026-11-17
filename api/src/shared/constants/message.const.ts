@@ -47,12 +47,14 @@ export const LOG = {
     credentialMailSkipped: (reason: string) =>
       `[Auth] ⚠️ Credential change mail not sent: ${reason}`,
     accountDeleted: '[Auth] Account deleted',
+    demoStarted: '[Auth] Demo started',
+    demoEnded: '[Auth] Demo ended',
     breachCheckUnavailable: '[Auth] ⚠️ Breached-password check unavailable: allowed (fail open)',
     botCheckUnavailable: '[Auth] ⚠️ Bot check unavailable: allowed (fail open)',
     botCheckFailed: '[Auth] Bot check failed',
     emailDailyLimit: (limit: number) => `[Auth] ⚠️ Daily email cap (${limit}) reached`,
-    cleanedUp: (challenges: number, sessions: number, buckets: number) =>
-      `[Auth] Cleanup removed ${challenges} challenges, ${sessions} sessions, ${buckets} rate-limit buckets`,
+    cleanedUp: (challenges: number, sessions: number, buckets: number, demoUsers: number) =>
+      `[Auth] Cleanup removed ${challenges} challenges, ${sessions} sessions, ${buckets} rate-limit buckets, ${demoUsers} demo users`,
   },
   LIVE: {
     publishFailed: (provider: string) => `[Live] ⚠️ Poke via ${provider} not sent (push kept)`,
@@ -89,6 +91,7 @@ export const ERRORS = {
   BAD_GATEWAY: 'Bad gateway',
   UNSPECIFIED_FUNCTION: 'Unspecified function',
   INVALID_JSON_BODY: 'Invalid JSON in request body',
+  DEMO_NOT_ALLOWED: 'Not available in the demo',
 
   notFound: (item: string) => `${item} not found`,
   alreadyExists: (item: string) => `${item} already exists`,
