@@ -99,10 +99,11 @@ merging.
 | 22  | Privacy & account deletion     | ✅  | ✅  | a privacy notice open without sign-in (`/auth/privacy`, Account › เกี่ยวกับแอป), "test version" from `TEST_VERSION`, "signing in accepts the notice"; delete the account at once (recent auth + typed email + button). [spec](docs/features/privacy.md) |
 | 23  | Currency picker                | ✅  | ✅  | 25 travel currencies, all active (migration 0022; LAK / TWD to 0 digits); a flag grid per continent in the wallet sheet (2B); per-currency lists in wallet order; THB-only quick amounts; Reports one currency at a time with the tiles as the switch (B). [spec](docs/features/currency.md) |
 | 24  | Currency overview              | —   | ✅  | ภาพรวม: every currency of the Reports period side by side over every counted wallet (P1 rows: income · expense, net, wallets, end balance), from the Reports ⋮ (E1) with more than one currency; the Reports period, "ดูตาม" top right. Web only. [spec](docs/features/currency-overview.md) |
+| 25  | Demo                           | ⬜  | ⬜  | ทดลองใช้ Demo for job applications: sign-in button → `/auth/demo` (intro, Turnstile, one button) → a demo user of its own with ~3 months of seeded data, pulled behind a checklist loader, straight to Transactions; no sharing; email / password / Google / phone / invites / delete shown disabled; จบ Demo deletes at once, the cron after 24 h; `DEMO_ENABLED` on staging and production. [spec](docs/features/demo.md) |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
 
-Order of work from here (owner, 2026-11): **#22 (done) → #20 (done) → #21 (done) → #23 (done) → #24 (done)**; then Playwright end-to-end tests (Backlog) once the wanted features are done. The number is a feature's id, not
+Order of work from here (owner, 2026-11): **#22 (done) → #20 (done) → #21 (done) → #23 (done) → #24 (done) → #25**; then Playwright end-to-end tests (Backlog) once the wanted features are done. The number is a feature's id, not
 its place in the queue, so numbers are never reused or shuffled. Each row gets its `docs/features/<feature>.md` before work starts. Rows 0–8 (with 4a) are the MVP.
 After #8 the app can replace Money Lover for daily use. Until #17, everything runs **locally only** (see locked
 decision "Local-first").
