@@ -45,10 +45,12 @@ in the same PR when a behavior change is intended. Put `<name>.spec.ts` beside t
 
 ```
 src/app/
-  core/        # App-wide singletons: API client, auth/session, interceptors, guards, config
-  layout/      # App shell: bottom tab bar, page header, the app-wide sheets
-    <name>/      # one folder per component (+ its form type / helpers used by it alone)
-    book-routes.ts  index.ts   # helpers shared by several layout components, the barrel
+  core/        # App-wide singletons: services, state, API client, auth/session, guards. No UI.
+  layout/      # The app shell: header, bottom tab bar, banners, the first-run steps
+    <name>/      # one folder per component (+ files only it uses)
+    book-routes.ts  index.ts   # a helper several layout components use, the barrel
+  sheets/      # The app-wide sheets, opened from any screen (transaction, transfer, wallet, ...)
+    <name>/      # one folder per sheet or sheet part (+ its form type / helpers)
   features/    # One folder per feature (transactions, wallets, categories, budgets, ...)
   shared/
     ui/                # spartan helm components: GENERATED, don't edit (see §3 UI)
@@ -60,42 +62,59 @@ src/app/
   app.routes.ts  # Lazy-loads each feature's routes
 ```
 
-Dependency direction (same as the API):
+Each top-level folder has one meaning (owner's rule, 2026-11):
+
+| Folder      | What goes there                                                        | Imports              |
+| ----------- | ---------------------------------------------------------------------- | -------------------- |
+| `features/` | routed pages and the parts only they use                               | core, shared         |
+| `layout/`   | the shell around every page: header, tab bar, banners, first-run steps | sheets, core, shared |
+| `sheets/`   | sheets any screen can open through its service's `open()`              | core, shared         |
+| `core/`     | services and state, no components                                      | shared               |
+| `shared/`   | plain UI (data in through `input()`) and utils                         | nothing above        |
 
 ```
 features  ->  core  ->  shared
-features  ->  shared
-layout    ->  core, shared
+layout  ->  sheets  ->  core  ->  shared
 ```
 
+- ESLint enforces the direction (`layerConfigs` in `eslint.config.mjs`); spec files are exempt.
 - Features never import other features' internals. Go through `@/features/<name>` (its `index.ts`),
   and prefer lifting shared logic into `core/` or `shared/`. This is enforced by ESLint.
-- `shared/` imports nothing from `core/`, `layout/` or `features/`.
+- A sheet only one feature opens stays in that feature's `components/` (`debt-sheet`,
+  `event-sheet`); one opened from several screens goes to `sheets/`.
 
-Where a component's files go (owner's rule, 2026-11):
+**How a sheet opens.** Its domain service in `core/` holds a typed state signal and an `open()`
+(`TransactionService.sheet` + `open(state)`), and `AppShell` mounts the sheet once with
+`@defer (when ….sheet() !== null)`. A sheet can't sit in `shared/` (it needs `core/`) or in `core/`
+(no UI there). We chose this over one generic `SheetService.open(Component, data)` + host on
+purpose: "Go to definition" on `open()` leads straight to the sheet, the state is typed per sheet,
+and the app has few sheets, so a registry would add a layer to read for little gain.
+
+Where a component's files go:
 
 | Place                        | Shape                                                          |
 | ---------------------------- | -------------------------------------------------------------- |
-| `layout/`                    | **one folder per component**: `layout/<name>/<name>.ts`        |
+| `layout/`, `sheets/`         | **one folder per component**: `<root>/<name>/<name>.ts`        |
 | `features/<f>/pages/`        | one folder per page: `pages/<name>/<name>.ts` (+ its children) |
 | `features/<f>/components/`   | flat files in the folder                                       |
 | `shared/components/<group>/` | flat files in the group's folder                               |
 
-- In `layout/`, a file only one component uses (its `<x>-form.type.ts`, a helper such as
-  `category-move-rows.ts`) lives in that component's folder. A helper several layout components
-  use stays at the `layout/` root (`book-routes.ts`).
-- Layout files import each other by `@/layout/<name>/<name>` (`../` is banned). Outside `layout/`,
-  only the barrel `@/layout` is used.
-- Lint enforces the folder (`local/component-folder` in `eslint.config.mjs`): a component directly
-  in `layout/` or `pages/`, or in a `layout/` folder of another name, is an error. Create one with
-  `npx ng g c layout/<name>` or `npx ng g c features/<f>/pages/<name>`, which makes the folder.
+- In `layout/` and `sheets/`, a file only one component uses (its `<x>-form.type.ts`, a helper
+  such as `category-move-rows.ts`) lives in that component's folder. A helper several components
+  use stays at the root (`layout/book-routes.ts`).
+- Files there import each other by `@/layout/<name>/<name>` or `@/sheets/<name>/<name>` (`../` is
+  banned). Outside `layout/`, only the barrel `@/layout` is used.
+- Lint enforces the folder (`local/component-folder`): a component directly in `layout/`,
+  `sheets/` or `pages/`, or in a folder of another name, is an error. Create one with
+  `npx ng g c sheets/<name>` (or `layout/<name>`, `features/<f>/pages/<name>`), which makes the
+  folder.
 
 ### Shared components
 
 Owner's rule (after #16.1): **a component used in more than one place lives in
 `shared/components`**, never as a copy in each feature.
 
-- "More than one place" = two features, or a feature and `layout/`. A component used only
+- "More than one place" = two features, or a feature and `layout/` or `sheets/`. A component used only
   inside one feature stays in that feature's `components/`.
 - Put it in `shared/components/<group>/` with **its own barrel** (`money-summary`, `period`,
   `sheet`, `date-row`, `wallet-pick`, `currency-flag`). A module exported from a barrel the shell imports lands
@@ -253,7 +272,7 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
 - **Rejected ops**: the local row already went back to the server's version; the op keeps the
   refused values. A refused book create carries its refused child rows
   (`BookService.rejectedItems()`, read by the sheet and the pill): fixing the book re-sends
-  them in the same write, discarding it drops them (`discardRefused`). "Fix" opens the table's form via `FIX_ROUTES` in `layout/sync-sheet` with
+  them in the same write, discarding it drops them (`discardRefused`). "Fix" opens the table's form via `FIX_ROUTES` in `sheets/sync-sheet` with
   `?fix=<opId>` (a wallet goes to `/wallets` and calls `WalletService.openFix(opId)` itself,
   because the Wallets tab may be showing the first-wallet step); saving queues a new op and
   deletes the rejected one.
@@ -261,7 +280,7 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
   `SyncService.markFailed`**, never from the pill: `app-header` renders the pill in more than one
   branch, so a navigation re-creates it.
 - The header's sync status is `layout/sync-status`, one 44px icon on every tab (#9); its
-  sheet (`layout/sync-sheet`, spartan drawer) is `@defer`red until first opened. A new synced
+  sheet (`sheets/sync-sheet`, spartan drawer) is `@defer`red until first opened. A new synced
   table needs its `sync.table<name>` key there (the sheet labels items by table).
 
 ### Books (`core/book`, #6.1)
@@ -279,7 +298,7 @@ reports) shows the **current book's** data.
   (`default-categories.ts`, in `LanguageService`'s language); `switchSheet` opens the switch
   sheet the shell renders (the header and Account › หมวดหมู่ use it).
 - The shell owns the book UI because every tab needs it: `layout/book-switcher` (the
-  glass capsule left in both `app-header` on `isBookTab()` routes and `transactions-header`), `layout/book-sheet` (create / edit / fix / delete, opened by
+  glass capsule left in both `app-header` on `isBookTab()` routes and `transactions-header`), `sheets/book-sheet` (create / edit / fix / delete, opened by
   `BookService.open(state)` from anywhere and `@defer`red), and `layout/book-create-step`,
   which `AppShell` renders instead of the page on the data tabs while there is no book. Data
   pages can therefore assume `current()` is set.
@@ -307,7 +326,7 @@ data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"` holding one `app-sheet-frame
   (`@/shared/components/sheet`: `title`, `leadingIcon` `close` | `back`, `leadingLabel`,
   `(leading)`; project `[sheetActions]` icon buttons and a `[sheetFooter]` with the main button).
   A sheet with more than one step switches views inside the same drawer (`form` / `icons` /
-  `confirmDelete`, see `layout/wallet-sheet`). The `@switch (view())` sits in one
+  `confirmDelete`, see `sheets/wallet-sheet`). The `@switch (view())` sits in one
   `<div class="flex min-h-0 flex-1 flex-col" [appSlide]="depth()">` (`form` 0, a view opened
   from it 1, a view opened from that 2), and the drawer content carries `overflow-x-clip`, so a
   new view slides in like a navigation stack (DESIGN.md §8). Specs find icon buttons by
@@ -340,7 +359,7 @@ Spec: [wallet.md](../docs/features/wallet.md).
   `WalletService.compareCurrency` (`currencyOrder()`: the book's wallet order, archived
   included, then `sortOrder`); never sort by `currencies()` order again.
   `bookCurrencies(bookId)` is the picker's "ใช้ในสมุดนี้" group. The wallet sheet's chip opens
-  its `currency` view, `layout/currency-pick` (the groups and flags are web data,
+  its `currency` view, `sheets/currency-pick` (the groups and flags are web data,
   `CURRENCY_GROUPS` / `CURRENCY_FLAGS` in `shared/components/currency-flag`; a new currency
   in a migration needs its entry there and its SVGs in `public/flags/1x1` and `4x3` from
   `flag-icons`, MIT, `LICENSE` beside them). Show a currency with `app-currency-flag`
@@ -348,7 +367,7 @@ Spec: [wallet.md](../docs/features/wallet.md).
   `[minorUnit]` (the "." key) and `QuickAmountsService.forCurrency(code)` (THB only).
 - The shell renders `layout/wallet-first-step` instead of the Transactions and Wallets pages
   while the book has no wallet (`isWalletTab()`), the ➕ leads there, and
-  `layout/wallet-sheet` is `@defer`red like the book sheet. `features/wallets` holds only the
+  `sheets/wallet-sheet` is `@defer`red like the book sheet. `features/wallets` holds only the
   Wallets tab page.
 - `BookService.remove()` tombstones the rows of `BOOK_CHILD_TABLES` (tables with
   `book_id`) in the same write, and an effect tombstones live child rows of a book that is
@@ -388,16 +407,16 @@ fixOpId?, bookId?, hiddenIn?)` (a row that changes siblings goes last among the 
 - **Outbox order matters** when a row points at another: a category put under a parent queued
   after it calls `moveOpLast()` (`core/offline/outbox.ts`) so the parent is pushed first, and
   unarchiving a parent moves its children's ops after its own.
-- `layout/category-sheet` (views `form` / `icons` / `parent` / `wallets` / `move` / `merge` /
+- `sheets/category-sheet` (views `form` / `icons` / `parent` / `wallets` / `move` / `merge` /
   `confirmMerge` / `confirmDelete`; four header icons in edit mode (move,
   archive, merge, delete), so it passes `[actions]="4"` to `app-sheet-frame`; `app-segmented-field` for the type, disabled
   while it follows a parent or the row has children) is `@defer`red by the shell; `features/account/pages/categories-page`
   is Account › หมวดหมู่ with a two-level order mode (an inner `cdkDropList` per parent).
-  `layout/wallet-sheet` has a `categories` view (tabs + `app-toggle-list-field`) for the
+  `sheets/wallet-sheet` has a `categories` view (tabs + `app-toggle-list-field`) for the
   wallet's `hiddenCategoryIds`.
 - **Move transactions** (#15, [export.md](../docs/features/export.md) rules 7–10): the `move`
-  view is `layout/category-move` (from wallet, to category, hide, confirm) on
-  `layout/category-move/category-move-rows.ts` (`moveSources`, `moveCategoryRows`, `undoCategoryMove`: row
+  view is `sheets/category-move` (from wallet, to category, hide, confirm) on
+  `sheets/category-move/category-move-rows.ts` (`moveSources`, `moveCategoryRows`, `undoCategoryMove`: row
   upserts with only `categoryId` changed in one write, the wallet's hidden list, undo from the
   toast). They sit beside the sheet, not in `core/category`: a module exported from a barrel
   the shell imports lands in the initial bundle even when only a lazy screen uses it.
@@ -442,7 +461,7 @@ values, fixOpId?, bookId?)` (remembers the wallet: `defaultWalletId()`), `remove
   because `core/transaction` builds on them. Balances and `hasTransactions` count both sides of
   a transfer.
 - UI: `layout/transactions-header` (the tab's header, `@defer`red by `app-header` for the
-  bundle), `layout/view-wallet-sheet`, `layout/custom-range-sheet`, `layout/transaction-sheet`
+  bundle), `sheets/view-wallet-sheet`, `shared/components/period/custom-range-sheet`, `sheets/transaction-sheet`
   (views `form` / `wallet` / `category` / `note`; the date row and the wallet
   view are `shared/components/date-row` and `wallet-pick`, as in the transfer sheet; keypad
   state: it closes on any other control of the form, `leaveAmount`; save and add, copy; no type
@@ -455,7 +474,7 @@ values, fixOpId?, bookId?)` (remembers the wallet: `defaultWalletId()`), `remove
   (`app-money-summary-card`, also used by a shared wallet's page, so the two never drift). ➕
   opens the sheet (`BottomTabBar.add()`); "fix" goes to
   `/transactions?fix=<opId>` (the page asks both services; each opens only its own table's op).
-  `layout/transfer-sheet` (views `form` / `pick` (from or to) / `note`) is
+  `sheets/transfer-sheet` (views `form` / `pick` (from or to) / `note`) is
   `@defer`red by the shell and opened by the header's two-level ⋮ menu and the Wallets tab.
 - **Shared activity** (#21, [shared-activity.md](../docs/features/shared-activity.md)): a row's
   latest action and who did it come from `addedBy` / `updatedBy` / the times
@@ -537,7 +556,7 @@ fixOpId?)` (a new schedule starts from today; a refused create comes back), `set
   `core/wallet`): deleting a wallet or category tombstones its rules in the same write, a rule
   fixes a wallet's currency (`canChangeCurrency`) and a category's type (`ruleCount`), and
   `moveTransactions` (a merge) moves rules too.
-- UI: `layout/repeat-view` (the "ทำซ้ำ" view, `value` is a `model`) and `layout/repeat-row`, used
+- UI: `sheets/repeat-view` (the "ทำซ้ำ" view, `value` is a `model`) and `shared/components/repeat-row`, used
   by both sheets (states `create` with `repeat` / `occurrence`, `rule`, `fixRule`);
   `features/account/pages/recurring-page`; `features/transactions/components/due-sheet`
   (`@defer`red by the page) and the page's due card and upcoming rows (`group.upcoming`).
@@ -948,7 +967,7 @@ initialValue })`.
 - **Reacting to one control**: a control's own `valueChanges` fires **before** the form's, so a
   `computed()` fed by `toSignal(form.valueChanges)` still holds the previous value there. Read
   `form.getRawValue()` (or the controls) inside such a subscription (see `dropUnfit` in
-  `layout/transaction-sheet`, fixed in #9).
+  `sheets/transaction-sheet`, fixed in #9).
 - **Form value → API payload**: build the payload as a **fresh object literal** naming only the fields
   the endpoint takes (`{ name: value.name, type: value.type }`). Never forward the form value object
   itself, because a UI-only field would silently leak into the request body. Map empty optional

@@ -12,7 +12,7 @@ import { BookService } from '@/core/book'
 import { LanguageService } from '@/core/i18n'
 import { SyncService } from '@/core/offline'
 import type { SyncStatus as Status } from '@/core/offline'
-import { SyncSheet } from '@/layout/sync-sheet/sync-sheet'
+import { SyncSheet } from '@/sheets/sync-sheet/sync-sheet'
 
 /**
  * The header's sync status on every tab (offline-sync → Web screens; DESIGN.md §6 Status): a 44px

@@ -41,8 +41,6 @@ import {
 import type { TransferSheetState, TransferValues } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
-import { RepeatRow } from '@/layout/repeat-row/repeat-row'
-import { RepeatView } from '@/layout/repeat-view/repeat-view'
 import { DateRow } from '@/shared/components/date-row'
 import {
   CalcAmountField,
@@ -52,6 +50,7 @@ import {
   withMessage,
 } from '@/shared/components/form'
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
+import { RepeatRow } from '@/shared/components/repeat-row'
 import { SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
 import { WalletPick, walletPickItem } from '@/shared/components/wallet-pick'
@@ -67,6 +66,7 @@ import {
   toMajorText,
 } from '@/shared/utils'
 import type { CalcKey } from '@/shared/utils'
+import { RepeatView } from '@/sheets/repeat-view/repeat-view'
 import type { TransferFormGroup } from './transfer-form.type'
 
 type View = 'form' | 'pick' | 'note' | 'repeat'

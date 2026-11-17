@@ -29,7 +29,6 @@ import type {
 } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
 import { WalletService } from '@/core/wallet'
-import { CategoryMove } from '@/layout/category-move/category-move'
 import {
   ColorField,
   FORM_IMPORTS,
@@ -51,6 +50,7 @@ import type { UserIcon } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
 import type { SelectOption } from '@/shared/types'
+import { CategoryMove } from '@/sheets/category-move/category-move'
 import type { CategoryFormGroup } from './category-form.type'
 
 type View =

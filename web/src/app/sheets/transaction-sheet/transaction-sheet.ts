@@ -41,10 +41,6 @@ import { QuickAmountsService, TRANSACTION_LIMITS, TransactionService } from '@/c
 import type { EventOption, TransactionSheetState, TransactionValues } from '@/core/transaction'
 import { isHiddenIn, WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
-import { EventPick } from '@/layout/event-pick/event-pick'
-import { RepeatRow } from '@/layout/repeat-row/repeat-row'
-import { RepeatView } from '@/layout/repeat-view/repeat-view'
-import { TransactionCategoryPick } from '@/layout/transaction-category-pick/transaction-category-pick'
 import { DateRow } from '@/shared/components/date-row'
 import {
   CalcAmountField,
@@ -56,11 +52,15 @@ import {
 } from '@/shared/components/form'
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
+import { RepeatRow } from '@/shared/components/repeat-row'
 import { SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
 import { WalletPick, walletPickItem } from '@/shared/components/wallet-pick'
 import { addDays, addQuickAmount, CALC_KEYBOARD, evaluate, pressKey, toDay } from '@/shared/utils'
 import type { CalcKey } from '@/shared/utils'
+import { EventPick } from '@/sheets/event-pick/event-pick'
+import { RepeatView } from '@/sheets/repeat-view/repeat-view'
+import { TransactionCategoryPick } from '@/sheets/transaction-category-pick/transaction-category-pick'
 import { amountText, toRuleValues } from './transaction-values'
 import type { TransactionFormGroup } from './transaction-form.type'
 

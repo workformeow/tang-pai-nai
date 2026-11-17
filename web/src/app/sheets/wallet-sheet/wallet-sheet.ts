@@ -19,7 +19,6 @@ import type { CategoryType } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
 import { WALLET_LIMITS, WalletService } from '@/core/wallet'
 import type { UnarchiveRefusal, WalletSheetState, WalletValues } from '@/core/wallet'
-import { CurrencyPick } from '@/layout/currency-pick/currency-pick'
 import { CurrencyFlag } from '@/shared/components/currency-flag'
 import {
   AmountField,
@@ -41,6 +40,7 @@ import {
 import { SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
 import { parseMajor, toMajorText } from '@/shared/utils'
+import { CurrencyPick } from '@/sheets/currency-pick/currency-pick'
 import type { WalletFormGroup } from './wallet-form.type'
 
 type View = 'form' | 'icons' | 'currency' | 'categories' | 'confirmDelete'

@@ -173,7 +173,7 @@ Lover's black and green.
   a static SVG; never an emoji flag) because "$" and "¥" are shared (currency.md rules 6, 8).
   A screen that is one currency at a time (Reports) names it the same way, even with one.
   Picking a currency is a grid of round flags with the code under each, per continent
-  (`layout/currency-pick`, like the icon picker), never a dropdown or a search.
+  (`sheets/currency-pick`, like the icon picker), never a dropdown or a search.
 - **Dates**: relative words for recent days (วันนี้ / Today, เมื่อวาน / Yesterday), then a short
   date such as `จ. 14 ต.ค.` / `Mon 14 Oct`. Day headers in the transaction list show the date on the left and the day total on
   the right.
@@ -413,7 +413,7 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   archive / merge / delete, so the title centres in the space left); the
   body scrolls; **one main button is pinned at the bottom** (no "ปิด" button: X closes). A view
   with nothing to confirm (the icon picker) has no bottom button. Load a sheet that isn't needed
-  at start with `@defer` (see `layout/sync-sheet`).
+  at start with `@defer` (see `sheets/sync-sheet`).
 
 ## 7. Icons
 
