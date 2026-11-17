@@ -95,14 +95,19 @@ export class WalletSheet {
   protected iconGroups = WALLET_ICON_GROUPS
   protected defaultIcon = WALLET_DEFAULT_ICON
   protected colors = USER_COLORS
+
+  // ── The sheet ──────────────────────────────────────────────────────────────
+
+  /** What the sheet is open for; null = closed. Set by `WalletService.open()`. */
   protected state = this.walletService.sheet
+  protected open = signal(false)
   protected view = signal<View>('form')
   /** How deep the view is: a deeper one slides in from the right, going back from the left. */
   protected depth = computed(() => (this.view() === 'form' ? 0 : 1))
-  protected categoryTabs = CATEGORY_TABS
-  protected categoryTab = signal<CategoryType>('expense')
   /** Why the wallet can't come back from the archive (a translation key). */
   protected refusal = signal<string | null>(null)
+
+  // ── Mode: what is being created or edited ──────────────────────────────────
 
   /** The wallet being edited (edit and fix), null when creating. */
   protected editingId = computed(() => {
@@ -123,41 +128,6 @@ export class WalletSheet {
     }
     return this.editing()?.bookId ?? null
   })
-  /** The book whose categories the wallet picks from (category rule 13). */
-  private categoryBookId = computed(() => this.bookId() ?? this.bookService.current()?.id ?? null)
-  /** The ids switched off in the categories view (signal copy of the control). */
-  private hidden = signal<readonly string[]>([])
-  /** "ซ่อน n": the book's open categories hidden here, children of a hidden parent too. */
-  protected hiddenCount = computed(() => {
-    const bookId = this.categoryBookId()
-    const hidden = this.hidden()
-    if (!bookId || hidden.length === 0) {
-      return 0
-    }
-    return CATEGORY_TABS.flatMap((type) => this.categoryService.treeOf(bookId, type)).flatMap(
-      (node) =>
-        hidden.includes(node.category.id)
-          ? [node.category, ...node.children]
-          : node.children.filter((child) => hidden.includes(child.id))
-    ).length
-  })
-  protected categoryItems = computed<ToggleListItem[]>(() => {
-    const bookId = this.categoryBookId()
-    if (!bookId) {
-      return []
-    }
-    const hidden = this.hidden()
-    const note = this.transloco.translate('categories.hiddenWithParent')
-    this.languageService.language()
-    return this.categoryService
-      .treeOf(bookId, this.categoryTab())
-      .flatMap((node) => [
-        this.categoryItem(node.category, false, null),
-        ...node.children.map((child) =>
-          this.categoryItem(child, true, hidden.includes(node.category.id) ? note : null)
-        ),
-      ])
-  })
   protected heading = computed(() => {
     switch (this.state()?.mode) {
       case 'edit':
@@ -172,16 +142,8 @@ export class WalletSheet {
   protected currencyLocked = computed(
     () => !this.walletService.canChangeCurrency(this.editing()?.id ?? null)
   )
-  /** The form's currency as a signal (the chip's label reads it). */
-  private currencyCode = signal('')
-  /** The chip's full name, for its label. */
-  protected currencyName = computed(() => {
-    const code = this.currencyCode()
-    return code
-      ? (new Intl.DisplayNames(this.languageService.locale(), { type: 'currency' }).of(code) ??
-          code)
-      : ''
-  })
+
+  // ── The form ───────────────────────────────────────────────────────────────
 
   // An archived wallet holds no name (rule 3); coming back is checked by `setArchived`.
   private nameFree: ValidatorFn = (control) =>
@@ -232,9 +194,63 @@ export class WalletSheet {
     hiddenCategoryIds: this.nnfb.control<string[]>([]),
   })
 
-  protected open = signal(false)
   /** The credit-card switch, for the template's hint (credit-card rule 1). */
   protected isCard = signal(false)
+
+  // ── Currency (currency.md) ─────────────────────────────────────────────────
+
+  /** The form's currency as a signal (the chip's label reads it). */
+  private currencyCode = signal('')
+  /** The chip's full name, for its label. */
+  protected currencyName = computed(() => {
+    const code = this.currencyCode()
+    return code
+      ? (new Intl.DisplayNames(this.languageService.locale(), { type: 'currency' }).of(code) ??
+          code)
+      : ''
+  })
+
+  // ── "หมวดหมู่ที่ใช้" (category rule 13) ────────────────────────────────────
+
+  protected categoryTabs = CATEGORY_TABS
+  /** The categories view's tab: รายจ่าย or รายรับ. */
+  protected categoryTab = signal<CategoryType>('expense')
+  /** The book whose categories the wallet picks from (category rule 13). */
+  private categoryBookId = computed(() => this.bookId() ?? this.bookService.current()?.id ?? null)
+  /** The ids switched off in the categories view (signal copy of the control). */
+  private hidden = signal<readonly string[]>([])
+  /** "ซ่อน n": the book's open categories hidden here, children of a hidden parent too. */
+  protected hiddenCount = computed(() => {
+    const bookId = this.categoryBookId()
+    const hidden = this.hidden()
+    if (!bookId || hidden.length === 0) {
+      return 0
+    }
+    return CATEGORY_TABS.flatMap((type) => this.categoryService.treeOf(bookId, type)).flatMap(
+      (node) =>
+        hidden.includes(node.category.id)
+          ? [node.category, ...node.children]
+          : node.children.filter((child) => hidden.includes(child.id))
+    ).length
+  })
+  /** The tab's categories, each with a switch; a child of a hidden parent is off, locked. */
+  protected categoryItems = computed<ToggleListItem[]>(() => {
+    const bookId = this.categoryBookId()
+    if (!bookId) {
+      return []
+    }
+    const hidden = this.hidden()
+    const note = this.transloco.translate('categories.hiddenWithParent')
+    this.languageService.language()
+    return this.categoryService
+      .treeOf(bookId, this.categoryTab())
+      .flatMap((node) => [
+        this.categoryItem(node.category, false, null),
+        ...node.children.map((child) =>
+          this.categoryItem(child, true, hidden.includes(node.category.id) ? note : null)
+        ),
+      ])
+  })
 
   constructor() {
     this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
@@ -260,6 +276,8 @@ export class WalletSheet {
       })
     })
   }
+
+  // ── Template actions ───────────────────────────────────────────────────────
 
   /** The "สกุลเงิน" view's pick: back to the form at once (currency.md → Web screens). */
   protected pickCurrency(code: string): void {
@@ -349,37 +367,7 @@ export class WalletSheet {
     this.state.set(null)
   }
 
-  private categoryItem(
-    category: { id: string; name: string; icon: string; color: string },
-    child: boolean,
-    lockedNote: string | null
-  ): ToggleListItem {
-    return {
-      id: category.id,
-      label: category.name,
-      icon: category.icon,
-      color: userColor(category.color),
-      fallback: CATEGORY_DEFAULT_ICON,
-      child,
-      lockedNote,
-    }
-  }
-
-  private lockExcluded(card: boolean): void {
-    this.isCard.set(card)
-    const excluded = this.form.controls.excludeFromTotal
-    if (card) {
-      excluded.setValue(true, { emitEvent: false })
-      excluded.disable({ emitEvent: false })
-    } else {
-      // Rule 8: turning the card off leaves the switch on, for the user to change.
-      excluded.enable({ emitEvent: false })
-    }
-  }
-
-  private minorUnit(): number {
-    return this.walletService.minorUnit(this.form.controls.currencyCode.value)
-  }
+  // ── Opening the sheet: the form starts from the state ──────────────────────
 
   private start(state: WalletSheetState): void {
     this.view.set('form')
@@ -430,5 +418,42 @@ export class WalletSheet {
       color: userColor(values.color),
       hiddenCategoryIds: values.hiddenCategoryIds,
     }
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  /** A category as a switch row of the categories view. */
+  private categoryItem(
+    category: { id: string; name: string; icon: string; color: string },
+    child: boolean,
+    lockedNote: string | null
+  ): ToggleListItem {
+    return {
+      id: category.id,
+      label: category.name,
+      icon: category.icon,
+      color: userColor(category.color),
+      fallback: CATEGORY_DEFAULT_ICON,
+      child,
+      lockedNote,
+    }
+  }
+
+  /** Credit-card rule 1: a card is out of the total, so "exclude from total" is on and locked. */
+  private lockExcluded(card: boolean): void {
+    this.isCard.set(card)
+    const excluded = this.form.controls.excludeFromTotal
+    if (card) {
+      excluded.setValue(true, { emitEvent: false })
+      excluded.disable({ emitEvent: false })
+    } else {
+      // Rule 8: turning the card off leaves the switch on, for the user to change.
+      excluded.enable({ emitEvent: false })
+    }
+  }
+
+  /** The form currency's minor unit (the balance's decimals). */
+  private minorUnit(): number {
+    return this.walletService.minorUnit(this.form.controls.currencyCode.value)
   }
 }
