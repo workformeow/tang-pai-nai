@@ -55,7 +55,7 @@ import { SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
 import { WalletPick, walletPickItem } from '@/shared/components/wallet-pick'
 import type { WalletPickItem } from '@/shared/components/wallet-pick'
-import { addDays, amountText, evaluate, formatMoney, toDay } from '@/shared/utils'
+import { addDays, amountText, formatMoney, toDay, parseMajor } from '@/shared/utils'
 import { RepeatView } from '@/sheets/repeat-view/repeat-view'
 import { toRuleValues } from './transfer-values'
 import type { TransferFormGroup } from './transfer-form.type'
@@ -264,7 +264,7 @@ export class TransferSheet {
     }
     const owed = this.walletService.owed(to)
     const minorUnit = this.walletService.minorUnit(to.currencyCode)
-    const typed = evaluate(this.values().amount ?? '', minorUnit)
+    const typed = parseMajor(this.values().amount ?? '', minorUnit)
     if (owed <= 0 || (typed.ok && typed.minor === owed)) {
       return null
     }
@@ -425,7 +425,7 @@ export class TransferSheet {
   /** "Copy": a new transfer with the form's values, dated today. */
   protected copy(): void {
     const value = this.form.getRawValue()
-    const amount = evaluate(value.amount, this.minorUnit())
+    const amount = parseMajor(value.amount, this.minorUnit())
     this.transferService.open({
       mode: 'create',
       values: {
@@ -441,7 +441,6 @@ export class TransferSheet {
   /** `addAnother` (adding only): the sheet stays with an empty amount and note. */
   protected save(addAnother = false): void {
     const state = this.state()
-    this.keypad.settle()
     if (!state || this.form.invalid || !this.transferService.canWrite()) {
       return
     }
@@ -451,7 +450,7 @@ export class TransferSheet {
       this.pick('from')
       return
     }
-    const amount = evaluate(value.amount, this.minorUnit())
+    const amount = parseMajor(value.amount, this.minorUnit())
     const values: TransferValues = {
       fromWalletId: value.fromWalletId,
       toWalletId: value.toWalletId,

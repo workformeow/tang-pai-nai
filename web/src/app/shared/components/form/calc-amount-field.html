@@ -2,7 +2,7 @@
   type="button"
   class="flex min-h-19 w-full items-end gap-3 py-2 text-left focus-visible:outline-none"
   [class.shadow-[inset_0_-2px_0_var(--brand)]]="active()"
-  [attr.aria-label]="label() + ' ' + spoken()"
+  [attr.aria-label]="label() + ' ' + shown()"
   [attr.aria-expanded]="active()"
   (click)="activate.emit()"
 >
@@ -16,9 +16,6 @@
   <span class="flex min-w-0 flex-1 flex-col" aria-hidden="true">
     <span class="text-xs text-muted-foreground">{{ label() }}</span>
     <span class="truncate text-3xl font-semibold tabular-nums">{{ shown() }}</span>
-    @if (preview(); as text) {
-      <span class="text-sm text-muted-foreground tabular-nums">= {{ text }}</span>
-    }
   </span>
 </button>
 @if (error()) {

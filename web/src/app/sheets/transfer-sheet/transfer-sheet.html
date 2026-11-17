@@ -170,7 +170,6 @@
                       [control]="f.amount"
                       [label]="'transactions.amount' | transloco"
                       [currencyCode]="fromWallet()?.currencyCode ?? ''"
-                      [minorUnit]="minorUnit()"
                       [locale]="languageService.locale()"
                       [active]="keypad.open()"
                       (activate)="keypad.open.set(true)"

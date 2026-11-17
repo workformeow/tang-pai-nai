@@ -1,11 +1,11 @@
 import { signal } from '@angular/core'
 import type { FormControl, ValidatorFn } from '@angular/forms'
-import { addQuickAmount, amountText, CALC_KEYBOARD, evaluate, pressKey } from '@/shared/utils'
+import { addQuickAmount, CALC_KEYBOARD, parseMajor, pressKey } from '@/shared/utils'
 import type { CalcKey } from '@/shared/utils'
 
 /**
- * The amount row's calculator keypad (8.2), for a sheet whose amount is an expression
- * (`120+65`): the keys, the quick amounts, a hardware keyboard, and when it shows. The sheet
+ * The amount row's keypad (8.2): the keys, the quick amounts, a hardware keyboard, and when it
+ * shows. The amount is a plain number (the keypad has no operators). The sheet
  * renders `app-calc-amount-field` and `app-calc-keypad` and wires them here:
  *
  * ```ts
@@ -21,7 +21,7 @@ export class AmountKeypad {
     private minorUnit: () => number
   ) {}
 
-  /** A key of the keypad; "=" settles the expression and hides it. */
+  /** A key of the keypad; "=" (✓, Enter, Escape) hides it. */
   press(key: CalcKey | '='): void {
     if (key === '=') {
       this.close()
@@ -31,23 +31,14 @@ export class AmountKeypad {
     this.control.markAsDirty()
   }
 
-  /** A quick amount adds to the expression, like counting notes (8.2). */
+  /** A quick amount adds to the amount, like counting notes (8.2). */
   addQuick(major: number): void {
     this.control.setValue(addQuickAmount(this.control.value, major, this.minorUnit()))
     this.control.markAsDirty()
   }
 
-  /** "=": the expression becomes its result (`120+65` → `185`). */
-  settle(): void {
-    const result = evaluate(this.control.value, this.minorUnit())
-    if (result.ok && result.minor > 0 && /[+\-×÷]/.test(this.control.value)) {
-      this.control.setValue(amountText(result.minor, this.minorUnit()))
-    }
-  }
-
-  /** The expression settles and the keypad hides (another row, "=", "✓"). */
+  /** The keypad hides (another row, "=", "✓"). */
   close(): void {
-    this.settle()
     this.open.set(false)
   }
 
@@ -84,8 +75,8 @@ export class AmountKeypad {
 }
 
 /**
- * Rule 3 of transactions and transfers: the expression works out to 1 … `max` minor units, in the
- * minor unit of the wallet named by the sibling control `walletControl`.
+ * Rule 3 of transactions and transfers: the amount is 1 … `max` minor units, in the minor unit of
+ * the wallet named by the sibling control `walletControl`.
  */
 export const amountValidator =
   (walletControl: string, minorUnitOf: (walletId: string) => number, max: number): ValidatorFn =>
@@ -95,7 +86,7 @@ export const amountValidator =
     }
     // The form isn't built yet on the first run, so the wallet comes from the sibling control.
     const walletId: unknown = control.parent?.get(walletControl)?.value
-    const result = evaluate(
+    const result = parseMajor(
       control.value,
       minorUnitOf(typeof walletId === 'string' ? walletId : '')
     )

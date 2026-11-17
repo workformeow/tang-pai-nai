@@ -46,7 +46,7 @@ import type { UserIcon } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
 import { WalletPick } from '@/shared/components/wallet-pick'
-import { addDays, addMonths, evaluate, formatMoney, parseMajor } from '@/shared/utils'
+import { addDays, addMonths, formatMoney, parseMajor } from '@/shared/utils'
 import { DebtCategoryPick } from './category-pick'
 
 /** Whether the form a control sits in describes a `repaid` debt (the validators run before the
@@ -145,7 +145,7 @@ export class DebtSheet {
     const walletId: unknown = control.parent?.get('walletId')?.value
     const wallet =
       typeof walletId === 'string' && walletId ? this.walletService.byId(walletId) : null
-    const result = evaluate(
+    const result = parseMajor(
       control.value,
       this.walletService.minorUnit(wallet?.currencyCode ?? this.walletService.defaultCurrency())
     )
@@ -384,7 +384,7 @@ export class DebtSheet {
   protected stepCount(step: number): void {
     const count = Math.min(999, Math.max(0, this.planCount() + step))
     this.planCount.set(count)
-    const total = evaluate(this.form.controls.amount.value, this.minorUnit())
+    const total = parseMajor(this.form.controls.amount.value, this.minorUnit())
     if (
       count > 0 &&
       total.ok &&
@@ -400,7 +400,6 @@ export class DebtSheet {
 
   protected save(): void {
     const state = this.state()
-    this.keypad.settle()
     this.revalidate()
     if (!state || this.form.invalid || !this.debtService.canWrite()) {
       this.form.markAllAsTouched()
@@ -425,7 +424,7 @@ export class DebtSheet {
       this.finish()
       return
     }
-    const amount = evaluate(value.amount, this.minorUnit())
+    const amount = parseMajor(value.amount, this.minorUnit())
     const repaid = value.direction === 'borrowed' && value.countAs === 'repaid'
     const plan = toPlanValues(
       {

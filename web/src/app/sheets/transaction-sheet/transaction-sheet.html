@@ -123,7 +123,6 @@
                       [control]="f.amount"
                       [label]="'transactions.amount' | transloco"
                       [currencyCode]="wallet()?.currencyCode ?? ''"
-                      [minorUnit]="minorUnit()"
                       [locale]="languageService.locale()"
                       [active]="keypad.open()"
                       (activate)="keypad.open.set(true)"

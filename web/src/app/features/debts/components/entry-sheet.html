@@ -104,7 +104,6 @@
                       [control]="f.amount"
                       [label]="'transactions.amount' | transloco"
                       [currencyCode]="debt()?.currencyCode ?? ''"
-                      [minorUnit]="minorUnit()"
                       [locale]="languageService.locale()"
                       [active]="keypad()"
                       (activate)="keypad.set(true)"

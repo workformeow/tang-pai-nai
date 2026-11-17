@@ -91,7 +91,6 @@
                           (repaid() ? 'debts.amountTotal' : 'transactions.amount') | transloco
                         "
                         [currencyCode]="currencyCode()"
-                        [minorUnit]="minorUnit()"
                         [locale]="languageService.locale()"
                         [active]="keypad.open()"
                         (activate)="keypad.open.set(true)"

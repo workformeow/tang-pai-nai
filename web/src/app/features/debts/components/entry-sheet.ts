@@ -37,7 +37,6 @@ import {
   addDays,
   addQuickAmount,
   CALC_KEYBOARD,
-  evaluate,
   formatMoney,
   parseMajor,
   pressKey,
@@ -127,7 +126,7 @@ export class DebtEntrySheet {
     if (typeof control.value !== 'string') {
       return null
     }
-    const result = evaluate(control.value, this.minorUnit())
+    const result = parseMajor(control.value, this.minorUnit())
     if (!result.ok) {
       return { amountFormat: 'transactions.amountFormat' }
     }
@@ -300,12 +299,10 @@ export class DebtEntrySheet {
     ) {
       return
     }
-    this.settleAmount()
     this.keypad.set(false)
   }
 
   protected pick(view: 'wallet' | 'category' | 'note'): void {
-    this.settleAmount()
     this.keypad.set(false)
     this.view.set(view)
   }
@@ -319,7 +316,6 @@ export class DebtEntrySheet {
   protected press(key: CalcKey | '='): void {
     const control = this.form.controls.amount
     if (key === '=') {
-      this.settleAmount()
       this.keypad.set(false)
       return
     }
@@ -348,7 +344,6 @@ export class DebtEntrySheet {
   protected save(): void {
     const state = this.state()
     const debt = this.debt()
-    this.settleAmount()
     this.form.controls.walletId.updateValueAndValidity({ emitEvent: false })
     const interest = this.interestAllowed() ? this.interestValue() : 0
     this.interestMissing.set(interest > 0 && !this.interestCategoryId())
@@ -360,7 +355,7 @@ export class DebtEntrySheet {
       return
     }
     const value = this.form.getRawValue()
-    const amount = evaluate(value.amount, this.minorUnit())
+    const amount = parseMajor(value.amount, this.minorUnit())
     const minor = amount.ok ? amount.minor : 0
     if (state.mode === 'rule') {
       const rule = this.rule()
@@ -432,14 +427,6 @@ export class DebtEntrySheet {
   private refusedId(opId: string): string | null {
     const row = this.debtService.refused(opId, 'debt_entries')
     return row ? String(row['id']) : null
-  }
-
-  private settleAmount(): void {
-    const control = this.form.controls.amount
-    const result = evaluate(control.value, this.minorUnit())
-    if (result.ok && result.minor > 0 && /[+\-×÷]/.test(control.value)) {
-      control.setValue(toMajorText(result.minor, this.minorUnit()).replace(/,/g, ''))
-    }
   }
 
   private amountText(minor: number, currencyCode: string): string {

@@ -56,7 +56,7 @@ import { RepeatRow } from '@/shared/components/repeat-row'
 import { SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
 import { WalletPick, walletPickItem } from '@/shared/components/wallet-pick'
-import { addDays, amountText, evaluate, toDay } from '@/shared/utils'
+import { addDays, amountText, toDay, parseMajor } from '@/shared/utils'
 import { EventPick } from '@/sheets/event-pick/event-pick'
 import { RepeatView } from '@/sheets/repeat-view/repeat-view'
 import { TransactionCategoryPick } from '@/sheets/transaction-category-pick/transaction-category-pick'
@@ -458,7 +458,7 @@ export class TransactionSheet {
    */
   protected copy(): void {
     const value = this.form.getRawValue()
-    const amount = evaluate(value.amount, this.minorUnit())
+    const amount = parseMajor(value.amount, this.minorUnit())
     this.transactionService.open({
       mode: 'create',
       type: value.type as CategoryType,
@@ -478,12 +478,11 @@ export class TransactionSheet {
   /** `addAnother` (8.2, adding only): the sheet stays with an empty amount and note. */
   protected save(addAnother = false): void {
     const state = this.state()
-    this.keypad.settle()
     if (!state || this.form.invalid || !this.transactionService.canWrite()) {
       return
     }
     const value = this.form.getRawValue()
-    const amount = evaluate(value.amount, this.minorUnit())
+    const amount = parseMajor(value.amount, this.minorUnit())
     const values: TransactionValues = {
       walletId: value.walletId,
       categoryId: value.categoryId,
