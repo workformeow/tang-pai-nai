@@ -1,4 +1,4 @@
-import { isBookTab, isReportsTab, isWalletTab } from './book-routes'
+import { isBookTab, isReportCurrencies, isReportsTab, isWalletTab } from './book-routes'
 
 describe('isBookTab', () => {
   it('is true on the tabs that show a book, their child pages and queries', () => {
@@ -34,5 +34,14 @@ describe('isReportsTab', () => {
     expect(isReportsTab('/reports?x=1')).toBe(true)
     expect(isReportsTab('/reports/category/c1')).toBe(false)
     expect(isReportsTab('/transactions')).toBe(false)
+  })
+})
+
+describe('isReportCurrencies', () => {
+  it('is true on ภาพรวม only, whose header holds the Reports tab’s ดูตาม (#24)', () => {
+    expect(isReportCurrencies('/reports/currencies')).toBe(true)
+    expect(isReportCurrencies('/reports/currencies?x=1')).toBe(true)
+    expect(isReportCurrencies('/reports')).toBe(false)
+    expect(isReportCurrencies('/reports/category/c1')).toBe(false)
   })
 })

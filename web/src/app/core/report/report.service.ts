@@ -85,6 +85,27 @@ export class ReportService {
   /** "ทุกกระเป๋า" or the wallet chosen on either tab (Q3). */
   walletIds = this.transactionService.viewWalletIds
 
+  /** The tabs' "ทุกกระเป๋า": out of the total left out, credit cards kept. */
+  private countedWallets = computed(() =>
+    this.walletService.wallets().filter((wallet) => !wallet.excludeFromTotal || wallet.isCreditCard)
+  )
+  /** "ทุกกระเป๋า" whatever the tabs chose: the all-currencies page's scope (#24). */
+  allWalletIds = computed(() => this.countedWallets().map((wallet) => wallet.id))
+  /** Open counted wallets per currency (the all-currencies page's "n กระเป๋า"). */
+  walletCounts = computed(() => {
+    const counts = new Map<string, number>()
+    for (const wallet of this.countedWallets()) {
+      if (!wallet.isArchived) {
+        counts.set(wallet.currencyCode, (counts.get(wallet.currencyCode) ?? 0) + 1)
+      }
+    }
+    return counts
+  })
+  /** The counted wallets hold more than one currency: the ⋮ menu's "ภาพรวม" (#24). */
+  manyCurrencies = computed(
+    () => new Set(this.countedWallets().map((wallet) => wallet.currencyCode)).size > 1
+  )
+
   /** Oldest first back to the book's oldest row; never the month view's "อนาคต". */
   tabs = computed(() =>
     periodTabs(this.unit(), this.today(), this.transactionService.firstDay()).filter(
@@ -105,6 +126,8 @@ export class ReportService {
 
   /** One card per currency, in currency order (rules 1, 9–11). */
   summaries = computed<ReportSummary[]>(() => this.summarize(this.range(), this.walletIds()))
+  /** Every currency of the period over every counted wallet (the all-currencies page, #24). */
+  overview = computed<ReportSummary[]>(() => this.summarize(this.range(), this.allWalletIds()))
   /**
    * Whether the period has anything to show (else the empty state): money in or out, rows left
    * out, or transfers that moved the balances (a savings wallet).

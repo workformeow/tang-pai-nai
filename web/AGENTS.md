@@ -403,7 +403,10 @@ values, fixOpId?, bookId?)` (remembers the wallet: `defaultWalletId()`), `remove
 - `core/transaction/quick-amounts.ts`: `QUICK_AMOUNTS` and `QuickAmountsService` (`enabled`,
   `setEnabled`; a device setting in `localStorage` like the theme, Account › การแสดงผล).
   `app-calc-keypad` draws them from `quickAmounts` and emits `quickPressed`; the sheet adds them
-  with `addQuickAmount` (`@/shared/utils` `calc.ts`).
+  with `addQuickAmount` (`@/shared/utils` `calc.ts`). `fitBelow="app-date-row"` (a selector
+  in the keypad's form) makes the keypad grow up to 12px under that row (measured on open,
+  resize and when the row's card resizes; never below its natural size, at most 460px); the
+  transaction, transfer and debt entry sheets pass it, the debt sheet doesn't (several date rows).
 - **Transfers** (#9, spec: [transfer.md](../docs/features/transfer.md)) live in
   `core/transaction` too: `TransferService` (`byId`, `save`, `remove` / `restore`,
   `defaultFromId`, `lastToId` (Q7, `tpn-book:tx:transfer:…`), `payFromId` / `pay(cardId)`
@@ -468,8 +471,14 @@ local database, nothing is stored.
   `currencyCode`).
 - Charts are plain elements with token colours (no chart library, owner's choice in #10):
   heights and widths as `%` styles, every bar pair a button with an `aria-label`.
-- The header is `layout/transactions-header` with `view="reports"` (only "ดูตาม", the report
-  units); `app-header` shows it on `/reports` itself (`isReportsTab`). The tab's custom range
+- The header is `layout/transactions-header` with `view="reports"` ("ภาพรวม" while
+  `manyCurrencies()`, and "ดูตาม", the report units); `app-header` shows it on `/reports`
+  itself (`isReportsTab`).
+- **ภาพรวม** (#24, [currency-overview.md](../docs/features/currency-overview.md)):
+  `/reports/currencies`, every currency side by side over `ReportService.allWalletIds()`
+  (every counted wallet, whatever the switcher chose): `overview()`, `walletCounts()`. Its
+  "ดูตาม" sits in `app-header` (`isReportCurrencies`, `layout/report-unit-menu`, `@defer`red
+  so the shell never loads `ReportService`) and sets the Reports tab's own unit. The tab's custom range
   sheet lives in the page (`@defer`), so the shell never loads `ReportService`.
 - Shared with the Transactions tab: `shared/components/period` (`app-period-strip`, the
   `appSwipe` directive, `app-custom-range-sheet` with `range` in and `applied` out).

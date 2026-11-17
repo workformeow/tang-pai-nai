@@ -342,7 +342,12 @@
     "noneInPeriod": "No transactions in this category in this period",
     "back": "Back to reports",
     "noneOfType": "Nothing of this type in this period",
-    "debt": "Debts {{amount}}"
+    "debt": "Debts {{amount}}",
+    "overviewTitle": "Overview",
+    "overviewScope": "Every wallet in this book",
+    "overviewEmpty": "No money moved in any currency in this period",
+    "walletCount": "{{count}} wallets",
+    "walletCountOne": "1 wallet"
   },
   "account": {
     "appearance": "Appearance",

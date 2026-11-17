@@ -10,6 +10,7 @@ import {
   lucideChevronLeft,
   lucideActivity,
   lucideChevronRight,
+  lucideCoins,
   lucideEllipsisVertical,
   lucideHandCoins,
   lucidePlane,
@@ -87,6 +88,7 @@ import { SyncStatus } from './sync-status'
       lucideChevronDown,
       lucideChevronLeft,
       lucideChevronRight,
+      lucideCoins,
       lucideEllipsisVertical,
       lucideHandCoins,
       lucidePlane,
@@ -241,6 +243,24 @@ import { SyncStatus } from './sync-status'
                 />
               </button>
             }
+            @if (view() === 'reports' && reportService.manyCurrencies()) {
+              <!-- #24: every currency side by side, only with more than one in the book. -->
+              <button
+                type="button"
+                role="menuitem"
+                class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+                (click)="currencies()"
+              >
+                <ng-icon name="lucideCoins" size="20" aria-hidden="true" />
+                <span class="flex-1">{{ 'reports.overviewTitle' | transloco }}</span>
+                <ng-icon
+                  name="lucideChevronRight"
+                  size="16"
+                  class="text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </button>
+            }
             <button
               type="button"
               role="menuitem"
@@ -292,7 +312,7 @@ export class TransactionsHeader {
   protected bookService = inject(BookService)
   protected transactionService = inject(TransactionService)
   private transferService = inject(TransferService)
-  private reportService = inject(ReportService)
+  protected reportService = inject(ReportService)
   private languageService = inject(LanguageService)
   private transloco = inject(TranslocoService)
   private t = (key: string, params?: Record<string, unknown>) =>
@@ -361,6 +381,11 @@ export class TransactionsHeader {
   protected recurring(): void {
     this.closeMenu(false)
     void this.router.navigateByUrl('/account/recurring')
+  }
+
+  protected currencies(): void {
+    this.closeMenu(false)
+    void this.router.navigateByUrl('/reports/currencies')
   }
 
   protected activity(): void {

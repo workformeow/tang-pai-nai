@@ -20,9 +20,8 @@ or area (Korea = South Korea's KRW only). More are added by a migration when nee
 - Every ISO 4217 currency, and a search in the picker.
 - Per-user currency lists. The table is global, so every user sees the same active currencies.
 - A book's main currency: a new wallet starts at THB (wallet rule 4), nothing is stored per book.
-- Every currency of a period side by side (mock-up `report-currency.html` C): a page of its own
-  later, opened from a ⋮ menu or similar (owner, 2026-11; ROADMAP → Backlog "All currencies
-  overview").
+- Every currency of a period side by side (mock-up `report-currency.html` C): the page
+  ภาพรวม, [currency-overview.md](currency-overview.md) (#24).
 - Quick amounts (transaction 8.2) for other currencies: THB wallets only for now.
 
 ## Data model
@@ -124,5 +123,6 @@ no admin role.
   fixed once it has transactions (wallet rule 4). Transactions, debts and debt entries use the
   wallet's currency.
 - Transfers only between wallets of the same currency (transfer.md).
-- Reports show one currency at a time (report.md rule 3, Q6); CSV export carries the code per row.
-- Web formatting: `formatMoney(minor, code, minorUnit, locale)` (`@/shared/utils`, rule 7).
+- Reports show one currency at a time (report.md rule 3, Q6), and ภาพรวม every currency side by
+  side ([currency-overview.md](currency-overview.md)); CSV export carries the code per row.
+- Web formatting: `formatMoney(minor, code, minorUnit, locale, signed?)` (`@/shared/utils`, rule 7).

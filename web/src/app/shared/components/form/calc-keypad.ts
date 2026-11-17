@@ -1,4 +1,14 @@
-import { Component, computed, input, output } from '@angular/core'
+import {
+  afterNextRender,
+  Component,
+  computed,
+  DestroyRef,
+  ElementRef,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import { lucideCheck, lucideDelete } from '@ng-icons/lucide'
@@ -16,11 +26,16 @@ interface Key {
 
 /**
  * The amount keypad (transaction.md → Web screens): numbers only, 7 8 9 ⌫ / 4 5 6 C /
- * 1 2 3 ✓ / 000 0 . in four 44px rows, so the phone keyboard never opens and the form
+ * 1 2 3 ✓ / 000 0 . in four rows of at least 44px, so the phone keyboard never opens and the form
  * keeps most of the sheet (owner's choice, 2026-11: no + − × ÷, and ✓ "เสร็จ" instead of "=",
  * like a phone's number pad, so it never reads as a sum or the save button). ✓ emits `=`, which
  * settles the amount and closes the keypad. With `quickAmounts` a row of chips sits on top (8.2). It only emits keys; the form
  * keeps the text (`pressKey`, `addQuickAmount`).
+ *
+ * With `fitBelow` (a selector of a row in the keypad's form, e.g. `app-date-row`) the keypad
+ * grows up to just under that row and its keys get taller, so it fills the same space on any
+ * screen height, in the browser or the home-screen app (owner, 2026-11). It never gets shorter
+ * than its natural size (`min-h-min`) or taller than `MAX_HEIGHT`.
  */
 @Component({
   selector: 'app-calc-keypad',
@@ -28,7 +43,8 @@ interface Key {
   providers: [provideIcons({ lucideCheck, lucideDelete })],
   // Quick taps on the same key must not zoom the page (pinch zoom still works).
   host: {
-    class: 'block touch-manipulation bg-muted p-2',
+    class: 'flex min-h-min flex-col touch-manipulation bg-muted p-2',
+    '[style.height.px]': 'height()',
     // Slides up as it opens and down as it closes (DESIGN.md §8); the sheet's `@if` removes it.
     'animate.enter': 'keypad-enter',
     'animate.leave': 'keypad-leave',
@@ -66,7 +82,7 @@ interface Key {
   template: `
     @if (quickAmounts().length > 0) {
       <div
-        class="mb-1.5 flex gap-1.5"
+        class="mb-1.5 flex shrink-0 gap-1.5"
         role="group"
         [attr.aria-label]="'keypad.quickLabel' | transloco"
       >
@@ -83,7 +99,7 @@ interface Key {
       </div>
     }
     <div
-      class="grid grid-cols-4 gap-1.5"
+      class="grid flex-1 grid-cols-4 grid-rows-[repeat(4,minmax(2.75rem,1fr))] gap-1.5"
       role="group"
       [attr.aria-label]="'keypad.label' | transloco"
     >
@@ -92,7 +108,6 @@ interface Key {
           type="button"
           class="flex items-center justify-center rounded-xl text-2xl tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:opacity-70 disabled:opacity-30"
           [class]="classOf(item)"
-          [class.h-11]="item.kind !== 'done'"
           [disabled]="item.key === '.' && minorUnit() === 0"
           [attr.aria-label]="item.label ? (item.label | transloco) : null"
           (click)="pressed.emit(item.key)"
@@ -108,6 +123,12 @@ interface Key {
   `,
 })
 export class CalcKeypad {
+  private host = inject<ElementRef<HTMLElement>>(ElementRef)
+  /** Room left between the anchor row and the keypad (px). */
+  private readonly GAP = 12
+  /** The tallest the keypad gets on a tall screen (px), keys of about 80px. */
+  private readonly MAX_HEIGHT = 460
+
   /** Quick amounts in whole major units (8.2), a chip row above the keys; none hides it. */
   quickAmounts = input<readonly number[]>([])
   /** The currency's digits: with 0 the "." key is off (currency rule 7). */
@@ -115,6 +136,60 @@ export class CalcKeypad {
   locale = input('th-TH')
   pressed = output<CalcKey | '='>()
   quickPressed = output<number>()
+  /** A selector of the row the keypad grows up to (first match in its form); none = natural size. */
+  fitBelow = input<string | null>(null)
+
+  /** The fitted height, or null for the natural one. */
+  protected height = signal<number | null>(null)
+
+  constructor() {
+    const destroyRef = inject(DestroyRef)
+    afterNextRender(() => {
+      const fit = (): void => this.fit()
+      const view = this.host.nativeElement.ownerDocument.defaultView
+      // The anchor's card grows when a row above it does (an error line); the screen resizes on
+      // rotation and when the browser bars show or hide.
+      const card = this.anchor()?.parentElement
+      const observer =
+        card && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(fit) : null
+      if (card) {
+        observer?.observe(card)
+      }
+      view?.addEventListener('resize', fit)
+      view?.visualViewport?.addEventListener('resize', fit)
+      fit()
+      destroyRef.onDestroy(() => {
+        observer?.disconnect()
+        view?.removeEventListener('resize', fit)
+        view?.visualViewport?.removeEventListener('resize', fit)
+      })
+    })
+  }
+
+  private anchor(): HTMLElement | null {
+    const selector = this.fitBelow()
+    const form = this.host.nativeElement.closest('form')
+    return selector && form ? form.querySelector<HTMLElement>(selector) : null
+  }
+
+  /**
+   * Sizes the keypad so its top sits `GAP` under the anchor. Its bottom comes from layout boxes
+   * (`offsetTop`), not its own rect, which the slide-in animation moves; the anchor and the
+   * keypad's container sit in the same drawer, so the drawer's own slide cancels out.
+   */
+  private fit(): void {
+    const host = this.host.nativeElement
+    const anchor = this.anchor()
+    const parent = host.offsetParent
+    if (!anchor || !(parent instanceof HTMLElement)) {
+      this.height.set(null)
+      return
+    }
+    const bottom =
+      parent.getBoundingClientRect().top + parent.clientTop + host.offsetTop + host.offsetHeight
+    const room = Math.floor(bottom - anchor.getBoundingClientRect().bottom - this.GAP)
+    this.height.set(Math.min(room, this.MAX_HEIGHT))
+  }
 
   protected quick = computed(() => {
     const format = new Intl.NumberFormat(this.locale(), { maximumFractionDigits: 0 })
