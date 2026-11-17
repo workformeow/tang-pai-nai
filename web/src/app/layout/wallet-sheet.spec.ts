@@ -341,22 +341,94 @@ describe('WalletSheet', () => {
     expect(listOps(db, 'pending')).toHaveLength(0)
   })
 
-  it('offers a currency picker once two are active, and the decimals follow it', async () => {
-    currency('JPY', 0, true, 3)
-    changes.update((n) => n + 1)
-    wallets.open({ mode: 'create' })
-    await settle()
-    const select = body().querySelector('select') as HTMLSelectElement
-    expect([...select.options].map((option) => option.value)).toEqual(['THB', 'JPY'])
-    await type(th.wallets.name, 'เยน')
-    await type(th.wallets.initialBalance, '15000.5')
-    select.value = 'JPY'
-    select.dispatchEvent(new Event('change'))
-    await settle()
-    expect(text()).toContain(th.wallets.balanceDecimals)
-    await type(th.wallets.initialBalance, '15,000')
-    await submit()
-    expect(wallets.wallets()).toMatchObject([{ currencyCode: 'JPY', initialBalance: 15000 }])
+  describe('currency (currency.md → Web screens)', () => {
+    const chipPrefix = th.wallets.currencyPick.split('{{')[0]
+    /** The form's currency chip, labelled "สกุลเงิน: <name>". */
+    const chip = () =>
+      [...body().querySelectorAll('button')].find((b) =>
+        b.getAttribute('aria-label')?.startsWith(chipPrefix)
+      )
+    /** The picker's flags, by code. */
+    const flags = () =>
+      [...body().querySelectorAll<HTMLButtonElement>('app-currency-pick button')].map((b) => ({
+        code: b.textContent.trim(),
+        pressed: b.getAttribute('aria-pressed'),
+        label: b.getAttribute('aria-label'),
+      }))
+    const pick = async (code: string) => {
+      ;[...body().querySelectorAll<HTMLButtonElement>('app-currency-pick button')]
+        .find((b) => b.textContent.trim() === code)
+        ?.click()
+      await settle()
+    }
+    const groups = () =>
+      [...body().querySelectorAll('app-currency-pick p')].map((p) => p.textContent.trim())
+
+    it('shows the chip with one active currency, and picks from a flag grid; decimals follow', async () => {
+      wallets.open({ mode: 'create' })
+      await settle()
+      expect(chip()?.textContent).toContain('THB')
+      currency('JPY', 0, true, 3)
+      changes.update((n) => n + 1)
+      await type(th.wallets.name, 'เยน')
+      await type(th.wallets.initialBalance, '15000.5')
+      chip()?.click()
+      await settle()
+      expect(text()).toContain(th.wallets.currency)
+      expect(groups()).toEqual([th.currencyGroups.asia])
+      expect(flags()).toMatchObject([
+        { code: 'THB', pressed: 'true' },
+        { code: 'JPY', pressed: 'false', label: 'เยนญี่ปุ่น' },
+      ])
+      await pick('JPY')
+      // Back on the form at once, the balance now checked against 0 digits.
+      expect(body().querySelector('app-currency-pick')).toBeNull()
+      expect(chip()?.textContent).toContain('JPY')
+      expect(text()).toContain(th.wallets.balanceDecimals)
+      await type(th.wallets.initialBalance, '15,000')
+      await submit()
+      expect(wallets.wallets()).toMatchObject([{ currencyCode: 'JPY', initialBalance: 15000 }])
+    })
+
+    it("offers only active currencies, the book's own first; an unknown one under อื่น ๆ", async () => {
+      currency('KRW', 0, true, 2)
+      currency('XAU', 2, true, 9)
+      wallet('w1', { currencyCode: 'KRW' })
+      wallets.open({ mode: 'create' })
+      await settle()
+      chip()?.click()
+      await settle()
+      expect(groups()).toEqual([
+        th.currencyGroups.inBook,
+        th.currencyGroups.asia,
+        th.currencyGroups.other,
+      ])
+      expect(flags().map((flag) => flag.code)).toEqual(['KRW', 'THB', 'KRW', 'XAU'])
+    })
+
+    it('shows a wallet with transactions its currency as text, with the reason (wallet rule 4)', async () => {
+      wallet('w1', { name: 'Card' })
+      putRow(db, 'transactions', {
+        id: 't1',
+        bookId: 'p1',
+        walletId: 'w1',
+        categoryId: 'c',
+        amount: 1000,
+        occurredOn: '2026-11-02',
+        note: '',
+        excludeFromReport: false,
+        createdAt: 1,
+        updatedAt: 1,
+        deletedAt: null,
+        changeSeq: 1,
+        updatedBy: 'u1',
+      })
+      changes.update((n) => n + 1)
+      wallets.open({ mode: 'edit', id: 'w1' })
+      await settle()
+      expect(chip()).toBeUndefined()
+      expect(text()).toContain(th.wallets.currencyLocked)
+    })
   })
 
   it('edits a wallet with its balance grouped and its sign, keeping its own name free', async () => {

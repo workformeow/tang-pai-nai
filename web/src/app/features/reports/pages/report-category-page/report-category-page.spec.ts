@@ -45,6 +45,9 @@ describe('ReportCategoryPage', () => {
   it('shows a parent: its total and share, the period before, its children and "ไม่ระบุหมวดย่อย" (Q4–Q5, E4)', async () => {
     await open({ id: 'food' })
     expect(title()).toBe('food')
+    // The page is one currency, named in the card's corner (currency rule 8).
+    expect(element().querySelector('section app-currency-flag')).not.toBeNull()
+    expect(text()).toContain('THB')
     expect(text()).toContain('-1,300.00')
     expect(text()).toContain('89.7% ของรายจ่าย · ต.ค. 2026')
     expect(text()).toContain('เทียบกับ ก.ย. 2026: 400.00')

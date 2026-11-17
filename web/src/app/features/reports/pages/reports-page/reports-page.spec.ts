@@ -25,6 +25,11 @@ describe('ReportsPage', () => {
     [...element().querySelectorAll<HTMLElement>('[role="tab"]')].find(
       (el) => el.textContent.trim() === label
     )
+  /** A tile of the summary card (income / expense), which chooses the breakdown. */
+  const tile = (label: string) =>
+    [...element().querySelectorAll<HTMLElement>('app-report-summary-card button')].find((el) =>
+      el.textContent.includes(label)
+    )
 
   beforeEach(async () => {
     setup = await setUpReports()
@@ -67,13 +72,33 @@ describe('ReportsPage', () => {
     expect(rows[0].textContent).toContain('89.7%')
     expect(rows[0].textContent).toContain('1 หมวดย่อย')
     expect(rows[1].textContent).toContain(th.reports.archived)
-    tab(th.categories.income)?.click()
+    tile(th.categories.income)?.click()
     await settle()
     expect(
       [...element().querySelectorAll('app-report-share-list a')].map((row) =>
         row.getAttribute('href')
       )
     ).toEqual(['/reports/category/salary'])
+  })
+
+  it("chooses the breakdown's type with the summary's tiles, expense first (B in #23)", async () => {
+    // No tab bar repeats the tiles.
+    expect(tab(th.categories.expense)).toBeUndefined()
+    expect(tile(th.categories.expense)?.getAttribute('aria-pressed')).toBe('true')
+    expect(tile(th.categories.income)?.getAttribute('aria-pressed')).toBe('false')
+    expect(text()).toContain(`${th.reports.byCategory} · ${th.categories.expense}`)
+    tile(th.categories.income)?.click()
+    await settle()
+    expect(reports.type()).toBe('income')
+    expect(tile(th.categories.income)?.getAttribute('aria-pressed')).toBe('true')
+    expect(text()).toContain(`${th.reports.byCategory} · ${th.categories.income}`)
+  })
+
+  it('names the currency on the summary even with one, without currency chips', () => {
+    const card = element().querySelector('app-report-summary-card')
+    expect(card?.querySelector('app-currency-flag')).not.toBeNull()
+    expect(card?.textContent).toContain('THB')
+    expect(element().querySelector(`[aria-label="${th.reports.currency}"]`)).toBeNull()
   })
 
   it('puts the breakdown before the trend, and has no trend for a month (rule 7)', async () => {
@@ -117,15 +142,24 @@ describe('ReportsPage', () => {
     expect(transactions.sheet()).toEqual({ mode: 'create' })
   })
 
-  it('offers a currency switch only when the view holds more than one (Q6)', async () => {
+  it('puts the currency chips on top, in wallet order, and shows one currency at a time (Q6, B)', async () => {
     expect(element().querySelector(`[aria-label="${th.reports.currency}"]`)).toBeNull()
     setup.wallet('usd', { currencyCode: 'USD', sortOrder: 3 })
     setup.transaction('2026-10-11', 'food', 700, { walletId: 'usd' })
     await settle()
-    expect(element().querySelectorAll('app-report-summary-card')).toHaveLength(2)
+    const chips = element().querySelector(`[aria-label="${th.reports.currency}"]`)
+    expect(
+      [...(chips?.querySelectorAll('[role="tab"]') ?? [])].map((c) => c.textContent.trim())
+    ).toEqual(['THB', 'USD'])
+    // The chips come before the one summary card.
+    expect(
+      chips?.compareDocumentPosition(element().querySelector('app-report-summary-card') as Node)
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(element().querySelectorAll('app-report-summary-card')).toHaveLength(1)
     tab('USD')?.click()
     await settle()
     expect(reports.currencyCode()).toBe('USD')
+    expect(element().querySelector('app-report-summary-card')?.textContent).toContain('USD')
     expect(element().querySelector('app-report-share-list a')?.textContent).toContain('7.00')
   })
 })

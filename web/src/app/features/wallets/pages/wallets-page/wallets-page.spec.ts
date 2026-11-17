@@ -147,6 +147,34 @@ describe('WalletsPage', () => {
     expect(text()).toContain('กระเป๋าที่ใช้อยู่ (3)')
   })
 
+  it('names each total line by flag and code only with several currencies (currency rule 8)', async () => {
+    wallet('Cash', { initialBalance: 150050, sortOrder: 1 })
+    await settle()
+    const total = () => page().querySelector('[aria-labelledby="wallets-total"]')
+    expect(total()?.querySelector('app-currency-flag')).toBeNull()
+    putRow(db, 'currencies', {
+      code: 'JPY',
+      minorUnit: 0,
+      isActive: true,
+      sortOrder: 3,
+      createdAt: 1,
+      updatedAt: 1,
+      changeSeq: 1,
+    })
+    wallet('Trip', { initialBalance: 38500, currencyCode: 'JPY', sortOrder: 0 })
+    await settle()
+    // Wallet order: the JPY wallet is first, so is its line (currency rule 6).
+    expect(
+      [...(total()?.querySelectorAll('p') ?? [])].map((line) =>
+        line.textContent.replace(/\s+/g, ' ').trim()
+      )
+    ).toEqual(['JPY ¥38,500', 'THB ฿1,500.50'])
+    expect(total()?.querySelectorAll('app-currency-flag')).toHaveLength(2)
+    // Under the name only for a wallet not in THB.
+    expect(text()).toContain('Trip JPY ¥38,500')
+    expect(text()).toContain('Cash ฿1,500.50')
+  })
+
   it('lists cards in their own section with what they owe, and "ชำระ" opens the pay sheet (credit-card rule 6)', async () => {
     const card = { isCreditCard: true, excludeFromTotal: true }
     wallet('Cash', { initialBalance: 5711300, sortOrder: 0 })
