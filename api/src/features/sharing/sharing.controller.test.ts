@@ -108,3 +108,48 @@ describe('/sharing', () => {
     expect(res.status).toBe(HttpStatus.NOT_FOUND)
   })
 })
+
+describe('/sharing for a demo (demo rule 9)', () => {
+  const demoApp = () => {
+    const demo = express()
+    demo.use(express.json())
+    demo.use(
+      '/sharing',
+      createSharingRouter(createSharingController(setup.service), async (userId) =>
+        Promise.resolve(userId === ID.alice)
+      )
+    )
+    demo.use(errorHandler)
+    return demo
+  }
+
+  it('refuses inviting, resending and accepting with 403 DEMO_NOT_ALLOWED', async () => {
+    const auth = await bearer(ID.alice)
+    const responses = [
+      await request(demoApp())
+        .post(`/sharing/books/${ID.pa}/invites`)
+        .set('Authorization', auth)
+        .send({ email: EMAIL.bob, role: 'viewer', walletIds: [ID.home] }),
+      await request(demoApp())
+        .post('/sharing/invites/01900000-0000-7000-8000-0000000000aa/resend')
+        .set('Authorization', auth)
+        .send({ lang: 'th' }),
+      await request(demoApp())
+        .post('/sharing/invites/01900000-0000-7000-8000-0000000000aa/accept')
+        .set('Authorization', auth),
+    ]
+
+    for (const res of responses) {
+      expect(res.status).toBe(HttpStatus.FORBIDDEN)
+      expect((res.body as { code?: string }).code).toBe('DEMO_NOT_ALLOWED')
+    }
+  })
+
+  it('still answers the reads the app makes at start', async () => {
+    const res = await request(demoApp())
+      .get('/sharing/with-me')
+      .set('Authorization', await bearer(ID.alice))
+
+    expect(res.status).toBe(HttpStatus.OK)
+  })
+})

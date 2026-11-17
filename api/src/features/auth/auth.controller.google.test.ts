@@ -47,6 +47,7 @@ const disabledUser: User = {
   phoneVerifiedAt: null,
   status: 'disabled',
   timezone: 'Asia/Bangkok',
+  isDemo: false,
   createdAt: START,
   updatedAt: START,
 }
@@ -142,7 +143,13 @@ describe('GET /auth/providers', () => {
 
     const body = res.body as AppResponse<AuthProvidersData>
     expect(res.status).toBe(HttpStatus.OK)
-    expect(body.data).toEqual({ google, phone: true, botCheckSiteKey: null, testVersion: false })
+    expect(body.data).toEqual({
+      google,
+      phone: true,
+      botCheckSiteKey: null,
+      testVersion: false,
+      demo: false,
+    })
   })
 })
 

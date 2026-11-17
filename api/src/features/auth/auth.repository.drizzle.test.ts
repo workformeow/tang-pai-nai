@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { env } from '@/core/config'
 import { createDatabase } from '@/core/database/client'
+import { demoRowCount } from '@/core/database/demo-rows'
 import {
   categories,
   books,
@@ -15,6 +16,7 @@ import {
   wallets,
 } from '@/core/database/schema'
 import { makeTempDir, removeTempDir } from '@/shared/testing/temp-dir'
+import { buildDemoSeed, demoSeedSize } from './auth.demo-seed'
 import { createDrizzleAuthRepository } from './auth.repository.drizzle'
 import type { AuthRepository } from './auth.repository'
 
@@ -605,5 +607,69 @@ describe('deleting an account (privacy rules 8, 10)', () => {
 
   it('answers false for a user already gone', async () => {
     await expect(repo.deleteUser('nobody', 'nobody@example.com')).resolves.toBe(false)
+  })
+})
+
+describe('demo (docs/features/demo.md rules 4, 11, 13)', () => {
+  const seedFor = (today = '2026-11-17') =>
+    buildDemoSeed({ lang: 'th', today, now: Date.parse(`${today}T05:00:00.000Z`) })
+
+  const newDemo = async (email = 'demo-1@demo.invalid') =>
+    repo.createUser({ email, displayName: 'ผู้ทดลองใช้', isDemo: true })
+
+  it('makes a demo user (isDemo stored)', async () => {
+    const user = await newDemo()
+
+    expect(user.isDemo).toBe(true)
+    expect((await repo.findUserById(user.id))?.isDemo).toBe(true)
+    expect((await repo.createUser({ email: 'a@example.com', displayName: 'a' })).isDemo).toBe(false)
+  })
+
+  it('writes every seed row as the user’s own, each with a changeSeq of its own', async () => {
+    const user = await newDemo()
+    const seed = seedFor()
+
+    await repo.seedDemo(user.id, seed, AT)
+
+    const written = await database
+      .select()
+      .from(transactions)
+      .where(eq(transactions.userId, user.id))
+    expect(written).toHaveLength(seed.transactions.length)
+    expect(await demoRowCount(database, user.id)).toBe(demoSeedSize(seed))
+    const seqs = [
+      ...(await database.select({ seq: books.changeSeq }).from(books)),
+      ...(await database.select({ seq: wallets.changeSeq }).from(wallets)),
+      ...(await database.select({ seq: categories.changeSeq }).from(categories)),
+      ...written.map((row) => ({ seq: row.changeSeq })),
+    ].map((row) => row.seq)
+    expect(new Set(seqs).size).toBe(seqs.length)
+    expect(written.every((row) => row.updatedBy === user.id && row.deletedAt === null)).toBe(true)
+  })
+
+  it('counts no rows for a user who is not a demo', async () => {
+    const user = await repo.createUser({ email: 'a@example.com', displayName: 'a' })
+
+    expect(await demoRowCount(database, user.id)).toBeNull()
+  })
+
+  it('deletes demos created before the cut-off with everything under them', async () => {
+    const old = await newDemo('demo-old@demo.invalid')
+    await repo.seedDemo(old.id, seedFor(), AT)
+    const kept = await repo.createUser({ email: 'a@example.com', displayName: 'a' })
+
+    const removed = await repo.deleteExpiredDemos(new Date(Date.now() + 1000))
+
+    expect(removed).toBe(1)
+    expect(await repo.findUserById(old.id)).toBeNull()
+    expect(await repo.findUserById(kept.id)).not.toBeNull()
+    expect(await database.select().from(transactions)).toHaveLength(0)
+    expect(await database.select().from(books)).toHaveLength(0)
+  })
+
+  it('keeps a demo younger than the cut-off', async () => {
+    await newDemo()
+
+    expect(await repo.deleteExpiredDemos(new Date(Date.now() - 60_000))).toBe(0)
   })
 })
