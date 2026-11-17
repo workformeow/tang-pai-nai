@@ -566,6 +566,7 @@ REAUTH_REQUIRED`. Revoking sessions needs an active session but no recent auth (
   | `OTP_PEPPER`                                | HMAC key for codes, ≥ 32 chars                                 | — (required)                     |
   | `SIGNUP_ENABLED`                            | `false` closes sign-up; existing users still sign in           | `true`                           |
   | `TEST_VERSION`                              | `true`: "test version" on sign-in (privacy rule 2), staging    | `false`                          |
+  | `DEMO_ENABLED`                              | `true`: ทดลองใช้ Demo (demo rule 1), staging and production    | `false`                          |
   | `EMAIL_DAILY_LIMIT`                         | global cap on sign-in emails per day                           | `100`                            |
   | `SMS_DAILY_LIMIT`                           | global cap on SMS (phone codes) per day                        | `100`                            |
   | `PASSWORD_BREACH_CHECK`                     | `hibp` checks new passwords against HIBP, `off` skips it       | `hibp`                           |
@@ -587,8 +588,19 @@ REAUTH_REQUIRED`. Revoking sessions needs an active session but no recent auth (
   challenges, `wallet_invites.email`) are deleted by address. A new table that references
   `users` needs `onDelete: 'cascade'`, or deleting an account fails. Mails that report something
   done go through `sendNoticeMail` (never fails what it reports).
+- **Demo** (#25, [demo.md](../docs/features/demo.md)): `POST /auth/demo` (`demoOn` → `botGate`
+  → `validate`) makes a demo user (`users.isDemo`, address `demo-<id>@demo.invalid`), its seed
+  and a session in one transaction. The seed is a pure template, `auth.demo-seed.ts`
+  (`buildDemoSeed`, dated from the user's today; the default categories are a copy of the
+  web's `default-categories.ts`, keep both alike), written by `authRepo.seedDemo` straight into
+  the synced tables with one block of `changeSeq`s, parents first. Routes a demo can't use sit
+  behind `refuseDemo(isDemo)` (`core/middleware`, `403 DEMO_NOT_ALLOWED`; each feature passes
+  its own lookup: `authController.demoGate`, sharing's `createSharingRouter(c, isDemo)`), so a
+  new route that mails, texts, changes a credential or shares gets it too. Sync caps a demo at
+  `SYNC_LIMITS.DEMO_ROWS` live rows (`demoRowCount`, `core/database`; a create past it is
+  `DEMO_LIMIT`). `DELETE /auth/demo` deletes at once; `cleanup` deletes demos older than 24 hours.
 - **Cleanup**: `npm run auth:cleanup` deletes challenges, sessions and buckets that ended over 7
-  days ago (a Vercel Cron endpoint replaces it at deploy, #17).
+  days ago, and demo users older than 24 hours (a Vercel Cron endpoint replaces it at deploy, #17).
 - **Testing auth**: services use `createMemoryAuthRepository()` and `breachChecker:
 skipBreachCheck` (tests never call HIBP; `vitest.config.ts` also sets
   `PASSWORD_BREACH_CHECK=off`); HTTP tests build an app with

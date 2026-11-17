@@ -32,7 +32,7 @@ post:
     '401':
       $ref: '../../components/responses/error.response.yaml'
     '403':
-      description: '`USER_DISABLED`'
+      description: '`USER_DISABLED`, or `DEMO_NOT_ALLOWED` (a demo account, demo rule 9)'
       content:
         application/json:
           schema:

@@ -1,0 +1,12 @@
+type: object
+properties:
+  lang:
+    type: string
+    enum: [th, en]
+    default: th
+    description: The app's current UI language; the demo's book, categories and rows are in it
+  botToken:
+    type: string
+    description: >-
+      The Turnstile token (auth rule 32), required while the bot check is on. Read before
+      validation and never stored.

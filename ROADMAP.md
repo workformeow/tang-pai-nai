@@ -99,14 +99,53 @@ merging.
 | 22  | Privacy & account deletion     | ✅  | ✅  | a privacy notice open without sign-in (`/auth/privacy`, Account › เกี่ยวกับแอป), "test version" from `TEST_VERSION`, "signing in accepts the notice"; delete the account at once (recent auth + typed email + button). [spec](docs/features/privacy.md) |
 | 23  | Currency picker                | ✅  | ✅  | 25 travel currencies, all active (migration 0022; LAK / TWD to 0 digits); a flag grid per continent in the wallet sheet (2B); per-currency lists in wallet order; THB-only quick amounts; Reports one currency at a time with the tiles as the switch (B). [spec](docs/features/currency.md) |
 | 24  | Currency overview              | —   | ✅  | ภาพรวม: every currency of the Reports period side by side over every counted wallet (P1 rows: income · expense, net, wallets, end balance), from the Reports ⋮ (E1) with more than one currency; the Reports period, "ดูตาม" top right. Web only. [spec](docs/features/currency-overview.md) |
-| 25  | Demo                           | ⬜  | ⬜  | ทดลองใช้ Demo for job applications: sign-in button → `/auth/demo` (intro, Turnstile, one button) → a demo user of its own with ~3 months of seeded data, pulled behind a checklist loader, straight to Transactions; no sharing; email / password / Google / phone / invites / delete shown disabled; จบ Demo deletes at once, the cron after 24 h; `DEMO_ENABLED` on staging and production. [spec](docs/features/demo.md) |
+| 25  | Demo                           | ✅  | ✅  | ทดลองใช้ Demo for job applications: a card under the sign-in forms → `/auth/demo` (intro, Turnstile, one button) → a demo user of its own with ~3 months of seeded data (migration 0023), pulled behind a checklist loader, straight to Transactions; no sharing; password / Google / phone / invites / delete shown disabled (`403 DEMO_NOT_ALLOWED`); 2,000 rows at most; จบ Demo deletes at once, the cron after 24 h; `DEMO_ENABLED` on staging and production. [spec](docs/features/demo.md) |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
 
-Order of work from here (owner, 2026-11): **#22 (done) → #20 (done) → #21 (done) → #23 (done) → #24 (done) → #25**; then Playwright end-to-end tests (Backlog) once the wanted features are done. The number is a feature's id, not
+Order of work from here (owner, 2026-11): **#22 (done) → #20 (done) → #21 (done) → #23 (done) → #24 (done) → #25 (done)**; then Playwright end-to-end tests (Backlog) once the wanted features are done. The number is a feature's id, not
 its place in the queue, so numbers are never reused or shuffled. Each row gets its `docs/features/<feature>.md` before work starts. Rows 0–8 (with 4a) are the MVP.
 After #8 the app can replace Money Lover for daily use. Until #17, everything runs **locally only** (see locked
 decision "Local-first").
+
+---
+
+## Done: Demo (#25)
+
+Built and tested 2026-11-17 on `feat/demo`. [spec](docs/features/demo.md). Migration
+`0023_demo_users` (`users.is_demo`); `DEMO_ENABLED` must be set to `true` on staging and
+production (Vercel env) for the button to show.
+
+- **Decided at the start** (owner, Q1): the seed's rows, reviewed as a table before any code
+  (demo.md → The seed): an office worker in Bangkok on ฿35,000, five wallets (the yen bought
+  with an exchange pair kept out of the reports), rent and a streaming subscription as rules,
+  a loan to "เพื่อนร่วมงาน" (no nickname), a closed Japan trip.
+- **Decided while building** (owner): no note where the category already says it; the bank
+  starts at ฿80,000 (it went below 0 for some start days); ลองใหม่ on a failed first pull pulls
+  again instead of making a second demo; `DELETE /auth/demo` from a real account is
+  `403 NOT_DEMO`; sharing refuses only invite / resend / accept (the app reads "shared with
+  me" at start); the profile card says "บัญชีทดลอง ไม่มีอีเมล" instead of the placeholder
+  address; the sign-in entry is a divider ("อยากลองก่อน?") and a card, not a button that looks
+  like the form's; the banner sits under the header; the privacy notice gains a line.
+- **Also in this branch** (owner, 2026-11-17): the default categories split food into
+  **อาหารประจำวัน** and **เครื่องดื่ม** (a pricier meal stays on the parent) and add **รถไฟฟ้า**
+  under การเดินทาง (category rule 8; 28 categories, books made before keep theirs); a
+  top-level category's report page names it under its icon, like a sub-category's path.
+- **API**: `auth.demo-seed.ts` (the template, pure; the default set copied from the web's),
+  `authService.startDemo` / `endDemo` / `isDemo`, `authRepo.seedDemo` (one block of
+  `changeSeq`s, parents first) and `deleteExpiredDemos` (in `cleanup`), `refuseDemo`
+  (`core/middleware`, used by auth and sharing), `demoRowCount` (`core/database`) for the
+  sync cap (`DEMO_LIMIT`), no mail to a demo's address.
+- **Web**: `/auth/demo` (`DemoPage`), the sign-in card and expired line, `layout/demo-loader`
+  and `layout/demo-banner` in the shell, `AuthService.startDemo` / `endDemo` /
+  `takeDemoExpired` (`tpn-demo` in localStorage makes a refused refresh of a demo wipe like a
+  revoked one), the Account and Security rows turned off, `notInDemo` on their routes.
+- **Checked** with Playwright at 375×812 in Thai and English, light and dark: start → checklist
+  → Transactions (due card, ฿ and ¥ totals) → Account → จบ Demo; a deleted demo wipes the
+  device on the next open. A demo starts in about 0.2 s and pulls ~420 rows in one page.
+- **Tests**: API 755 (seed builder over a year of start days, service, HTTP, SQLite seed and
+  cascade, `refuseDemo`, the sync cap, sharing refusals); web 815 (demo page, sign-in card,
+  checklist, banner, Account, Security, `AuthService`).
 
 ---
 

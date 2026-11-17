@@ -146,8 +146,9 @@ Owner's choices in #10 (mock-up rounds 1–3; DESIGN.md → Reports):
   - an empty period: `app-empty-state` "ยังไม่มีธุรกรรมในช่วงนี้" with "เพิ่มธุรกรรม" (rule 14).
 - **Category page** (`/reports/category/:id`, the header ‹ and the category's name; same
   period, wallet and currency; the chips and swipe work here too):
-  - a card: the currency's flag and code in its top-right corner (#23), the badge, the total in
-    the type's colour, "89.7% ของรายจ่าย · ต.ค. 2026", "เทียบกับ ก.ย. 2026: 400.00" (rule 12);
+  - a card: the currency's flag and code in its top-right corner (#23), the badge, under it
+    the category's name on a parent's page (owner, 2026-11-17: the same line a sub-category's
+    page uses for "อาหาร › กาแฟ"), the total in the type's colour, "89.7% ของรายจ่าย · ต.ค. 2026", "เทียบกับ ก.ย. 2026: 400.00" (rule 12);
   - for a parent with sub-categories: "หมวดหมู่ย่อย" as the same split list, with
     "ไม่ระบุหมวดย่อย · บันทึกที่หมวดหลักโดยตรง" for its own money (Q4);
   - "ธุรกรรม n รายการ" and the day cards of the Transactions tab (rule 13); a row opens the

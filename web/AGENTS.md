@@ -1001,12 +1001,21 @@ are on, so don't disable them.
     (`features/account/pages/phone-page`): `changePhone` (recent auth, sends the SMS),
     `confirmPhone(code, lang)`, `removePhone(lang)`; `AuthUser.phone` is the saved number or
     `null`.
+- **Demo** (#25, [demo.md](../docs/features/demo.md)): `AuthService.startDemo(lang, botToken)`
+  (`/auth/demo`, `features/auth/pages/demo-page`, linked from the sign-in card while
+  `providers().demo`), `endDemo()` (Account's จบ Demo: then `OfflineService.wipe()`, no push).
+  `AuthUser.isDemo` drives the shell's `layout/demo-banner` (hours left from `createdAt`) and
+  `layout/demo-loader` (the first pull as a checklist, the gates `demoLoading` / `demoFailed`),
+  and the Account / Security rows shown turned off (`notInDemo` on their routes). The device
+  remembers it holds a demo (`tpn-demo` in localStorage): a refused refresh then counts as
+  `revoked` (the data is wiped) and the sign-in page says the demo ended
+  (`takeDemoExpired()`).
 - **Auth error codes** the screens switch on: `OTP_INVALID`, `OTP_LOCKED`, `OTP_EXPIRED`,
   `SESSION_EXPIRED`, `SESSION_REVOKED`, `USER_DISABLED`, `RATE_LIMITED` (with `Retry-After`),
   `INVALID_CREDENTIALS`, `CURRENT_PASSWORD_INVALID`, `REAUTH_REQUIRED`, `PASSWORD_TOO_SHORT`,
   `PASSWORD_TOO_LONG`, `PASSWORD_TOO_WEAK`, `PASSWORD_MATCHES_EMAIL`, `PASSWORD_BREACHED`,
   `CURRENT_SESSION`, `IDENTITY_ALREADY_LINKED`, `GOOGLE_IN_USE`, `PHONE_DISABLED`,
-  `PHONE_UNCHANGED`, `PHONE_IN_USE`, `BOT_CHECK_FAILED`.
+  `PHONE_UNCHANGED`, `PHONE_IN_USE`, `BOT_CHECK_FAILED`, `DEMO_NOT_ALLOWED`, `DEMO_DISABLED`.
   `authErrorMessage` (`core/auth/auth-error.ts`, shared by the auth and account features) maps
   them to translation keys.
 - **Bot check** (auth spec rule 32): `features/auth/components/bot-check.ts` (`app-bot-check`,

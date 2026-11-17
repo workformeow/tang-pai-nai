@@ -4,7 +4,8 @@ get:
   summary: Daily auth cleanup (Vercel Cron)
   description: >-
     Deletes auth challenges, sessions and rate-limit buckets that ended over 7 days ago (auth rule
-    20), as `npm run auth:cleanup` does. Called daily by Vercel Cron with `CRON_SECRET`.
+    20), and demo users created more than 24 hours ago with all their data (demo rule 13), as
+    `npm run auth:cleanup` does. Called daily by Vercel Cron with `CRON_SECRET`.
   operationId: authCleanup
   security:
     - cronSecret: []

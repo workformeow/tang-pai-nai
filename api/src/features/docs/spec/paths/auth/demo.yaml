@@ -1,0 +1,82 @@
+post:
+  tags:
+    - Auth
+  summary: Start a demo (ทดลองใช้ Demo)
+  description: >-
+    Demo rules 1–7. Creates, in one transaction, a demo user of its own (`isDemo`, the address
+    `demo-<id>@demo.invalid`), one book with the default categories in `lang` and about 3 months
+    of rows dated from today (wallets, transactions, transfers, two recurring rules, a debt and a
+    trip in JPY), and a session: it answers like a sign-in, with the refresh cookie. The rows are
+    ordinary synced rows, so the first pull brings them. `404 DEMO_DISABLED` while
+    `DEMO_ENABLED` is off (before the bot check); the bot check as for sign-in; at most 5 demos
+    per IP per hour.
+  operationId: demoStart
+  security: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/models/auth-demo-start.schema.yaml'
+  responses:
+    '200':
+      description: The demo is made and signed in; the refresh token is in the `__Host-rt` cookie
+      headers:
+        Set-Cookie:
+          schema:
+            type: string
+          description: '`__Host-rt=<token>; HttpOnly; Secure; SameSite=Strict; Path=/`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/auth-session-response.schema.yaml'
+    '403':
+      description: '`BOT_CHECK_FAILED`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '404':
+      description: '`DEMO_DISABLED`: `DEMO_ENABLED` is off'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '422':
+      description: Invalid body (`lang` other than `th` / `en`)
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '429':
+      $ref: '../../components/responses/too-many-requests.response.yaml'
+delete:
+  tags:
+    - Auth
+  summary: End the demo (จบ Demo)
+  description: >-
+    Demo rule 12. Deletes the caller at once with everything under it, like an account deletion
+    but with no mail and no recent authentication, and drops the refresh cookie. A demo only:
+    `403 NOT_DEMO` for any other account.
+  operationId: demoEnd
+  security:
+    - bearerAuth: []
+  responses:
+    '200':
+      description: Deleted
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/message-response.schema.yaml'
+    '401':
+      description: Access token invalid, or its session was revoked or expired
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '403':
+      description: '`NOT_DEMO`, or `USER_DISABLED`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'

@@ -63,6 +63,8 @@ paths:
     $ref: './paths/auth/account-deletion.yaml'
   /auth/account:
     $ref: './paths/auth/account.yaml'
+  /auth/demo:
+    $ref: './paths/auth/demo.yaml'
   /auth/google/start:
     $ref: './paths/auth/google-start.yaml'
   /auth/google/callback:

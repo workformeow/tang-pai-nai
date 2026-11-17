@@ -42,7 +42,9 @@ minimum the backlog's "open sign-up obligations" (PDPA) asked for.
    - who sees it: only the user, and the people they share wallets with (sharing.md); never sold
      or given to anyone else; no ads or analytics;
    - how to delete it: Account › ความปลอดภัย › ลบบัญชี (rule 5), which also wipes this device;
-     the providers' backups and logs expire on their own;
+     the providers' backups and logs expire on their own; ทดลองใช้ Demo keeps no personal data
+     (no email or phone) and a demo account goes with all its data within 24 hours
+     ([demo.md](demo.md), #25);
    - while it is a test version: rule 2's sentence.
      No personal contact address is printed: deleting in the app needs nobody's help.
 2. **Test version**: while the API's `TEST_VERSION=true` (staging; `false` or unset in

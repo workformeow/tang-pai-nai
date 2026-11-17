@@ -34,7 +34,7 @@ post:
     '401':
       $ref: '../../components/responses/error.response.yaml'
     '403':
-      description: '`REAUTH_REQUIRED`, or `USER_DISABLED`'
+      description: '`REAUTH_REQUIRED`, `USER_DISABLED`, or `DEMO_NOT_ALLOWED` (a demo account, demo rule 9)'
       content:
         application/json:
           schema:
@@ -85,7 +85,7 @@ delete:
     '401':
       $ref: '../../components/responses/error.response.yaml'
     '403':
-      description: '`REAUTH_REQUIRED`, or `USER_DISABLED`'
+      description: '`REAUTH_REQUIRED`, `USER_DISABLED`, or `DEMO_NOT_ALLOWED` (a demo account, demo rule 9)'
       content:
         application/json:
           schema:

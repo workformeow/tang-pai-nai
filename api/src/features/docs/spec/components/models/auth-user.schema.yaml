@@ -1,5 +1,6 @@
 type: object
-required: [id, email, displayName, avatarUrl, timezone, hasPassword, identities, phone]
+required:
+  [id, email, displayName, avatarUrl, timezone, hasPassword, identities, phone, isDemo, createdAt]
 properties:
   id:
     type: string
@@ -34,3 +35,15 @@ properties:
     type: [string, 'null']
     description: The verified mobile number in E.164 (auth spec rule 25), or null
     example: '+66812345678'
+  isDemo:
+    type: boolean
+    description: >-
+      A demo account (demo spec): seeded data, deleted 24 hours after `createdAt`, and no
+      credential, phone, sharing or delete routes (`403 DEMO_NOT_ALLOWED`). Its `email` is a
+      placeholder (`demo-<id>@demo.invalid`) no mail can reach.
+    example: false
+  createdAt:
+    type: string
+    format: date-time
+    description: When the account was made; a demo's hours left count from it (demo rule 10)
+    example: '2026-11-17T05:00:00.000Z'

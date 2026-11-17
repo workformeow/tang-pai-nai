@@ -258,7 +258,8 @@ Raw OTPs, link tokens and refresh tokens are **never stored**, only their hashes
     revoked from Account › Security) at `info`/`warn`, for later review.
 20. Cleanup: a daily **Vercel Cron** job (`POST /internal/cron/auth-cleanup`, protected by
     `CRON_SECRET`) deletes challenges, sessions and rate-limit buckets more than 7 days past
-    expiry or revocation. It replaces tripsurance's `setInterval`, which can't run on serverless.
+    expiry or revocation, and demo users created more than 24 hours ago with all their data
+    ([demo.md](demo.md) rule 13). It replaces tripsurance's `setInterval`, which can't run on serverless.
     Until deploy, the same job runs locally as an npm script.
 
 **Phone OTP (third option)**

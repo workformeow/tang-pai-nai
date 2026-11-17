@@ -10,7 +10,7 @@ properties:
     example: '2026-01-01T00:00:00.000Z'
   data:
     type: object
-    required: [challenges, sessions, rateLimitBuckets]
+    required: [challenges, sessions, rateLimitBuckets, demoUsers]
     properties:
       challenges:
         type: integer
@@ -21,3 +21,7 @@ properties:
       rateLimitBuckets:
         type: integer
         example: 40
+      demoUsers:
+        type: integer
+        description: Demo users created more than 24 hours ago, deleted with all their data
+        example: 2

@@ -21,3 +21,9 @@ get:
         application/json:
           schema:
             $ref: '../../components/models/error.schema.yaml'
+    '403':
+      description: '`DEMO_NOT_ALLOWED`: a demo account is ended with DELETE /auth/demo (demo rule 9)'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
