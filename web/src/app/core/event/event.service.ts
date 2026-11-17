@@ -81,6 +81,12 @@ export class EventService {
         entry.wallets += Number(row['wallets'])
         byEvent.set(id, entry)
       }
+      for (const entry of byEvent.values()) {
+        // Currency rule 6: the book's wallet order.
+        entry.money.sort((a, b) =>
+          this.walletService.compareCurrency(a.currencyCode, b.currencyCode)
+        )
+      }
       return events.map((event) => {
         const entry = byEvent.get(event.id)
         return {

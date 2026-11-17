@@ -118,16 +118,21 @@ Owner's choices in #10 (mock-up rounds 1–3; DESIGN.md → Reports):
     tab's own range sheet;
   - the **period chips** (`09/2026 · เดือนที่แล้ว · เดือนนี้`, no "อนาคต"), a sideways swipe
     moves period;
+  - **currency chips** (flag + code) right under the period chips, only when the view has
+    more than one currency (Q6; on top since #23, mock-up `report-currency.html` B): the
+    whole page below is the chosen currency, in the book's wallet order (currency rule 6);
   - the **summary card** (H1, reordered by the owner in 2026-11: what came in and went out is
-    what a report is read for, one per currency): the period's name, รายรับ / รายจ่าย as
-    the headline in tiles tinted with the money colours (↙ / ↗ beside the word), then
+    what a report is read for), **one**, for the chosen currency: the period's name with the
+    currency's flag and code on the right (always, one currency too), รายรับ / รายจ่าย as
+    the headline in tiles tinted with the money colours (↙ / ↗ beside the word); the tiles
+    are buttons that choose the breakdown's type (#23 B: the picked one outlined in its
+    colour, รายจ่าย when the tab opens), then
     "สุทธิ" on one line, ยอดเริ่มต้น → ยอดสุดท้าย on one line, then small chips only when they
     say something: "เฉลี่ยรายจ่าย 755.84/วัน", "โอนเงิน −5,000.00", "ไม่รวมในรายงาน 2 รายการ
     −1,500.00 ›" (a link to its page);
-  - **currency chips** below the summary, above the breakdown and trend, only when the view
-    has more than one currency (Q6);
   - the **by category card** (Q1-B), right under the summary (what the money went on comes
-    second): รายจ่าย / รายรับ tabs, "ตามหมวดหมู่" with the type's total, a thin bar split by
+    second): no tabs since #23 (the summary's tiles choose), "ตามหมวดหมู่ · รายจ่าย" with the
+    type's total, a thin bar split by
     category, then the top-level categories largest first: badge, name, amount, a bar of its
     size in its colour, the share, and "2 หมวดย่อย" / "เก็บถาวร"; a row opens the category
     page;
@@ -140,8 +145,8 @@ Owner's choices in #10 (mock-up rounds 1–3; DESIGN.md → Reports):
   - an empty period: `app-empty-state` "ยังไม่มีธุรกรรมในช่วงนี้" with "เพิ่มธุรกรรม" (rule 14).
 - **Category page** (`/reports/category/:id`, the header ‹ and the category's name; same
   period, wallet and currency; the chips and swipe work here too):
-  - a card: the badge, the total in the type's colour, "89.7% ของรายจ่าย · ต.ค. 2026", "เทียบกับ
-    ก.ย. 2026: 400.00" (rule 12);
+  - a card: the currency's flag and code in its top-right corner (#23), the badge, the total in
+    the type's colour, "89.7% ของรายจ่าย · ต.ค. 2026", "เทียบกับ ก.ย. 2026: 400.00" (rule 12);
   - for a parent with sub-categories: "หมวดหมู่ย่อย" as the same split list, with
     "ไม่ระบุหมวดย่อย · บันทึกที่หมวดหลักโดยตรง" for its own money (Q4);
   - "ธุรกรรม n รายการ" and the day cards of the Transactions tab (rule 13); a row opens the
@@ -182,8 +187,12 @@ Ending balance), หมวดหมู่หลัก / ย่อย (DESIGN.md 
   parent's badge, among the children by amount, only when not zero; it opens those rows only.
 - **Q5** drill-down: a **page in the tab** (‹ back); parent → sub-categories + all its
   transactions; sub-category → its transactions; a row → the transaction sheet.
-- **Q6** currencies: one summary card per currency; the trend and breakdown one currency at a
-  time with currency chips shown only when the view has more than one.
+- **Q6** currencies: the trend and breakdown one currency at a time with currency chips
+  shown only when the view has more than one. Changed in #23 (owner, mock-up
+  `report-currency.html`, B): the chips moved to the top and the summary is **one card**, of
+  the chosen currency (several cards had no way to say which was which); the card names its
+  currency; its income / expense tiles replace the breakdown's tabs. Every currency side by
+  side (option C) is a page of its own later (ROADMAP → Backlog "All currencies overview").
 - **Q7** no API: computed on the device.
 - **Extras**: E1 balances (labels **ยอดเริ่มต้น / ยอดสุดท้าย**, owner's wording, not
   ต้นงวด / ปลายงวด), E3 average per day, E4 the previous period on a category page, E5 the
@@ -203,5 +212,5 @@ state (rule 14); a category page lists only counted rows (rule 13); every catego
 no "อื่น ๆ" fold; the report pages keep the chips; the average per day of the current period
 counts up to today.
 
-**Known**: several currencies are built (chips, one card per currency) but only seen in
-specs, since only THB is active.
+**Known**: until #23 several currencies were built but only seen in specs (only THB was
+active); #23 switched on 25 and reworked the page for them (Q6).

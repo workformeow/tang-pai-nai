@@ -33,7 +33,6 @@ import {
 } from '@/core/recurring'
 import type { RepeatValues, RuleValues } from '@/core/recurring'
 import {
-  QUICK_AMOUNTS,
   QuickAmountsService,
   TRANSACTION_LIMITS,
   TransactionService,
@@ -397,6 +396,7 @@ type View = 'form' | 'pick' | 'note' | 'repeat'
                       <app-calc-keypad
                         class="absolute -inset-x-4 -bottom-4 z-10 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
                         [quickAmounts]="quickAmounts()"
+                        [minorUnit]="minorUnit()"
                         [locale]="languageService.locale()"
                         (pressed)="press($event)"
                         (quickPressed)="addQuick($event)"
@@ -491,7 +491,10 @@ export class TransferSheet {
   /** Which wallet the picker view chooses. */
   protected pickSide = signal<'from' | 'to'>('from')
   protected keypad = signal(false)
-  protected quickAmounts = computed(() => (this.quickAmountsService.enabled() ? QUICK_AMOUNTS : []))
+  /** Quick amounts are Thai banknotes: THB wallets only (currency.md → Web screens). */
+  protected quickAmounts = computed(() =>
+    this.quickAmountsService.forCurrency(this.fromWallet()?.currencyCode ?? '')
+  )
 
   /** Rule 3: the expression works out to 1 … 10¹⁵ minor units. */
   private amountValid: ValidatorFn = (control) => {

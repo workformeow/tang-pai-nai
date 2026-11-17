@@ -3,13 +3,13 @@ import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import { lucideChartPie } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
-import type { CategoryType } from '@/core/category'
 import { ReportService } from '@/core/report'
 import { TransactionService } from '@/core/transaction'
 import { ReportShareList } from '@/features/reports/components/share-list'
 import { ReportSummaryCard } from '@/features/reports/components/summary-card'
 import { ReportTrend } from '@/features/reports/components/trend-chart'
 import { reportView } from '@/features/reports/report-view'
+import { CurrencyFlag } from '@/shared/components/currency-flag'
 import { EmptyState } from '@/shared/components/empty-state'
 import { CustomRangeSheet, PeriodStrip, Swipe } from '@/shared/components/period'
 
@@ -27,6 +27,7 @@ import { CustomRangeSheet, PeriodStrip, Swipe } from '@/shared/components/period
     TranslocoPipe,
     NgIcon,
     HlmButton,
+    CurrencyFlag,
     EmptyState,
     PeriodStrip,
     Swipe,
@@ -47,49 +48,43 @@ import { CustomRangeSheet, PeriodStrip, Swipe } from '@/shared/components/period
     />
     <div class="flex flex-col gap-3 px-4 pt-1 pb-4" appSwipe (swiped)="view.move($event)">
       @if (reportService.hasData()) {
-        @for (line of reportService.summaries(); track line.currencyCode) {
-          <app-report-summary-card [line]="line" [period]="view.period()" />
-        }
         @if (reportService.currencies().length > 1) {
-          <!-- Q6: the trend and the breakdown show one currency at a time. -->
-          <div class="flex gap-2" role="tablist" [attr.aria-label]="'reports.currency' | transloco">
+          <!-- Q6, B in #23: the whole page is one currency at a time, chosen on top. -->
+          <div
+            class="flex flex-wrap gap-2"
+            role="tablist"
+            [attr.aria-label]="'reports.currency' | transloco"
+          >
             @for (code of reportService.currencies(); track code) {
               <button
                 type="button"
                 role="tab"
-                class="min-h-9 rounded-full bg-muted px-3.5 text-sm text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-selected:bg-primary aria-selected:font-semibold aria-selected:text-primary-foreground"
+                class="flex min-h-9 items-center gap-1.5 rounded-full bg-muted px-3.5 text-sm text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-selected:bg-primary aria-selected:font-semibold aria-selected:text-primary-foreground"
                 [attr.aria-selected]="code === reportService.currencyCode()"
                 (click)="reportService.chosenCurrency.set(code)"
               >
+                <app-currency-flag class="h-3.5 w-5" [code]="code" />
                 {{ code }}
               </button>
             }
           </div>
         }
+        @if (summary(); as line) {
+          <app-report-summary-card
+            [line]="line"
+            [period]="view.period()"
+            [type]="reportService.type()"
+            (typeChosen)="reportService.type.set($event)"
+          />
+        }
         <section
           class="flex flex-col gap-3 rounded-xl border border-border bg-card px-4 pt-3 pb-1 text-card-foreground"
           aria-labelledby="report-by-category"
         >
-          <div
-            class="flex rounded-lg bg-muted p-1"
-            role="tablist"
-            [attr.aria-label]="'reports.types' | transloco"
-          >
-            @for (type of types; track type) {
-              <button
-                type="button"
-                role="tab"
-                class="flex h-10 flex-1 items-center justify-center rounded-md text-sm text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-selected:bg-card aria-selected:font-semibold aria-selected:text-foreground aria-selected:shadow-sm"
-                [attr.aria-selected]="reportService.type() === type"
-                (click)="reportService.type.set(type)"
-              >
-                {{ 'categories.' + type | transloco }}
-              </button>
-            }
-          </div>
           <div class="flex items-baseline justify-between gap-2">
             <h2 id="report-by-category" class="text-sm font-medium text-muted-foreground">
-              {{ 'reports.byCategory' | transloco }}
+              {{ 'reports.byCategory' | transloco }} ·
+              {{ 'categories.' + reportService.type() | transloco }}
             </h2>
             <span class="text-sm font-semibold tabular-nums">{{
               view.amount(typeTotal(), false)
@@ -144,13 +139,17 @@ export class ReportsPage {
   protected reportService = inject(ReportService)
   protected transactionService = inject(TransactionService)
   protected view = reportView()
-  protected readonly types: readonly CategoryType[] = ['expense', 'income']
+
+  /** The chosen currency's summary: the one card the page shows (B in #23). */
+  protected summary = computed(() =>
+    this.reportService
+      .summaries()
+      .find((item) => item.currencyCode === this.reportService.currencyCode())
+  )
 
   /** The chosen type's total in the chosen currency: the base of every share. */
   protected typeTotal = computed(() => {
-    const line = this.reportService
-      .summaries()
-      .find((item) => item.currencyCode === this.reportService.currencyCode())
+    const line = this.summary()
     if (!line) {
       return 0
     }

@@ -12,6 +12,7 @@ import { TransactionService } from '@/core/transaction'
 import { ReportDayList } from '@/features/reports/components/day-list'
 import { ReportShareList } from '@/features/reports/components/share-list'
 import { periodName, reportView, sharePercent } from '@/features/reports/report-view'
+import { CurrencyFlag } from '@/shared/components/currency-flag'
 import { EmptyState } from '@/shared/components/empty-state'
 import { IconBadge } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
@@ -32,6 +33,7 @@ type Scope = 'whole' | 'direct' | 'child'
   imports: [
     TranslocoPipe,
     NgIcon,
+    CurrencyFlag,
     EmptyState,
     IconBadge,
     PeriodStrip,
@@ -52,8 +54,15 @@ type Scope = 'whole' | 'direct' | 'child'
     <div class="flex flex-col gap-3 px-4 pt-1 pb-4" appSwipe (swiped)="view.move($event)">
       @if (target(); as category) {
         <section
-          class="flex flex-col items-center gap-1 rounded-xl border border-border bg-card px-4 py-4 text-center text-card-foreground"
+          class="relative flex flex-col items-center gap-1 rounded-xl border border-border bg-card px-4 py-4 text-center text-card-foreground"
         >
+          @if (reportService.currencyCode(); as code) {
+            <!-- Currency rule 8: the page is one currency, said in the corner. -->
+            <span class="absolute top-3 right-4 flex items-center gap-1.5 text-sm font-semibold">
+              <app-currency-flag class="h-3.5 w-5" [code]="code" />
+              {{ code }}
+            </span>
+          }
           <app-icon-badge
             [icon]="category.icon"
             [color]="category.color"

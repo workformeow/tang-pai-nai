@@ -1,22 +1,25 @@
-import { Component, computed, inject, input } from '@angular/core'
+import { Component, computed, inject, input, output } from '@angular/core'
 import { RouterLink } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import { lucideArrowDownLeft, lucideArrowUpRight, lucideChevronRight } from '@ng-icons/lucide'
+import type { CategoryType } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
 import type { ReportSummary } from '@/core/report'
+import { CurrencyFlag } from '@/shared/components/currency-flag'
 import { formatAmount } from '@/shared/utils'
 
 /**
- * The Reports tab's summary card, one per currency (report.md → Web screens, owner's choice H1
- * in #10, reordered in 2026-11): income and expense as the headline in tinted tiles, the net on
+ * The Reports tab's summary card for the chosen currency (report.md → Web screens, owner's
+ * choice H1 in #10, B in #23): its flag and code in the heading, income and expense as the
+ * headline in tinted tiles that also choose the breakdown's type, the net on
  * one line under them, the balances on one line
  * (rule 9), and small notes for the average per day (rule 10), the transfers and the rows left
  * out (rule 11), each only when it has something to say.
  */
 @Component({
   selector: 'app-report-summary-card',
-  imports: [RouterLink, TranslocoPipe, NgIcon],
+  imports: [RouterLink, TranslocoPipe, NgIcon, CurrencyFlag],
   providers: [provideIcons({ lucideArrowDownLeft, lucideArrowUpRight, lucideChevronRight })],
   template: `
     @let m = money();
@@ -24,10 +27,34 @@ import { formatAmount } from '@/shared/utils'
       class="rounded-xl border border-border bg-card px-4 pt-3 pb-4 text-card-foreground"
       [attr.aria-label]="'reports.summary' | transloco: { period: period() }"
     >
-      <h2 class="text-sm font-medium text-muted-foreground">{{ period() }}</h2>
-      <div class="mt-2 grid grid-cols-2 gap-2">
-        <div class="flex min-w-0 flex-col rounded-xl bg-income/10 px-3 py-2.5">
-          <span class="flex items-center gap-1 text-sm text-muted-foreground">
+      <div class="flex items-center justify-between gap-2">
+        <h2 class="text-sm font-medium text-muted-foreground">{{ period() }}</h2>
+        <!-- Currency rule 8: the card always says its currency, even with one. -->
+        <span class="flex shrink-0 items-center gap-1.5 text-sm font-semibold">
+          <app-currency-flag class="h-3.5 w-5" [code]="line().currencyCode" />
+          {{ line().currencyCode }}
+        </span>
+      </div>
+      <!-- The tiles choose the breakdown below (owner, #23 mock-up B): no tab bar repeats them. -->
+      <div
+        class="mt-2 grid grid-cols-2 gap-2"
+        role="group"
+        [attr.aria-label]="'reports.types' | transloco"
+      >
+        <button
+          type="button"
+          class="flex min-w-0 flex-col rounded-xl border-2 bg-income/10 px-3 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          [class.border-income]="type() === 'income'"
+          [class.border-transparent]="type() !== 'income'"
+          [attr.aria-pressed]="type() === 'income'"
+          (click)="typeChosen.emit('income')"
+        >
+          <span
+            class="flex items-center gap-1 text-sm"
+            [class.text-muted-foreground]="type() !== 'income'"
+            [class.text-income]="type() === 'income'"
+            [class.font-semibold]="type() === 'income'"
+          >
             <ng-icon name="lucideArrowDownLeft" size="16" aria-hidden="true" />
             {{ 'categories.income' | transloco }}
           </span>
@@ -37,9 +64,21 @@ import { formatAmount } from '@/shared/utils'
           >
             {{ m.income }}
           </span>
-        </div>
-        <div class="flex min-w-0 flex-col rounded-xl bg-expense/10 px-3 py-2.5">
-          <span class="flex items-center gap-1 text-sm text-muted-foreground">
+        </button>
+        <button
+          type="button"
+          class="flex min-w-0 flex-col rounded-xl border-2 bg-expense/10 px-3 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          [class.border-expense]="type() === 'expense'"
+          [class.border-transparent]="type() !== 'expense'"
+          [attr.aria-pressed]="type() === 'expense'"
+          (click)="typeChosen.emit('expense')"
+        >
+          <span
+            class="flex items-center gap-1 text-sm"
+            [class.text-muted-foreground]="type() !== 'expense'"
+            [class.text-expense]="type() === 'expense'"
+            [class.font-semibold]="type() === 'expense'"
+          >
             <ng-icon name="lucideArrowUpRight" size="16" aria-hidden="true" />
             {{ 'categories.expense' | transloco }}
           </span>
@@ -49,7 +88,7 @@ import { formatAmount } from '@/shared/utils'
           >
             {{ m.expense }}
           </span>
-        </div>
+        </button>
       </div>
       <div class="mt-3 flex items-baseline justify-between gap-2 px-1">
         <span class="text-sm text-muted-foreground">{{ 'reports.net' | transloco }}</span>
@@ -116,6 +155,9 @@ export class ReportSummaryCard {
   line = input.required<ReportSummary>()
   /** The period by name (`ต.ค. 2026`). */
   period = input.required<string>()
+  /** The breakdown's type, outlined on its tile. */
+  type = input.required<CategoryType>()
+  typeChosen = output<CategoryType>()
 
   protected money = computed(() => {
     const line = this.line()

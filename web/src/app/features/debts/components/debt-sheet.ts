@@ -27,12 +27,7 @@ import type { DebtCountAs, DebtDirection, PlanValues } from '@/core/debt'
 import { LanguageService } from '@/core/i18n'
 import { describeRepeat, shortDate } from '@/core/recurring'
 import { NavHistory } from '@/core/routing'
-import {
-  QUICK_AMOUNTS,
-  QuickAmountsService,
-  TRANSACTION_LIMITS,
-  TransactionService,
-} from '@/core/transaction'
+import { QuickAmountsService, TRANSACTION_LIMITS, TransactionService } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
 import { walletPickItems } from '@/features/debts/debt-view'
@@ -469,6 +464,7 @@ type View = 'form' | 'wallet' | 'category' | 'note' | 'plan' | 'planWallet' | 'c
                       <app-calc-keypad
                         class="absolute -inset-x-4 -bottom-4 z-10 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
                         [quickAmounts]="quickAmounts()"
+                        [minorUnit]="minorUnit()"
                         [locale]="languageService.locale()"
                         (pressed)="press($event)"
                         (quickPressed)="addQuick($event)"
@@ -719,7 +715,8 @@ export class DebtSheet {
   protected keypad = signal(false)
   protected more = signal(false)
   protected open = signal(false)
-  protected quickAmounts = computed(() => (this.quickAmountsService.enabled() ? QUICK_AMOUNTS : []))
+  /** Quick amounts are Thai banknotes: THB wallets only (currency.md → Web screens). */
+  protected quickAmounts = computed(() => this.quickAmountsService.forCurrency(this.currencyCode()))
 
   /** Rule 6 (transaction rule 3): 1 … 10¹⁵ minor units. */
   private amountValid: ValidatorFn = (control) => {

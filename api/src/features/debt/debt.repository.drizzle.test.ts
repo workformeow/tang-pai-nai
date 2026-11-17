@@ -196,6 +196,8 @@ describe('debtSyncHandler', () => {
   })
 
   it('needs the live book; direction, counting and currency never change', async () => {
+    // Every currency of the set is active (0022): switch EUR off for the rule.
+    await db.update(currencies).set({ isActive: false }).where(eq(currencies.code, 'EUR'))
     expect(await push.check(db, 'alice', input(debt('mom', 1)))).toBeNull()
     expect(await push.check(db, 'alice', input(debt('x', 1, { bookId: 'pb' })))).toBe(
       DEBT_MESSAGE.BOOK_GONE

@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Report currency mock-up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Mock-up only: the app serves its own flag SVGs from public/flags/. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+<style>
+:root {
+  --background: oklch(0.975 0.007 265); --foreground: oklch(0.2 0.03 265);
+  --card: oklch(1 0 0); --muted: oklch(0.94 0.014 265); --muted-fg: oklch(0.48 0.03 265);
+  --primary: oklch(0.8 0.15 80); --primary-fg: oklch(0.2 0.03 70);
+  --border: oklch(0.91 0.014 265); --brand: oklch(0.53 0.12 75);
+  --income: oklch(0.52 0.14 155); --expense: oklch(0.55 0.2 25);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+    --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+    --primary: oklch(0.82 0.15 82); --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82);
+    --income: oklch(0.78 0.16 155); --expense: oklch(0.72 0.17 22);
+  }
+}
+:root[data-theme="dark"] {
+  --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+  --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+  --primary: oklch(0.82 0.15 82); --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82);
+  --income: oklch(0.78 0.16 155); --expense: oklch(0.72 0.17 22);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--background); color: var(--foreground);
+  font-family: "Noto Sans Thai", system-ui, sans-serif; font-size: 15px; }
+header.page { max-width: 1400px; margin: 0 auto; padding: 24px 16px 8px; }
+header.page h1 { font-size: 20px; margin: 0 0 4px; }
+header.page p { margin: 0; color: var(--muted-fg); font-size: 14px; line-height: 1.5; max-width: 900px; }
+.toggles { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.toggle { display: inline-flex; gap: 4px; background: var(--muted); border-radius: 10px; padding: 3px; }
+.toggle button { border: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 8px; cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--card); font-weight: 600; }
+.grid { max-width: 1400px; margin: 0 auto; padding: 16px; display: flex; flex-wrap: wrap; gap: 24px; }
+figure { margin: 0; width: 320px; max-width: 100%; }
+figcaption { font-size: 13px; color: var(--muted-fg); margin-bottom: 6px; min-height: 112px; line-height: 1.45; }
+figcaption b { color: var(--foreground); }
+.phone { height: 740px; border: 1px solid var(--border); border-radius: 24px; overflow: hidden;
+  background: var(--background); display: flex; flex-direction: column; }
+.hdr { height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; flex: none; }
+.hdr b { font-size: 16px; } .hdr span { font-size: 13px; color: var(--muted-fg); background: var(--muted); border-radius: 999px; padding: 5px 10px; }
+.strip { display: flex; gap: 6px; padding: 4px 12px 8px; flex: none; }
+.strip span { font-size: 13px; padding: 6px 12px; border-radius: 999px; color: var(--muted-fg); }
+.strip span.on { background: var(--foreground); color: var(--background); font-weight: 600; }
+.scroll { flex: 1; overflow: auto; padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 10px; }
+.tabbar { height: 56px; border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; color: var(--muted-fg); font-size: 11px; flex: none; }
+.tabbar .on { color: var(--brand); font-weight: 600; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; }
+.ch { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--muted-fg); font-weight: 500; }
+.cur { display: inline-flex; align-items: center; gap: 6px; color: var(--foreground); font-weight: 600; }
+.fi { border-radius: 3px; box-shadow: 0 0 0 1px var(--border); width: 20px; height: 15px; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.tile { border-radius: 12px; padding: 9px 11px; display: flex; flex-direction: column; gap: 2px; border: 2px solid transparent; position: relative; }
+.tile small { font-size: 12px; color: var(--muted-fg); }
+.tile b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.tile.i { background: color-mix(in oklch, var(--income) 11%, transparent); } .tile.i b { color: var(--income); }
+.tile.e { background: color-mix(in oklch, var(--expense) 11%, transparent); } .tile.e b { color: var(--expense); }
+.tile.pick.on { border-color: currentColor; }
+.tile.i.pick.on { color: var(--income); } .tile.e.pick.on { color: var(--expense); }
+.tile.pick.on small { color: inherit; font-weight: 600; }
+.tile.pick:not(.on) { opacity: .75; }
+.tile.pick::after { content: "▾"; position: absolute; right: 10px; top: 8px; font-size: 11px; color: var(--muted-fg); }
+.tile.pick.on::after { color: inherit; }
+.net { display: flex; justify-content: space-between; font-size: 14px; margin-top: 8px; padding: 0 2px; }
+.net b { font-variant-numeric: tabular-nums; }
+.bal { display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; border-top: 1px solid var(--border); margin-top: 8px; padding-top: 8px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.bal small { display: block; font-size: 11px; color: var(--muted-fg); } .bal .r { text-align: right; } .bal .m { color: var(--muted-fg); align-self: center; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border-radius: 999px; background: var(--muted); color: var(--muted-fg); font-size: 13px; font-weight: 500; }
+.chip.on { background: var(--primary); color: var(--primary-fg); font-weight: 600; }
+.seg { display: flex; background: var(--muted); border-radius: 10px; padding: 3px; }
+.seg span { flex: 1; text-align: center; padding: 7px 0; border-radius: 8px; font-size: 13px; color: var(--muted-fg); display: inline-flex; justify-content: center; align-items: center; gap: 6px; }
+.seg span.on { background: var(--card); color: var(--foreground); font-weight: 600; box-shadow: 0 1px 2px oklch(0 0 0 / 12%); }
+.split { display: flex; height: 10px; gap: 2px; border-radius: 999px; overflow: hidden; margin: 8px 0 4px; }
+.row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border); }
+.row:first-of-type { border-top: 0; }
+.dot { width: 34px; height: 34px; border-radius: 999px; display: grid; place-items: center; color: #fff; font-size: 15px; flex: none; }
+.rw { flex: 1; min-width: 0; } .rw .t { display: flex; justify-content: space-between; font-size: 14px; font-weight: 500; }
+.rw .t span:last-child { font-variant-numeric: tabular-nums; }
+.bar { height: 5px; background: var(--muted); border-radius: 999px; margin-top: 5px; overflow: hidden; } .bar i { display: block; height: 100%; border-radius: 999px; }
+.rw small { font-size: 11px; color: var(--muted-fg); }
+.mini { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 10px; padding: 9px 10px; border-radius: 10px; font-variant-numeric: tabular-nums; }
+.mini.on { background: color-mix(in oklch, var(--primary) 16%, transparent); box-shadow: inset 0 0 0 1.5px var(--primary); }
+.mini .io { font-size: 12px; color: var(--muted-fg); text-align: right; }
+.mini .n { font-weight: 700; font-size: 15px; text-align: right; }
+.bad { outline: 2px dashed var(--expense); outline-offset: 3px; border-radius: 14px; }
+.flag-note { font-size: 11px; color: var(--expense); font-weight: 600; margin: -4px 2px 0; }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1 id="h1"></h1>
+  <p id="intro"></p>
+  <div class="toggles">
+    <div class="toggle" id="lang"><button data-v="th" aria-pressed="true">ไทย</button><button data-v="en" aria-pressed="false">English</button></div>
+    <div class="toggle" id="theme"><button data-v="light" aria-pressed="true">สว่าง</button><button data-v="dark" aria-pressed="false">มืด</button></div>
+  </div>
+</header>
+<main class="grid" id="grid"></main>
+<script>
+const FLAG = { THB: 'th', JPY: 'jp', USD: 'us' }
+const DIGITS = { THB: 2, JPY: 0, USD: 2 }
+const DATA = {
+  THB: { income: 42000, expense: 31850.75, start: 15000, cats: {
+    expense: [['🍜', '#ea580c', 'food', 12400], ['🚌', '#2563eb', 'travel', 8200], ['🛍️', '#db2777', 'shop', 6050.75], ['🏠', '#16a34a', 'home', 5200]],
+    income: [['💼', '#16a34a', 'salary', 38000], ['🎁', '#9333ea', 'gift', 4000]] } },
+  JPY: { income: 0, expense: 86400, start: 120000, cats: {
+    expense: [['🍜', '#ea580c', 'food', 32000], ['🚌', '#2563eb', 'travel', 28400], ['🏨', '#0891b2', 'hotel', 26000]], income: [] } },
+  USD: { income: 0, expense: 120.5, start: 320, cats: { expense: [['🛍️', '#db2777', 'shop', 120.5]], income: [] } },
+}
+const state = { lang: 'th' }
+const T = {
+  th: {
+    h1: 'รายงานเมื่อมีหลายสกุลเงิน: mock-up',
+    intro: 'ตอนนี้ (0) การ์ดสรุปซ้อนกันสกุลละใบโดยไม่บอกว่าใบไหนสกุลอะไร (ตัวเลขไม่มีสัญลักษณ์) ชิปสกุลเงินอยู่กลางหน้า และแท็บรายรับ/รายจ่ายด้านล่างซ้ำกับสองก้อนด้านบน มีสามทางแก้ A / B / C ให้เลือก (D = B ตอนมีสกุลเดียว)',
+    reports: 'รายงาน', viewBy: 'ดูตาม ▾', months: ['ก.ย.', 'ต.ค.', 'พ.ย. 2026'], tabs: ['ธุรกรรม', 'กระเป๋า', 'รายงาน', 'ตั้งค่า'],
+    income: 'รายรับ', expense: 'รายจ่าย', net: 'คงเหลือสุทธิ', start: 'ยอดต้นงวด', end: 'ยอดปลายงวด', byCat: 'ตามหมวดหมู่', overview: 'ภาพรวมทุกสกุล',
+    food: 'อาหาร', travel: 'เดินทาง', shop: 'ช้อปปิ้ง', home: 'บ้าน', salary: 'เงินเดือน', gift: 'ของขวัญ', hotel: 'ที่พัก',
+    whichNote: 'ใบไหน THB ใบไหน JPY?', dupNote: 'ซ้ำกับสองก้อนด้านบน',
+    f0: '<b>0 · ตอนนี้</b> การ์ดสรุปสองใบหน้าตาเหมือนกัน ไม่มีธงหรือ code (เส้นประแดง = จุดที่ owner ติ) ชิป THB / JPY อยู่ใต้การ์ด และแท็บรายรับ / รายจ่ายซ้ำกับไทล์ด้านบน',
+    fA: '<b>A · สกุลเงินบนสุด ทีละสกุล</b> ชิปธง + code อยู่ใต้แถบช่วงเวลา ทั้งหน้าเป็นของสกุลที่เลือก การ์ดสรุปเหลือใบเดียว หัวการ์ดมีธง + code แท็บรายรับ / รายจ่ายยังอยู่ที่เดิม',
+    fB: '<b>B · เหมือน A แต่ไทล์เป็นตัวเลือก</b> (แนะนำ) ไทล์รายรับ / รายจ่ายในการ์ดสรุปคือแท็บของรายการหมวดหมู่เลย ไทล์ที่เลือกมีกรอบ ลบแถบแท็บด้านล่างทิ้ง ไม่มีของซ้ำ',
+    fC: '<b>C · ภาพรวมทุกสกุลอยู่บนสุด</b> การ์ด "ภาพรวมทุกสกุล" (งาน PR ถัดไปที่ตกลงไว้) ทำหน้าที่เป็นตัวเลือกสกุลด้วย แตะแถวแล้วการ์ดสรุปและหมวดหมู่ด้านล่างเปลี่ยนตาม ไทล์เป็นตัวเลือกแบบ B',
+    fD: '<b>D · B ตอนมีสกุลเดียว</b> ไม่มีชิปสกุลเงิน หัวการ์ดยังมีธง + code เล็ก ๆ เพื่อให้รู้ว่าเป็นสกุลอะไรเสมอ',
+  },
+  en: {
+    h1: 'Reports with several currencies: mock-up',
+    intro: 'Today (0) the summary cards stack one per currency without saying which is which (amounts have no symbol), the currency chips sit mid-page, and the income / expense tabs below repeat the two tiles above. Three fixes A / B / C (D = B with one currency).',
+    reports: 'Reports', viewBy: 'View by ▾', months: ['Sep', 'Oct', 'Nov 2026'], tabs: ['Transactions', 'Wallets', 'Reports', 'Settings'],
+    income: 'Income', expense: 'Expense', net: 'Net', start: 'Start', end: 'End', byCat: 'By category', overview: 'All currencies',
+    food: 'Food', travel: 'Travel', shop: 'Shopping', home: 'Home', salary: 'Salary', gift: 'Gift', hotel: 'Hotel',
+    whichNote: 'Which is THB, which JPY?', dupNote: 'Repeats the two tiles above',
+    f0: '<b>0 · Today</b> two identical summary cards with no flag or code (red dashes = what the owner flagged); THB / JPY chips under them; income / expense tabs repeating the tiles.',
+    fA: '<b>A · Currency on top, one at a time</b> flag + code chips under the period strip; the whole page is that currency; one summary card with flag + code in its heading; income / expense tabs stay.',
+    fB: '<b>B · A, with the tiles as the switch</b> (recommended) the income / expense tiles of the summary are the breakdown\'s tabs; the picked one is outlined; the tab bar below is gone, nothing repeats.',
+    fC: '<b>C · All currencies on top</b> the "All currencies" card (the next PR agreed earlier) is also the currency switch: tap a row and the summary and categories below follow. Tiles switch as in B.',
+    fD: '<b>D · B with one currency</b> no currency chips; the card heading still shows a small flag + code so the currency is always visible.',
+  },
+}
+const t = (k) => T[state.lang][k]
+const loc = () => (state.lang === 'th' ? 'th-TH' : 'en-GB')
+const amt = (v, c, signed) => new Intl.NumberFormat(loc(), { minimumFractionDigits: DIGITS[c], maximumFractionDigits: DIGITS[c], signDisplay: signed ? 'exceptZero' : 'auto' }).format(v)
+const flag = (c) => `<span class="fi fi-${FLAG[c]}"></span>`
+const curTag = (c) => `<span class="cur">${flag(c)} ${c}</span>`
+
+const shell = (body) => `
+  <div class="hdr"><b>${t('reports')}</b><span>${t('viewBy')}</span></div>
+  <div class="strip">${t('months').map((m, i) => `<span class="${i === 2 ? 'on' : ''}">${m}</span>`).join('')}</div>
+  <div class="scroll">${body}</div>
+  <div class="tabbar">${t('tabs').map((x, i) => `<span class="${i === 2 ? 'on' : ''}">${x}</span>`).join('')}</div>`
+
+// summary card; opts: tag (show flag+code), pick ('income'|'expense'|null), bad
+const summary = (c, { tag = true, pick = null, bad = false } = {}) => {
+  const d = DATA[c]; const end = d.start + d.income - d.expense
+  const tile = (kind, cls, v) => `<div class="tile ${cls} ${pick ? 'pick' : ''} ${pick === kind ? 'on' : ''}"><small>${t(kind)}</small><b>${amt(v, c, true)}</b></div>`
+  return `<div class="card ${bad ? 'bad' : ''}">
+    <div class="ch"><span>${t('months')[2]}</span>${tag ? curTag(c) : ''}</div>
+    <div class="tiles">${tile('income', 'i', d.income)}${tile('expense', 'e', -d.expense)}</div>
+    <div class="net"><span style="color:var(--muted-fg)">${t('net')}</span><b>${amt(d.income - d.expense, c, true)}</b></div>
+    <div class="bal"><div><small>${t('start')}</small>${amt(d.start, c)}</div><span class="m">→</span><div class="r"><small>${t('end')}</small>${amt(end, c)}</div></div>
+  </div>`
+}
+const breakdown = (c, type, { tabs = false, bad = false } = {}) => {
+  const rows = DATA[c].cats[type]; const total = rows.reduce((s, r) => s + r[3], 0)
+  const max = Math.max(...rows.map((r) => r[3]), 1)
+  return `<div class="card ${bad ? 'bad' : ''}">
+    ${tabs ? `<div class="seg" style="margin-bottom:10px"><span class="${type === 'expense' ? 'on' : ''}">${t('expense')}</span><span class="${type === 'income' ? 'on' : ''}">${t('income')}</span></div>` : ''}
+    <div class="ch"><span>${t('byCat')} · ${t(type)}</span><b style="color:var(--foreground);font-variant-numeric:tabular-nums">${amt(total, c)}</b></div>
+    <div class="split">${rows.map((r) => `<span style="flex-grow:${r[3]};background:${r[1]}"></span>`).join('')}</div>
+    ${rows.map((r) => `<div class="row"><span class="dot" style="background:${r[1]}">${r[0]}</span><div class="rw"><div class="t"><span>${t(r[2])}</span><span>${amt(r[3], c)}</span></div>
+      <div class="bar"><i style="width:${(r[3] / max) * 100}%;background:${r[1]}"></i></div><small>${Math.round((r[3] / total) * 1000) / 10}%</small></div></div>`).join('')}
+  </div>`
+}
+const chips = (codes, on, bad) => `<div class="chips ${bad ? 'bad' : ''}">${codes.map((c) => `<span class="chip ${c === on ? 'on' : ''}">${bad ? '' : flag(c)} ${c}</span>`).join('')}</div>`
+
+const f0 = () => shell(`
+  ${summary('THB', { tag: false, bad: true })}
+  ${summary('JPY', { tag: false, bad: true })}
+  <p class="flag-note">↑ ${t('whichNote')}</p>
+  ${chips(['THB', 'JPY'], 'THB', false).replace(/<span class="fi[^>]*><\/span>/g, '')}
+  ${breakdown('THB', 'expense', { tabs: true, bad: true })}
+  <p class="flag-note">↑ ${t('dupNote')}</p>`)
+const fA = () => shell(`${chips(['THB', 'JPY'], 'JPY')}${summary('JPY')}${breakdown('JPY', 'expense', { tabs: true })}`)
+const fB = () => shell(`${chips(['THB', 'JPY'], 'JPY')}${summary('JPY', { pick: 'expense' })}${breakdown('JPY', 'expense')}`)
+const fC = () => {
+  const rows = ['THB', 'JPY', 'USD'].map((c, i) => {
+    const d = DATA[c]
+    return `<div class="mini ${i === 1 ? 'on' : ''}">${curTag(c)}<span class="io"><span style="color:var(--income)">${amt(d.income, c, true)}</span> · <span style="color:var(--expense)">${amt(-d.expense, c, true)}</span></span><span class="n">${amt(d.income - d.expense, c, true)}</span></div>`
+  }).join('')
+  return shell(`<div class="card" style="padding:8px"><div class="ch" style="padding:2px 6px 6px">${t('overview')}</div>${rows}</div>
+    ${summary('JPY', { pick: 'expense' })}${breakdown('JPY', 'expense')}`)
+}
+const fD = () => shell(`${summary('THB', { pick: 'expense' })}${breakdown('THB', 'expense')}`)
+
+function render() {
+  document.documentElement.lang = state.lang
+  document.title = t('h1')
+  document.getElementById('h1').textContent = t('h1')
+  document.getElementById('intro').textContent = t('intro')
+  const frames = [['f0', f0()], ['fA', fA()], ['fB', fB()], ['fC', fC()], ['fD', fD()]]
+  document.getElementById('grid').innerHTML = frames.map(([k, html]) => `<figure><figcaption>${t(k)}</figcaption><div class="phone">${html}</div></figure>`).join('')
+}
+function wire(id, apply) {
+  const el = document.getElementById(id)
+  el.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return
+    el.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)))
+    apply(b.dataset.v); render()
+  })
+}
+wire('lang', (v) => { state.lang = v })
+wire('theme', (v) => { document.documentElement.dataset.theme = v })
+render()
+</script>
+</body>
+</html>

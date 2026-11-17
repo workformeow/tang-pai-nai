@@ -7,7 +7,7 @@ AI can understand a feature without reading its code. These docs are the shared 
 | Feature                    | Doc                                      | Status              |
 | -------------------------- | ---------------------------------------- | ------------------- |
 | Auth                       | [auth.md](auth.md)                       | Built (4.1–4.4b)    |
-| Currency                   | [currency.md](currency.md)               | API with 4a.2       |
+| Currency                   | [currency.md](currency.md)               | Built (#5, #23)     |
 | Book                    | [book.md](book.md)                 | Built (6.1)         |
 | Wallet                     | [wallet.md](wallet.md)                   | Built (6.2)         |
 | Category                   | [category.md](category.md)               | Built (7.1–7.3)     |

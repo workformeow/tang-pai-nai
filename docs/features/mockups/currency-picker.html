@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Currency picker mock-up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Mock-up only: the app will vendor the SVGs it needs (MIT, LICENSE kept), not load a CDN. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+<style>
+:root {
+  --background: oklch(0.975 0.007 265); --foreground: oklch(0.2 0.03 265);
+  --card: oklch(1 0 0); --muted: oklch(0.94 0.014 265); --muted-fg: oklch(0.48 0.03 265);
+  --primary: oklch(0.8 0.15 80); --primary-fg: oklch(0.2 0.03 70);
+  --destructive: oklch(0.55 0.22 27); --border: oklch(0.91 0.014 265); --brand: oklch(0.53 0.12 75);
+  --income: oklch(0.52 0.14 155); --expense: oklch(0.55 0.2 25);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+    --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+    --primary: oklch(0.82 0.15 82); --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82);
+    --income: oklch(0.78 0.16 155); --expense: oklch(0.72 0.17 22);
+  }
+}
+:root[data-theme="dark"] {
+  --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+  --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+  --primary: oklch(0.82 0.15 82); --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82);
+  --income: oklch(0.78 0.16 155); --expense: oklch(0.72 0.17 22);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--background); color: var(--foreground);
+  font-family: "Noto Sans Thai", system-ui, sans-serif; font-size: 15px; }
+header.page { max-width: 1340px; margin: 0 auto; padding: 24px 16px 8px; }
+header.page h1 { font-size: 20px; margin: 0 0 4px; }
+header.page p { margin: 0; color: var(--muted-fg); font-size: 14px; line-height: 1.5; }
+.toggles { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.toggle { display: inline-flex; gap: 4px; background: var(--muted); border-radius: 10px; padding: 3px; }
+.toggle button { border: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 8px; cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--card); font-weight: 600; }
+.grid { max-width: 1340px; margin: 0 auto; padding: 16px; display: flex; flex-wrap: wrap; gap: 24px; }
+figure { margin: 0; width: 320px; max-width: 100%; }
+figcaption { font-size: 13px; color: var(--muted-fg); margin-bottom: 6px; min-height: 76px; line-height: 1.45; }
+figcaption b { color: var(--foreground); }
+.phone { height: 690px; border: 1px solid var(--border); border-radius: 24px; overflow: hidden;
+  background: var(--background); display: flex; flex-direction: column; position: relative; }
+.dim { position: absolute; inset: 0; background: oklch(0 0 0 / 40%); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 92%; background: var(--card);
+  border-radius: 20px 20px 0 0; display: flex; flex-direction: column; overflow: hidden; }
+.shdr { height: 56px; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; padding: 0 8px; flex: none; }
+.shdr .ttl { text-align: center; font-weight: 600; font-size: 16px; }
+.glass { width: 36px; height: 36px; border-radius: 999px; display: grid; place-items: center;
+  background: color-mix(in oklch, var(--muted) 80%, transparent); border: 1px solid var(--border); font-size: 16px; }
+.body { flex: 1; overflow: auto; padding: 4px 16px 16px; }
+.foot { padding: 12px 16px 18px; border-top: 1px solid var(--border); flex: none; }
+.btn { width: 100%; height: 44px; border: 0; border-radius: 12px; background: var(--primary); color: var(--primary-fg); font: inherit; font-weight: 600; }
+.row { display: flex; align-items: center; gap: 12px; }
+.lbl { font-size: 14px; font-weight: 500; margin: 0 0 8px; }
+.hint { font-size: 13px; color: var(--muted-fg); margin: 6px 0 0; line-height: 1.4; }
+.badge { width: 44px; height: 44px; border-radius: 999px; display: grid; place-items: center; flex: none; color: #fff; font-size: 18px; }
+.input { flex: 1; height: 44px; border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; padding: 0 12px; font-size: 16px; background: var(--background); gap: 8px; }
+.input .num { flex: 1; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pm { width: 44px; height: 44px; border-radius: 12px; background: var(--muted); display: grid; place-items: center; font-weight: 700; flex: none; }
+.cchip { height: 36px; border-radius: 999px; background: var(--muted); display: inline-flex; align-items: center; gap: 6px; padding: 0 8px 0 6px; font-weight: 600; font-size: 15px; flex: none; }
+.cchip.locked { background: transparent; color: var(--muted-fg); font-weight: 500; padding: 0 2px; }
+.cchip .chev { color: var(--muted-fg); font-size: 13px; }
+.fi.r { border-radius: 4px; box-shadow: 0 0 0 1px var(--border); }
+.fis.c { border-radius: 999px; box-shadow: 0 0 0 1px var(--border); }
+.sep { border-top: 1px solid var(--border); margin: 16px -16px; }
+.sw { display: flex; justify-content: space-between; align-items: center; font-size: 15px; }
+.track { width: 44px; height: 26px; border-radius: 999px; background: var(--muted); position: relative; }
+.track::after { content: ""; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 999px; background: var(--card); box-shadow: 0 1px 2px oklch(0 0 0 / 30%); }
+.ghead { font-size: 13px; color: var(--muted-fg); margin: 14px 0 8px; display: flex; justify-content: space-between; }
+.ghead:first-child { margin-top: 4px; }
+/* A: tiles with flag, code and name */
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tile { border-radius: 14px; background: var(--muted); padding: 10px 4px 8px; display: flex; flex-direction: column; align-items: center; gap: 3px; position: relative; min-height: 88px; }
+.tile .fi { width: 36px; height: 27px; }
+.tile b { font-size: 14px; margin-top: 3px; }
+.tile small { font-size: 11px; color: var(--muted-fg); text-align: center; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tile.on { background: color-mix(in oklch, var(--primary) 22%, var(--card)); box-shadow: inset 0 0 0 2px var(--primary); }
+.tile.on::after { content: "✓"; position: absolute; top: 4px; right: 6px; width: 18px; height: 18px; border-radius: 999px; background: var(--primary); color: var(--primary-fg); font-size: 11px; display: grid; place-items: center; font-weight: 700; }
+/* B: icon-field style circles */
+.dots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px 4px; justify-items: center; }
+.dot { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; }
+.dot .ring { width: 48px; height: 48px; border-radius: 999px; display: grid; place-items: center; }
+.dot .fis { width: 40px; height: 40px; }
+.dot.on .ring { box-shadow: 0 0 0 2.5px var(--primary); }
+.dot.on { color: var(--brand); }
+/* C: list rows */
+.list { border-radius: 14px; background: var(--muted); overflow: hidden; }
+.li { display: flex; align-items: center; gap: 12px; padding: 0 14px; height: 52px; border-top: 1px solid var(--border); }
+.li:first-child { border-top: 0; }
+.li .fis { width: 28px; height: 28px; }
+.li .nm { flex: 1; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.li .cd { color: var(--muted-fg); font-size: 14px; font-weight: 600; }
+.li .ck { width: 20px; color: var(--brand); font-weight: 700; text-align: center; }
+/* Wallets tab */
+.hdr { height: 52px; display: flex; align-items: center; justify-content: center; font-weight: 600; border-bottom: 1px solid var(--border); flex: none; }
+.card { background: var(--card); border-radius: 16px; margin: 12px; padding: 12px 14px; }
+.tot { display: flex; justify-content: space-between; align-items: center; height: 34px; font-variant-numeric: tabular-nums; }
+.tot .amt { font-weight: 700; font-size: 17px; }
+.tot .who { display: flex; align-items: center; gap: 8px; color: var(--muted-fg); font-size: 14px; }
+.wrow { display: flex; align-items: center; gap: 12px; height: 60px; border-top: 1px solid var(--border); }
+.wrow:first-of-type { border-top: 0; }
+.wrow .nm { flex: 1; } .wrow .nm small { display: block; color: var(--muted-fg); font-size: 12px; }
+.wrow .amt { font-weight: 600; font-variant-numeric: tabular-nums; }
+.tabbar { margin-top: auto; height: 60px; border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; color: var(--muted-fg); font-size: 11px; flex: none; }
+.note { font-size: 12px; color: var(--muted-fg); margin: 4px 14px; line-height: 1.45; }
+.tag { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 6px; background: var(--muted); color: var(--muted-fg); margin-left: 4px; vertical-align: 1px; }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1 id="h1">#23 เลือกสกุลเงิน: mock-up รอบ 1</h1>
+  <p id="intro">ฟอร์มกระเป๋า → แตะชิปสกุลเงิน → view "สกุลเงิน" ใน sheet เดียวกัน (‹ กลับ, เลือกแล้วกลับฟอร์มทันที) มีสามแบบให้เลือก A / B / C แล้วดูผลบนฟอร์มและแท็บกระเป๋า</p>
+  <div class="toggles">
+    <div class="toggle" id="lang">
+      <button data-v="th" aria-pressed="true">ไทย</button><button data-v="en" aria-pressed="false">English</button>
+    </div>
+    <div class="toggle" id="theme">
+      <button data-v="light" aria-pressed="true">สว่าง</button><button data-v="dark" aria-pressed="false">มืด</button>
+    </div>
+    <div class="toggle" id="naming">
+      <button data-v="region" aria-pressed="true">ชื่อ: ประเทศ</button><button data-v="currency" aria-pressed="false">ชื่อ: สกุลเงิน</button>
+    </div>
+  </div>
+</header>
+<main class="grid" id="grid"></main>
+
+<script>
+// Proposed set (round 1). minor = proposed minorUnit (practice, not ISO where they differ).
+const GROUPS = [
+  { key: 'asia', th: 'เอเชีย', en: 'Asia', items: [
+    ['THB','th',2],['JPY','jp',0],['KRW','kr',0],['CNY','cn',2],['HKD','hk',2],['TWD','tw',0],
+    ['SGD','sg',2],['MYR','my',2],['VND','vn',0],['LAK','la',0],['KHR','kh',0],['IDR','id',0],
+    ['PHP','ph',2],['MMK','mm',0],['INR','in',2]] },
+  { key: 'middleEast', th: 'ตะวันออกกลาง', en: 'Middle East', items: [['AED','ae',2]] },
+  { key: 'europe', th: 'ยุโรป', en: 'Europe', items: [['EUR','eu',2],['GBP','gb',2],['CHF','ch',2]] },
+  { key: 'americas', th: 'อเมริกา', en: 'Americas', items: [['USD','us',2],['CAD','ca',2]] },
+  { key: 'oceania', th: 'โอเชียเนีย', en: 'Oceania', items: [['AUD','au',2],['NZD','nz',2]] },
+]
+const BY_CODE = Object.fromEntries(GROUPS.flatMap(g => g.items).map(([c, f, m]) => [c, { flag: f, minor: m }]))
+const REGION_OF_FLAG = (f) => f.toUpperCase()
+const state = { lang: 'th', naming: 'region' }
+const T = {
+  th: {
+    h1: '#23 เลือกสกุลเงิน: mock-up รอบ 1',
+    intro: 'ฟอร์มกระเป๋า → แตะชิปสกุลเงิน → view "สกุลเงิน" ใน sheet เดียวกัน (‹ กลับ, เลือกแล้วกลับฟอร์มทันที) มีสามแบบให้เลือก A / B / C แล้วดูผลบนฟอร์มและแท็บกระเป๋า',
+    newWallet: 'กระเป๋าใหม่', editWallet: 'แก้ไขกระเป๋า', name: 'ชื่อกระเป๋า', start: 'ยอดเริ่มต้น', save: 'บันทึก',
+    card: 'บัตรเครดิต', exclude: 'ไม่รวมในยอดรวม', currency: 'สกุลเงิน', inBook: 'ใช้ในสมุดนี้',
+    locked: 'เปลี่ยนสกุลเงินไม่ได้ เพราะกระเป๋านี้มีรายการแล้ว', cash: 'เงินสด', trip: 'เที่ยวญี่ปุ่น', usd: 'บัญชีดอลลาร์',
+    wallets: 'กระเป๋าเงิน', total: 'ยอดรวม', tabs: ['รายการ','กระเป๋า','รายงาน','บัญชี'],
+    f1: '<b>1 · ฟอร์มกระเป๋าใหม่</b> ชิป "ธง + code ›" แทน &lt;select&gt; แสดงเสมอ (ไม่ต้องรอให้ active เกิน 1 สกุล) ค่าเริ่มต้น THB',
+    fA: '<b>2A · ช่องธง + code + ชื่อ (3 คอลัมน์)</b> แบบที่แนะนำ อ่านง่ายสุด กลุ่ม "ใช้ในสมุดนี้" อยู่บนสุดเมื่อสมุดมีกระเป๋าหลายสกุล',
+    fB: '<b>2B · วงกลมแบบตัวเลือกไอคอน (5 คอลัมน์)</b> เหมือน <code>app-icon-field</code> ที่สุด กะทัดรัด แต่มีแค่ code ชื่ออยู่ใน aria-label อย่างเดียว',
+    fC: '<b>2C · แถวรายการ</b> ธง + ชื่อเต็ม + code + ✓ ไม่ใช่ dropdown แต่เป็นลิสต์ยาว (ตัดสินแบบนี้ถ้าอยากเห็นชื่อเต็ม)',
+    f3: '<b>3 · หลังเลือก JPY</b> ช่องยอดเริ่มต้นไม่มีทศนิยมทันที (minorUnit 0) คีย์แพดก็เช่นกัน',
+    f4: '<b>4 · กระเป๋าที่มีรายการแล้ว</b> ชิปกลายเป็นข้อความเฉย ๆ (ไม่มี ›) พร้อมเหตุผล เหมือนตอนนี้',
+    f5: '<b>5 · แท็บกระเป๋า</b> ยอดรวมแยกสกุลอยู่แล้ว เสนอเพิ่มธง + code หน้าบรรทัดเมื่อมีมากกว่า 1 สกุล เพราะ narrowSymbol ให้ "$" ซ้ำกันหลายสกุล (USD SGD HKD AUD …) และ ¥ ทั้ง JPY / CNY',
+  },
+  en: {
+    h1: '#23 Currency picker: mock-up round 1',
+    intro: 'Wallet form → tap the currency chip → a "Currency" view inside the same sheet (‹ back; picking returns to the form). Three layouts A / B / C, then the result on the form and the Wallets tab.',
+    newWallet: 'New wallet', editWallet: 'Edit wallet', name: 'Wallet name', start: 'Starting balance', save: 'Save',
+    card: 'Credit card', exclude: 'Exclude from total', currency: 'Currency', inBook: 'Used in this book',
+    locked: "The currency can't change because this wallet has transactions", cash: 'Cash', trip: 'Japan trip', usd: 'Dollar account',
+    wallets: 'Wallets', total: 'Total', tabs: ['Transactions','Wallets','Reports','Account'],
+    f1: '<b>1 · New wallet form</b> a "flag + code ›" chip replaces the &lt;select&gt;, always shown; THB by default.',
+    fA: '<b>2A · Flag + code + name tiles (3 columns)</b> recommended, easiest to read. "Used in this book" on top when the book has wallets in several currencies.',
+    fB: '<b>2B · Circles like the icon picker (5 columns)</b> closest to <code>app-icon-field</code>, compact, but code only; the name is in the aria-label.',
+    fC: '<b>2C · List rows</b> flag + full name + code + ✓. Not a dropdown, but a long list.',
+    f3: '<b>3 · After picking JPY</b> the starting balance drops its decimals at once (minorUnit 0); so does the keypad.',
+    f4: '<b>4 · A wallet with transactions</b> the chip becomes plain text (no ›) with the reason, as today.',
+    f5: '<b>5 · Wallets tab</b> totals are already per currency; proposed: flag + code before each line when there is more than one, since narrowSymbol gives "$" to many (USD SGD HKD AUD …) and ¥ to both JPY and CNY.',
+  },
+}
+const t = (k) => T[state.lang][k]
+const locale = () => state.lang === 'th' ? 'th-TH' : 'en-GB'
+const curName = (code) => new Intl.DisplayNames(locale(), { type: 'currency' }).of(code)
+const regName = (code) => new Intl.DisplayNames(locale(), { type: 'region' }).of(REGION_OF_FLAG(BY_CODE[code].flag))
+const label = (code) => state.naming === 'region' ? regName(code) : curName(code)
+const money = (major, code) => new Intl.NumberFormat(locale(), { style: 'currency', currency: code, currencyDisplay: 'narrowSymbol',
+  minimumFractionDigits: BY_CODE[code].minor, maximumFractionDigits: BY_CODE[code].minor }).format(major)
+const num = (major, code) => new Intl.NumberFormat(locale(), { minimumFractionDigits: BY_CODE[code].minor, maximumFractionDigits: BY_CODE[code].minor }).format(major)
+const flag = (code, cls = 'r', size = '') => `<span class="fi fi-${BY_CODE[code].flag} ${cls}" style="${size}"></span>`
+const flagSq = (code) => `<span class="fi fis fi-${BY_CODE[code].flag} c"></span>`
+
+const sheet = (title, lead, body, foot = '') => `
+  <div class="dim"></div>
+  <div class="sheet">
+    <div class="shdr"><span class="glass">${lead}</span><span class="ttl">${title}</span><span></span></div>
+    <div class="body">${body}</div>
+    ${foot ? `<div class="foot">${foot}</div>` : ''}
+  </div>`
+
+const walletForm = ({ title, name, icon, color, code, amount, locked }) => sheet(title, '✕', `
+  <p class="lbl">${t('name')}</p>
+  <div class="row"><span class="badge" style="background:${color}">${icon}</span><div class="input">${name}</div></div>
+  <p class="lbl" style="margin-top:20px">${t('start')}</p>
+  <div class="row">
+    <span class="pm">+</span>
+    <div class="input"><span class="num">${num(amount, code)}</span>
+      ${locked
+        ? `<span class="cchip locked">${flag(code)} ${code}</span>`
+        : `<span class="cchip">${flag(code)} ${code} <span class="chev">›</span></span>`}
+    </div>
+  </div>
+  ${locked ? `<p class="hint" style="padding-left:56px">${t('locked')}</p>` : ''}
+  <div class="sep"></div>
+  <div class="sw">${t('card')}<span class="track"></span></div>
+  <div class="sep"></div>
+  <div class="sw">${t('exclude')}<span class="track"></span></div>
+`, `<button class="btn">${t('save')}</button>`)
+
+const inBook = ['THB', 'JPY']
+const groupsWith = (render) => {
+  let html = `<div class="ghead">${t('inBook')}</div>` + render(inBook)
+  for (const g of GROUPS) html += `<div class="ghead"><span>${g[state.lang]}</span></div>` + render(g.items.map(i => i[0]))
+  return html
+}
+const pickA = () => sheet(t('currency'), '‹', groupsWith(codes => `<div class="tiles">${codes.map(c =>
+  `<div class="tile ${c === 'THB' ? 'on' : ''}">${flag(c)}<b>${c}</b><small>${label(c)}</small></div>`).join('')}</div>`))
+const pickB = () => sheet(t('currency'), '‹', groupsWith(codes => `<div class="dots">${codes.map(c =>
+  `<div class="dot ${c === 'THB' ? 'on' : ''}" title="${label(c)}"><span class="ring">${flagSq(c)}</span>${c}</div>`).join('')}</div>`))
+const pickC = () => sheet(t('currency'), '‹', groupsWith(codes => `<div class="list">${codes.map(c =>
+  `<div class="li">${flagSq(c)}<span class="nm">${label(c)}</span><span class="cd">${c}</span><span class="ck">${c === 'THB' ? '✓' : ''}</span></div>`).join('')}</div>`))
+
+const walletsTab = () => {
+  const rows = [
+    ['💵', '#16a34a', t('cash'), 'THB', 12450.5], ['✈️', '#dc2626', t('trip'), 'JPY', 38500], ['🏦', '#2563eb', t('usd'), 'USD', 320],
+  ]
+  const totals = [['THB', 12450.5], ['JPY', 38500], ['USD', 320]]
+  return `
+    <div class="hdr">${t('wallets')}</div>
+    <div class="card">
+      <div class="ghead" style="margin:0 0 4px">${t('total')}</div>
+      ${totals.map(([c, a]) => `<div class="tot"><span class="who">${flag(c)} ${c}</span><span class="amt">${money(a, c)}</span></div>`).join('')}
+    </div>
+    <div class="card">
+      ${rows.map(([i, col, n, c, a]) => `<div class="wrow"><span class="badge" style="background:${col}">${i}</span>
+        <span class="nm">${n}<small>${flag(c, 'r', 'width:16px;height:12px')} ${c}</small></span><span class="amt">${money(a, c)}</span></div>`).join('')}
+    </div>
+    <p class="note">${state.lang === 'th' ? 'ตอนนี้: บรรทัดยอดรวมมีแค่ตัวเลข "฿12,450.50 / ¥38,500 / $320.00"' : 'Today: the total lines are numbers only "฿12,450.50 / ¥38,500 / $320.00"'}</p>
+    <div class="tabbar">${t('tabs').map(x => `<span>${x}</span>`).join('')}</div>`
+}
+
+function render() {
+  document.documentElement.lang = state.lang
+  document.getElementById('h1').textContent = t('h1')
+  document.getElementById('intro').textContent = t('intro')
+  const frames = [
+    ['f1', walletForm({ title: t('newWallet'), name: t('trip'), icon: '✈️', color: '#dc2626', code: 'THB', amount: 0 })],
+    ['fA', pickA()], ['fB', pickB()], ['fC', pickC()],
+    ['f3', walletForm({ title: t('newWallet'), name: t('trip'), icon: '✈️', color: '#dc2626', code: 'JPY', amount: 120000 })],
+    ['f4', walletForm({ title: t('editWallet'), name: t('trip'), icon: '✈️', color: '#dc2626', code: 'JPY', amount: 120000, locked: true })],
+    ['f5', walletsTab()],
+  ]
+  document.getElementById('grid').innerHTML = frames.map(([k, html]) =>
+    `<figure><figcaption>${t(k)}</figcaption><div class="phone">${html}</div></figure>`).join('')
+}
+function wire(id, apply) {
+  const el = document.getElementById(id)
+  el.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return
+    el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)))
+    apply(b.dataset.v); render()
+  })
+}
+wire('lang', v => { state.lang = v })
+wire('theme', v => { document.documentElement.dataset.theme = v })
+wire('naming', v => { state.naming = v })
+render()
+</script>
+</body>
+</html>

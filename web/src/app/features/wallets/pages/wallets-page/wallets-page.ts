@@ -18,8 +18,9 @@ import { BookService } from '@/core/book'
 import { DEBTS_ROUTE, DebtService } from '@/core/debt'
 import { LanguageService } from '@/core/i18n'
 import { TransactionService, TransferService } from '@/core/transaction'
-import { WalletService } from '@/core/wallet'
+import { DEFAULT_CURRENCY, WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
+import { CurrencyFlag } from '@/shared/components/currency-flag'
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import { formatMoney } from '@/shared/utils'
 
@@ -36,6 +37,7 @@ import { formatMoney } from '@/shared/utils'
     NgIcon,
     HlmButton,
     IconBadge,
+    CurrencyFlag,
     CdkDropList,
     CdkDrag,
     CdkDragHandle,
@@ -74,9 +76,25 @@ import { formatMoney } from '@/shared/utils'
           <h2 id="wallets-total" class="text-sm text-muted-foreground">
             {{ 'wallets.total' | transloco }}
           </h2>
+          @let several = totals().length > 1;
           @for (line of totals(); track line.currencyCode) {
-            <p class="text-2xl font-semibold tabular-nums" [class.text-expense]="line.amount < 0">
-              {{ line.text }}
+            <p class="flex items-center gap-3">
+              @if (several) {
+                <!-- Currency rule 8: "$" and "¥" are shared, so the flag and code say which. -->
+                <span
+                  class="flex shrink-0 items-center gap-2 text-sm font-semibold text-muted-foreground"
+                >
+                  <app-currency-flag class="h-4.5 w-6" [code]="line.currencyCode" />
+                  {{ line.currencyCode }}
+                </span>
+              }
+              <span
+                class="min-w-0 flex-1 text-2xl font-semibold tabular-nums"
+                [class.text-right]="several"
+                [class.text-expense]="line.amount < 0"
+              >
+                {{ line.text }}
+              </span>
             </p>
           }
           @for (line of afterCards(); track line.currencyCode) {
@@ -386,6 +404,12 @@ import { formatMoney } from '@/shared/utils'
         <app-icon-badge [icon]="wallet.icon" [color]="wallet.color" [fallback]="defaultIcon" />
         <span class="flex min-w-0 flex-1 flex-col">
           <span class="truncate text-base">{{ wallet.name }}</span>
+          @if (wallet.currencyCode !== defaultCurrency) {
+            <span class="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <app-currency-flag class="h-3 w-4" [code]="wallet.currencyCode" />
+              {{ wallet.currencyCode }}
+            </span>
+          }
           @if (wallet.excludeFromTotal && !wallet.isArchived) {
             <span class="text-sm text-muted-foreground">
               {{ 'wallets.excluded' | transloco }}
@@ -446,6 +470,8 @@ export class WalletsPage {
   protected hasDebts = computed(() => this.debtLines().some((line) => line.count > 0))
 
   protected defaultIcon = WALLET_DEFAULT_ICON
+  /** A wallet in another currency shows its flag and code under the name (currency.md). */
+  protected defaultCurrency = DEFAULT_CURRENCY
   private bookService = inject(BookService)
   private transactionService = inject(TransactionService)
   private router = inject(Router)

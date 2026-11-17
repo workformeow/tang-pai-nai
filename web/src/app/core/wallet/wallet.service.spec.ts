@@ -160,6 +160,18 @@ describe('WalletService', () => {
     ])
   })
 
+  it("orders per-currency lines by the book's wallets, then sortOrder (currency rule 6)", () => {
+    db.exec(`UPDATE currencies SET is_active = 1 WHERE code = 'JPY'`)
+    pulled(wallet('yen', { initialBalance: 15000, currencyCode: 'JPY', sortOrder: 0 }))
+    pulled(wallet('old', { currencyCode: 'USD', isArchived: true, sortOrder: 1 }))
+    pulled(wallet('cash', { initialBalance: 150050, sortOrder: 2 }))
+    // An archived wallet still places its currency; THB comes after the wallets' ones.
+    expect(service.currencyOrder()).toEqual(['JPY', 'USD', 'THB'])
+    expect(service.totals().map((line) => line.currencyCode)).toEqual(['JPY', 'THB'])
+    expect(service.compareCurrency('THB', 'ZZZ')).toBeLessThan(0)
+    expect(service.bookCurrencies('p1')).toEqual(['JPY', 'THB'])
+  })
+
   it('lists open cards and what they owe, never below 0 (credit-card rules 3, 6)', () => {
     const card = { isCreditCard: true, excludeFromTotal: true }
     pulled(wallet('cash', { initialBalance: 150050 }))

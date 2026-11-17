@@ -149,6 +149,7 @@
     "balanceTooBig": "That amount is too large",
     "currency": "Currency",
     "currencyLocked": "This wallet has transactions, so its currency can’t change. Create a new wallet for another currency.",
+    "currencyPick": "Currency: {{ name }}",
     "excludeFromTotal": "Exclude from total",
     "icon": "Icon",
     "color": "Colour",
@@ -840,6 +841,15 @@
     "lucideWine": "Wine",
     "lucideWrench": "Repairs",
     "lucideZap": "Electricity"
+  },
+  "currencyGroups": {
+    "inBook": "Used in this book",
+    "asia": "Asia",
+    "middleEast": "Middle East",
+    "europe": "Europe",
+    "americas": "Americas",
+    "oceania": "Oceania",
+    "other": "Other"
   },
   "iconGroups": {
     "moneyPlaces": "Money places",

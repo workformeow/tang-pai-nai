@@ -92,8 +92,34 @@ export class WalletService {
     )
   )
   activeCurrencies = computed(() => this.currencies().filter((currency) => currency.isActive))
+  /**
+   * Currency rule 6: the current book's currencies in its wallet order (a currency sits where its
+   * first wallet sits, archived ones included), then the rest by `sortOrder`.
+   */
+  currencyOrder = computed(() => {
+    const order = new Set(this.wallets().map((wallet) => wallet.currencyCode))
+    for (const currency of this.currencies()) {
+      order.add(currency.code)
+    }
+    return [...order]
+  })
 
-  /** Rule 7: open wallets not excluded, one line per currency, in currency order. */
+  /** Sorts per-currency lines by rule 6; a code the device doesn't know goes last. */
+  compareCurrency(a: string, b: string): number {
+    const order = this.currencyOrder()
+    const rank = (code: string) => {
+      const index = order.indexOf(code)
+      return index === -1 ? order.length : index
+    }
+    return rank(a) - rank(b) || a.localeCompare(b)
+  }
+
+  /** The currencies of a book's open wallets, in wallet order (the picker's first group). */
+  bookCurrencies(bookId: string): string[] {
+    return [...new Set(this.openOf(bookId).map((wallet) => wallet.currencyCode))]
+  }
+
+  /** Rule 7: open wallets not excluded, one line per currency (currency rule 6). */
   totals = computed<CurrencyTotal[]>(() => {
     const sums = new Map<string, number>()
     for (const wallet of this.openWallets()) {
@@ -101,9 +127,8 @@ export class WalletService {
         sums.set(wallet.currencyCode, (sums.get(wallet.currencyCode) ?? 0) + this.balance(wallet))
       }
     }
-    const order = this.currencies().map((currency) => currency.code)
     return [...sums.entries()]
-      .sort(([a], [b]) => order.indexOf(a) - order.indexOf(b) || a.localeCompare(b))
+      .sort(([a], [b]) => this.compareCurrency(a, b))
       .map(([currencyCode, amount]) => ({
         currencyCode,
         minorUnit: this.minorUnit(currencyCode),
@@ -128,9 +153,8 @@ export class WalletService {
         sums.set(wallet.currencyCode, (sums.get(wallet.currencyCode) ?? 0) + owed)
       }
     }
-    const order = this.currencies().map((currency) => currency.code)
     return [...sums.entries()]
-      .sort(([a], [b]) => order.indexOf(a) - order.indexOf(b) || a.localeCompare(b))
+      .sort(([a], [b]) => this.compareCurrency(a, b))
       .map(([currencyCode, amount]) => ({
         currencyCode,
         minorUnit: this.minorUnit(currencyCode),

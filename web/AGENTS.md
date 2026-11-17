@@ -78,7 +78,7 @@ Owner's rule (after #16.1): **a component used in more than one place lives in
 - "More than one place" = two features, or a feature and `layout/`. A component used only
   inside one feature stays in that feature's `components/`.
 - Put it in `shared/components/<group>/` with **its own barrel** (`money-summary`, `period`,
-  `sheet`, `date-row`, `wallet-pick`). A module exported from a barrel the shell imports lands
+  `sheet`, `date-row`, `wallet-pick`, `currency-flag`). A module exported from a barrel the shell imports lands
   in the initial bundle even when only a lazy screen uses it (ROADMAP → "Known, for later"), so
   never add a lazy screen's component to a barrel the shell already uses, and check the build's
   initial total after a move.
@@ -315,6 +315,17 @@ Spec: [wallet.md](../docs/features/wallet.md).
   credit cards (#18, [credit-card.md](../docs/features/credit-card.md)): `cards()` (open ones),
   `owed(wallet)` (−balance, never below 0), `owedTotals()` (per currency). `save()` keeps a card
   out of the total.
+- **Currencies** (#23, [currency.md](../docs/features/currency.md)): every list per currency
+  (totals, owed totals, the Transactions summary, Reports, an event's money) sorts with
+  `WalletService.compareCurrency` (`currencyOrder()`: the book's wallet order, archived
+  included, then `sortOrder`); never sort by `currencies()` order again.
+  `bookCurrencies(bookId)` is the picker's "ใช้ในสมุดนี้" group. The wallet sheet's chip opens
+  its `currency` view, `layout/currency-pick` (the groups and flags are web data,
+  `CURRENCY_GROUPS` / `CURRENCY_FLAGS` in `shared/components/currency-flag`; a new currency
+  in a migration needs its entry there and its SVGs in `public/flags/1x1` and `4x3` from
+  `flag-icons`, MIT, `LICENSE` beside them). Show a currency with `app-currency-flag`
+  (decorative, a static SVG, sized by a class) plus its code; never an emoji flag. Keypads get
+  `[minorUnit]` (the "." key) and `QuickAmountsService.forCurrency(code)` (THB only).
 - The shell renders `layout/wallet-first-step` instead of the Transactions and Wallets pages
   while the book has no wallet (`isWalletTab()`), the ➕ leads there, and
   `layout/wallet-sheet` is `@defer`red like the book sheet. `features/wallets` holds only the
@@ -446,6 +457,9 @@ local database, nothing is stored.
   and sum, `start` / `end` balances, `perDay`), `hasData()`, `breakdown()`, `trend()`; the
   page-level reads `byCategory(range, walletIds, type, currency, parentId?)` (a parent's split,
   its own money as `direct`) and `categoryTotal(range, walletIds, ids, currency)`.
+- The page shows one currency at a time (#23, report.md Q6): the chips on top, one
+  `app-report-summary-card` whose income / expense tiles set `ReportService.type` (`type` in,
+  `typeChosen` out; there is no separate tab bar).
 - `features/reports`: the tab page, `/reports/category/:id[/:sub]` (`sub` = a child's id or
   `direct`) and `/reports/excluded`; `components/` (summary card H1, trend bars as buttons,
   share list, the day list drawn 100 at a time); `report-view.ts` (`reportView()`: chips,

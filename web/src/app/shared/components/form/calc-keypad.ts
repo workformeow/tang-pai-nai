@@ -90,9 +90,10 @@ interface Key {
       @for (item of keys; track item.key) {
         <button
           type="button"
-          class="flex items-center justify-center rounded-xl text-2xl tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:opacity-70"
+          class="flex items-center justify-center rounded-xl text-2xl tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:opacity-70 disabled:opacity-30"
           [class]="classOf(item)"
           [class.h-11]="item.kind !== 'done'"
+          [disabled]="item.key === '.' && minorUnit() === 0"
           [attr.aria-label]="item.label ? (item.label | transloco) : null"
           (click)="pressed.emit(item.key)"
         >
@@ -109,6 +110,8 @@ interface Key {
 export class CalcKeypad {
   /** Quick amounts in whole major units (8.2), a chip row above the keys; none hides it. */
   quickAmounts = input<readonly number[]>([])
+  /** The currency's digits: with 0 the "." key is off (currency rule 7). */
+  minorUnit = input(2)
   locale = input('th-TH')
   pressed = output<CalcKey | '='>()
   quickPressed = output<number>()

@@ -168,7 +168,12 @@ Lover's black and green.
   the incoming side `+1,000.00` in the income colour ("ได้รับจาก X"), on a muted ⇄ badge. They
   never count in รายรับ / รายจ่าย / สุทธิ or a day's net; the summary card adds a "โอน" line
   with their signed net when the view's transfers don't cancel out.
-- **Totals in different currencies** are shown one line per currency, never added together.
+- **Totals in different currencies** are shown one line per currency, never added together,
+  in the book's wallet order, each line led by the currency's **flag and code** (`app-currency-flag`,
+  a static SVG; never an emoji flag) because "$" and "¥" are shared (currency.md rules 6, 8).
+  A screen that is one currency at a time (Reports) names it the same way, even with one.
+  Picking a currency is a grid of round flags with the code under each, per continent
+  (`layout/currency-pick`, like the icon picker), never a dropdown or a search.
 - **Dates**: relative words for recent days (วันนี้ / Today, เมื่อวาน / Yesterday), then a short
   date such as `จ. 14 ต.ค.` / `Mon 14 Oct`. Day headers in the transaction list show the date on the left and the day total on
   the right.
@@ -206,7 +211,7 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   (password, phone) keep labels.
 - **Transaction form** (owner's choice in #8, from the Money Lover screenshot): **one card of
   rows told apart by their icons, no labels above them** (labels stay for screen readers):
-  wallet, amount (the currency code and the figures large, each number grouped in thousands as
+  wallet, amount (the currency's flag and code (#23) and the figures large, each number grouped in thousands as
   typed, `8,500`, after #12; a small "จำนวนเงิน" over them since it has no icon), category, note, date (‹ › a day, the middle opens the date
   picker; `app-date-row`, the same row in the transfer, debt and event sheets), and less used
   options folded under "เพิ่มเติม". The amount is typed on an
@@ -216,7 +221,8 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   (it belongs to the amount row); it covers the main button while it shows (✓, then save;
   nothing moves), with "บันทึกแล้วเพิ่มต่อ" as an outline icon beside the main button when
   adding. **Quick amounts** (8.2) are a chip row on top of the keypad's panel (`20 · 50 · 100 ·
-500 · 1,000`, a tap adds), switched off in Account › การแสดงผล. The note is its own view
+500 · 1,000`, a tap adds; THB wallets only, #23), switched off in Account › การแสดงผล; with
+  a 0-digit currency the "." key is off. The note is its own view
   (‹ back keeps the text), so it can be long. There are no type tabs on the form (2026-11): the
   category picker holds รายจ่าย / รายรับ tabs and the category sets the type, Money Lover
   style. Editing shows copy and delete in the header. The category picker starts with a "ใช้บ่อย" row (up to 4 badges with names, in a card) over the

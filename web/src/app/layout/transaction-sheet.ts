@@ -38,12 +38,7 @@ import {
   toRule as toRuleRow,
 } from '@/core/recurring'
 import type { RepeatValues, RuleValues } from '@/core/recurring'
-import {
-  QUICK_AMOUNTS,
-  QuickAmountsService,
-  TRANSACTION_LIMITS,
-  TransactionService,
-} from '@/core/transaction'
+import { QuickAmountsService, TRANSACTION_LIMITS, TransactionService } from '@/core/transaction'
 import type { EventOption, TransactionSheetState, TransactionValues } from '@/core/transaction'
 import { isHiddenIn, WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
@@ -495,6 +490,7 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                       <app-calc-keypad
                         class="absolute -inset-x-4 -bottom-4 z-10 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
                         [quickAmounts]="quickAmounts()"
+                        [minorUnit]="minorUnit()"
                         [locale]="languageService.locale()"
                         (pressed)="press($event)"
                         (quickPressed)="addQuick($event)"
@@ -856,7 +852,10 @@ export class TransactionSheet {
   protected repeat = signal<RepeatValues | null>(null)
   private quickAmountsService = inject(QuickAmountsService)
   /** The keypad's quick amounts (8.2), none when turned off in Account › การแสดงผล. */
-  protected quickAmounts = computed(() => (this.quickAmountsService.enabled() ? QUICK_AMOUNTS : []))
+  /** Quick amounts are Thai banknotes: THB wallets only (currency.md → Web screens). */
+  protected quickAmounts = computed(() =>
+    this.quickAmountsService.forCurrency(this.wallet()?.currencyCode ?? '')
+  )
 
   /** Rule 3: the expression works out to 1 … 10¹⁵ minor units. */
   private amountValid: ValidatorFn = (control) => {

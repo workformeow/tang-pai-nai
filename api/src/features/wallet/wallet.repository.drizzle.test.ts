@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/libsql/migrator'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -150,6 +150,11 @@ describe('walletSyncHandler', () => {
   })
 
   it('needs an active currency for a new wallet or a changed one, not for one kept', async () => {
+    // Every currency of the set is active (0022): switch two off for the rule.
+    await db
+      .update(currencies)
+      .set({ isActive: false })
+      .where(inArray(currencies.code, ['USD', 'JPY']))
     expect(await push.check(db, 'alice', wallet('w9', 'X', 0, { currencyCode: 'USD' }))).toBe(
       WALLET_MESSAGE.CURRENCY_INACTIVE
     )

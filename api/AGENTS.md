@@ -240,9 +240,9 @@ transactions) reads that table from `@/core/database/schema`, never the other fe
   `shared` options) with a local `createSyncRegistry()`; handlers on a temporary SQLite file with
   the committed migrations (`book.repository.drizzle.test.ts`; `wallet.repository.drizzle.test.ts`
   and `category.repository.drizzle.test.ts` insert the books their checks read;
-  `transaction.repository.drizzle.test.ts` also inserts wallets and categories, and activates
-  USD for the currency rule, as do `transfer.repository.drizzle.test.ts`,
-  `recurring.repository.drizzle.test.ts` and `debt.repository.drizzle.test.ts`;
+  `transaction.repository.drizzle.test.ts` also inserts wallets and categories (every currency
+  of the set is active since `0022_currency_picker`: a test of the "active currency" rule
+  switches one off first, as `wallet` and `debt` do; the counter starts at 38);
   `event.repository.drizzle.test.ts` inserts books only); the quiet hooks in `sync.service.test.ts` (`setup`'s
   second argument); HTTP with `accessTokens`
   for the Bearer header (`sync.controller.test.ts`).

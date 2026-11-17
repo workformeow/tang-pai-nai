@@ -9,6 +9,14 @@ describe('QuickAmountsService', () => {
     expect(QUICK_AMOUNTS).toEqual([20, 50, 100, 500, 1000])
   })
 
+  it('offers them to THB wallets only, and none while off (currency.md)', () => {
+    const service = TestBed.inject(QuickAmountsService)
+    expect(service.forCurrency('THB')).toEqual(QUICK_AMOUNTS)
+    expect(service.forCurrency('JPY')).toEqual([])
+    service.setEnabled(false)
+    expect(service.forCurrency('THB')).toEqual([])
+  })
+
   it('keeps the choice on the device', () => {
     TestBed.inject(QuickAmountsService).setEnabled(false)
     expect(localStorage.getItem('tpn-quick-amounts')).toBe('off')

@@ -22,12 +22,7 @@ import { DEBT_LIMITS, DebtService, toEntry } from '@/core/debt'
 import type { Debt, EntrySheetState } from '@/core/debt'
 import { LanguageService } from '@/core/i18n'
 import { describeRepeat, describeRest, RecurringService, shortDate } from '@/core/recurring'
-import {
-  QUICK_AMOUNTS,
-  QuickAmountsService,
-  TRANSACTION_LIMITS,
-  TransactionService,
-} from '@/core/transaction'
+import { QuickAmountsService, TRANSACTION_LIMITS, TransactionService } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
 import { walletPickItems } from '@/features/debts/debt-view'
@@ -373,6 +368,7 @@ type View = 'form' | 'wallet' | 'category' | 'note'
                       <app-calc-keypad
                         class="absolute -inset-x-4 -bottom-4 z-10 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
                         [quickAmounts]="quickAmounts()"
+                        [minorUnit]="minorUnit()"
                         [locale]="languageService.locale()"
                         (pressed)="press($event)"
                         (quickPressed)="addQuick($event)"
@@ -456,7 +452,10 @@ export class DebtEntrySheet {
   protected keypad = signal(false)
   protected open = signal(false)
   protected interestCategoryId = signal<string | null>(null)
-  protected quickAmounts = computed(() => (this.quickAmountsService.enabled() ? QUICK_AMOUNTS : []))
+  /** Quick amounts are Thai banknotes: THB wallets only (currency.md → Web screens). */
+  protected quickAmounts = computed(() =>
+    this.quickAmountsService.forCurrency(this.debt()?.currencyCode ?? '')
+  )
 
   /** The debt the sheet's row belongs to (also a rule's or a refused entry's). */
   private debtId = signal<string | null>(null)

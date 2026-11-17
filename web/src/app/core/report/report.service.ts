@@ -323,13 +323,8 @@ export class ReportService {
     const today = this.today()
     const last = range.from <= today && today < range.to ? today : range.to
     const days = dayCount(range.from, last)
-    const order = this.walletService.currencies().map((currency) => currency.code)
     return [...lines.values()]
-      .sort(
-        (a, b) =>
-          order.indexOf(a.currencyCode) - order.indexOf(b.currencyCode) ||
-          a.currencyCode.localeCompare(b.currencyCode)
-      )
+      .sort((a, b) => this.walletService.compareCurrency(a.currencyCode, b.currencyCode))
       .map((line) => {
         const left = excluded.get(line.currencyCode) ?? { count: 0, sum: 0 }
         return {
