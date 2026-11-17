@@ -1,0 +1,186 @@
+<div class="flex min-h-0 flex-1 flex-col" [appSlide]="step() === 'confirm' ? 1 : 0">
+  @switch (step()) {
+    @case ('pick') {
+      <app-sheet-frame
+        [title]="'categories.mergeInto' | transloco"
+        leadingIcon="back"
+        [leadingLabel]="'sheet.back' | transloco"
+        (leading)="back.emit()"
+      >
+        <ul
+          class="divide-y divide-border rounded-xl border border-border bg-card"
+          [attr.aria-label]="'categories.mergeInto' | transloco"
+        >
+          @for (node of targets(); track node.category.id) {
+            <li>
+              <button
+                type="button"
+                class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                (click)="pick(node.category.id)"
+              >
+                <app-icon-badge
+                  [icon]="node.category.icon"
+                  [color]="node.category.color"
+                  [fallback]="defaultIcon"
+                />
+                <span class="flex min-w-0 flex-1 flex-col">
+                  <span class="truncate text-base">{{ node.category.name }}</span>
+                  @if (node.category.id === category().parentId) {
+                    <span class="text-xs text-muted-foreground">{{
+                      'categories.mergeOwnParent' | transloco
+                    }}</span>
+                  }
+                </span>
+                <ng-icon
+                  name="lucideChevronRight"
+                  size="20"
+                  class="text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </button>
+              @if (node.children.length > 0) {
+                <ul
+                  class="tpn-tree"
+                  [style.--tree-color]="treeColor(node.category.color)"
+                  [attr.aria-label]="node.category.name"
+                >
+                  @for (child of node.children; track child.id) {
+                    <li>
+                      <button
+                        type="button"
+                        class="flex min-h-12 w-full items-center gap-3 py-2 pr-4 pl-7 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                        (click)="pick(child.id)"
+                      >
+                        <app-icon-badge
+                          [icon]="child.icon"
+                          [color]="child.color"
+                          [fallback]="defaultIcon"
+                          [size]="32"
+                        />
+                        <span class="min-w-0 flex-1 truncate text-base">{{ child.name }}</span>
+                        <ng-icon
+                          name="lucideChevronRight"
+                          size="20"
+                          class="text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </li>
+          }
+        </ul>
+      </app-sheet-frame>
+    }
+    @case ('confirm') {
+      <app-sheet-frame
+        [title]="'categories.mergeAction' | transloco"
+        leadingIcon="back"
+        [leadingLabel]="'sheet.back' | transloco"
+        (leading)="step.set('pick')"
+      >
+        @if (target(); as target) {
+          <div class="flex flex-col gap-4">
+            <div class="flex items-center gap-2 pt-2" aria-hidden="true">
+              <app-icon-badge [icon]="icon()" [color]="color()" [fallback]="defaultIcon" />
+              <ng-icon name="lucideChevronRight" size="20" class="text-muted-foreground" />
+              <app-icon-badge
+                [icon]="target.icon"
+                [color]="target.color"
+                [fallback]="defaultIcon"
+              />
+            </div>
+            <p class="text-base font-semibold">
+              {{
+                'categories.mergeQuestion' | transloco: { from: category().name, to: target.name }
+              }}
+            </p>
+            @if (childCount() > 0) {
+              <app-segmented-field
+                [control]="mode"
+                [label]="'categories.mergeChildren' | transloco: { count: childCount() }"
+                [options]="modeOptions()"
+              />
+            }
+            @if (plan(); as plan) {
+              <ul class="flex flex-col gap-2 text-sm">
+                <li class="flex gap-2">
+                  <ng-icon
+                    name="lucideCheck"
+                    size="18"
+                    class="mt-0.5 shrink-0 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                  <span>{{
+                    (plan.transactions > 0
+                      ? 'categories.mergeTransactions'
+                      : 'categories.mergeNoTransactions'
+                    ) | transloco: { count: plan.transactions, name: target.name }
+                  }}</span>
+                </li>
+                @if (plan.moved > 0) {
+                  <li class="flex gap-2">
+                    <ng-icon
+                      name="lucideCheck"
+                      size="18"
+                      class="mt-0.5 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                    <span>{{
+                      (plan.clashes > 0 ? 'categories.mergeMovedClash' : 'categories.mergeMoved')
+                        | transloco
+                          : {
+                              count: plan.moved,
+                              clashes: plan.clashes,
+                              name: planParentName(),
+                            }
+                    }}</span>
+                  </li>
+                }
+                @if (plan.merged > 0) {
+                  <li class="flex gap-2">
+                    <ng-icon
+                      name="lucideCheck"
+                      size="18"
+                      class="mt-0.5 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                    <span>{{
+                      'categories.mergeMerged'
+                        | transloco: { count: plan.merged, name: target.name }
+                    }}</span>
+                  </li>
+                }
+                <li class="flex gap-2 text-destructive">
+                  <ng-icon
+                    name="lucideTriangleAlert"
+                    size="18"
+                    class="mt-0.5 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <span>{{
+                    'categories.mergeWarning' | transloco: { name: category().name }
+                  }}</span>
+                </li>
+              </ul>
+            }
+          </div>
+        }
+        <div sheetFooter class="pt-3">
+          <button
+            hlmBtn
+            variant="destructive"
+            type="button"
+            class="h-11 w-full text-base"
+            [disabled]="!plan() || !categoryService.canWrite()"
+            (click)="merge()"
+          >
+            {{ 'categories.mergeConfirm' | transloco }}
+          </button>
+        </div>
+      </app-sheet-frame>
+    }
+  }
+</div>
