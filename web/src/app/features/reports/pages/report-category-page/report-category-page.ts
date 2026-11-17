@@ -222,13 +222,20 @@ export class ReportCategoryPage {
   })
   protected showWallet = computed(() => this.transactionService.viewWallet() === null)
 
-  /** `อาหาร › กาแฟ` for a sub-category, `อาหาร › ไม่ระบุหมวดย่อย` for the parent's own money. */
+  /**
+   * The line under the icon: the category's name on a top-level page (owner, 2026-11-17: the
+   * same line as a sub-category's), `อาหาร › กาแฟ` for a sub-category, `อาหาร › ไม่ระบุหมวดย่อย`
+   * for the parent's own money.
+   */
   protected path = computed(() => {
     this.languageService.language()
     const category = this.category()
     const target = this.target()
-    if (!category || !target || this.scope() === 'whole') {
+    if (!category || !target) {
       return null
+    }
+    if (this.scope() === 'whole') {
+      return category.name
     }
     const leaf =
       this.scope() === 'direct' ? this.transloco.translate('reports.direct') : target.name
