@@ -3,7 +3,7 @@
   <hlm-drawer-content
     *hlmDrawerPortal
     class="mx-auto h-[92dvh] w-full max-w-[480px] overflow-x-clip data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
-    (keydown)="onKey($event)"
+    (keydown)="keypad.onKey($event, view() === 'form')"
   >
     <div class="flex min-h-0 flex-1 flex-col" [appSlide]="depth()">
       @switch (view()) {
@@ -32,8 +32,8 @@
               }
               <div
                 class="flex flex-col gap-4"
-                (pointerdown)="leaveAmount($event)"
-                (focusin)="leaveAmount($event)"
+                (pointerdown)="keypad.leave($event)"
+                (focusin)="keypad.leave($event)"
               >
                 @if (!debtService.canWrite()) {
                   <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -93,8 +93,8 @@
                         [currencyCode]="currencyCode()"
                         [minorUnit]="minorUnit()"
                         [locale]="languageService.locale()"
-                        [active]="keypad()"
-                        (activate)="keypad.set(true)"
+                        [active]="keypad.open()"
+                        (activate)="keypad.open.set(true)"
                       />
                     </div>
                     @if (!repaid()) {
@@ -335,7 +335,7 @@
               </div>
               <div sheetFooter class="relative flex flex-col pt-3">
                 <!-- Under the keypad while it shows: ✓ first, then save (one action at a time). -->
-                <div class="flex" [attr.inert]="keypad() ? '' : null">
+                <div class="flex" [attr.inert]="keypad.open() ? '' : null">
                   <button
                     hlmBtn
                     type="submit"
@@ -345,14 +345,14 @@
                     {{ 'transactions.save' | transloco }}
                   </button>
                 </div>
-                @if (keypad()) {
+                @if (keypad.open()) {
                   <app-calc-keypad
                     class="absolute -inset-x-4 -bottom-4 z-10 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
                     [quickAmounts]="quickAmounts()"
                     [minorUnit]="minorUnit()"
                     [locale]="languageService.locale()"
-                    (pressed)="press($event)"
-                    (quickPressed)="addQuick($event)"
+                    (pressed)="keypad.press($event)"
+                    (quickPressed)="keypad.addQuick($event)"
                   />
                 }
               </div>
