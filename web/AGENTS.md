@@ -750,10 +750,47 @@ wallet-form.spec.ts   # tests (§1 Testing)
 - `templateUrl` / `styleUrl` are relative to the component file (`./<name>.html`).
 - Lint enforces it: `@angular-eslint/component-max-inline-declarations` allows 0 inline template or
   style lines.
-- **Size**: a component's `.ts` past ~400 lines, or a template past ~300, is doing too much. Split
-  out a child component (a section of a sheet, a row, a picker) or move logic into a helper /
-  service, instead of growing the file. Do it in the same PR when it's the code you touch, or list
-  it in ROADMAP.
+- Size and splitting follow **Readability first** below.
+
+### Readability first
+
+Owner's rule (2026-11): the goal of any split or refactor is code that **reads easily**: someone
+opening the file for the first time finds where a behavior lives and follows it without jumping
+through many files. Short is not the goal, and neither is sorting code into more folders.
+
+**Line counts are a signal to look, not a rule.** A component `.ts` past ~400 lines, a template past
+~300 or a service past ~600 is worth a look. If it still reads well, leave it. No lint enforces it.
+
+Split when:
+
+- The file does several jobs you can name apart, e.g. a sheet with several views, each with its
+  own state.
+- A part reads on its own: it takes a few inputs and sends out a few outputs.
+- Plain logic (calculating, mapping, validating) sits inside a component. Move it to functions in
+  its own file, next to the component, where it reads and tests on its own.
+- The same code appears in more than one place (§2 Shared components).
+
+Don't split when:
+
+- The part leans on the parent's state, so the child would pass many inputs / outputs (about 5 or
+  more) back and forth. That reads worse than one file.
+- It leaves many tiny files, so one behavior needs five files open to follow.
+- The only reason is to get a file under a number.
+
+Inside a file, even without splitting:
+
+- One member order in every component: `inject()` → `input()` / `output()` / `model()` → state
+  signals → `computed()` → lifecycle / effects → methods the template calls → private helpers.
+- A long file with several views groups its members by view, under a short section comment.
+- A long expression in a template becomes a named `computed()`.
+- Names say the intent. Early returns, not nested `if`s.
+
+Services split by job (e.g. reads / writes, the offline queue, report queries) behind the one
+service callers already inject, so call sites don't change.
+
+How a refactor is done: one component or service at a time. First a proposal (what reads badly
+now, what changes, the files it leaves), then the owner's OK, then the change: behavior unchanged,
+existing tests still pass, one commit each.
 
 ### Members & naming (same as kixly-deck-admin)
 
