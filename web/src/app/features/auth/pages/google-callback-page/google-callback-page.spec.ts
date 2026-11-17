@@ -22,6 +22,8 @@ const session: AuthSession = {
     displayName: 'mom',
     avatarUrl: null,
     timezone: 'Asia/Bangkok',
+    isDemo: false,
+    createdAt: '2026-01-01T00:00:00.000Z',
     hasPassword: false,
     phone: null,
     identities: [{ provider: 'google', email: 'mom@gmail.com', linkedAt: '2026-10-19T00:00:00Z' }],

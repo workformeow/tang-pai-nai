@@ -19,6 +19,7 @@ describe('AccountPage', () => {
   const authService = {
     loadMe: vi.fn(async () => Promise.resolve()),
     signOut: vi.fn(async () => Promise.resolve()),
+    endDemo: vi.fn(async () => Promise.resolve()),
   }
   const offlineService = {
     wipe: vi.fn(async () => Promise.resolve()),
@@ -198,5 +199,42 @@ describe('AccountPage', () => {
     await settle()
     expect(authService.signOut).toHaveBeenCalledOnce()
     expect(offlineService.wipe).toHaveBeenCalledOnce()
+  })
+
+  describe('in a demo (docs/features/demo.md rules 9, 12)', () => {
+    beforeEach(() => {
+      TestBed.inject(AuthStore).user.set({
+        displayName: 'ผู้ทดลองใช้',
+        email: 'demo-1@demo.invalid',
+        isDemo: true,
+      } as AuthUser)
+      fixture.detectChanges()
+    })
+
+    it('shows a demo line instead of the placeholder address', () => {
+      expect(page().textContent).toContain(th.demo.profileLine)
+      expect(page().textContent).not.toContain('demo.invalid')
+    })
+
+    it('shows sharing turned off, with the note and no link', () => {
+      expect(page().querySelector('a[href="/account/sharing"]')).toBeNull()
+      const row = page().querySelector('[aria-disabled="true"]')
+      expect(row?.textContent).toContain(th.account.sharing)
+      expect(row?.textContent).toContain(th.demo.notAllowed)
+    })
+
+    it('ends the demo after asking once: deleted at once, the device wiped, no push first', async () => {
+      button(th.demo.end)?.click()
+      await settle()
+      expect(sheet()?.textContent).toContain(th.demo.endConfirm)
+
+      sheetButton(th.demo.end)?.click()
+      await settle()
+
+      expect(authService.endDemo).toHaveBeenCalledOnce()
+      expect(authService.signOut).not.toHaveBeenCalled()
+      expect(syncService.flush).not.toHaveBeenCalled()
+      expect(offlineService.wipe).toHaveBeenCalledOnce()
+    })
   })
 })

@@ -18,12 +18,14 @@ import { SecurityPage } from './security-page'
 @Component({ template: '' })
 class Blank {}
 
-const user = (linked = false, phone: string | null = null): AuthUser => ({
+const user = (linked = false, phone: string | null = null, isDemo = false): AuthUser => ({
   id: 'u1',
   email: 'mom@example.com',
   displayName: 'mom',
   avatarUrl: null,
   timezone: 'Asia/Bangkok',
+  isDemo,
+  createdAt: '2026-01-01T00:00:00.000Z',
   hasPassword: true,
   phone,
   identities: linked
@@ -93,17 +95,17 @@ describe('SecurityPage', () => {
   const open = async (
     query = '',
     linked = false,
-    { phone = null as string | null, phoneEnabled = true } = {}
+    { phone = null as string | null, phoneEnabled = true, demo = false } = {}
   ) => {
     TestBed.inject(AuthStore).setSession({
       accessToken: 'token',
       expiresIn: 600,
-      user: user(linked, phone),
+      user: user(linked, phone, demo),
     })
     await TestBed.inject(Router).navigateByUrl(`/account/security${query}`)
     fixture = TestBed.createComponent(SecurityPage)
     fixture.detectChanges()
-    http.expectOne('/api/auth/me').flush(envelope(user(linked, phone)))
+    http.expectOne('/api/auth/me').flush(envelope(user(linked, phone, demo)))
     http.expectOne('/api/auth/providers').flush(envelope({ google: true, phone: phoneEnabled }))
     http.expectOne('/api/auth/sessions').flush(envelope(devices))
     await settle()
@@ -174,6 +176,25 @@ describe('SecurityPage', () => {
     await open('', false, { phoneEnabled: false })
 
     expect(page().textContent).not.toContain(th.account.phone)
+  })
+
+  it('shows password, phone, Google and delete turned off in a demo (demo rule 9)', async () => {
+    await open('', false, { demo: true })
+
+    expect(page().querySelector('a[href="/account/password"]')).toBeNull()
+    expect(page().querySelector('a[href="/account/phone"]')).toBeNull()
+    expect(page().querySelector('a[href="/account/delete"]')).toBeNull()
+    const disabled = [...page().querySelectorAll('[aria-disabled="true"]')]
+    expect(disabled.map((row) => row.textContent)).toEqual([
+      expect.stringContaining(th.account.password),
+      expect.stringContaining(th.account.phone),
+      expect.stringContaining(th.security.deleteAccount),
+    ])
+    const link = [...page().querySelectorAll('button')].find(
+      (b) => b.textContent.trim() === th.security.link
+    )
+    expect(link?.disabled).toBe(true)
+    expect(page().textContent).toContain(th.demo.notAllowed)
   })
 
   it('names each device and marks this one, with no sign-out button on it', async () => {
