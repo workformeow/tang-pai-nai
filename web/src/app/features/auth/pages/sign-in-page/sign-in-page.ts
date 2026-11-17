@@ -5,7 +5,7 @@ import { NonNullableFormBuilder } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { lucideDownload } from '@ng-icons/lucide'
+import { lucideChevronRight, lucideDownload, lucidePlay } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { AuthService, AuthStore, PHONE_FEATURE, safeReturnUrl } from '@/core/auth'
@@ -43,7 +43,7 @@ const METHODS: readonly SignInMethod[] = ['email', 'password', 'phone']
     PasswordSignIn,
     PhoneSignIn,
   ],
-  providers: [provideIcons({ lucideDownload })],
+  providers: [provideIcons({ lucideChevronRight, lucideDownload, lucidePlay })],
   // Coming back from Google with the browser's back button restores this page as it was left.
   host: { '(window:pageshow)': 'isLeaving.set(false)' },
   template: `
@@ -69,6 +69,15 @@ const METHODS: readonly SignInMethod[] = ['email', 'password', 'phone']
       @if (deleted) {
         <p role="status" class="rounded-xl bg-muted px-4 py-3 text-sm">
           {{ 'auth.accountDeleted' | transloco }}
+        </p>
+      }
+      @if (demoExpired) {
+        <!-- Demo rule 14: the demo this device held is gone, and so is its data here. -->
+        <p role="status" class="rounded-xl bg-muted px-4 py-3 text-sm">
+          {{ 'demo.expired' | transloco }}
+          <a routerLink="/auth/demo" class="text-foreground underline underline-offset-4">
+            {{ 'demo.again' | transloco }}
+          </a>
         </p>
       }
       @if (localOwner(); as name) {
@@ -121,6 +130,39 @@ const METHODS: readonly SignInMethod[] = ['email', 'password', 'phone']
         </div>
       }
 
+      @if (demoEnabled()) {
+        <!-- Demo rule 2: under the sign-in forms, above the privacy line; it only links. -->
+        <!-- A divider and a card, so it reads as another way in, not part of the form. -->
+        <div class="flex flex-col gap-4">
+          <div class="flex items-center gap-3 text-sm text-muted-foreground">
+            <span class="h-px flex-1 bg-border" aria-hidden="true"></span>
+            {{ 'demo.signInDivider' | transloco }}
+            <span class="h-px flex-1 bg-border" aria-hidden="true"></span>
+          </div>
+          <a
+            routerLink="/auth/demo"
+            class="flex min-h-16 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-card-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            <span
+              class="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xl text-primary"
+              aria-hidden="true"
+            >
+              <ng-icon name="lucidePlay" />
+            </span>
+            <span class="flex min-w-0 flex-1 flex-col">
+              <span class="text-base font-medium">{{ 'demo.signInButton' | transloco }}</span>
+              <span class="text-sm text-muted-foreground">{{ 'demo.signInHint' | transloco }}</span>
+            </span>
+            <ng-icon
+              name="lucideChevronRight"
+              size="20"
+              class="text-muted-foreground"
+              aria-hidden="true"
+            />
+          </a>
+        </div>
+      }
+
       <div class="flex flex-col items-center gap-2 text-center text-sm text-muted-foreground">
         @if (testVersion()) {
           <p>{{ 'auth.testVersion' | transloco }}</p>
@@ -170,6 +212,10 @@ export class SignInPage {
   protected googleEnabled = signal(false)
   /** Privacy rule 2: the API is a test copy (staging). */
   protected testVersion = signal(false)
+  /** Demo rule 2: the ทดลองใช้ Demo button, while the API has the demo on. */
+  protected demoEnabled = signal(false)
+  /** Demo rule 14: the demo this device held ran out (said once). */
+  protected demoExpired = this.authService.takeDemoExpired()
   /** Back from deleting the account (privacy rule 11). */
   protected deleted = this.route.snapshot.queryParamMap.get('deleted') === '1'
   /** Off until phone sign-in is finished (`PHONE_FEATURE`). */
@@ -216,6 +262,7 @@ export class SignInPage {
         void this.authService.providers().then((providers) => {
           this.googleEnabled.set(providers.google)
           this.testVersion.set(providers.testVersion)
+          this.demoEnabled.set(providers.demo)
           this.phoneEnabled.set(this.phoneFeature && providers.phone)
           this.providersKnown.set(true)
         })

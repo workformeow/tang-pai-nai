@@ -47,6 +47,12 @@ export default [
           import('./pages/install-guide-page/install-guide-page').then((m) => m.InstallGuidePage),
       },
       {
+        // ทดลองใช้ Demo (demo.md rule 3): open to everyone; only its button creates anything.
+        path: 'demo',
+        title: 'title.demo',
+        loadComponent: async () => import('./pages/demo-page/demo-page').then((m) => m.DemoPage),
+      },
+      {
         // The privacy notice before signing in (privacy.md rules 1 and 3).
         path: 'privacy',
         title: 'title.privacy',
