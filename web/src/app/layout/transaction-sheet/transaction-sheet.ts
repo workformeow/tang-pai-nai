@@ -6,7 +6,6 @@ import { Router } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
-  lucideCheck,
   lucideChevronDown,
   lucideChevronRight,
   lucideCopy,
@@ -25,7 +24,7 @@ import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
 import { BookService } from '@/core/book'
 import { CATEGORY_DEFAULT_ICON, CategoryService } from '@/core/category'
-import type { Category, CategoryNode, CategoryType } from '@/core/category'
+import type { Category, CategoryType } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
 import { SyncService } from '@/core/offline'
 import {
@@ -37,53 +36,50 @@ import {
   shortDate,
   toRule as toRuleRow,
 } from '@/core/recurring'
-import type { RepeatValues, RuleValues } from '@/core/recurring'
+import type { RepeatValues } from '@/core/recurring'
 import { QuickAmountsService, TRANSACTION_LIMITS, TransactionService } from '@/core/transaction'
 import type { EventOption, TransactionSheetState, TransactionValues } from '@/core/transaction'
 import { isHiddenIn, WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
+import { EventPick } from '@/layout/event-pick/event-pick'
 import { RepeatRow } from '@/layout/repeat-row/repeat-row'
 import { RepeatView } from '@/layout/repeat-view/repeat-view'
+import { TransactionCategoryPick } from '@/layout/transaction-category-pick/transaction-category-pick'
 import { DateRow } from '@/shared/components/date-row'
 import {
   CalcAmountField,
   CalcKeypad,
   FORM_IMPORTS,
-  SegmentedField,
   SwitchField,
   TextareaField,
   withMessage,
 } from '@/shared/components/form'
-import { IconBadge, userColor, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
+import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
 import { WalletPick, walletPickItem } from '@/shared/components/wallet-pick'
-import type { SelectOption } from '@/shared/types'
-import {
-  addDays,
-  addQuickAmount,
-  CALC_KEYBOARD,
-  evaluate,
-  fromDay,
-  pressKey,
-  toDay,
-  toMajorText,
-} from '@/shared/utils'
+import { addDays, addQuickAmount, CALC_KEYBOARD, evaluate, pressKey, toDay } from '@/shared/utils'
 import type { CalcKey } from '@/shared/utils'
+import { amountText, toRuleValues } from './transaction-values'
 import type { TransactionFormGroup } from './transaction-form.type'
 
 type View = 'form' | 'wallet' | 'category' | 'note' | 'repeat' | 'event'
-
-const TYPES: readonly CategoryType[] = ['expense', 'income']
+type StartState<M extends TransactionSheetState['mode']> = Extract<
+  TransactionSheetState,
+  { mode: M }
+>
 
 /**
  * The transaction form (docs/features/transaction.md → Web screens; owner's choices in #8): the
  * type tabs, then one card of rows told apart by their icons (no labels above them): wallet,
  * amount (an on-screen calculator keypad), category, note (its own view), date (‹ › a day, the
  * middle opens the date picker) and "ไม่รวมในรายงาน". Create (➕), edit (a row; delete in the
- * header, undo in the toast) and "fix" a rejected op. Opened through `TransactionService.open()`;
- * the shell loads it on first use.
+ * header, undo in the toast) and "fix" a rejected op. A recurring rule opens here too (rule
+ * mode). Opened through `TransactionService.open()`; the shell loads it on first use.
+ *
+ * The category and event pickers are their own components; the other views are short and read
+ * the form directly, so they stay here.
  */
 @Component({
   selector: 'app-transaction-sheet',
@@ -93,10 +89,9 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
     TranslocoPipe,
     NgIcon,
     HlmButton,
+    HlmDrawerImports,
     DateRow,
     WalletPick,
-    HlmDrawerImports,
-    SegmentedField,
     SwitchField,
     CalcAmountField,
     CalcKeypad,
@@ -106,10 +101,11 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
     Slide,
     RepeatRow,
     RepeatView,
+    TransactionCategoryPick,
+    EventPick,
   ],
   providers: [
     provideIcons({
-      lucideCheck,
       lucideChevronDown,
       lucideChevronRight,
       lucideCopy,
@@ -129,20 +125,26 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
 export class TransactionSheet {
   private nnfb = inject(NonNullableFormBuilder)
   private transloco = inject(TranslocoService)
+  private router = inject(Router)
   protected languageService = inject(LanguageService)
   protected transactionService = inject(TransactionService)
+  protected bookService = inject(BookService)
   private walletService = inject(WalletService)
   private categoryService = inject(CategoryService)
-  protected bookService = inject(BookService)
   private recurringService = inject(RecurringService)
+  private quickAmountsService = inject(QuickAmountsService)
   private syncService = inject(SyncService)
 
   protected walletIcon = WALLET_DEFAULT_ICON
-  protected treeColor = userColor
   protected categoryIcon = CATEGORY_DEFAULT_ICON as UserIcon
   protected noteMax = TRANSACTION_LIMITS.NOTE_MAX
   protected firstDay = TRANSACTION_LIMITS.FIRST_DAY
+
+  // ── The sheet ─────────────────────────────────────────────────────────────
+
+  /** What the sheet is open for; null = closed. Set by `TransactionService.open()`. */
   protected state = this.transactionService.sheet
+  protected open = signal(false)
   protected view = signal<View>('form')
   /** How deep the view is: a deeper one slides in from the right, going back from the left. */
   protected depth = computed(() => (this.view() === 'form' ? 0 : 1))
@@ -150,42 +152,8 @@ export class TransactionSheet {
   protected keypad = signal(false)
   /** The folded "เพิ่มเติม" options. */
   protected more = signal(false)
-  private router = inject(Router)
-  /** The debt this row belongs to (debt rule 3: an instalment, interest), kept by an edit. */
-  protected debtId = signal<string | null>(null)
-  protected debtLink = computed(() => {
-    const id = this.debtId()
-    const person = this.transactionService.debtPerson(id)
-    return id && person !== null ? { id, person } : null
-  })
-  /** The event / trip it is tagged to (event rule 3); an edit keeps it. */
-  protected eventId = signal<string | null>(null)
-  /** Chosen by hand (or kept from the row): the date no longer picks it (event rule 5). */
-  private eventChosen = signal(false)
-  protected eventIcon = 'lucidePlane' as UserIcon
-  /** The open events the picker offers, and the row's own (closed) one. */
-  protected eventChoices = computed<EventOption[]>(() =>
-    this.transactionService.eventOptions(this.bookId(), this.eventId())
-  )
-  protected event = computed(() => {
-    const id = this.eventId()
-    return id ? (this.eventChoices().find((item) => item.id === id) ?? null) : null
-  })
-  /** Rules carry no event (event rule 9), nor does "ทำซ้ำ". */
-  protected showEvent = computed(
-    () =>
-      !this.ruleMode() &&
-      this.repeat() === null &&
-      (this.eventChoices().length > 0 || this.eventId() !== null)
-  )
-  /** "ทำซ้ำ" (docs/features/recurring.md): null = don't repeat. */
-  protected repeat = signal<RepeatValues | null>(null)
-  private quickAmountsService = inject(QuickAmountsService)
-  /** The keypad's quick amounts (8.2), none when turned off in Account › การแสดงผล. */
-  /** Quick amounts are Thai banknotes: THB wallets only (currency.md → Web screens). */
-  protected quickAmounts = computed(() =>
-    this.quickAmountsService.forCurrency(this.wallet()?.currencyCode ?? '')
-  )
+
+  // ── The form ──────────────────────────────────────────────────────────────
 
   /** Rule 3: the expression works out to 1 … 10¹⁵ minor units. */
   private amountValid: ValidatorFn = (control) => {
@@ -222,6 +190,12 @@ export class TransactionSheet {
   protected note = computed(() => (this.values().note ?? '').trim())
   protected day = computed(() => this.values().occurredOn ?? toDay())
   protected lastDay = computed(() => addDays(this.transactionService.today(), 365))
+  protected category = computed<Category | null>(() => {
+    const id = this.values().categoryId ?? ''
+    return id ? this.categoryService.byId(id) : null
+  })
+
+  // ── Mode: what is being created or edited ─────────────────────────────────
 
   /** The transaction being edited (edit and fix), null when creating. */
   protected editingId = computed(() => {
@@ -239,14 +213,33 @@ export class TransactionSheet {
     const mode = this.state()?.mode
     return mode === 'rule' || mode === 'fixRule'
   })
-  /** "ทำซ้ำ" shows when adding (not a due occurrence) and on a rule. */
-  protected repeatable = computed(() => {
+  /** The book the row belongs to (rule 1: it never moves). */
+  protected bookId = computed(() => {
     const state = this.state()
-    // A shared book has no recurring rules (sharing rule 11).
-    if (this.bookService.isShared()) {
-      return false
+    const rule = this.rule()
+    if (rule) {
+      return rule.bookId
     }
-    return (state?.mode === 'create' && !state.occurrence) || this.ruleMode()
+    const id = this.editingId()
+    const row = id ? this.transactionService.byId(id) : null
+    if (row) {
+      return row.bookId
+    }
+    return state?.mode === 'fix' ? state.bookId : (this.bookService.current()?.id ?? '')
+  })
+  protected heading = computed(() => {
+    switch (this.state()?.mode) {
+      case 'edit':
+        return 'transactions.editHeading'
+      case 'fix':
+        return 'transactions.fixHeading'
+      case 'rule':
+        return 'recurring.editHeading'
+      case 'fixRule':
+        return 'recurring.fixHeading'
+      default:
+        return 'transactions.createHeading'
+    }
   })
   /** Why nothing can be saved: a viewer of a shared book, else no network / server. */
   protected readOnlyKey = computed(() => {
@@ -257,6 +250,88 @@ export class TransactionSheet {
     return this.transactionService.serverDown()
       ? 'sync.serverDownWrite'
       : 'transactions.needsOnline'
+  })
+
+  // ── Wallet and amount ─────────────────────────────────────────────────────
+
+  /** The wallet the row had when the sheet opened (rule 5 keeps its currency). */
+  private startWalletId = signal<string | null>(null)
+  protected wallet = computed<Wallet | null>(() => {
+    const id = this.values().walletId ?? ''
+    return id ? this.walletService.byId(id) : null
+  })
+  protected minorUnit = computed(() =>
+    this.walletService.minorUnit(this.wallet()?.currencyCode ?? '')
+  )
+  /**
+   * The keypad's quick amounts (8.2): Thai banknotes, so THB wallets only (currency.md → Web
+   * screens), none when turned off in Account › การแสดงผล.
+   */
+  protected quickAmounts = computed(() =>
+    this.quickAmountsService.forCurrency(this.wallet()?.currencyCode ?? '')
+  )
+  /** Rule 5: when editing, only wallets in the row's currency. */
+  protected sameCurrencyOnly = computed(() => {
+    const start = this.startWalletId()
+    return start ? (this.walletService.byId(start)?.currencyCode ?? null) : null
+  })
+  /** Rule 2: the book's open wallets (and the one the row already has). */
+  protected walletChoices = computed<Wallet[]>(() => {
+    const currency = this.editingId() ? this.sameCurrencyOnly() : null
+    const open = this.walletService
+      .openOf(this.bookId())
+      .filter((item) => currency === null || item.currencyCode === currency)
+    const current = this.wallet()
+    return current && !open.some((item) => item.id === current.id) ? [current, ...open] : open
+  })
+  protected walletItems = computed(() =>
+    this.walletChoices().map((wallet) => walletPickItem(wallet))
+  )
+
+  // ── Event / trip (event.md) ───────────────────────────────────────────────
+
+  /** The event / trip it is tagged to (event rule 3); an edit keeps it. */
+  protected eventId = signal<string | null>(null)
+  /** Chosen by hand (or kept from the row): the date no longer picks it (event rule 5). */
+  private eventChosen = signal(false)
+  /** The open events the picker offers, and the row's own (closed) one. */
+  protected eventChoices = computed<EventOption[]>(() =>
+    this.transactionService.eventOptions(this.bookId(), this.eventId())
+  )
+  protected event = computed(() => {
+    const id = this.eventId()
+    return id ? (this.eventChoices().find((item) => item.id === id) ?? null) : null
+  })
+  /** Rules carry no event (event rule 9), nor does "ทำซ้ำ". */
+  protected showEvent = computed(
+    () =>
+      !this.ruleMode() &&
+      this.repeat() === null &&
+      (this.eventChoices().length > 0 || this.eventId() !== null)
+  )
+
+  // ── Debt (debt.md) ────────────────────────────────────────────────────────
+
+  /** The debt this row belongs to (debt rule 3: an instalment, interest), kept by an edit. */
+  protected debtId = signal<string | null>(null)
+  protected debtLink = computed(() => {
+    const id = this.debtId()
+    const person = this.transactionService.debtPerson(id)
+    return id && person !== null ? { id, person } : null
+  })
+
+  // ── "ทำซ้ำ" (recurring.md) ─────────────────────────────────────────────────
+
+  /** The schedule; null = don't repeat. */
+  protected repeat = signal<RepeatValues | null>(null)
+  /** "ทำซ้ำ" shows when adding (not a due occurrence) and on a rule. */
+  protected repeatable = computed(() => {
+    const state = this.state()
+    // A shared book has no recurring rules (sharing rule 11).
+    if (this.bookService.isShared()) {
+      return false
+    }
+    return (state?.mode === 'create' && !state.occurrence) || this.ruleMode()
   })
   /** The date row starts the rule ("เริ่ม"). */
   protected startsRule = computed(() => this.repeatable() && this.repeat() !== null)
@@ -271,9 +346,7 @@ export class TransactionSheet {
   protected repeatTitle = computed(() => {
     this.languageService.language()
     const repeat = this.repeat()
-    return repeat
-      ? describeRepeat(repeat, this.day(), this.t, this.languageService.locale())
-      : this.transloco.translate('recurring.none')
+    return repeat ? this.describe(repeat, this.day()) : this.t('recurring.none')
   })
   protected repeatSub = computed(() => {
     this.languageService.language()
@@ -314,120 +387,6 @@ export class TransactionSheet {
         })
       : null
   })
-  private t = (key: string, params?: Record<string, unknown>) =>
-    this.transloco.translate(key, params)
-
-  /** The book the row belongs to (rule 1: it never moves). */
-  private bookId = computed(() => {
-    const state = this.state()
-    const rule = this.rule()
-    if (rule) {
-      return rule.bookId
-    }
-    const id = this.editingId()
-    const row = id ? this.transactionService.byId(id) : null
-    if (row) {
-      return row.bookId
-    }
-    return state?.mode === 'fix' ? state.bookId : (this.bookService.current()?.id ?? '')
-  })
-  /** The wallet the row had when the sheet opened (rule 5 keeps its currency). */
-  private startWalletId = signal<string | null>(null)
-  protected wallet = computed<Wallet | null>(() => {
-    const id = this.values().walletId ?? ''
-    return id ? this.walletService.byId(id) : null
-  })
-  protected category = computed<Category | null>(() => {
-    const id = this.values().categoryId ?? ''
-    return id ? this.categoryService.byId(id) : null
-  })
-  protected minorUnit = computed(() =>
-    this.walletService.minorUnit(this.wallet()?.currencyCode ?? '')
-  )
-
-  protected typeOptions = computed<SelectOption[]>(() => {
-    this.languageService.language()
-    return TYPES.map((type) => ({
-      value: type,
-      label: this.transloco.translate(`categories.${type}`),
-    }))
-  })
-  protected heading = computed(() => {
-    switch (this.state()?.mode) {
-      case 'edit':
-        return 'transactions.editHeading'
-      case 'fix':
-        return 'transactions.fixHeading'
-      case 'rule':
-        return 'recurring.editHeading'
-      case 'fixRule':
-        return 'recurring.fixHeading'
-      default:
-        return 'transactions.createHeading'
-    }
-  })
-
-  /** Rule 5: when editing, only wallets in the row's currency. */
-  protected sameCurrencyOnly = computed(() => {
-    const start = this.startWalletId()
-    return start ? (this.walletService.byId(start)?.currencyCode ?? null) : null
-  })
-  /** Rule 2: the book's open wallets (and the one the row already has). */
-  protected walletChoices = computed<Wallet[]>(() => {
-    const currency = this.editingId() ? this.sameCurrencyOnly() : null
-    const open = this.walletService
-      .openOf(this.bookId())
-      .filter((item) => currency === null || item.currencyCode === currency)
-    const current = this.wallet()
-    return current && !open.some((item) => item.id === current.id) ? [current, ...open] : open
-  })
-  protected walletItems = computed(() =>
-    this.walletChoices().map((wallet) => walletPickItem(wallet))
-  )
-  /**
-   * The picker's tab: the form's type when it opens, then the user's. The form has no type
-   * control of its own (Money Lover style): choosing a category sets the type.
-   */
-  protected pickType = this.nnfb.control<string>('expense')
-  protected pickTypeValue = toSignal(this.pickType.valueChanges, {
-    initialValue: this.pickType.value,
-  })
-  /** Category rule 13: the picker tab's open categories the wallet doesn't hide. */
-  protected tree = computed<CategoryNode[]>(() => {
-    const wallet = this.wallet()
-    const type = this.pickTypeValue() as CategoryType
-    const hidden = wallet?.hiddenCategoryIds ?? []
-    return this.categoryService
-      .treeOf(this.bookId(), type)
-      .filter((node) => !isHiddenIn(hidden, node.category))
-      .map((node) => ({
-        category: node.category,
-        children: node.children.filter((child) => !isHiddenIn(hidden, child)),
-      }))
-  })
-  /**
-   * "ใช้บ่อย" (8.2): up to 4 of the most used categories the picker offers (open, not hidden in
-   * the wallet); read only while the picker shows.
-   */
-  protected frequent = computed<Category[]>(() => {
-    if (this.view() !== 'category') {
-      return []
-    }
-    const offered = new Map<string, Category>()
-    for (const node of this.tree()) {
-      offered.set(node.category.id, node.category)
-      for (const child of node.children) {
-        offered.set(child.id, child)
-      }
-    }
-    const type = this.pickTypeValue() as CategoryType
-    return this.transactionService
-      .frequentCategoryIds(this.bookId(), type)
-      .flatMap((id) => offered.get(id) ?? [])
-      .slice(0, 4)
-  })
-
-  protected open = signal(false)
 
   constructor() {
     // A category of the other type, or one the new wallet hides, no longer fits (rule 2).
@@ -459,6 +418,8 @@ export class TransactionSheet {
     })
   }
 
+  // ── Template actions: the amount keypad ───────────────────────────────────
+
   /**
    * The keypad shows only while the amount row is in use (owner, 8.2): a tap on, or focus moving
    * to, any other control of the form settles the expression and closes it. Taps on blank space
@@ -478,37 +439,43 @@ export class TransactionSheet {
     this.keypad.set(false)
   }
 
-  /** "ทำซ้ำ" changed in its view: the form now holds unsaved input. */
-  protected setRepeat(value: RepeatValues | null): void {
-    this.repeat.set(value)
-    this.form.markAsDirty()
-  }
-
-  /** "จากรายการซ้ำ": the rule in this sheet. */
-  protected openRule(id: string): void {
-    if (this.form.dirty) {
+  protected press(key: CalcKey | '='): void {
+    const control = this.form.controls.amount
+    if (key === '=') {
+      this.settleAmount()
+      this.keypad.set(false)
       return
     }
-    this.recurringService.open(id)
+    control.setValue(pressKey(control.value, key, this.minorUnit()))
+    control.markAsDirty()
   }
 
-  /** Recurring rule 5: pause or resume, at once. */
-  protected togglePause(): void {
-    const rule = this.rule()
-    if (!rule) {
+  /** A quick amount adds to the expression, like counting notes (8.2). */
+  protected addQuick(major: number): void {
+    const control = this.form.controls.amount
+    control.setValue(addQuickAmount(control.value, major, this.minorUnit()))
+    control.markAsDirty()
+  }
+
+  /** A hardware keyboard types into the open keypad too. */
+  protected onKey(event: KeyboardEvent): void {
+    if (!this.keypad() || this.view() !== 'form' || event.target instanceof HTMLInputElement) {
       return
     }
-    this.recurringService.setPaused(rule.id, !rule.isPaused)
-    toast.success(this.t(rule.isPaused ? 'recurring.resumed' : 'recurring.paused2'))
+    const key = /^\d$/.test(event.key) ? (event.key as CalcKey) : CALC_KEYBOARD[event.key]
+    if (key) {
+      event.preventDefault()
+      event.stopPropagation()
+      this.press(key)
+    }
   }
+
+  // ── Template actions: rows and pickers ────────────────────────────────────
 
   /** Another row: the expression settles and the keypad closes, as in Money Lover. */
-  protected pick(view: 'wallet' | 'category' | 'note' | 'repeat' | 'event'): void {
+  protected pick(view: Exclude<View, 'form'>): void {
     this.settleAmount()
     this.keypad.set(false)
-    if (view === 'category') {
-      this.pickType.setValue(this.form.controls.type.value)
-    }
     this.view.set(view)
   }
 
@@ -530,30 +497,47 @@ export class TransactionSheet {
     this.view.set('form')
   }
 
-  /** Category rule 13: the wallet's "หมวดหมู่ที่ใช้", over this sheet. */
-  protected openWalletCategories(): void {
-    const wallet = this.wallet()
-    if (wallet) {
-      this.walletService.open({ mode: 'edit', id: wallet.id, view: 'categories' })
-    }
+  /** The event picker's choice (or ×): kept from now on, whatever the date (event rule 5). */
+  protected chooseEvent(id: string | null): void {
+    this.eventId.set(id)
+    this.eventChosen.set(true)
+    this.form.markAsDirty()
+    this.view.set('form')
   }
 
-  protected press(key: CalcKey | '='): void {
-    const control = this.form.controls.amount
-    if (key === '=') {
-      this.settleAmount()
-      this.keypad.set(false)
+  /** "ทำซ้ำ" changed in its view: the form now holds unsaved input. */
+  protected setRepeat(value: RepeatValues | null): void {
+    this.repeat.set(value)
+    this.form.markAsDirty()
+  }
+
+  /** "จากรายการซ้ำ": the rule in this sheet. */
+  protected openRule(id: string): void {
+    if (this.form.dirty) {
       return
     }
-    control.setValue(pressKey(control.value, key, this.minorUnit()))
-    control.markAsDirty()
+    this.recurringService.open(id)
   }
 
-  /** A quick amount adds to the expression, like counting notes (8.2). */
-  protected addQuick(major: number): void {
-    const control = this.form.controls.amount
-    control.setValue(addQuickAmount(control.value, major, this.minorUnit()))
-    control.markAsDirty()
+  /** The "หนี้" row: the debt's page, once nothing here is left unsaved. */
+  protected openDebt(id: string): void {
+    if (this.form.dirty) {
+      return
+    }
+    this.finish()
+    void this.router.navigate(['/wallets/debts', id])
+  }
+
+  // ── Template actions: header and footer ───────────────────────────────────
+
+  /** Recurring rule 5: pause or resume, at once. */
+  protected togglePause(): void {
+    const rule = this.rule()
+    if (!rule) {
+      return
+    }
+    this.recurringService.setPaused(rule.id, !rule.isPaused)
+    toast.success(this.t(rule.isPaused ? 'recurring.resumed' : 'recurring.paused2'))
   }
 
   /**
@@ -579,47 +563,6 @@ export class TransactionSheet {
     })
   }
 
-  /** The event picker's choice (or ×): kept from now on, whatever the date (event rule 5). */
-  protected chooseEvent(id: string | null): void {
-    this.eventId.set(id)
-    this.eventChosen.set(true)
-    this.form.markAsDirty()
-    this.view.set('form')
-  }
-
-  protected eventDates(item: EventOption): string {
-    const locale = this.languageService.locale()
-    return item.endOn
-      ? new Intl.DateTimeFormat(locale, {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric',
-        }).formatRange(fromDay(item.startOn), fromDay(item.endOn))
-      : this.t('events.since', { date: shortDate(item.startOn, locale) })
-  }
-
-  /** The "หนี้" row: the debt's page, once nothing here is left unsaved. */
-  protected openDebt(id: string): void {
-    if (this.form.dirty) {
-      return
-    }
-    this.finish()
-    void this.router.navigate(['/wallets/debts', id])
-  }
-
-  /** A hardware keyboard types into the open keypad too. */
-  protected onKey(event: KeyboardEvent): void {
-    if (!this.keypad() || this.view() !== 'form' || event.target instanceof HTMLInputElement) {
-      return
-    }
-    const key = /^\d$/.test(event.key) ? (event.key as CalcKey) : CALC_KEYBOARD[event.key]
-    if (key) {
-      event.preventDefault()
-      event.stopPropagation()
-      this.press(key)
-    }
-  }
-
   /** `addAnother` (8.2, adding only): the sheet stays with an empty amount and note. */
   protected save(addAnother = false): void {
     const state = this.state()
@@ -641,18 +584,6 @@ export class TransactionSheet {
       eventId: this.repeat() && state.mode === 'create' ? null : this.eventId(),
     }
     const repeat = this.repeat()
-    const ruleValues = (repeat: RepeatValues): RuleValues => ({
-      ...repeat,
-      kind: 'transaction',
-      walletId: values.walletId,
-      categoryId: values.categoryId,
-      toWalletId: null,
-      amount: values.amount,
-      note: values.note,
-      excludeFromReport: values.excludeFromReport,
-      debtId: values.debtId,
-      startOn: values.occurredOn,
-    })
     // A plain save closes the sheet onto the list that already shows the row, so it gets no
     // toast (owner 2026-11: it only covered the header). "Save and add" keeps the sheet open,
     // so that one still says the row was saved. Rules and due bills aren't on the list: toast.
@@ -661,7 +592,7 @@ export class TransactionSheet {
       // A rule stays a rule: "ไม่ทำซ้ำ" isn't offered on one (delete it instead).
       this.recurringService.update(
         state.id,
-        ruleValues(repeat ?? MONTHLY),
+        toRuleValues(repeat ?? MONTHLY, values),
         state.mode === 'fixRule' ? state.opId : null
       )
       done = 'recurring.saved'
@@ -672,7 +603,7 @@ export class TransactionSheet {
       this.recurringService.confirm(state.occurrence.ruleId, state.occurrence.on, values)
       done = 'recurring.confirmed'
     } else if (state.mode === 'create' && repeat) {
-      this.recurringService.create(ruleValues(repeat))
+      this.recurringService.create(toRuleValues(repeat, values))
       done = 'recurring.created'
     } else {
       this.transactionService.save(this.editingId(), values)
@@ -681,7 +612,7 @@ export class TransactionSheet {
       this.transactionService.rememberType(value.type as CategoryType)
     }
     if (done) {
-      toast.success(this.transloco.translate(done))
+      toast.success(this.t(done))
     }
     if (addAnother && state.mode === 'create') {
       this.form.reset({ ...value, amount: '', note: '' })
@@ -699,9 +630,9 @@ export class TransactionSheet {
     }
     if (this.ruleMode()) {
       this.recurringService.remove(id)
-      toast(this.transloco.translate('recurring.deleted'), {
+      toast(this.t('recurring.deleted'), {
         action: {
-          label: this.transloco.translate('transactions.undo'),
+          label: this.t('transactions.undo'),
           onClick: () => this.recurringService.restore(id),
         },
       })
@@ -709,9 +640,9 @@ export class TransactionSheet {
       return
     }
     this.transactionService.remove(id)
-    toast(this.transloco.translate('transactions.deleted'), {
+    toast(this.t('transactions.deleted'), {
       action: {
-        label: this.transloco.translate('transactions.undo'),
+        label: this.t('transactions.undo'),
         onClick: () => this.transactionService.restore(id),
       },
     })
@@ -724,29 +655,7 @@ export class TransactionSheet {
     this.state.set(null)
   }
 
-  /** "=": the expression becomes its result (`120+65` → `185`). */
-  private settleAmount(): void {
-    const control = this.form.controls.amount
-    const result = evaluate(control.value, this.minorUnit())
-    if (result.ok && result.minor > 0 && /[+\-×÷]/.test(control.value)) {
-      control.setValue(toMajorText(result.minor, this.minorUnit()).replace(/,/g, ''))
-    }
-  }
-
-  private dropUnfit(): void {
-    // The controls, not `values()`: this runs in a control's own valueChanges, before the form's
-    // (which feeds `values()`) has emitted, so `wallet()` would still be the previous one.
-    const { categoryId, walletId, type } = this.form.getRawValue()
-    const category = categoryId ? this.categoryService.byId(categoryId) : null
-    const wallet = walletId ? this.walletService.byId(walletId) : null
-    if (
-      category &&
-      (category.type !== type || isHiddenIn(wallet?.hiddenCategoryIds ?? [], category))
-    ) {
-      // Rule 2: an edit keeps an archived category, but not one that changed type or is hidden.
-      this.form.controls.categoryId.setValue('')
-    }
-  }
+  // ── Opening the sheet: the form starts from the state ─────────────────────
 
   private start(state: TransactionSheetState): void {
     this.debtId.set(this.startDebtId(state))
@@ -756,69 +665,115 @@ export class TransactionSheet {
     this.view.set('form')
     this.more.set(state.mode !== 'create' && this.startValues(state)?.excludeFromReport === true)
     this.repeat.set(state.mode === 'create' && state.repeat ? MONTHLY : null)
-    if (state.mode === 'rule' || state.mode === 'fixRule') {
-      this.startRule(state)
-      return
+    switch (state.mode) {
+      case 'create':
+        this.startCreate(state)
+        return
+      case 'edit':
+        this.startEdit(state)
+        return
+      case 'fix':
+        this.startFix(state)
+        return
+      case 'rule':
+      case 'fixRule':
+        this.startRule(state)
+        return
     }
-    if (state.mode === 'edit' && this.transactionService.byId(state.id)?.recurringId) {
+  }
+
+  /** ➕, a copy (8.2), a due bill (recurring rule 10) or the rules page's + (recurring.md). */
+  private startCreate(state: StartState<'create'>): void {
+    const viewing = this.transactionService.viewWallet()
+    const copied = state.values ?? null
+    const copiedWallet = copied ? this.walletService.byId(copied.walletId) : null
+    // Rule 2: a copy of a row in an archived wallet starts as a new add would.
+    const walletId =
+      (copiedWallet && !copiedWallet.isArchived ? copiedWallet.id : null) ??
+      state.walletId ??
+      (viewing && !viewing.isArchived ? viewing.id : null) ??
+      this.transactionService.defaultWalletId() ??
+      ''
+    const copiedCategory = copied ? this.categoryService.byId(copied.categoryId) : null
+    this.startWalletId.set(null)
+    this.more.set(copied?.excludeFromReport === true)
+    this.form.reset({
+      type: state.type ?? this.transactionService.lastType(),
+      walletId,
+      amount: amountText(
+        copied?.amount ?? 0,
+        this.walletService.minorUnit(copiedWallet?.currencyCode ?? '')
+      ),
+      categoryId: copiedCategory && !copiedCategory.isArchived ? copiedCategory.id : '',
+      note: copied?.note ?? '',
+      occurredOn: state.occurrence?.on ?? state.occurredOn ?? this.transactionService.today(),
+      excludeFromReport: copied?.excludeFromReport ?? false,
+    })
+    this.dropUnfit()
+    this.keypad.set(true)
+    // The rules page's +: "ทำซ้ำ" shows set, under an open "เพิ่มเติม".
+    if (state.repeat || this.debtId()) {
       this.more.set(true)
     }
-    if (state.mode === 'create') {
-      const viewing = this.transactionService.viewWallet()
-      const copied = state.values ?? null
-      const copiedWallet = copied ? this.walletService.byId(copied.walletId) : null
-      // Rule 2: a copy of a row in an archived wallet starts as a new add would.
-      const walletId =
-        (copiedWallet && !copiedWallet.isArchived ? copiedWallet.id : null) ??
-        state.walletId ??
-        (viewing && !viewing.isArchived ? viewing.id : null) ??
-        this.transactionService.defaultWalletId() ??
-        ''
-      const copiedCategory = copied ? this.categoryService.byId(copied.categoryId) : null
-      this.startWalletId.set(null)
-      this.more.set(copied?.excludeFromReport === true)
-      this.form.reset({
-        type: state.type ?? this.transactionService.lastType(),
-        walletId,
-        amount:
-          copied && copied.amount > 0
-            ? toMajorText(
-                copied.amount,
-                this.walletService.minorUnit(copiedWallet?.currencyCode ?? '')
-              ).replace(/,/g, '')
-            : '',
-        categoryId: copiedCategory && !copiedCategory.isArchived ? copiedCategory.id : '',
-        note: copied?.note ?? '',
-        occurredOn: state.occurrence?.on ?? state.occurredOn ?? this.transactionService.today(),
-        excludeFromReport: copied?.excludeFromReport ?? false,
-      })
-      this.dropUnfit()
-      this.keypad.set(true)
-      // The rules page's +: "ทำซ้ำ" shows set, under an open "เพิ่มเติม".
-      if (state.repeat || this.debtId()) {
-        this.more.set(true)
-      }
-      return
-    }
-    if (state.mode === 'fix') {
-      this.startWalletId.set(this.transactionService.byId(state.id)?.walletId ?? null)
-      this.form.reset(this.toForm(state.values))
-      this.form.markAllAsTouched()
-      this.form.markAsDirty()
-      this.keypad.set(false)
-      return
-    }
+  }
+
+  /** A row from the list. */
+  private startEdit(state: StartState<'edit'>): void {
     const row = this.transactionService.byId(state.id)
     if (!row) {
       this.state.set(null)
       return
     }
-    this.startWalletId.set(row.walletId)
-    this.form.reset(this.toForm(row))
-    if (row.debtId) {
+    if (row.recurringId || row.debtId) {
       this.more.set(true)
     }
+    this.startWalletId.set(row.walletId)
+    this.form.reset(this.toForm(row))
     this.keypad.set(false)
+  }
+
+  /** "Fix" a rejected op: its refused values, errors showing. */
+  private startFix(state: StartState<'fix'>): void {
+    this.startWalletId.set(this.transactionService.byId(state.id)?.walletId ?? null)
+    this.form.reset(this.toForm(state.values))
+    this.form.markAllAsTouched()
+    this.form.markAsDirty()
+    this.keypad.set(false)
+  }
+
+  /** A rule in this sheet: its template in the form, its schedule in "ทำซ้ำ" (recurring.md). */
+  private startRule(state: StartState<'rule' | 'fixRule'>): void {
+    const stored = this.recurringService.byId(state.id)
+    const refused = state.mode === 'fixRule' ? this.syncService.rejectedOp(state.opId)?.row : null
+    const source = refused ? toRuleRow(refused) : stored
+    if (!source) {
+      this.state.set(null)
+      return
+    }
+    this.startWalletId.set(null)
+    this.form.reset(
+      this.toForm({
+        walletId: source.walletId,
+        categoryId: source.categoryId ?? '',
+        amount: source.amount,
+        occurredOn: source.startOn,
+        note: source.note,
+        excludeFromReport: source.excludeFromReport,
+      })
+    )
+    this.repeat.set({
+      frequency: source.frequency,
+      interval: source.interval,
+      endOn: source.endOn,
+      endCount: source.endCount,
+      confirm: source.confirm,
+    })
+    this.more.set(true)
+    this.keypad.set(false)
+    if (refused) {
+      this.form.markAllAsTouched()
+      this.form.markAsDirty()
+    }
   }
 
   /**
@@ -862,43 +817,30 @@ export class TransactionSheet {
         : null
   }
 
-  /** A rule in this sheet: its template in the form, its schedule in "ทำซ้ำ" (recurring.md). */
-  private startRule(state: Extract<TransactionSheetState, { mode: 'rule' | 'fixRule' }>): void {
-    const stored = this.recurringService.byId(state.id)
-    const refused = state.mode === 'fixRule' ? this.syncService.rejectedOp(state.opId)?.row : null
-    const source = refused ? toRuleRow(refused) : stored
-    if (!source) {
-      this.state.set(null)
-      return
-    }
-    this.startWalletId.set(null)
-    this.form.reset(
-      this.toForm({
-        walletId: source.walletId,
-        categoryId: source.categoryId ?? '',
-        amount: source.amount,
-        occurredOn: source.startOn,
-        note: source.note,
-        excludeFromReport: source.excludeFromReport,
-      })
-    )
-    this.repeat.set({
-      frequency: source.frequency,
-      interval: source.interval,
-      endOn: source.endOn,
-      endCount: source.endCount,
-      confirm: source.confirm,
-    })
-    this.more.set(true)
-    this.keypad.set(false)
-    if (refused) {
-      this.form.markAllAsTouched()
-      this.form.markAsDirty()
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  /** "=": the expression becomes its result (`120+65` → `185`). */
+  private settleAmount(): void {
+    const control = this.form.controls.amount
+    const result = evaluate(control.value, this.minorUnit())
+    if (result.ok && result.minor > 0 && /[+\-×÷]/.test(control.value)) {
+      control.setValue(amountText(result.minor, this.minorUnit()))
     }
   }
 
-  private describe(repeat: RepeatValues, startOn: string): string {
-    return describeRepeat(repeat, startOn, this.t, this.languageService.locale())
+  private dropUnfit(): void {
+    // The controls, not `values()`: this runs in a control's own valueChanges, before the form's
+    // (which feeds `values()`) has emitted, so `wallet()` would still be the previous one.
+    const { categoryId, walletId, type } = this.form.getRawValue()
+    const category = categoryId ? this.categoryService.byId(categoryId) : null
+    const wallet = walletId ? this.walletService.byId(walletId) : null
+    if (
+      category &&
+      (category.type !== type || isHiddenIn(wallet?.hiddenCategoryIds ?? [], category))
+    ) {
+      // Rule 2: an edit keeps an archived category, but not one that changed type or is hidden.
+      this.form.controls.categoryId.setValue('')
+    }
   }
 
   private toForm(values: TransactionValues) {
@@ -908,11 +850,18 @@ export class TransactionSheet {
     return {
       type: this.categoryService.byId(values.categoryId)?.type ?? 'expense',
       walletId: values.walletId,
-      amount: values.amount > 0 ? toMajorText(values.amount, minorUnit).replace(/,/g, '') : '',
+      amount: amountText(values.amount, minorUnit),
       categoryId: values.categoryId,
       note: values.note,
       occurredOn: values.occurredOn,
       excludeFromReport: values.excludeFromReport,
     }
   }
+
+  private describe(repeat: RepeatValues, startOn: string): string {
+    return describeRepeat(repeat, startOn, this.t, this.languageService.locale())
+  }
+
+  private t = (key: string, params?: Record<string, unknown>) =>
+    this.transloco.translate(key, params)
 }

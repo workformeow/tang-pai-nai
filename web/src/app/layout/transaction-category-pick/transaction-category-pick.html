@@ -1,0 +1,146 @@
+<app-sheet-frame
+  [title]="'transactions.pickCategory' | transloco"
+  leadingIcon="back"
+  [leadingLabel]="'sheet.back' | transloco"
+  (leading)="back.emit()"
+>
+  <!-- The type is the category's (Money Lover style): picking one sets it. -->
+  <app-segmented-field
+    class="mb-5"
+    [control]="pickType"
+    [label]="'transactions.type' | transloco"
+    [options]="typeOptions()"
+  />
+  @if (tree().length > 0) {
+    <div class="flex flex-col gap-3">
+      @if (frequent().length > 0) {
+        <!-- "ใช้บ่อย" (8.2): a shortcut; the tree below keeps the user's order. -->
+        <h3 class="text-sm font-medium text-muted-foreground">
+          {{ 'transactions.frequent' | transloco }}
+        </h3>
+        <ul
+          class="grid grid-cols-4 gap-1 rounded-xl border border-border bg-card p-1.5"
+          [attr.aria-label]="'transactions.frequent' | transloco"
+        >
+          @for (item of frequent(); track item.id) {
+            <li class="min-w-0">
+              <button
+                type="button"
+                class="flex min-h-21 w-full flex-col items-center gap-1 rounded-lg px-1 py-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                [class.bg-muted]="item.id === chosen()"
+                [attr.aria-current]="item.id === chosen() ? 'true' : null"
+                (click)="picked.emit(item.id)"
+              >
+                <app-icon-badge [icon]="item.icon" [color]="item.color" [fallback]="categoryIcon" />
+                <span class="line-clamp-2 w-full text-center text-xs break-words">{{
+                  item.name
+                }}</span>
+              </button>
+            </li>
+          }
+        </ul>
+        <h3 class="text-sm font-medium text-muted-foreground">
+          {{ 'transactions.allCategories' | transloco }}
+        </h3>
+      }
+      <ul class="divide-y divide-border rounded-xl border border-border bg-card">
+        @for (node of tree(); track node.category.id) {
+          <li>
+            <button
+              type="button"
+              class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+              [attr.aria-current]="node.category.id === chosen() ? 'true' : null"
+              (click)="picked.emit(node.category.id)"
+            >
+              <app-icon-badge
+                [icon]="node.category.icon"
+                [color]="node.category.color"
+                [fallback]="categoryIcon"
+              />
+              <span class="min-w-0 flex-1 truncate text-base">{{ node.category.name }}</span>
+              @if (node.category.id === chosen()) {
+                <ng-icon name="lucideCheck" size="20" class="text-brand" aria-hidden="true" />
+              }
+            </button>
+            @if (node.children.length > 0) {
+              <ul
+                class="tpn-tree"
+                [style.--tree-color]="treeColor(node.category.color)"
+                [attr.aria-label]="node.category.name"
+              >
+                @for (child of node.children; track child.id) {
+                  <li>
+                    <button
+                      type="button"
+                      class="flex min-h-12 w-full items-center gap-3 py-2 pr-4 pl-7 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                      [attr.aria-current]="child.id === chosen() ? 'true' : null"
+                      (click)="picked.emit(child.id)"
+                    >
+                      <app-icon-badge
+                        [icon]="child.icon"
+                        [color]="child.color"
+                        [fallback]="categoryIcon"
+                        [size]="32"
+                      />
+                      <span class="min-w-0 flex-1 truncate text-base">{{ child.name }}</span>
+                      @if (child.id === chosen()) {
+                        <ng-icon
+                          name="lucideCheck"
+                          size="20"
+                          class="text-brand"
+                          aria-hidden="true"
+                        />
+                      }
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          </li>
+        }
+      </ul>
+      <!-- A shared book's hidden categories are the owner's to change (sharing rule 11). -->
+      @if (!bookService.isShared()) {
+        <p class="text-sm text-muted-foreground">
+          {{ 'transactions.categoryMissing' | transloco }}
+          <button
+            type="button"
+            class="min-h-11 font-semibold text-brand underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            (click)="openWalletCategories()"
+          >
+            {{ 'transactions.walletCategories' | transloco: { name: wallet()?.name ?? '' } }}
+          </button>
+        </p>
+      }
+    </div>
+  } @else {
+    <div class="flex flex-col items-center gap-2 px-2 py-8 text-center">
+      <span
+        class="mb-2 flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground"
+      >
+        <ng-icon name="lucideEyeOff" size="24" aria-hidden="true" />
+      </span>
+      <p class="text-base font-semibold">
+        {{
+          'transactions.noCategories.' + pickTypeValue() | transloco: { name: wallet()?.name ?? '' }
+        }}
+      </p>
+      <p class="text-sm text-muted-foreground">
+        {{ 'transactions.noCategoriesText' | transloco }}
+      </p>
+    </div>
+  }
+  @if (tree().length === 0 && !bookService.isShared()) {
+    <div sheetFooter class="pt-3">
+      <button
+        hlmBtn
+        variant="outline"
+        type="button"
+        class="h-11 w-full text-base"
+        (click)="openWalletCategories()"
+      >
+        {{ 'transactions.toWalletCategories' | transloco }}
+      </button>
+    </div>
+  }
+</app-sheet-frame>
