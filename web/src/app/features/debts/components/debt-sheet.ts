@@ -43,7 +43,7 @@ import {
 } from '@/shared/components/form'
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
-import { SheetFrame } from '@/shared/components/sheet'
+import { keepWhileClosing, SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
 import { WalletPick } from '@/shared/components/wallet-pick'
 import { addDays, addMonths, formatMoney, parseMajor } from '@/shared/utils'
@@ -123,7 +123,7 @@ export class DebtSheet {
   // ── The sheet ──────────────────────────────────────────────────────────────
 
   /** What the sheet is open for; null = closed. Set by `DebtService.open()`. */
-  protected state = this.debtService.sheet
+  protected state = keepWhileClosing(this.debtService.sheet)
   protected open = signal(false)
   protected view = signal<View>('form')
   /** How deep the view is: a deeper one slides in from the right, going back from the left. */
@@ -319,7 +319,7 @@ export class DebtSheet {
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.revalidate())
     effect(() => {
-      const state = this.state()
+      const state = this.debtService.sheet()
       untracked(() => {
         if (state) {
           this.start()
@@ -471,7 +471,7 @@ export class DebtSheet {
   /** Saved, deleted, ✕, a swipe down, the backdrop or Escape: unsaved input goes (DESIGN.md §6). */
   protected finish(): void {
     this.form.markAsPristine()
-    this.state.set(null)
+    this.debtService.sheet.set(null)
   }
 
   // ── Opening the sheet: the form starts from the state ──────────────────────
@@ -525,7 +525,7 @@ export class DebtSheet {
     const debt =
       state?.mode === 'edit' ? this.debtService.byId(state.id) : refused ? toDebt(refused) : null
     if (!debt) {
-      this.state.set(null)
+      this.debtService.sheet.set(null)
       return
     }
     this.form.reset({

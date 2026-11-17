@@ -30,7 +30,7 @@ import { DateRow } from '@/shared/components/date-row'
 import { CalcAmountField, CalcKeypad, FORM_IMPORTS, TextareaField } from '@/shared/components/form'
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
-import { SheetFrame } from '@/shared/components/sheet'
+import { keepWhileClosing, SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
 import { WalletPick } from '@/shared/components/wallet-pick'
 import {
@@ -101,7 +101,7 @@ export class DebtEntrySheet {
   protected walletIcon = WALLET_DEFAULT_ICON
   protected categoryIcon = CATEGORY_DEFAULT_ICON as UserIcon
   protected noteMax = DEBT_LIMITS.NOTE_MAX
-  protected state = this.debtService.entrySheet
+  protected state = keepWhileClosing(this.debtService.entrySheet)
   protected view = signal<View>('form')
   /** How deep the view is: a deeper one slides in from the right, going back from the left. */
   protected depth = computed(() => (this.view() === 'form' ? 0 : 1))
@@ -252,7 +252,7 @@ export class DebtEntrySheet {
 
   constructor() {
     effect(() => {
-      const state = this.state()
+      const state = this.debtService.entrySheet()
       untracked(() => {
         if (state) {
           this.start(state)
@@ -421,7 +421,7 @@ export class DebtEntrySheet {
   /** Saved, deleted, ✕, a swipe down, the backdrop or Escape: unsaved input goes (DESIGN.md §6). */
   protected finish(): void {
     this.form.markAsPristine()
-    this.state.set(null)
+    this.debtService.entrySheet.set(null)
   }
 
   private refusedId(opId: string): string | null {
@@ -443,7 +443,7 @@ export class DebtEntrySheet {
       const rule = this.recurringService.byId(state.id)
       const debt = rule?.debtId ? this.debtService.byId(rule.debtId) : null
       if (!rule || !debt) {
-        this.state.set(null)
+        this.debtService.entrySheet.set(null)
         return
       }
       this.debtId.set(debt.id)
@@ -460,7 +460,7 @@ export class DebtEntrySheet {
     if (state.mode === 'create') {
       const debt = this.debtService.byId(state.debtId)
       if (!debt) {
-        this.state.set(null)
+        this.debtService.entrySheet.set(null)
         return
       }
       this.debtId.set(debt.id)
@@ -492,7 +492,7 @@ export class DebtEntrySheet {
           : null
     const debt = entry ? this.debtService.byId(entry.debtId) : null
     if (!entry || !debt) {
-      this.state.set(null)
+      this.debtService.entrySheet.set(null)
       return
     }
     this.debtId.set(debt.id)

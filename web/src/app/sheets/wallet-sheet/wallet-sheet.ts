@@ -37,7 +37,7 @@ import {
   WALLET_DEFAULT_ICON,
   WALLET_ICON_GROUPS,
 } from '@/shared/components/icon-badge'
-import { SheetFrame } from '@/shared/components/sheet'
+import { keepWhileClosing, SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
 import { parseMajor, toMajorText } from '@/shared/utils'
 import { CurrencyPick } from '@/sheets/currency-pick/currency-pick'
@@ -99,7 +99,7 @@ export class WalletSheet {
   // ── The sheet ──────────────────────────────────────────────────────────────
 
   /** What the sheet is open for; null = closed. Set by `WalletService.open()`. */
-  protected state = this.walletService.sheet
+  protected state = keepWhileClosing(this.walletService.sheet)
   protected open = signal(false)
   protected view = signal<View>('form')
   /** How deep the view is: a deeper one slides in from the right, going back from the left. */
@@ -267,7 +267,7 @@ export class WalletSheet {
       this.form.controls.initialBalance.updateValueAndValidity()
     })
     effect(() => {
-      const state = this.state()
+      const state = this.walletService.sheet()
       untracked(() => {
         if (state) {
           this.start(state)
@@ -364,7 +364,7 @@ export class WalletSheet {
   /** Saved, deleted, ✕, a swipe down, the backdrop or Escape: unsaved input goes (DESIGN.md §6). */
   protected finish(): void {
     this.form.markAsPristine()
-    this.state.set(null)
+    this.walletService.sheet.set(null)
   }
 
   // ── Opening the sheet: the form starts from the state ──────────────────────
@@ -395,7 +395,7 @@ export class WalletSheet {
     }
     const wallet = this.walletService.byId(state.id)
     if (!wallet) {
-      this.state.set(null)
+      this.walletService.sheet.set(null)
       return
     }
     this.form.reset(this.toForm(wallet))

@@ -51,7 +51,7 @@ import {
 } from '@/shared/components/form'
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import { RepeatRow } from '@/shared/components/repeat-row'
-import { SheetFrame } from '@/shared/components/sheet'
+import { keepWhileClosing, SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
 import { WalletPick, walletPickItem } from '@/shared/components/wallet-pick'
 import type { WalletPickItem } from '@/shared/components/wallet-pick'
@@ -128,7 +128,7 @@ export class TransferSheet {
   // ── The sheet ─────────────────────────────────────────────────────────────
 
   /** What the sheet is open for; null = closed. Set by `TransferService.open()`. */
-  protected state = this.transferService.sheet
+  protected state = keepWhileClosing(this.transferService.sheet)
   protected open = signal(false)
   protected view = signal<View>('form')
   /** How deep the view is: a deeper one slides in from the right, going back from the left. */
@@ -328,7 +328,7 @@ export class TransferSheet {
       this.form.controls.amount.updateValueAndValidity()
     })
     effect(() => {
-      const state = this.state()
+      const state = this.transferService.sheet()
       untracked(() => {
         if (state) {
           this.start(state)
@@ -529,7 +529,7 @@ export class TransferSheet {
   /** Saved, deleted, ✕, a swipe down, the backdrop or Escape: unsaved input goes (DESIGN.md §6). */
   protected finish(): void {
     this.form.markAsPristine()
-    this.state.set(null)
+    this.transferService.sheet.set(null)
   }
 
   // ── Opening the sheet: the form starts from the state ─────────────────────
@@ -588,7 +588,7 @@ export class TransferSheet {
   private startPay(cardId: string): void {
     const card = this.walletService.byId(cardId)
     if (!card) {
-      this.state.set(null)
+      this.transferService.sheet.set(null)
       return
     }
     const owed = this.walletService.owed(card)
@@ -608,7 +608,7 @@ export class TransferSheet {
     const stored = this.transferService.byId(state.id)
     const values = state.mode === 'fix' ? state.values : stored
     if (!values) {
-      this.state.set(null)
+      this.transferService.sheet.set(null)
       return
     }
     this.startCurrency.set(
@@ -634,7 +634,7 @@ export class TransferSheet {
     const refused = state.mode === 'fixRule' ? this.syncService.rejectedOp(state.opId)?.row : null
     const source = refused ? toRuleRow(refused) : stored
     if (!source) {
-      this.state.set(null)
+      this.transferService.sheet.set(null)
       return
     }
     this.startCurrency.set(null)

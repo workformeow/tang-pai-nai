@@ -16,7 +16,7 @@ import { walletPickItems } from '@/features/debts/debt-view'
 import { DateRow } from '@/shared/components/date-row'
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
-import { SheetFrame } from '@/shared/components/sheet'
+import { keepWhileClosing, SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
 import { WalletPick } from '@/shared/components/wallet-pick'
 import { addDays, formatMoney } from '@/shared/utils'
@@ -71,8 +71,10 @@ export class DebtCloseSheet {
   protected lastDay = computed(() => addDays(this.transactionService.today(), 365))
 
   protected open = computed(() => this.debtService.closeSheet() !== null)
+  /** The debt being closed, kept while the drawer animates closed. */
+  private debtId = keepWhileClosing(this.debtService.closeSheet)
   protected item = computed(() => {
-    const id = this.debtService.closeSheet()
+    const id = this.debtId()
     return id ? this.debtService.item(id) : null
   })
   /** A forgiven rest counts once now, except a `repaid` debt's (never counted, debt rule 4). */

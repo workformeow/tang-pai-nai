@@ -44,7 +44,7 @@ import {
   WALLET_DEFAULT_ICON,
 } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
-import { SheetFrame } from '@/shared/components/sheet'
+import { keepWhileClosing, SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
 import type { SelectOption } from '@/shared/types'
 import { CategoryMerge } from '@/sheets/category-merge/category-merge'
@@ -115,7 +115,7 @@ export class CategorySheet {
   // ── The sheet ─────────────────────────────────────────────────────────────
 
   /** What the sheet is open for; null = closed. Set by `CategoryService.open()`. */
-  protected state = this.categoryService.sheet
+  protected state = keepWhileClosing(this.categoryService.sheet)
   protected open = signal(false)
   protected view = signal<View>('form')
   /** How deep the view is: a deeper one slides in from the right, going back from the left. */
@@ -293,7 +293,7 @@ export class CategorySheet {
       this.form.controls.name.updateValueAndValidity()
     })
     effect(() => {
-      const state = this.state()
+      const state = this.categoryService.sheet()
       untracked(() => {
         if (state) {
           this.start(state)
@@ -387,7 +387,7 @@ export class CategorySheet {
   /** Saved, deleted, ✕, a swipe down, the backdrop or Escape: unsaved input goes (DESIGN.md §6). */
   protected finish(): void {
     this.form.markAsPristine()
-    this.state.set(null)
+    this.categoryService.sheet.set(null)
   }
 
   // ── Opening the sheet: the form starts from the state ─────────────────────
@@ -414,7 +414,7 @@ export class CategorySheet {
     } else {
       const category = this.categoryService.byId(state.id)
       if (!category) {
-        this.state.set(null)
+        this.categoryService.sheet.set(null)
         return
       }
       this.form.reset({

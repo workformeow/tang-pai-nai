@@ -30,7 +30,7 @@ import {
   withMessage,
 } from '@/shared/components/form'
 import { USER_COLORS } from '@/shared/components/icon-badge'
-import { SheetFrame } from '@/shared/components/sheet'
+import { keepWhileClosing, SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
 import { addDays } from '@/shared/utils'
 
@@ -84,7 +84,7 @@ export class EventSheet {
   protected icons = EVENT_ICONS
   protected colors = USER_COLORS
   protected firstDay = EVENT_LIMITS.FIRST_DAY
-  protected state = this.eventService.sheet
+  protected state = keepWhileClosing(this.eventService.sheet)
   protected view = signal<View>('form')
   /** How deep the view is: a deeper one slides in from the right, going back from the left. */
   protected depth = computed(() => (this.view() === 'form' ? 0 : 1))
@@ -132,7 +132,7 @@ export class EventSheet {
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.form.controls.endOn.updateValueAndValidity({ emitEvent: false }))
     effect(() => {
-      const state = this.state()
+      const state = this.eventService.sheet()
       untracked(() => {
         if (state) {
           this.start()
@@ -189,7 +189,7 @@ export class EventSheet {
   /** Saved, deleted, ✕, a swipe down, the backdrop or Escape: unsaved input goes (DESIGN.md §6). */
   protected finish(): void {
     this.form.markAsPristine()
-    this.state.set(null)
+    this.eventService.sheet.set(null)
   }
 
   private start(): void {
@@ -212,7 +212,7 @@ export class EventSheet {
     const event: TripEvent | null =
       state.mode === 'edit' ? this.eventService.byId(state.id) : refused ? toEvent(refused) : null
     if (!event) {
-      this.state.set(null)
+      this.eventService.sheet.set(null)
       return
     }
     this.form.reset({

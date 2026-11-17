@@ -18,7 +18,7 @@ import {
   withMessage,
 } from '@/shared/components/form'
 import { BOOK_ICON_NAMES, USER_COLORS, userColor } from '@/shared/components/icon-badge'
-import { SheetFrame } from '@/shared/components/sheet'
+import { keepWhileClosing, SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
 import type { BookFormGroup } from './book-form.type'
 
@@ -55,7 +55,7 @@ export class BookSheet {
 
   protected icons = BOOK_ICON_NAMES
   protected colors = USER_COLORS
-  protected state = this.bookService.sheet
+  protected state = keepWhileClosing(this.bookService.sheet)
   protected view = signal<View>('form')
   /** How deep the view is: a deeper one slides in from the right, going back from the left. */
   protected depth = computed(() => (this.view() === 'form' ? 0 : 1))
@@ -129,7 +129,7 @@ export class BookSheet {
 
   constructor() {
     effect(() => {
-      const state = this.state()
+      const state = this.bookService.sheet()
       untracked(() => {
         if (state) {
           this.start(state)
@@ -171,7 +171,7 @@ export class BookSheet {
   /** Saved, deleted, ✕, a swipe down, the backdrop or Escape: unsaved input goes (DESIGN.md §6). */
   protected finish(): void {
     this.form.markAsPristine()
-    this.state.set(null)
+    this.bookService.sheet.set(null)
   }
 
   private start(state: BookSheetState): void {
@@ -188,7 +188,7 @@ export class BookSheet {
     }
     const book = this.bookService.byId(state.id)
     if (!book) {
-      this.state.set(null)
+      this.bookService.sheet.set(null)
       return
     }
     this.form.reset({ name: book.name, icon: book.icon, color: userColor(book.color) })
