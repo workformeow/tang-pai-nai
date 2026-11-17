@@ -66,23 +66,23 @@ const history = (overrides: Partial<HistoryEntry>): HistoryEntry => ({
 })
 
 describe('createDrizzleSyncRepository', () => {
-  it('starts after the seeded currencies and counts up', async () => {
-    expect(await repo.lastSeq()).toBe(14)
-    expect(await repo.nextSeq()).toBe(15)
-    expect(await repo.nextSeq()).toBe(16)
-    expect(await repo.lastSeq()).toBe(16)
+  it('starts after the currency migrations (0005, 0022) and counts up', async () => {
+    expect(await repo.lastSeq()).toBe(38)
+    expect(await repo.nextSeq()).toBe(39)
+    expect(await repo.nextSeq()).toBe(40)
+    expect(await repo.lastSeq()).toBe(40)
   })
 
   it('reserves a block of seqs and answers its first', async () => {
-    expect(await repo.takeSeqs(3)).toBe(15)
-    expect(await repo.lastSeq()).toBe(17)
-    expect(await repo.nextSeq()).toBe(18)
+    expect(await repo.takeSeqs(3)).toBe(39)
+    expect(await repo.lastSeq()).toBe(41)
+    expect(await repo.nextSeq()).toBe(42)
   })
 
   it('passes a row through when the handler has no resolve or followUp', async () => {
     const row = { id: 'n1', createdAt: 1, updatedAt: 1, deletedAt: null }
     expect(await repo.resolve('notes', ALICE, row)).toBe(row)
-    await repo.followUp('notes', ALICE, { ...row, changeSeq: 15 })
+    await repo.followUp('notes', ALICE, { ...row, changeSeq: 39 })
   })
 
   it("runs the handler's resolve and followUp, with seqs from the same counter", async () => {
@@ -106,8 +106,8 @@ describe('createDrizzleSyncRepository', () => {
     const hooked = createDrizzleSyncRepository(db, registry)
     const row = { id: 'n1', createdAt: 1, updatedAt: 1, deletedAt: null }
     expect(await hooked.resolve('hooked', ALICE, row)).toEqual({ ...row, title: 'Moved' })
-    await hooked.followUp('hooked', ALICE, { ...row, changeSeq: 15 })
-    expect(firsts).toEqual([15, 17])
+    await hooked.followUp('hooked', ALICE, { ...row, changeSeq: 39 })
+    expect(firsts).toEqual([39, 41])
     expect(resolve).toHaveBeenCalledWith(db, ALICE, row)
     client.close()
   })
@@ -173,7 +173,7 @@ describe('createDrizzleSyncRepository', () => {
         throw new Error('boom')
       })
     ).rejects.toThrow()
-    expect(await repo.lastSeq()).toBe(14)
+    expect(await repo.lastSeq()).toBe(38)
   })
 
   it("hands per-table work to the table's handler, inside the transaction", async () => {
