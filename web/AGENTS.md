@@ -403,7 +403,10 @@ values, fixOpId?, bookId?)` (remembers the wallet: `defaultWalletId()`), `remove
 - `core/transaction/quick-amounts.ts`: `QUICK_AMOUNTS` and `QuickAmountsService` (`enabled`,
   `setEnabled`; a device setting in `localStorage` like the theme, Account › การแสดงผล).
   `app-calc-keypad` draws them from `quickAmounts` and emits `quickPressed`; the sheet adds them
-  with `addQuickAmount` (`@/shared/utils` `calc.ts`).
+  with `addQuickAmount` (`@/shared/utils` `calc.ts`). `fitBelow="app-date-row"` (a selector
+  in the keypad's form) makes the keypad grow up to 12px under that row (measured on open,
+  resize and when the row's card resizes; never below its natural size, at most 460px); the
+  transaction, transfer and debt entry sheets pass it, the debt sheet doesn't (several date rows).
 - **Transfers** (#9, spec: [transfer.md](../docs/features/transfer.md)) live in
   `core/transaction` too: `TransferService` (`byId`, `save`, `remove` / `restore`,
   `defaultFromId`, `lastToId` (Q7, `tpn-book:tx:transfer:…`), `payFromId` / `pay(cardId)`

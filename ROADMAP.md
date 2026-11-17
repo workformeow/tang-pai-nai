@@ -388,6 +388,20 @@ member's shared read.
 
 ---
 
+## Done: Keypad fills the sheet (2026-11)
+
+Web only, no API change. Owner: the amount keypad looked small, and its height differed between
+the browser and the home-screen app (the sheet is `92dvh`).
+
+- `app-calc-keypad` takes `fitBelow` (a selector in its form): it grows up to 12px under that
+  row, its four key rows sharing the room (keys at least 44px, the keypad at most 460px). It
+  measures again on resize, on the browser bars showing or hiding and when the row's card
+  grows. The transaction, transfer and debt entry sheets anchor it to `app-date-row`; the debt
+  sheet keeps the natural size (several date rows).
+- **Tests**: `calc-keypad.spec.ts` (fitted height, the cap, no anchor).
+
+---
+
 ## Done: Edit profile (display name, 2026-11)
 
 Owner: the name on the Settings tab came from the email's local part and couldn't be changed.

@@ -216,7 +216,8 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   picker; `app-date-row`, the same row in the transfer, debt and event sheets), and less used
   options folded under "เพิ่มเติม". The amount is typed on an
   **on-screen number keypad** (`app-calc-keypad`: digits, 000, ., ⌫, C and a ✓ that closes it
-  ("เสร็จ" to a screen reader), no operators, four 44px rows so the form stays in view) that
+  ("เสร็จ" to a screen reader), no operators, four rows that grow to reach just under the date row, keys at least 44px, so
+  the rows above it stay in view on any screen height) that
   slides up by itself when adding, slides down on ✓ and closes when any other control is used
   (it belongs to the amount row); it covers the main button while it shows (✓, then save;
   nothing moves), with "บันทึกแล้วเพิ่มต่อ" as an outline icon beside the main button when
