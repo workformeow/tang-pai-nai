@@ -489,6 +489,7 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                     @if (keypad()) {
                       <app-calc-keypad
                         class="absolute -inset-x-4 -bottom-4 z-10 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+                        fitBelow="app-date-row"
                         [quickAmounts]="quickAmounts()"
                         [minorUnit]="minorUnit()"
                         [locale]="languageService.locale()"
