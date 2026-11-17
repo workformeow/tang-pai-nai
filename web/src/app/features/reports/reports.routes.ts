@@ -7,6 +7,15 @@ export default [
     loadComponent: async () =>
       import('./pages/reports-page/reports-page').then((m) => m.ReportsPage),
   },
+  // Every currency side by side (#24), from the ⋮ menu.
+  {
+    path: 'currencies',
+    title: 'reports.overviewTitle',
+    loadComponent: async () =>
+      import('./pages/report-currencies-page/report-currencies-page').then(
+        (m) => m.ReportCurrenciesPage
+      ),
+  },
   {
     path: 'excluded',
     title: 'reports.excludedTitle',

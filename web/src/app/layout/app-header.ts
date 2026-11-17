@@ -5,15 +5,30 @@ import { lucideChevronLeft } from '@ng-icons/lucide'
 import { BookService } from '@/core/book'
 import { NavHistory, PageTitleStrategy, parentOf } from '@/core/routing'
 import { WalletService } from '@/core/wallet'
-import { currentUrl, isBookTab, isReportsTab, isTransactionsTab } from './book-routes'
+import {
+  currentUrl,
+  isBookTab,
+  isReportCurrencies,
+  isReportsTab,
+  isTransactionsTab,
+} from './book-routes'
 import { BookSwitcher } from './book-switcher'
+import { ReportUnitMenu } from './report-unit-menu'
 import { SyncStatus } from './sync-status'
 import { TransactionsHeader } from './transactions-header'
 import { UpdateBanner } from './update-banner'
 
 @Component({
   selector: 'app-header',
-  imports: [TranslocoPipe, NgIcon, SyncStatus, UpdateBanner, BookSwitcher, TransactionsHeader],
+  imports: [
+    TranslocoPipe,
+    NgIcon,
+    SyncStatus,
+    UpdateBanner,
+    BookSwitcher,
+    TransactionsHeader,
+    ReportUnitMenu,
+  ],
   providers: [provideIcons({ lucideChevronLeft })],
   host: {
     class:
@@ -54,7 +69,15 @@ import { UpdateBanner } from './update-banner'
           }
           <h1 class="truncate text-lg font-semibold">{{ pageTitleStrategy.pageTitle() }}</h1>
         </div>
-        <app-sync-status class="-mr-3 shrink-0" />
+        <div class="-mr-3 flex shrink-0 items-center">
+          @if (unitMenu()) {
+            <!-- The all-currencies page's "ดูตาม" (#24); its own chunk, like the header above. -->
+            @defer (on immediate) {
+              <app-report-unit-menu />
+            }
+          }
+          <app-sync-status />
+        </div>
       </div>
     }
     <app-update-banner />
@@ -72,6 +95,8 @@ export class AppHeader {
   protected parent = computed(() => parentOf(this.url()))
   /** The Reports tab's own page shares the Transactions tab's header (report.md Q2–Q3). */
   protected reportsHeader = computed(() => isReportsTab(this.url()))
+  /** "ดูตาม" on the all-currencies page, the Reports tab's own units (#24). */
+  protected unitMenu = computed(() => isReportCurrencies(this.url()))
   /** The Transactions tab's own header, once its first-wallet step is done (wallet rule 12). */
   protected transactionsHeader = computed(
     () =>

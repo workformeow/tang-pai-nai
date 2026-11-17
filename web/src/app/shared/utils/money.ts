@@ -55,17 +55,22 @@ export const toDecimalString = (minor: number, minorUnit: number): string => {
     : `${sign}${digits.slice(0, -minorUnit)}.${digits.slice(-minorUnit)}`
 }
 
-/** `150050` THB → `฿1,500.50` in the UI language's format (DESIGN.md §5). */
+/**
+ * `150050` THB → `฿1,500.50` in the UI language's format (DESIGN.md §5); `signed` adds `+` to
+ * anything above zero.
+ */
 export const formatMoney = (
   minor: number,
   currencyCode: string,
   minorUnit: number,
-  locale: string
+  locale: string,
+  signed = false
 ): string =>
   new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currencyCode,
     currencyDisplay: 'narrowSymbol',
+    signDisplay: signed ? 'exceptZero' : 'auto',
     minimumFractionDigits: minorUnit,
     maximumFractionDigits: minorUnit,
     // An exact decimal string (Intl.NumberFormat v3, every current browser); TS's lib only
