@@ -39,8 +39,7 @@ import { NetworkStatusService } from '@/core/network'
 import { OfflineService } from '@/core/offline'
 import { NavHistory } from '@/core/routing'
 import { ReauthStep } from '@/features/account/components/reauth-step'
-import { deviceLabel } from '@/features/account/device-label'
-import type { DeviceLabel } from '@/features/account/device-label'
+import { deviceRow } from '@/features/account/device-label'
 import { ReauthFlow } from '@/features/account/reauth-flow'
 import { GoogleLogo } from '@/shared/components/brand'
 
@@ -49,14 +48,6 @@ type GoogleAction = 'link' | 'unlink'
 
 /** What the user is asked to confirm before it happens (none of these can be undone). */
 type Confirming = { kind: 'unlink' } | { kind: 'revoke'; id: string } | { kind: 'revokeOthers' }
-
-interface DeviceRow {
-  session: AuthDeviceSession
-  label: DeviceLabel
-  signedIn: string
-  /** `null` under a minute ago ("just now"). */
-  lastActive: string | null
-}
 
 const LINK_FAILURES: Record<GoogleLinkFailure, string> = {
   google_in_use: 'security.googleInUse',
@@ -68,16 +59,6 @@ const LINK_FAILURES: Record<GoogleLinkFailure, string> = {
 
 const isLinkFailure = (value: string): value is GoogleLinkFailure =>
   Object.hasOwn(LINK_FAILURES, value)
-
-const DEVICE_ICONS: Record<DeviceLabel['kind'], string> = {
-  phone: 'lucideSmartphone',
-  tablet: 'lucideTablet',
-  computer: 'lucideMonitor',
-}
-
-const MINUTE = 60_000
-const HOUR = 60 * MINUTE
-const DAY = 24 * HOUR
 
 /**
  * Account › Security (auth spec rules 28–30, 4.4a): the ways to sign in (password, Google) and
@@ -125,7 +106,11 @@ export class SecurityPage {
   protected offlineService = inject(OfflineService)
   protected reauth = inject(ReauthFlow<GoogleAction>)
 
-  protected googleEnabled = signal(false)
+  /** Demo rule 9: the credential rows show, turned off, with "ใช้ไม่ได้ในโหมด Demo". */
+  protected isDemo = computed(() => this.authStore.user()?.isDemo === true)
+
+  // ── Ways to sign in: password, phone, Google (rules 29–30) ─────────────────
+
   /** Off until the phone feature is finished (`PHONE_FEATURE`): no phone row at all. */
   protected phoneFeature = inject(PHONE_FEATURE)
   protected phoneEnabled = signal(false)
@@ -133,21 +118,27 @@ export class SecurityPage {
     const phone = this.authStore.user()?.phone
     return phone ? formatThaiMobile(phone) : null
   })
+  protected googleEnabled = signal(false)
   // Google is the only provider, linked at most once per user (rule 29).
   protected google = computed(() => this.authStore.user()?.identities.at(0) ?? null)
-  /** Demo rule 9: the credential rows show, turned off, with "ใช้ไม่ได้ในโหมด Demo". */
-  protected isDemo = computed(() => this.authStore.user()?.isDemo === true)
   protected googleError = signal<UiMessage | null>(null)
+
+  // ── Signed-in devices (rule 28) ────────────────────────────────────────────
 
   private sessions = signal<AuthDeviceSession[] | null>(null)
   protected devicesError = signal<UiMessage | null>(null)
+  /** The rows; null while they load. */
   protected devices = computed(() => {
     const sessions = this.sessions()
-    return sessions ? sessions.map((session) => this.toRow(session)) : null
+    const locale = this.languageService.locale()
+    const now = Date.now()
+    return sessions ? sessions.map((session) => deviceRow(session, locale, now)) : null
   })
   protected otherCount = computed(
     () => this.sessions()?.filter((session) => !session.current).length ?? 0
   )
+
+  // ── One question and one action at a time, across the page ─────────────────
 
   protected confirming = signal<Confirming | null>(null)
   /** The action in flight, for its spinner; every button waits while one runs. */
@@ -180,14 +171,7 @@ export class SecurityPage {
     void this.loadDevices()
   }
 
-  protected async loadDevices(): Promise<void> {
-    this.devicesError.set(null)
-    try {
-      this.sessions.set(await this.authService.sessions())
-    } catch (error) {
-      this.devicesError.set(authErrorMessage(toApiError(error), 'security.devicesFailed'))
-    }
-  }
+  // ── Template actions: asking first ─────────────────────────────────────────
 
   protected ask(confirming: Confirming): void {
     this.googleError.set(null)
@@ -209,6 +193,8 @@ export class SecurityPage {
     const confirming = this.confirming()
     return confirming?.kind === 'revoke' && confirming.id === id
   }
+
+  // ── Template actions: Google ───────────────────────────────────────────────
 
   /** Link or unlink; on `REAUTH_REQUIRED` the confirm step shows and sends it again (rule 13). */
   protected async runGoogle(action: GoogleAction, currentPassword?: string): Promise<void> {
@@ -248,6 +234,17 @@ export class SecurityPage {
     this.confirming.set(null)
   }
 
+  // ── Template actions: devices ──────────────────────────────────────────────
+
+  protected async loadDevices(): Promise<void> {
+    this.devicesError.set(null)
+    try {
+      this.sessions.set(await this.authService.sessions())
+    } catch (error) {
+      this.devicesError.set(authErrorMessage(toApiError(error), 'security.devicesFailed'))
+    }
+  }
+
   protected async revoke(id: string): Promise<void> {
     this.busyWith.set('revoke')
     this.devicesError.set(null)
@@ -282,45 +279,8 @@ export class SecurityPage {
     this.busyWith.set(null)
   }
 
-  protected deviceIcon(label: DeviceLabel): string {
-    return DEVICE_ICONS[label.kind]
-  }
-
   /** Back where it was opened from, else up (NavHistory). */
   protected back(): void {
     this.navHistory.back()
-  }
-
-  private toRow(session: AuthDeviceSession): DeviceRow {
-    const locale = this.languageService.locale()
-    const signedInAt = new Date(session.signedInAt)
-    const sameYear = signedInAt.getFullYear() === new Date().getFullYear()
-    const signedIn = new Intl.DateTimeFormat(locale, {
-      day: 'numeric',
-      month: 'short',
-      year: sameYear ? undefined : 'numeric',
-    }).format(signedInAt)
-    return {
-      session,
-      label: deviceLabel(session.userAgent),
-      signedIn,
-      lastActive: this.relativeTime(new Date(session.lastUsedAt), locale),
-    }
-  }
-
-  /** "5 minutes ago" / "5 นาทีที่ผ่านมา"; `null` under a minute. */
-  private relativeTime(at: Date, locale: string): string | null {
-    const format = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
-    const elapsed = Date.now() - at.getTime()
-    if (elapsed < MINUTE) {
-      return null
-    }
-    if (elapsed < HOUR) {
-      return format.format(-Math.floor(elapsed / MINUTE), 'minute')
-    }
-    if (elapsed < DAY) {
-      return format.format(-Math.floor(elapsed / HOUR), 'hour')
-    }
-    return format.format(-Math.floor(elapsed / DAY), 'day')
   }
 }

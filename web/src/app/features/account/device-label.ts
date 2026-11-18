@@ -1,3 +1,5 @@
+import type { AuthDeviceSession } from '@/core/auth'
+
 /** What a session row shows for its user agent (auth spec rule 28). */
 export interface DeviceLabel {
   /** `Chrome · Android`, or `null` when the user agent says nothing we know. */
@@ -45,4 +47,60 @@ export const deviceLabel = (userAgent: string | null): DeviceLabel => {
     /iPad|Tablet/.test(userAgent) || (/Android/.test(userAgent) && !/Mobile/.test(userAgent))
   const phone = !tablet && /Mobile|iPhone|iPod|Android/.test(userAgent)
   return { name, kind: tablet ? 'tablet' : phone ? 'phone' : 'computer' }
+}
+
+/** A signed-in device as the Security page lists it (auth spec rule 28). */
+export interface DeviceRow {
+  session: AuthDeviceSession
+  label: DeviceLabel
+  /** The icon for its kind of device. */
+  icon: string
+  /** The day it signed in (`5 พ.ย.`; with the year when not this year). */
+  signedIn: string
+  /** "5 นาทีที่ผ่านมา"; `null` under a minute ago ("just now"). */
+  lastActive: string | null
+}
+
+const DEVICE_ICONS: Record<DeviceLabel['kind'], string> = {
+  phone: 'lucideSmartphone',
+  tablet: 'lucideTablet',
+  computer: 'lucideMonitor',
+}
+
+const MINUTE = 60_000
+const HOUR = 60 * MINUTE
+const DAY = 24 * HOUR
+
+/** "5 minutes ago" / "5 นาทีที่ผ่านมา", in whole minutes, hours or days; `null` under a minute. */
+export const relativeTime = (at: Date, now: number, locale: string): string | null => {
+  const format = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+  const elapsed = now - at.getTime()
+  if (elapsed < MINUTE) {
+    return null
+  }
+  if (elapsed < HOUR) {
+    return format.format(-Math.floor(elapsed / MINUTE), 'minute')
+  }
+  if (elapsed < DAY) {
+    return format.format(-Math.floor(elapsed / HOUR), 'hour')
+  }
+  return format.format(-Math.floor(elapsed / DAY), 'day')
+}
+
+/** A session as its row in the device list, at `now` (ms). */
+export const deviceRow = (session: AuthDeviceSession, locale: string, now: number): DeviceRow => {
+  const label = deviceLabel(session.userAgent)
+  const signedInAt = new Date(session.signedInAt)
+  const sameYear = signedInAt.getFullYear() === new Date(now).getFullYear()
+  return {
+    session,
+    label,
+    icon: DEVICE_ICONS[label.kind],
+    signedIn: new Intl.DateTimeFormat(locale, {
+      day: 'numeric',
+      month: 'short',
+      year: sameYear ? undefined : 'numeric',
+    }).format(signedInAt),
+    lastActive: relativeTime(new Date(session.lastUsedAt), now, locale),
+  }
 }

@@ -1,4 +1,4 @@
-import { deviceLabel } from './device-label'
+import { deviceLabel, deviceRow, relativeTime } from './device-label'
 
 const UA = {
   androidChrome:
@@ -32,5 +32,37 @@ describe('deviceLabel', () => {
   it('has no name for a missing or unknown user agent', () => {
     expect(deviceLabel(null)).toEqual({ name: null, kind: 'computer' })
     expect(deviceLabel('curl/8.5.0')).toEqual({ name: null, kind: 'computer' })
+  })
+})
+
+describe('relativeTime', () => {
+  const now = Date.parse('2026-11-18T12:00:00Z')
+  const ago = (ms: number) => new Date(now - ms)
+
+  it('is null under a minute, then whole minutes, hours or days', () => {
+    expect(relativeTime(ago(30_000), now, 'en-GB')).toBeNull()
+    expect(relativeTime(ago(5 * 60_000), now, 'en-GB')).toBe('5 minutes ago')
+    expect(relativeTime(ago(3 * 3_600_000 + 59 * 60_000), now, 'en-GB')).toBe('3 hours ago')
+    expect(relativeTime(ago(2 * 86_400_000), now, 'en-GB')).toBe('2 days ago')
+  })
+})
+
+describe('deviceRow', () => {
+  const now = Date.parse('2026-11-18T12:00:00Z')
+  const session = (signedInAt: string) => ({
+    id: 's1',
+    userAgent: UA.androidChrome,
+    signedInAt,
+    lastUsedAt: '2026-11-18T11:50:00Z',
+    current: false,
+  })
+
+  it('names the device, picks its icon and dates the sign-in (with the year only when not this year)', () => {
+    const row = deviceRow(session('2026-11-05T09:00:00Z'), 'en-GB', now)
+    expect(row.label.name).toBe('Chrome · Android')
+    expect(row.icon).toBe('lucideSmartphone')
+    expect(row.signedIn).toBe('5 Nov')
+    expect(row.lastActive).toBe('10 minutes ago')
+    expect(deviceRow(session('2025-11-05T09:00:00Z'), 'en-GB', now).signedIn).toBe('5 Nov 2025')
   })
 })
