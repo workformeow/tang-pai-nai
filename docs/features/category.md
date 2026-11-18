@@ -6,7 +6,7 @@
 > categories). API: `api/src/features/category/` (sync handler only), `wallets.hiddenCategoryIds`
 > in `features/wallet`. Web: `core/category` (`CategoryService`),
 > `core/book/default-categories.ts`, `core/wallet/hidden-categories.ts`,
-> `layout/category-sheet`, `layout/wallet-sheet`, `features/account/pages/categories-page`.
+> `sheets/category-sheet`, `sheets/wallet-sheet`, `features/account/pages/categories-page`.
 > #8.1 made rules 4 and 6's "has transactions" real (type: device + server check) and built the
 > transaction form's picker; sub-categories show in their parent's tinted panel (DESIGN.md §6).
 > **7.3 (merge, rule 15): built** (PR #26, tests in the follow-up): `core/database/category-merge.ts`

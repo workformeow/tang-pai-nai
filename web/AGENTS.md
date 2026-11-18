@@ -90,6 +90,11 @@ layout  ->  sheets  ->  core  ->  shared
 purpose: "Go to definition" on `open()` leads straight to the sheet, the state is typed per sheet,
 and the app has few sheets, so a registry would add a layer to read for little gain.
 
+A sheet's content reads its state through **`keepWhileClosing(service.sheet)`**
+(`@/shared/components/sheet`): the drawer animates closed after the state is null, and this
+keeps the last state meanwhile, so the title and rows don't change on the way out. The sheet
+still opens and closes on the service's signal itself (`finish()` sets it to null).
+
 Where a component's files go:
 
 | Place                        | Shape                                                          |
@@ -408,7 +413,8 @@ fixOpId?, bookId?, hiddenIn?)` (a row that changes siblings goes last among the 
   after it calls `moveOpLast()` (`core/offline/outbox.ts`) so the parent is pushed first, and
   unarchiving a parent moves its children's ops after its own.
 - `sheets/category-sheet` (views `form` / `icons` / `parent` / `wallets` / `move` / `merge` /
-  `confirmMerge` / `confirmDelete`; four header icons in edit mode (move,
+  `confirmDelete`; the `merge` view is `sheets/category-merge` (pick, then confirm, like
+  `category-move`), whose plan comes from `mergeSteps` in `core/category/category-merge.ts`; four header icons in edit mode (move,
   archive, merge, delete), so it passes `[actions]="4"` to `app-sheet-frame`; `app-segmented-field` for the type, disabled
   while it follows a parent or the row has children) is `@defer`red by the shell; `features/account/pages/categories-page`
   is Account › หมวดหมู่ with a two-level order mode (an inner `cdkDropList` per parent).
@@ -462,12 +468,14 @@ values, fixOpId?, bookId?)` (remembers the wallet: `defaultWalletId()`), `remove
   a transfer.
 - UI: `layout/transactions-header` (the tab's header, `@defer`red by `app-header` for the
   bundle), `sheets/view-wallet-sheet`, `shared/components/period/custom-range-sheet`, `sheets/transaction-sheet`
-  (views `form` / `wallet` / `category` / `note`; the date row and the wallet
-  view are `shared/components/date-row` and `wallet-pick`, as in the transfer sheet; keypad
-  state: it closes on any other control of the form, `leaveAmount`; save and add, copy; no type
-  control on the form: the `category` view's tabs are `pickType` (a lone control) and
-  `chooseCategory` sets `type` from the category; the shell
-  `@defer`s all three), `features/transactions` (the page; rows drawn 100 at a time with an
+  (views `form` / `wallet` / `category` / `note` / `repeat` / `event`; the category and
+  event views are `sheets/transaction-category-pick` and `sheets/event-pick`; the date row and the
+  wallet view are `shared/components/date-row` and `wallet-pick`, as in the transfer sheet; the
+  keypad is `AmountKeypad` (Money & dates); save and add, copy; no type control on the form: the
+  category view's tabs only filter and `chooseCategory` sets `type` from the category; the shell
+  `@defer`s all three), `features/transactions` (the page; its day cards come from
+  `features/transactions/day-groups.ts` and render as `components/entry-row` /
+  `upcoming-row`; rows drawn 100 at a time with an
   `IntersectionObserver` sentinel; the list carries `[appSlide]="tabIndex()"` from
   `shared/components/slide`, which slides it in from the side of the chosen period (Web
   Animations, a fade only under reduced motion; the page host has `overflow-x-clip` for it); its summary card is `shared/components/money-summary`
@@ -478,9 +486,10 @@ values, fixOpId?, bookId?)` (remembers the wallet: `defaultWalletId()`), `remove
   `@defer`red by the shell and opened by the header's two-level ⋮ menu and the Wallets tab.
 - **Shared activity** (#21, [shared-activity.md](../docs/features/shared-activity.md)): a row's
   latest action and who did it come from `addedBy` / `updatedBy` / the times
-  (`core/transaction/activity.ts`: `latestAction`, `ACTOR_SQL`); `activityScope()` decides the ⋮
-  entry and its wallets, `activity(scope)` lists the lines; `setShares` is fed by
-  `SharingService.loadOwner`. Code that shows "who" calls `latestAction`, never reads
+  (`core/transaction/activity.ts`: `latestAction`, `ACTOR_SQL`). **`ActivityService`**
+  (`core/transaction/activity.service.ts`, beside it) holds the rest: `scope()` decides the ⋮
+  entry and its wallets, `list(scope)` lists the lines, `people` names `addedBy`; `setShares`
+  and `addPeople` are fed by `SharingService.loadOwner`. Code that shows "who" calls `latestAction`, never reads
   `addedBy` alone.
 - Specs: `transaction.service.spec.ts`, `transfer.service.spec.ts`, `transaction-sheet.spec.ts`,
   `transfer-sheet.spec.ts`, `transactions-page.spec.ts` put their rows with `putRow` like the
@@ -646,7 +655,7 @@ Spec: [sharing.md](../docs/features/sharing.md).
   cleared when the signed-in user changes. `canCall()` = online and the server reachable;
   screens disable every action without it. `failure(error)` gives a translation key
   (`sharing.error.<CODE>`, `sharing.needsOnline`). `loadOwner` also feeds
-  `TransactionService.addPeople` (the names behind "เพิ่มโดย …").
+  `ActivityService.addPeople` (the names behind "เพิ่มโดย …").
 - **A shared book in use** (16.2): `openShared(group)` sets `BookService.shared`
   (`loading` → `ready`; `current()` returns its book, never stored), reads
   `/sharing/with-me/:id/rows` page by page while a running own round ends
@@ -1005,11 +1014,13 @@ are on, so don't disable them.
   using `LanguageService.locale()` (`th-TH-u-ca-gregory` / `en-GB`), the currency's minor-unit
   digits and `currencyDisplay: 'narrowSymbol'` (so English shows ฿, not "THB"). The transaction
   list shows amounts without the symbol: `formatAmount(minor, minorUnit, locale, signed)`.
-- **Amount keypad** (`@/shared/utils` `calc.ts`): `pressKey(expr, key, minorUnit)` keeps the
-  typed number well formed, `evaluate(expr, minorUnit)` works it out as exact BigInt fractions
-  to the minor unit, `addQuickAmount` adds a chip to it and returns the total. Never `eval` or
-  floats. The keypad has **no operators** (owner, 2026-11) and `CALC_KEYBOARD` maps none; the
-  engine still understands + − × ÷, so don't build on that.
+- **Amount keypad**: the keypad has **no operators** (owner, 2026-11), so the amount is always a
+  plain number. `@/shared/utils` `calc.ts`: `pressKey(amount, key, minorUnit)` keeps the typed
+  number well formed, `addQuickAmount` adds a chip and returns the total, `groupDigits` groups it
+  for display; the form reads it with `parseMajor`. A sheet with an amount row wires both
+  `app-calc-amount-field` and `app-calc-keypad` to **`AmountKeypad`**
+  (`@/shared/components/form`: keys, quick amounts, the hardware keyboard, closing on another
+  row) and validates with `amountValidator`, never its own copy.
 - Dates: the API sends ISO strings. Display them with `Intl.DateTimeFormat(locale())`: both
   languages show the **Gregorian year** (owner's choice in #8; the Thai locale pins
   `-u-ca-gregory`). Calendar days are `YYYY-MM-DD` local dates: `toDay`, `fromDay`, `addDays`,

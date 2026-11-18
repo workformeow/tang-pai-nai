@@ -2,8 +2,8 @@
 
 > Status: **Built** in #18 (agreed with the owner, mock-up `docs/features/mockups/credit-card.html`).
 > Builds on [wallet.md](wallet.md) and [transfer.md](transfer.md). API: a column on `wallets`
-> (`features/wallet`). Web: `core/wallet`, the Wallets tab, `layout/wallet-sheet`,
-> `layout/transfer-sheet`, the Transactions tab.
+> (`features/wallet`). Web: `core/wallet`, the Wallets tab, `sheets/wallet-sheet`,
+> `sheets/transfer-sheet`, the Transactions tab.
 
 ## Purpose
 

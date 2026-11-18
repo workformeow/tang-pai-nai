@@ -62,8 +62,8 @@ anything that is already fast.
 - `core/boot`: `BootSplash` sets the step and removes the splash after the first navigation; it
   does nothing when the page has no splash (tests).
 - `core/offline/offline.guard.ts` (`shellGuard`) sets `auth`, then `data`.
-- `layout/nav-progress.ts` (`app-nav-progress`): the page progress bar, in `App`'s template.
-- `layout/app-shell.ts`: the `loading` gate's loader (rule 4).
+- `layout/nav-progress/nav-progress.ts` (`app-nav-progress`): the page progress bar, in `App`'s template.
+- `layout/app-shell/app-shell.ts`: the `loading` gate's loader (rule 4).
 
 ## Open questions
 

@@ -100,6 +100,7 @@ merging.
 | 23  | Currency picker                | ✅  | ✅  | 25 travel currencies, all active (migration 0022; LAK / TWD to 0 digits); a flag grid per continent in the wallet sheet (2B); per-currency lists in wallet order; THB-only quick amounts; Reports one currency at a time with the tiles as the switch (B). [spec](docs/features/currency.md) |
 | 24  | Currency overview              | —   | ✅  | ภาพรวม: every currency of the Reports period side by side over every counted wallet (P1 rows: income · expense, net, wallets, end balance), from the Reports ⋮ (E1) with more than one currency; the Reports period, "ดูตาม" top right. Web only. [spec](docs/features/currency-overview.md) |
 | 25  | Demo                           | ✅  | ✅  | ทดลองใช้ Demo for job applications: a card under the sign-in forms → `/auth/demo` (intro, Turnstile, one button) → a demo user of its own with ~3 months of seeded data (migration 0023), pulled behind a checklist loader, straight to Transactions; no sharing; password / Google / phone / invites / delete shown disabled (`403 DEMO_NOT_ALLOWED`); 2,000 rows at most; จบ Demo deletes at once, the cron after 24 h; `DEMO_ENABLED` on staging and production. [spec](docs/features/demo.md) |
+| WR  | Web clean-code refactor        | —   | ✅  | one file per template / style / spec; `layout/` (shell) vs `sheets/` (app-wide sheets), lint-enforced; large sheets and pages split by readability, one shared amount keypad, `ActivityService`; e.g. lines on pure functions. No behaviour change but two fixes (below) |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
 
@@ -107,6 +108,45 @@ Order of work from here (owner, 2026-11): **#22 (done) → #20 (done) → #21 (d
 its place in the queue, so numbers are never reused or shuffled. Each row gets its `docs/features/<feature>.md` before work starts. Rows 0–8 (with 4a) are the MVP.
 After #8 the app can replace Money Lover for daily use. Until #17, everything runs **locally only** (see locked
 decision "Local-first").
+
+---
+
+## Done: Web clean-code refactor (WR, 2026-11)
+
+Built 2026-11-17 / 18 on `refactor/web-cleancode`, one commit per step, each checked in the app
+(Playwright on the Demo account, 375×812). The owner's rules it wrote down are in web/AGENTS.md
+§2 (folders) and §3 (Component files, Readability first, the e.g. rule).
+
+- **Files**: every component is `.ts` + `.html` (+ `.css` only when Tailwind can't say it) +
+  `.spec.ts`; 110 inline templates moved out by an AST script; lint
+  `component-max-inline-declarations` at 0 (spec hosts exempt).
+- **Folders** (owner): `layout/` holds the shell only (header, tab bar, banners, first-run
+  steps); the 8 app-wide sheets and their parts moved to a new `sheets/` (one folder each);
+  `repeat-row` to `shared/components`. Lint `local/component-folder` and the layer direction
+  `layout → sheets → core → shared`, `features → core → shared`. A generic SheetService was
+  weighed and left out on purpose (AGENTS §2 "How a sheet opens"). Paths in the entries below
+  are as they were when built (`layout/transaction-sheet` is now `sheets/transaction-sheet`).
+- **Readability first** (owner): line counts only prompt a look. Split where a part reads on its
+  own: `transaction-category-pick`, `event-pick`, `category-merge` (sheets);
+  `entry-row`, `upcoming-row` and `day-groups.ts` (Transactions tab); plain logic beside its
+  screen (`transaction-values`, `transfer-values`, `debt-plan`, `device-label`'s rows).
+  Left whole where splitting would pass state back and forth (the security page, the wallets
+  page, the form views): members ordered by section instead.
+- **Shared code**: `AmountKeypad` + `amountValidator` (`shared/components/form`) replace four
+  copies of the keypad (transaction, transfer, debt, debt entry); `describeRepeatHint`
+  (`core/recurring`); `amountText` (`shared/utils`).
+- **Services**: `ActivityService` split out of `TransactionService` (scope, list, people,
+  shares); `transaction-rows.ts` and `orphan-sweep.ts` beside it; the category merge plan
+  joins `category-merge.ts`; recurring, debt and offline services got section comments only
+  (the offline one checked line by line: no code line changed).
+- **Fixed on the way** (owner): a sheet's title and rows changed while it animated closed
+  (`keepWhileClosing`, every service-bound sheet); the keypad's unused `+ − × ÷` engine and
+  "= result" preview removed (`parseMajor` reads the amount; initial −1.27 kB).
+- **e.g. lines** (owner): ~60 pure functions show real calls and results in their doc, worked
+  out by running them; `doc-examples` specs check the same values.
+- **Checked**: every step's checklist in the app (sheets, keypad, merge, archive / undo, order
+  mode, PIN lock, one tab at a time, debts, closing a debt, transactions paging); web tests
+  815 → 843; initial total 784.18 → 783.29 kB.
 
 ---
 
