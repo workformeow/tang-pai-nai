@@ -141,9 +141,9 @@ export class BookService {
     () => this.networkStatusService.isOnline() && !this.networkStatusService.serverReachable()
   )
   atLimit = computed(() => this.books().length >= BOOK_LIMITS.PER_USER)
-  /** The open book sheet (layout/book-sheet), if any. */
+  /** The open book sheet (sheets/book-sheet), if any. */
   sheet = signal<BookSheetState | null>(null)
-  /** Whether the switch sheet (layout/book-switch-sheet) is open: the header and Account › หมวดหมู่ open it. */
+  /** Whether the switch sheet (sheets/book-switch-sheet) is open: the header and Account › หมวดหมู่ open it. */
   switchSheet = signal(false)
 
   private storedId = signal<string | null>(null)

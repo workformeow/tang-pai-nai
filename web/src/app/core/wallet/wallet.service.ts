@@ -162,7 +162,7 @@ export class WalletService {
       }))
   })
 
-  /** The open wallet sheet (layout/wallet-sheet), if any. */
+  /** The open wallet sheet (sheets/wallet-sheet), if any. */
   sheet = signal<WalletSheetState | null>(null)
 
   /**

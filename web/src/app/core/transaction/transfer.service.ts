@@ -24,7 +24,7 @@ export class TransferService {
   canWrite = this.bookService.canWrite
   serverDown = this.bookService.serverDown
 
-  /** The open transfer sheet (layout/transfer-sheet), if any. */
+  /** The open transfer sheet (sheets/transfer-sheet), if any. */
   sheet = signal<TransferSheetState | null>(null)
 
   constructor() {

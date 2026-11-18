@@ -124,8 +124,7 @@ Built 2026-11-17 / 18 on `refactor/web-cleancode`, one commit per step, each che
   steps); the 8 app-wide sheets and their parts moved to a new `sheets/` (one folder each);
   `repeat-row` to `shared/components`. Lint `local/component-folder` and the layer direction
   `layout → sheets → core → shared`, `features → core → shared`. A generic SheetService was
-  weighed and left out on purpose (AGENTS §2 "How a sheet opens"). Paths in the entries below
-  are as they were when built (`layout/transaction-sheet` is now `sheets/transaction-sheet`).
+  weighed and left out on purpose (AGENTS §2 "How a sheet opens").
 - **Readability first** (owner): line counts only prompt a look. Split where a part reads on its
   own: `transaction-category-pick`, `event-pick`, `category-merge` (sheets);
   `entry-row`, `upcoming-row` and `day-groups.ts` (Transactions tab); plain logic beside its
@@ -234,7 +233,7 @@ Built and tested 2026-11-17 on `feat/currency-picker`. [spec](docs/features/curr
 - **API**: migration `0022_currency_picker` (inserts 11, activates all, sets `sortOrder`,
   LAK / TWD to 0 only while no wallet uses them, a `changeSeq` per changed row). No code
   change. **Web**: `shared/components/currency-flag` (`app-currency-flag`, `CURRENCY_GROUPS`,
-  `CURRENCY_FLAGS`), `layout/currency-pick`, the wallet sheet's chip and `currency` view,
+  `CURRENCY_FLAGS`), `sheets/currency-pick`, the wallet sheet's chip and `currency` view,
   `WalletService.currencyOrder` / `compareCurrency` / `bookCurrencies`,
   `QuickAmountsService.forCurrency`, the keypad's `minorUnit`, the amount field's flag, the
   Wallets tab's lines, the Reports summary card's tiles.
@@ -360,7 +359,7 @@ Branch `feat/web-loading`, built and tested 2026-11-15. Web only, no API change.
   installed, so only a device's first session is slow; measure on staging before adding it.
 - **Web**: the splash markup, CSS and timers in `index.html`; `BootSplash` (`core/boot`):
   `AuthService.restore()` sets `auth`, `shellGuard` `data`, `App` removes it after the first
-  navigation; `NavProgress` (`layout/nav-progress.ts`, `transform` only);
+  navigation; `NavProgress` (`layout/nav-progress`, `transform` only);
   `BookService.firstPull` + `SyncService.pulledRows` for the shell's `loading` gate.
 - **Verified**: web `npm run fix`, typecheck, `npm test` (713), `npm run build` (initial
   762.3 kB, +3.9 kB); Playwright on `ng serve`: a slowed `/auth/refresh` (splash steps, the 10 s
@@ -631,7 +630,7 @@ Web only, no API change. Owner's choices after trying the app on a phone.
   refuses the vault), an effect that sends a refused session to sign-in; `shellGuard` makes the
   vault on a first open and opens a PIN-off one itself (one it can't open is wiped); `lockGuard`
   needs the PIN on; the interceptor goes to sign-in on any refused refresh. Removed: the trust
-  page and `trustGuard`, `layout/session-banner`, `AuthStore.freshSignIn` / `keepsLocalSession`,
+  page and `trustGuard`, `AuthStore.freshSignIn` / `keepsLocalSession`,
   `openUntrusted()`, Security's offline row. `/account/pin` turns the PIN on, changes it, or
   (`?off=1`) turns it off. "Needs online" notices (now only a shared book's) no longer
   mention offline mode. The PIN pad and the amount keypad no longer zoom on a fast double tap
@@ -660,7 +659,7 @@ One PR, no behaviour change. The owner's rule: components that do the same job m
   (no balance or note there). The sheets format the rows; `empty` is the no-wallet line.
 - Checked and left alone (they differ): the debts' `category-pick` (one feature; the transaction
   sheet's tree looks different), the Reports summary card (another design from `money-summary`),
-  the day cards (rows differ per page), the wallet-corner badge, `layout/repeat-row`.
+  the day cards (rows differ per page), the wallet-corner badge, `shared/components/repeat-row`.
 - Verified: initial total still 737.4 kB, neither component in `main`; Playwright before/after
   (th/light, en/dark, 375×812) identical to the pixel; 648 web tests.
 
@@ -676,7 +675,8 @@ Known, for later:
   after the shell's first render; `DebtService` and `EventService` are injected only by their
   pages; `core/transaction` reads `events` by name). A module exported from a barrel the shell
   imports lands in the initial bundle even when only a lazy screen uses it (Angular builds keep
-  a barrel's modules): keep such code beside its screen (#15's `layout/category-move-rows.ts`).
+  a barrel's modules): keep such code beside its screen (#15's
+  `sheets/category-move/category-move-rows.ts`).
 - Headless Chromium breaks some Thai lines inside a word ("บัน/ทึก"); the app's older notices do
   the same, so it's the test browser's line breaking, not our markup.
 - The API's sign-in only accepts `Origin: http://localhost:4200` (`WEB_ORIGIN`): a local server
@@ -777,7 +777,7 @@ Known, for later:
   grouped notice).
 - **Web**: `features/account/pages/export-page` (`export-data.ts` reads the tables by name,
   `csv.ts`, the pick sheet; Web Share on touch devices, a download elsewhere);
-  `layout/category-move.ts` + `category-move-rows.ts` (a view of the category sheet; one write
+  `sheets/category-move` + `category-move-rows.ts` (a view of the category sheet; one write
   of row upserts, undo from the toast); `app-sheet-frame` takes `actions` (2 | 3 | 4) instead
   of `threeActions`. No API change, no OpenAPI change.
 - **Checked**: Playwright at 375×812 on `npm run build`, th/light with 20,000 rows + 300
@@ -909,10 +909,10 @@ Known, for later:
 - **Web**: local schema step 11; `core/recurring` (`RecurringService`: the recording pass in an
   effect after `SyncService.rounds()`, due / confirm / skip / confirmAll, update / pause /
   remove, `upcoming`, sweeps; `schedule.ts`; `occurrence-id.ts` (SHA-256 in plain JS, a UUID v8);
-  `describe.ts`); the shell loads it with a dynamic `import()`; `layout/repeat-view`,
-  `layout/repeat-row` and the `rule` / `fixRule` modes of both sheets; Account › รายการซ้ำ; the
-  due card and `components/due-sheet`, upcoming rows and the ↻ mark on the Transactions tab;
-  wallet / category / book delete take or count rules; the sync sheet's fix route.
+  `describe.ts`); the shell loads it with a dynamic `import()`; `sheets/repeat-view`,
+  `shared/components/repeat-row` and the `rule` / `fixRule` modes of both sheets; Account ›
+  รายการซ้ำ; the due card and `components/due-sheet`, upcoming rows and the ↻ mark on the
+  Transactions tab; wallet / category / book delete take or count rules; the sync sheet's fix route.
 - **Found and fixed while building**: the recording pass opened a write for a due ask-first
   rule though it wrote nothing; the write re-ran the pass, so the page hung in a loop (a spec
   hangs without the fix).
@@ -1047,7 +1047,7 @@ delete, views in the same sheet).
 - **Web**: local schema step 9, `SYNC_TABLES`, `BOOK_CHILD_TABLES`; `core/transaction`
   `TransferService`, `TransactionService.entries` / `transferSides`, `MoneySummary.transfer`;
   balances and `hasTransactions` count both sides, a pulled wallet tombstone takes its
-  transfers; `layout/transfer-sheet`; the ⋮ menu's two levels; the Wallets tab button; the sync
+  transfers; `sheets/transfer-sheet`; the ⋮ menu's two levels; the Wallets tab button; the sync
   sheet's refused transfer; `CALC_KEYBOARD` shared by both sheets; `app-sync-status` icon only.
 - **Found and fixed**: the transaction form never dropped a category the newly chosen wallet
   hides (since 8.1: a control's `valueChanges` read a `computed` fed by the form's, which hadn't
@@ -1082,7 +1082,7 @@ delete, views in the same sheet).
 - **Web** (no API change): `shared/utils` `addQuickAmount`; `app-calc-keypad` `quickAmounts` /
   `quickPressed`; `core/transaction` `QuickAmountsService` (`tpn-quick-amounts`),
   `frequentCategoryIds()`, `lastType()` / `rememberType()`, `TransactionSheetState` create with
-  `values` / `type` (copy); `layout/transaction-sheet` (chips, ใช้บ่อย, copy, save and add,
+  `values` / `type` (copy); `sheets/transaction-sheet` (chips, ใช้บ่อย, copy, save and add,
   `leaveAmount`).
 - **Checked**: Playwright at 375×812 in th/en × light/dark on `npm run build` (chips, `500+100 =
 600.00`, save and add, ใช้บ่อย order with ties, copy dated today, the last type, the switch
@@ -1207,7 +1207,7 @@ delete, views in the same sheet).
   (`core/book/default-categories.ts`) with a new book, `rejectedItems()` /
   `discardRefused()` and the fix re-sending refused child rows, `switchSheet` (the switch sheet
   moved to the shell); `outbox.moveOpLast` (a category put under a parent made after it is pushed
-  after it); `layout/category-sheet` + `app-segmented-field`; `features/account` pages
+  after it); `sheets/category-sheet` + `app-segmented-field`; `features/account` pages
   categories / appearance / device and the grouped account page; the header's ‹
   (`parentOf`); 7 new `tpn` icons and `CATEGORY_ICON_GROUPS` (8 groups). The initial bundle
   warning budget went 640 → 680 kB (the header's icon badge now carries the category icons;
@@ -1291,7 +1291,7 @@ Decided with the owner (don't re-ask):
   deletes its `change_history` rows.
 - **Web**: local schema step 4 (`wallets`) and step 5 (drop `sync_probes` with its ops and
   notices); `core/wallet` (`WalletService`); `features/wallets` (Wallets tab: totals per
-  currency, list, order mode, folded "เก็บถาวร"); `layout/wallet-sheet` + `wallet-first-step`
+  currency, list, order mode, folded "เก็บถาวร"); `sheets/wallet-sheet` + `wallet-first-step`
   (the shell's gate on the Transactions and Wallets tabs, ➕ follows); `BookService` deletes a
   book's wallets in the same write, counts them for the confirm and sweeps orphans
   (`BOOK_CHILD_TABLES`); `shared/components/sheet` (`app-sheet-frame`, now under all four
@@ -1391,7 +1391,7 @@ migrations dropping `sync_probes` and its history).
   `SyncService` (rounds under the `tpn-sync` Web Lock on open / online / foreground / 2 s after
   a write / every 5 min), `OfflineService.openUntrusted()` (untrusted devices sync an in-memory
   copy, online only), `changes` / `isOpen` signals; `layout/sync-status` (pill) +
-  `layout/sync-sheet` (spartan drawer, loaded on first open); sign-out pushes first and asks
+  `sheets/sync-sheet` (spartan drawer, loaded on first open); sign-out pushes first and asks
   before losing ops. The initial bundle warning budget went 550 → 600 kB: the drawer's CDK
   overlay lands in the main bundle even though the sheet is deferred (every later bottom sheet
   needs it anyway).
@@ -1676,8 +1676,7 @@ Web only: an installable PWA skeleton that opens offline, before any data featur
 4. **Dark mode**: ✅ `core/theme/theme.service.ts`, key `tpn-theme` (absent = system). An inline
    script in `index.html` applies it before boot (no white flash) and sets `theme-color`. The picker
    lives on the account page.
-5. **Online/offline indicator**: ✅ `core/network` + `layout/network-status.ts` in the header. It
-   becomes the sync status in #4a.
+5. **Online/offline indicator**: ✅ `core/network`, shown by the header's `layout/sync-status`.
 6. **Checked**: `npm run build` emits `ngsw-worker.js`. Served from `dist/` with an SPA fallback,
    Playwright (375×812, light and dark) opened the app once, went offline, reloaded and saw the tab
    bar and "ออฟไลน์", and opened lazy tabs offline. It also checked the theme override survives a
