@@ -737,6 +737,20 @@ except the feature's own `index.ts`.
   intentionally unused params with `_`.
 - Every Promise is awaited or handled (`no-floating-promises`).
 - No `console.log` (only `console.warn` / `console.error`).
+- **A pure function's doc shows what it returns** (owner's rule, 2026-11): an `e.g.` with real
+  calls and results, so a reader sees the result without opening the spec. One normal case, plus
+  the edge cases the name doesn't make obvious (empty, zero, rounding, another year):
+
+  ```ts
+  /** The amount field's text. e.g. `amountText(150000, 2)` → `'1500'`, `amountText(0, 2)` → `''` */
+  export const amountText = (minor: number, minorUnit: number): string => …
+  ```
+
+  - For functions that turn values into values: format, parse, compute, compare, describe.
+  - Not for functions that take `db` or write (their doc says what they do), ones that build a
+    large object (`toTransaction`), or ones the doc already makes plain (`signedAmount`).
+  - The examples are values a spec checks, so a change that breaks one fails the spec too. Work
+    them out by running the function, never by guessing.
 
 ### Angular
 

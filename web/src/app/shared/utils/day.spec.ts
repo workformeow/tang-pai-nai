@@ -23,3 +23,16 @@ describe('day helpers', () => {
     expect(isDay('26-11-02')).toBe(false)
   })
 })
+
+describe('doc examples (day.ts)', () => {
+  it('match the e.g. lines', () => {
+    expect(toDay(new Date(2026, 10, 18))).toBe('2026-11-18')
+    expect(fromDay('2026-11-18').getTime()).toBe(new Date(2026, 10, 18, 12).getTime())
+    expect(addDays('2026-11-30', 1)).toBe('2026-12-01')
+    expect(addDays('2026-01-01', -1)).toBe('2025-12-31')
+    expect(addMonths('2026-01-31', 1)).toBe('2026-02-28')
+    expect(addMonths('2026-11-18', -12)).toBe('2025-11-18')
+    expect(isDay('2028-02-29')).toBe(true)
+    expect(isDay('2026-02-29')).toBe(false)
+  })
+})

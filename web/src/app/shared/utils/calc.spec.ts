@@ -56,3 +56,15 @@ describe('addQuickAmount', () => {
     expect(addQuickAmount('9999999999999999', 1, 2)).toBe('9999999999999999')
   })
 })
+
+describe('doc examples (calc.ts)', () => {
+  it('match the e.g. lines', () => {
+    expect(pressKey('12', '000', 2)).toBe('12000')
+    expect(pressKey('0', '5', 2)).toBe('5')
+    expect(pressKey('', '.', 2)).toBe('0.')
+    expect(pressKey('1.57', '9', 2)).toBe('1.57')
+    expect(groupDigits('1234567.5', 'th-TH')).toBe('1,234,567.5')
+    expect(addQuickAmount('500', 100, 2)).toBe('600')
+    expect(addQuickAmount('12.5', 20, 2)).toBe('32.5')
+  })
+})

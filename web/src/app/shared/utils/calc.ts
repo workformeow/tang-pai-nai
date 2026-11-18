@@ -10,7 +10,11 @@ export type CalcKey =
 /** Digits a typed number may hold before its decimal point (10¹⁵ fits). */
 const WHOLE_DIGITS = 16
 
-/** `amount` after pressing `key`; keys that would make it malformed change nothing. */
+/**
+ * `amount` after pressing `key`; keys that would make it malformed change nothing.
+ * e.g. `pressKey('12', '000', 2)` → `'12000'`, `pressKey('0', '5', 2)` → `'5'`,
+ * `pressKey('', '.', 2)` → `'0.'`, `pressKey('1.57', '9', 2)` → `'1.57'` (no third decimal)
+ */
 export const pressKey = (amount: string, key: CalcKey, minorUnit: number): string => {
   if (key === 'C') {
     return ''
@@ -45,7 +49,7 @@ export const pressKey = (amount: string, key: CalcKey, minorUnit: number): strin
 /**
  * The amount as the amount row shows it: the whole part grouped in thousands the locale's way
  * (`1200.5` → `1,200.5`), the decimals as typed. Display only: the control keeps `1200.5`
- * (owner, after #12).
+ * (owner, after #12). e.g. `groupDigits('1234567.5', 'th-TH')` → `'1,234,567.5'`
  */
 export const groupDigits = (amount: string, locale: string): string => {
   const group =
@@ -60,6 +64,7 @@ export const groupDigits = (amount: string, locale: string): string => {
  * `amount` after a quick amount (`major`, a whole number of major units; 8.2): it adds, like
  * counting notes, and the amount shows the total at once (`500` → `600`). An amount that can't be
  * read, or a total past `WHOLE_DIGITS`, is left as it was.
+ * e.g. `addQuickAmount('500', 100, 2)` → `'600'`, `addQuickAmount('12.5', 20, 2)` → `'32.5'`
  */
 export const addQuickAmount = (amount: string, major: number, minorUnit: number): string => {
   const current = parseMajor(amount, minorUnit)

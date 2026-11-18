@@ -10,6 +10,11 @@ export type ParsedAmount = { ok: true; minor: number } | { ok: false; error: 'fo
  * Typed major-unit text (`1,500.50`, `1500`, `.5`) to a non-negative amount in minor units. Commas
  * and spaces are grouping; one `.` is the decimal point, with at most `minorUnit` digits after it.
  * An empty text is 0.
+ *
+ * e.g. `parseMajor('1,500.50', 2)` → `{ ok: true, minor: 150050 }`,
+ * `parseMajor('', 2)` → `{ ok: true, minor: 0 }`,
+ * `parseMajor('1.555', 2)` → `{ ok: false, error: 'decimals' }`,
+ * `parseMajor('12a', 2)` → `{ ok: false, error: 'format' }`
  */
 export const parseMajor = (text: string, minorUnit: number): ParsedAmount => {
   const plain = text.replace(/[\s,]/g, '')
@@ -33,7 +38,7 @@ export const parseMajor = (text: string, minorUnit: number): ParsedAmount => {
 
 /**
  * A minor amount's size as major text for an input, grouped with commas (which `parseMajor`
- * reads back): `1825075` (2) → `18,250.75`, `150000` (2) → `1,500`.
+ * reads back). e.g. `toMajorText(1825075, 2)` → `'18,250.75'`, `toMajorText(150000, 2)` → `'1,500'`
  */
 export const toMajorText = (minor: number, minorUnit: number): string => {
   const digits = String(Math.abs(Math.trunc(minor))).padStart(minorUnit + 1, '0')
@@ -43,13 +48,16 @@ export const toMajorText = (minor: number, minorUnit: number): string => {
   return fraction === '' || /^0+$/.test(fraction) ? grouped : `${grouped}.${fraction}`
 }
 
-/** A minor amount as an amount field's text: plain digits (no `,`), blank for nothing. */
+/**
+ * A minor amount as an amount field's text: plain digits (no `,`), blank for nothing.
+ * e.g. `amountText(1825075, 2)` → `'18250.75'`, `amountText(0, 2)` → `''`
+ */
 export const amountText = (minor: number, minorUnit: number): string =>
   minor > 0 ? toMajorText(minor, minorUnit).replace(/,/g, '') : ''
 
 /**
  * A signed minor amount as an exact decimal string (for `Intl.NumberFormat` and CSV, no
- * grouping): `-5` (2) → `-0.05`.
+ * grouping). e.g. `toDecimalString(-5, 2)` → `'-0.05'`, `toDecimalString(1500, 0)` → `'1500'`
  */
 export const toDecimalString = (minor: number, minorUnit: number): string => {
   const digits = String(Math.abs(Math.trunc(minor))).padStart(minorUnit + 1, '0')
@@ -60,8 +68,11 @@ export const toDecimalString = (minor: number, minorUnit: number): string => {
 }
 
 /**
- * `150050` THB → `฿1,500.50` in the UI language's format (DESIGN.md §5); `signed` adds `+` to
- * anything above zero.
+ * A minor amount with its currency symbol, in the UI language's format (DESIGN.md §5); `signed`
+ * adds `+` to anything above zero.
+ * e.g. `formatMoney(150050, 'THB', 2, 'th-TH')` → `'฿1,500.50'`,
+ * `formatMoney(150050, 'THB', 2, 'th-TH', true)` → `'+฿1,500.50'`,
+ * `formatMoney(1500, 'JPY', 0, 'th-TH')` → `'¥1,500'`
  */
 export const formatMoney = (
   minor: number,
@@ -82,8 +93,10 @@ export const formatMoney = (
   }).format(toDecimalString(minor, minorUnit) as unknown as number)
 
 /**
- * A signed minor amount without its currency symbol (the transaction list, Money Lover style):
- * `-6500` (2) → `-65.00`, and `+45,000.00` with `signed` for anything above zero.
+ * A signed minor amount without its currency symbol (the transaction list, Money Lover style);
+ * `signed` adds `+` to anything above zero.
+ * e.g. `formatAmount(-6500, 2, 'th-TH')` → `'-65.00'`,
+ * `formatAmount(4500000, 2, 'th-TH', true)` → `'+45,000.00'`
  */
 export const formatAmount = (
   minor: number,

@@ -1,4 +1,11 @@
-import { formatMoney, parseMajor, toMajorText } from './money'
+import {
+  amountText,
+  formatAmount,
+  formatMoney,
+  parseMajor,
+  toDecimalString,
+  toMajorText,
+} from './money'
 
 describe('parseMajor', () => {
   it('reads typed major units into minor units, grouping commas and spaces allowed', () => {
@@ -57,5 +64,25 @@ describe('formatMoney', () => {
     expect(formatMoney(4855000, 'THB', 2, 'th-TH', true)).toBe('+฿48,550.00')
     expect(formatMoney(-1250, 'USD', 2, 'en-GB', true)).toBe('-$12.50')
     expect(formatMoney(0, 'THB', 2, 'en-GB', true)).toBe('฿0.00')
+  })
+})
+
+describe('doc examples (money.ts)', () => {
+  it('match the e.g. lines', () => {
+    expect(parseMajor('1,500.50', 2)).toEqual({ ok: true, minor: 150050 })
+    expect(parseMajor('', 2)).toEqual({ ok: true, minor: 0 })
+    expect(parseMajor('1.555', 2)).toEqual({ ok: false, error: 'decimals' })
+    expect(parseMajor('12a', 2)).toEqual({ ok: false, error: 'format' })
+    expect(toMajorText(1825075, 2)).toBe('18,250.75')
+    expect(toMajorText(150000, 2)).toBe('1,500')
+    expect(amountText(1825075, 2)).toBe('18250.75')
+    expect(amountText(0, 2)).toBe('')
+    expect(toDecimalString(-5, 2)).toBe('-0.05')
+    expect(toDecimalString(1500, 0)).toBe('1500')
+    expect(formatMoney(150050, 'THB', 2, 'th-TH')).toBe('฿1,500.50')
+    expect(formatMoney(150050, 'THB', 2, 'th-TH', true)).toBe('+฿1,500.50')
+    expect(formatMoney(1500, 'JPY', 0, 'th-TH')).toBe('¥1,500')
+    expect(formatAmount(-6500, 2, 'th-TH')).toBe('-65.00')
+    expect(formatAmount(4500000, 2, 'th-TH', true)).toBe('+45,000.00')
   })
 })
