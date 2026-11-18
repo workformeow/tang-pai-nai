@@ -140,6 +140,8 @@ export class OfflineService {
     this.watchActivity()
   }
 
+  // ── The local database and its writes (rule 8) ─────────────────────────────
+
   /** Reads the vault's meta once; `null` means no local database yet. */
   async ready(): Promise<VaultMeta | null> {
     this.reading ??= this.vaultStorage
@@ -163,6 +165,12 @@ export class OfflineService {
     return this.database
   }
 
+  /** A `sync_meta` value of the open database. */
+  syncMeta(key: SyncMetaKey): string | null {
+    const value = this.db().selectValue('SELECT value FROM sync_meta WHERE key = ?', [key])
+    return typeof value === 'string' ? value : null
+  }
+
   /**
    * A local write (rule 8): one SQLite transaction, then the snapshot is saved. While a shared
    * book is in use, only transactions may be queued (an editor's writes, sharing rule 11):
@@ -183,6 +191,8 @@ export class OfflineService {
     }
     return result
   }
+
+  // ── A shared book's view (sharing rule 15) ─────────────────────────────────
 
   /** Starts a shared book's view: empty TEMP copies of `SHARED_TABLES` (sharing rule 15). */
   enterShared(): void {
@@ -210,37 +220,7 @@ export class OfflineService {
     this.changes.update((n) => n + 1)
   }
 
-  /**
-   * Only when browser storage refuses the local database (rule 1): the same database in memory,
-   * for this tab's life. Nothing is saved; writes need the server (`BookService.canWrite`).
-   */
-  async openInMemory(): Promise<void> {
-    const user = this.authStore.user()
-    if (this.database || this.meta() || !user) {
-      return
-    }
-    const database = await this.openDatabase()
-    database.transaction((db) => {
-      db.exec('INSERT INTO sync_meta (key, value) VALUES (?, ?), (?, ?)', [
-        'deviceId',
-        crypto.randomUUID(),
-        'userId',
-        user.id,
-      ])
-    })
-    if (this.isOpen() || this.meta()) {
-      database.close() // another call won the race
-      return
-    }
-    this.database = database
-    this.isOpen.set(true)
-  }
-
-  /** A `sync_meta` value of the open database. */
-  syncMeta(key: SyncMetaKey): string | null {
-    const value = this.db().selectValue('SELECT value FROM sync_meta WHERE key = ?', [key])
-    return typeof value === 'string' ? value : null
-  }
+  // ── Making and opening it (rules 1–2) ──────────────────────────────────────
 
   /**
    * Rule 1: the signed-in user's local database on this device, made the first time the app opens
@@ -332,6 +312,34 @@ export class OfflineService {
     void this.recheckSession()
   }
 
+  /**
+   * Only when browser storage refuses the local database (rule 1): the same database in memory,
+   * for this tab's life. Nothing is saved; writes need the server (`BookService.canWrite`).
+   */
+  async openInMemory(): Promise<void> {
+    const user = this.authStore.user()
+    if (this.database || this.meta() || !user) {
+      return
+    }
+    const database = await this.openDatabase()
+    database.transaction((db) => {
+      db.exec('INSERT INTO sync_meta (key, value) VALUES (?, ?), (?, ?)', [
+        'deviceId',
+        crypto.randomUUID(),
+        'userId',
+        user.id,
+      ])
+    })
+    if (this.isOpen() || this.meta()) {
+      database.close() // another call won the race
+      return
+    }
+    this.database = database
+    this.isOpen.set(true)
+  }
+
+  // ── The PIN (rules 2–4) ────────────────────────────────────────────────────
+
   /** Checks the PIN of the unlocked device (before changing it); a wrong one counts (rule 3). */
   async verifyPin(pin: string): Promise<PinCheck> {
     return (await this.checkPin(pin)).check
@@ -357,6 +365,8 @@ export class OfflineService {
     }
     await this.storeMeta({ ...meta, ...(await keyFields(this.dataKey)), failedAttempts: 0 })
   }
+
+  // ── Locking and wiping (rules 2, 3, 7) ─────────────────────────────────────
 
   /** Rule 2: saves, then forgets the key and the decrypted database. */
   async lock(): Promise<void> {
@@ -402,6 +412,8 @@ export class OfflineService {
     return meta !== null && user !== null && meta.userId !== user.id
   }
 
+  // ── One tab at a time (rule 2) ─────────────────────────────────────────────
+
   /**
    * Rule 2, one tab at a time: holds the `tpn-local-db` Web Lock while this tab runs the app.
    * `false` when another tab has it.
@@ -445,6 +457,8 @@ export class OfflineService {
     this.state.set(this.meta() ? 'locked' : 'none')
   }
 
+  // ── The session and saving ─────────────────────────────────────────────────
+
   /**
    * Online again, just unlocked, or `SyncService`'s retry: retry a refresh that couldn't reach
    * the API. Never fails; the auth status says how it went.
@@ -479,6 +493,8 @@ export class OfflineService {
       }
     }
   }
+
+  // ── Helpers: the PIN check, closing, signing in again, the hand-over, auto-lock ───
 
   private async checkPin(
     pin: string
