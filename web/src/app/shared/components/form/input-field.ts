@@ -12,23 +12,7 @@ type InputMode = 'text' | 'email' | 'tel' | 'url' | 'search' | 'numeric' | 'deci
 @Component({
   selector: 'app-input-field',
   imports: [ReactiveFormsModule, HlmFieldImports, HlmInput],
-  template: `
-    <div hlmField>
-      <label hlmFieldLabel>{{ label() }}</label>
-      <input
-        hlmInput
-        [formControl]="control()"
-        [type]="type()"
-        [placeholder]="placeholder()"
-        [attr.autocomplete]="autocomplete()"
-        [attr.inputmode]="inputmode()"
-      />
-      @if (hint()) {
-        <p hlmFieldDescription class="-mt-2">{{ hint() }}</p>
-      }
-      <hlm-field-error class="-mt-2">{{ error() }}</hlm-field-error>
-    </div>
-  `,
+  templateUrl: './input-field.html',
 })
 export class InputField {
   control = input.required<FormControl<string>>()

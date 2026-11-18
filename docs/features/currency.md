@@ -5,7 +5,7 @@
 > (`currencies` table). **#23 Currency picker: built** (owner, 2026-11, from the mock-ups
 > `mockups/currency-picker.html` (the picker is layout **2B**), `mockups/currency-picker-2.html`
 > (the transaction sheet, the Wallets tab) and `mockups/report-currency.html` (Reports, **B**)):
-> migration `0022_currency_picker`, `layout/currency-pick`, `shared/components/currency-flag`.
+> migration `0022_currency_picker`, `sheets/currency-pick`, `shared/components/currency-flag`.
 
 ## Purpose
 

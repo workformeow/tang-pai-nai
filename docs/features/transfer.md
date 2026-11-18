@@ -3,7 +3,7 @@
 > Status: **Built** in #9 (Open questions: what the owner settled). Builds on
 > [transaction.md](transaction.md). API: `api/src/features/transfer/` (sync handler only).
 > Web: `core/transaction` (`TransferService`, `TransactionService.entries` / `transferSides`),
-> `layout/transfer-sheet`, the ⋮ menu in `layout/transactions-header`, the Wallets tab button.
+> `sheets/transfer-sheet`, the ⋮ menu in `layout/transactions-header`, the Wallets tab button.
 
 ## Purpose
 

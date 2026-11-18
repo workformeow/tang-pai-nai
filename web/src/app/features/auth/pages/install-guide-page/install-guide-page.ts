@@ -11,14 +11,6 @@ import { InstallPage } from '@/features/account'
 @Component({
   selector: 'app-install-guide-page',
   imports: [RouterLink, TranslocoPipe, HlmButton, InstallPage],
-  template: `
-    <div class="flex flex-1 flex-col gap-2">
-      <h1 class="text-2xl font-semibold">{{ 'title.install' | transloco }}</h1>
-      <app-install-page class="-mx-4 block" />
-      <a hlmBtn variant="outline" routerLink="/auth/sign-in" class="mt-auto h-11 w-full text-base">
-        {{ 'auth.backToSignIn' | transloco }}
-      </a>
-    </div>
-  `,
+  templateUrl: './install-guide-page.html',
 })
 export class InstallGuidePage {}

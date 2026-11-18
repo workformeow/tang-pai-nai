@@ -13,6 +13,7 @@ import {
   activityLeftText,
   signedAmount,
   TransactionService,
+  ActivityService,
 } from '@/core/transaction'
 import type { ActivityItem } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
@@ -49,103 +50,11 @@ interface ActivityDay {
   selector: 'app-activity-page',
   imports: [TranslocoPipe, NgIcon, NgTemplateOutlet],
   providers: [provideIcons({ lucideClock })],
-  template: `
-    <div class="flex flex-col gap-4 p-4">
-      <p class="text-sm text-muted-foreground">{{ 'activity.intro' | transloco }}</p>
-
-      @if (ended(); as ended) {
-        <div
-          role="status"
-          class="flex items-start gap-2.5 rounded-xl bg-brand/10 px-4 py-3 text-sm text-foreground"
-        >
-          <ng-icon
-            name="lucideClock"
-            size="18"
-            class="mt-0.5 shrink-0 text-brand"
-            aria-hidden="true"
-          />
-          <span class="flex flex-col gap-0.5">
-            <span class="font-semibold">{{ 'activity.ended' | transloco }}</span>
-            <span>{{ ended }}</span>
-          </span>
-        </div>
-      }
-
-      @for (day of days(); track day.key) {
-        <section class="flex flex-col gap-2" [attr.aria-label]="day.label">
-          <h2 class="text-sm font-medium text-muted-foreground">{{ day.label }}</h2>
-          <ul
-            class="divide-y divide-border rounded-xl border border-border bg-card text-card-foreground"
-          >
-            @for (line of day.lines; track line.id) {
-              <li>
-                @if (line.live) {
-                  <button
-                    type="button"
-                    class="flex min-h-16 w-full items-center gap-3 px-4 py-2.5 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                    (click)="open(line.id)"
-                  >
-                    <ng-container
-                      [ngTemplateOutlet]="body"
-                      [ngTemplateOutletContext]="{ $implicit: line }"
-                    />
-                  </button>
-                } @else {
-                  <div class="flex min-h-16 items-center gap-3 px-4 py-2.5">
-                    <ng-container
-                      [ngTemplateOutlet]="body"
-                      [ngTemplateOutletContext]="{ $implicit: line }"
-                    />
-                  </div>
-                }
-              </li>
-            }
-          </ul>
-        </section>
-      } @empty {
-        <p class="py-10 text-center text-base text-muted-foreground">
-          {{ 'activity.empty' | transloco }}
-        </p>
-      }
-      @if (hasMore()) {
-        <div #more class="h-px"></div>
-      }
-    </div>
-
-    <ng-template #body let-line>
-      <span
-        class="flex size-9 shrink-0 items-center justify-center rounded-full text-[15px] font-semibold"
-        [class]="line.color ? '' : 'bg-muted text-muted-foreground'"
-        [style.background-color]="
-          line.color ? 'color-mix(in oklab, ' + line.color + ' 16%, transparent)' : null
-        "
-        [style.color]="line.color"
-        aria-hidden="true"
-        >{{ line.initial }}</span
-      >
-      <span class="flex min-w-0 flex-1 flex-col">
-        <span class="truncate text-[15px]"
-          ><span class="font-semibold">{{ line.who }}</span> {{ line.what }} ·
-          {{ line.category }}</span
-        >
-        <span class="truncate text-[13px] text-muted-foreground">{{ line.detail }}</span>
-      </span>
-      <span
-        class="shrink-0 text-[15px] tabular-nums"
-        [class]="
-          line.live
-            ? line.positive
-              ? 'text-income'
-              : 'text-expense'
-            : 'text-muted-foreground line-through'
-        "
-        >{{ line.amount }}</span
-      >
-    </ng-template>
-  `,
+  templateUrl: './activity-page.html',
 })
 export class ActivityPage {
   private transactionService = inject(TransactionService)
+  private activityService = inject(ActivityService)
   private walletService = inject(WalletService)
   private bookService = inject(BookService)
   private sharingService = inject(SharingService)
@@ -160,15 +69,15 @@ export class ActivityPage {
   private asked = new Set<string>()
 
   private items = computed<ActivityItem[]>(() => {
-    const scope = this.transactionService.activityScope()
-    return scope ? this.transactionService.activity(scope) : []
+    const scope = this.activityService.scope()
+    return scope ? this.activityService.list(scope) : []
   })
   protected hasMore = computed(() => this.items().length > this.limit())
 
   /** The ended-share line: "ดูกิจกรรมได้ถึง <date>", with the days left in the last week. */
   protected ended = computed(() => {
     this.languageService.language()
-    const scope = this.transactionService.activityScope()
+    const scope = this.activityService.scope()
     if (!scope?.ended || scope.expiresAt === null) {
       return null
     }
@@ -185,7 +94,7 @@ export class ActivityPage {
   protected days = computed<ActivityDay[]>(() => {
     this.languageService.language()
     const locale = this.languageService.locale()
-    const people = this.transactionService.people()
+    const people = this.activityService.people()
     const today = this.transactionService.today()
     const yesterday = toDay(new Date(Date.now() - 24 * 60 * 60 * 1000))
     const dayLabel = new Intl.DateTimeFormat(locale, {

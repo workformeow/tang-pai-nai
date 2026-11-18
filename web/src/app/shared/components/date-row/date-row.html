@@ -1,0 +1,47 @@
+<div class="flex min-h-14 items-center gap-2 px-4 py-2">
+  <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
+    <ng-icon name="lucideCalendar" size="22" aria-hidden="true" />
+  </span>
+  <button
+    hlmBtn
+    variant="ghost"
+    size="icon"
+    type="button"
+    class="tpn-hit size-9 shrink-0 tpn-glass rounded-full"
+    [disabled]="day() <= min()"
+    [attr.aria-label]="'transactions.dayBefore' | transloco"
+    (click)="move(-1)"
+  >
+    <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
+  </button>
+  <label
+    class="relative flex h-10 min-w-0 flex-1 items-center justify-center rounded-md text-base font-medium has-focus-visible:ring-2 has-focus-visible:ring-ring"
+  >
+    <span class="flex min-w-0 flex-col items-center leading-tight">
+      @if (label()) {
+        <span class="text-xs text-muted-foreground">{{ label() }}</span>
+      }
+      <span class="truncate">{{ text() }}</span>
+    </span>
+    <input
+      type="date"
+      class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+      [attr.aria-label]="ariaLabel() || label() || ('transactions.date' | transloco)"
+      [min]="min()"
+      [max]="max()"
+      [formControl]="control()"
+    />
+  </label>
+  <button
+    hlmBtn
+    variant="ghost"
+    size="icon"
+    type="button"
+    class="tpn-hit size-9 shrink-0 tpn-glass rounded-full"
+    [disabled]="day() >= max()"
+    [attr.aria-label]="'transactions.dayAfter' | transloco"
+    (click)="move(1)"
+  >
+    <ng-icon name="lucideChevronRight" size="18" aria-hidden="true" />
+  </button>
+</div>

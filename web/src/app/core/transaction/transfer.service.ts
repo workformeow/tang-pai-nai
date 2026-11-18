@@ -4,7 +4,7 @@ import { BookService } from '@/core/book'
 import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { WALLET_TABLE, WalletService } from '@/core/wallet'
-import { toTransfer } from './transaction.service'
+import { toTransfer } from './transaction-rows'
 import { TRANSACTION_PREF_PREFIX, TRANSFER_TABLE } from './transaction.type'
 import type { Transfer, TransferSheetState, TransferValues } from './transaction.type'
 
@@ -24,7 +24,7 @@ export class TransferService {
   canWrite = this.bookService.canWrite
   serverDown = this.bookService.serverDown
 
-  /** The open transfer sheet (layout/transfer-sheet), if any. */
+  /** The open transfer sheet (sheets/transfer-sheet), if any. */
   sheet = signal<TransferSheetState | null>(null)
 
   constructor() {

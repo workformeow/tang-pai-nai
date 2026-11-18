@@ -1,0 +1,144 @@
+<div class="flex flex-col items-center px-4 pt-1 pb-2 text-center">
+  <span class="text-sm text-muted-foreground">
+    {{
+      (transactionService.viewWallet()?.isCreditCard
+        ? 'wallets.owed'
+        : transactionService.viewWallet()
+          ? 'transactions.balance'
+          : 'transactions.total'
+      ) | transloco
+    }}
+  </span>
+  @for (line of balance(); track line.code) {
+    <span
+      class="text-2xl leading-snug font-bold tabular-nums"
+      [class.text-expense]="line.owing ? line.amount > 0 : line.amount < 0"
+    >
+      {{ line.text }}
+    </span>
+  }
+</div>
+<app-period-strip
+  [chips]="chips()"
+  [selected]="transactionService.tab()"
+  [label]="'transactions.periods' | transloco"
+  (chosen)="choose($event)"
+/>
+<div
+  class="flex flex-col gap-3 px-4 pt-1 pb-4"
+  appSwipe
+  [appSlide]="tabIndex()"
+  (swiped)="move($event)"
+>
+  @if (cardDue(); as card) {
+    <!-- Credit-card rule 7: a card in view that owes money, with its pay sheet. -->
+    <div
+      class="flex min-h-14 items-center gap-3 rounded-xl border border-brand/30 bg-brand/10 px-3 py-2.5"
+    >
+      <span
+        class="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-background"
+      >
+        <ng-icon name="lucideCreditCard" size="18" aria-hidden="true" />
+      </span>
+      <span class="min-w-0 flex-1 text-base font-semibold tabular-nums">
+        {{ 'transactions.cardOwed' | transloco: { amount: card.text } }}
+      </span>
+      <button
+        hlmBtn
+        type="button"
+        class="h-9 shrink-0 px-3"
+        [disabled]="!transactionService.canWrite()"
+        (click)="payCard(card.id)"
+      >
+        {{ 'transfers.payHeading' | transloco }}
+      </button>
+    </div>
+  }
+  @if (due(); as due) {
+    <!-- Ask-first recurring rules that are due (recurring rule 10), in every period. -->
+    <button
+      type="button"
+      class="flex min-h-14 items-center gap-3 rounded-xl border border-brand/30 bg-brand/10 px-3 py-2.5 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      aria-haspopup="dialog"
+      (click)="dueOpen.set(true)"
+    >
+      <span
+        class="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-background"
+      >
+        <ng-icon name="lucideBell" size="18" aria-hidden="true" />
+      </span>
+      <span class="flex min-w-0 flex-1 flex-col">
+        <span class="text-base font-semibold">
+          {{ 'recurring.due' | transloco: { count: due.count } }}
+        </span>
+        <span class="truncate text-sm text-muted-foreground">{{ due.text }}</span>
+      </span>
+      <ng-icon
+        name="lucideChevronRight"
+        size="18"
+        class="text-muted-foreground"
+        aria-hidden="true"
+      />
+    </button>
+  }
+  @for (line of summary(); track line.currencyCode) {
+    <app-money-summary-card [line]="line" />
+  }
+  @for (group of days(); track group.day) {
+    <section
+      class="rounded-2xl border border-border bg-card pt-1 pb-1.5"
+      [attr.aria-label]="group.title + ' ' + group.subtitle"
+    >
+      <div class="flex items-center gap-3 px-4 pt-3 pb-1.5">
+        <span
+          class="min-w-11 text-[2rem] leading-none font-semibold tabular-nums"
+          aria-hidden="true"
+        >
+          {{ group.number }}
+        </span>
+        <span
+          class="flex min-w-0 flex-1 flex-col text-[0.8125rem] leading-snug text-muted-foreground"
+        >
+          <span>{{ group.title }}</span>
+          <span>{{ group.subtitle }}</span>
+        </span>
+        <span class="text-base font-semibold tabular-nums">{{ group.total }}</span>
+      </div>
+      <ul>
+        @for (row of group.rows; track row.key) {
+          <li><app-entry-row [row]="row" (opened)="openRow(row.item)" /></li>
+        }
+        @for (row of group.upcoming; track row.occurrence.id) {
+          <li>
+            <app-upcoming-row
+              [row]="row"
+              (opened)="recurringService.open(row.occurrence.item.rule.id)"
+            />
+          </li>
+        }
+      </ul>
+    </section>
+  } @empty {
+    <app-empty-state
+      [heading]="'transactions.emptyHeading' | transloco"
+      [description]="'transactions.emptyText' | transloco"
+    >
+      <ng-icon name="lucideReceiptText" />
+    </app-empty-state>
+    <button
+      hlmBtn
+      type="button"
+      class="-mt-10 h-11 self-center px-5 text-base"
+      [disabled]="!transactionService.canWrite()"
+      (click)="transactionService.open({ mode: 'create' })"
+    >
+      {{ 'transactions.add' | transloco }}
+    </button>
+  }
+  @if (hasMore()) {
+    <div #more class="h-px" aria-hidden="true"></div>
+  }
+</div>
+@defer (when dueOpen()) {
+  <app-due-sheet [(open)]="dueOpen" />
+}

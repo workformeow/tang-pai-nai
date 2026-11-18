@@ -27,40 +27,7 @@ import { FORM_IMPORTS, InputField, PasswordField, withMessage } from '@/shared/c
     HlmSpinner,
     BotCheck,
   ],
-  template: `
-    <form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="onSubmit()">
-      <app-input-field
-        [control]="form.controls.email"
-        [label]="'auth.email' | transloco"
-        type="email"
-        inputmode="email"
-        autocomplete="username"
-        placeholder="name@example.com"
-      />
-      <app-password-field
-        [control]="form.controls.password"
-        [label]="'auth.password' | transloco"
-        autocomplete="current-password"
-      />
-      @if (error(); as message) {
-        <p role="alert" class="-mt-2 text-sm text-destructive">
-          {{ message.key | transloco: message.params }}
-        </p>
-      }
-      <app-bot-check />
-      <button
-        hlmBtn
-        type="submit"
-        class="h-11 w-full text-base"
-        [disabled]="isProcessing() || !networkStatusService.isOnline()"
-      >
-        @if (isProcessing()) {
-          <hlm-spinner [aria-label]="'auth.signingIn' | transloco" />
-        }
-        {{ 'auth.signIn' | transloco }}
-      </button>
-    </form>
-  `,
+  templateUrl: './password-sign-in.html',
 })
 export class PasswordSignIn implements OnInit {
   private nnfb = inject(NonNullableFormBuilder)

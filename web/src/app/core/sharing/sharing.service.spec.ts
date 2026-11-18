@@ -4,7 +4,7 @@ import { toastState } from '@spartan-ng/brain/sonner'
 import { AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
 import { BookService } from '@/core/book'
-import { TransactionService } from '@/core/transaction'
+import { TransactionService, ActivityService } from '@/core/transaction'
 import { envelope, NO_ONE, NOTHING, setUpSharing } from './sharing-testing'
 import { SharingService } from './sharing.service'
 import type { ShareGroup, SharedBookRows, SharedWithMe } from './sharing.type'
@@ -126,7 +126,7 @@ describe('SharingService', () => {
       })
     )
     await owner
-    expect(TestBed.inject(TransactionService).people().get('m1')).toBe('Mom')
+    expect(TestBed.inject(ActivityService).people().get('m1')).toBe('Mom')
   })
 })
 
@@ -261,7 +261,7 @@ describe('SharingService › a shared book in use (sharing rules 9–16)', () =>
       { id: 't2' },
     ])
     expect(count('SELECT count(*) FROM wallets')).toBe(1)
-    expect(TestBed.inject(TransactionService).people().get('u1')).toBe('Mom')
+    expect(TestBed.inject(ActivityService).people().get('u1')).toBe('Mom')
     // Own rows stay where they were (main), out of sight.
     expect(count(`SELECT count(*) FROM main.wallets WHERE book_id = 'p1'`)).toBe(3)
 

@@ -13,30 +13,7 @@ import { OfflineService } from '@/core/offline'
   selector: 'app-other-tab-page',
   imports: [TranslocoPipe, NgIcon, HlmButton, HlmSpinner],
   providers: [provideIcons({ lucideAppWindow })],
-  template: `
-    <div class="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-      <span
-        class="flex size-14 items-center justify-center rounded-full bg-muted text-2xl text-muted-foreground"
-        aria-hidden="true"
-      >
-        <ng-icon name="lucideAppWindow" />
-      </span>
-      <h1 class="text-2xl font-semibold">{{ 'otherTab.heading' | transloco }}</h1>
-      <p class="text-sm text-muted-foreground">{{ 'otherTab.text' | transloco }}</p>
-      <button
-        hlmBtn
-        type="button"
-        class="mt-2 h-11 w-full text-base"
-        [disabled]="isTakingOver()"
-        (click)="useHere()"
-      >
-        @if (isTakingOver()) {
-          <hlm-spinner [aria-label]="'otherTab.useHere' | transloco" />
-        }
-        {{ 'otherTab.useHere' | transloco }}
-      </button>
-    </div>
-  `,
+  templateUrl: './other-tab-page.html',
 })
 export class OtherTabPage {
   private router = inject(Router)

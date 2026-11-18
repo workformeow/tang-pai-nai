@@ -3,7 +3,7 @@
 > Status: **Built** (#12; Open questions: what the owner settled). API:
 > `api/src/features/recurring/` (sync handler only) and the sync service's `keepsStored` /
 > `sameChange` hooks. Web: `core/recurring` (`RecurringService`, `schedule.ts`,
-> `occurrence-id.ts`, `describe.ts`), `layout/repeat-view` / `repeat-row` in the transaction
+> `occurrence-id.ts`, `describe.ts`), `sheets/repeat-view` / `repeat-row` in the transaction
 > and transfer sheets, `features/account/pages/recurring-page`, `features/transactions`
 > (`components/due-sheet`, the due card, the upcoming rows). Mock-up:
 > [mockups/recurring.html](mockups/recurring.html). Builds on [transaction.md](transaction.md), [transfer.md](transfer.md) and

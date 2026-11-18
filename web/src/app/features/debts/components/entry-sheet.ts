@@ -27,26 +27,23 @@ import { WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
 import { walletPickItems } from '@/features/debts/debt-view'
 import { DateRow } from '@/shared/components/date-row'
-import { CalcAmountField, CalcKeypad, FORM_IMPORTS, TextareaField } from '@/shared/components/form'
+import {
+  AmountKeypad,
+  CalcAmountField,
+  CalcKeypad,
+  FORM_IMPORTS,
+  TextareaField,
+} from '@/shared/components/form'
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
-import { SheetFrame } from '@/shared/components/sheet'
+import { keepWhileClosing, SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
 import { WalletPick } from '@/shared/components/wallet-pick'
-import {
-  addDays,
-  addQuickAmount,
-  CALC_KEYBOARD,
-  evaluate,
-  formatMoney,
-  parseMajor,
-  pressKey,
-  toMajorText,
-} from '@/shared/utils'
-import type { CalcKey } from '@/shared/utils'
+import { addDays, amountText, formatMoney, parseMajor } from '@/shared/utils'
 import { DebtCategoryPick } from './category-pick'
 
 type View = 'form' | 'wallet' | 'category' | 'note'
+type StartState<M extends EntrySheetState['mode']> = Extract<EntrySheetState, { mode: M }>
 
 /**
  * A debt's money that isn't income or expense (debt rule 3; mock-up frame 6): repay / receive
@@ -86,351 +83,7 @@ type View = 'form' | 'wallet' | 'category' | 'note'
       lucideWallet,
     }),
   ],
-  template: `
-    @let f = form.controls;
-    <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="finish()">
-      <hlm-drawer-content
-        *hlmDrawerPortal
-        class="mx-auto h-[92dvh] w-full max-w-[480px] overflow-x-clip data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
-        (keydown)="onKey($event)"
-      >
-        <div class="flex min-h-0 flex-1 flex-col" [appSlide]="depth()">
-          @switch (view()) {
-            @case ('form') {
-              <form [formGroup]="form" class="flex min-h-0 flex-1 flex-col" (ngSubmit)="save()">
-                <app-sheet-frame
-                  [title]="heading()"
-                  [leadingLabel]="'sheet.close' | transloco"
-                  (leading)="finish()"
-                >
-                  @if (rule(); as current) {
-                    <div sheetActions class="flex">
-                      <button
-                        hlmBtn
-                        variant="ghost"
-                        size="icon"
-                        type="button"
-                        class="tpn-hit size-9"
-                        [disabled]="!debtService.canWrite()"
-                        [attr.aria-label]="
-                          (current.isPaused ? 'recurring.resume' : 'recurring.pause') | transloco
-                        "
-                        (click)="togglePause()"
-                      >
-                        <ng-icon
-                          [name]="current.isPaused ? 'lucidePlay' : 'lucidePause'"
-                          size="18"
-                          aria-hidden="true"
-                        />
-                      </button>
-                      <button
-                        hlmBtn
-                        variant="ghost"
-                        size="icon"
-                        type="button"
-                        class="tpn-hit size-9 text-destructive"
-                        [disabled]="!debtService.canWrite()"
-                        [attr.aria-label]="'recurring.delete' | transloco"
-                        (click)="remove()"
-                      >
-                        <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
-                      </button>
-                    </div>
-                  } @else if (state()?.mode === 'edit') {
-                    <div sheetActions class="flex">
-                      <button
-                        hlmBtn
-                        variant="ghost"
-                        size="icon"
-                        type="button"
-                        class="tpn-hit size-9 text-destructive"
-                        [disabled]="!debtService.canWrite()"
-                        [attr.aria-label]="'debts.deleteEntry' | transloco"
-                        (click)="remove()"
-                      >
-                        <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
-                      </button>
-                    </div>
-                  }
-                  <div
-                    class="flex flex-col gap-4"
-                    (pointerdown)="leaveAmount($event)"
-                    (focusin)="leaveAmount($event)"
-                  >
-                    @if (!debtService.canWrite()) {
-                      <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                        {{
-                          (debtService.serverDown() ? 'sync.serverDownWrite' : 'debts.needsOnline')
-                            | transloco
-                        }}
-                      </p>
-                    }
-                    <div
-                      class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
-                    >
-                      @if (debt(); as d) {
-                        <div class="flex min-h-14 items-center gap-3 px-4 py-2">
-                          <span
-                            class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground"
-                          >
-                            <ng-icon name="lucideHandCoins" size="20" aria-hidden="true" />
-                          </span>
-                          <span class="flex min-w-0 flex-1 flex-col">
-                            <span class="text-xs text-muted-foreground">{{
-                              'debts.person.' + d.direction | transloco
-                            }}</span>
-                            <span class="truncate text-base">{{ d.person }}</span>
-                          </span>
-                          @if (leftText(); as left) {
-                            <span class="shrink-0 text-sm text-muted-foreground tabular-nums">{{
-                              'debts.leftShort' | transloco: { amount: left }
-                            }}</span>
-                          }
-                        </div>
-                      }
-                      <div class="px-4">
-                        <app-calc-amount-field
-                          [control]="f.amount"
-                          [label]="'transactions.amount' | transloco"
-                          [currencyCode]="debt()?.currencyCode ?? ''"
-                          [minorUnit]="minorUnit()"
-                          [locale]="languageService.locale()"
-                          [active]="keypad()"
-                          (activate)="keypad.set(true)"
-                        />
-                      </div>
-                      @if (needsWallet()) {
-                        <button
-                          type="button"
-                          class="flex min-h-15 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                          (click)="pick('wallet')"
-                        >
-                          <span class="flex w-10 shrink-0 justify-center">
-                            @if (wallet(); as item) {
-                              <app-icon-badge
-                                [icon]="item.icon"
-                                [color]="item.color"
-                                [fallback]="walletIcon"
-                                [size]="32"
-                              />
-                            } @else {
-                              <ng-icon
-                                name="lucideWallet"
-                                size="22"
-                                class="text-muted-foreground"
-                                aria-hidden="true"
-                              />
-                            }
-                          </span>
-                          <span class="flex min-w-0 flex-1 flex-col">
-                            <span class="text-xs text-muted-foreground">{{ walletLabel() }}</span>
-                            <span class="truncate text-base">{{ wallet()?.name ?? '' }}</span>
-                          </span>
-                          @if (wallet(); as item) {
-                            <span class="shrink-0 text-sm text-muted-foreground tabular-nums">{{
-                              balanceText(item)
-                            }}</span>
-                          }
-                          <ng-icon
-                            name="lucideChevronRight"
-                            size="20"
-                            class="text-muted-foreground"
-                            aria-hidden="true"
-                          />
-                        </button>
-                        @if (f.walletId.touched && f.walletId.invalid) {
-                          <p role="alert" class="px-4 pb-2 pl-17 text-sm text-destructive">
-                            {{ 'debts.walletRequired' | transloco }}
-                          </p>
-                        }
-                      }
-                      <button
-                        type="button"
-                        class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                        [attr.aria-label]="('transactions.note' | transloco) + ' ' + note()"
-                        (click)="pick('note')"
-                      >
-                        <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
-                          <ng-icon name="lucideTextAlignStart" size="22" aria-hidden="true" />
-                        </span>
-                        <span
-                          class="min-w-0 flex-1 truncate text-base"
-                          [class.text-muted-foreground]="!note()"
-                        >
-                          {{ note() || ('transactions.note' | transloco) }}
-                        </span>
-                        <ng-icon
-                          name="lucideChevronRight"
-                          size="20"
-                          class="text-muted-foreground"
-                          aria-hidden="true"
-                        />
-                      </button>
-                      @if (!rule()) {
-                        <app-date-row
-                          [today]="transactionService.today()"
-                          [locale]="languageService.locale()"
-                          [control]="f.occurredOn"
-                          [value]="values().occurredOn ?? ''"
-                          [max]="lastDay()"
-                        />
-                      }
-                    </div>
-                    @if (allText(); as all) {
-                      <button
-                        hlmBtn
-                        variant="outline"
-                        type="button"
-                        class="-mt-1 h-10 self-start rounded-full bg-brand/10 px-4 text-brand"
-                        (click)="setAll()"
-                      >
-                        {{ 'debts.all' | transloco: { amount: all } }}
-                      </button>
-                    }
-                    @if (interestAllowed()) {
-                      <!-- Interest or a fee: a counted transaction linked to the debt (Q5). -->
-                      <div
-                        class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
-                      >
-                        <label class="flex min-h-14 items-center gap-3 px-4 py-2">
-                          <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
-                            <ng-icon name="lucidePercent" size="22" aria-hidden="true" />
-                          </span>
-                          <span class="flex min-w-0 flex-1 flex-col">
-                            <span class="text-base">{{
-                              'debts.interest.' + debt()!.direction | transloco
-                            }}</span>
-                            <span class="text-xs text-muted-foreground">{{
-                              'debts.interestHint.' + debt()!.direction | transloco
-                            }}</span>
-                          </span>
-                          <input
-                            class="w-28 rounded-md border border-input bg-transparent px-2 py-1.5 text-right text-base tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            inputmode="decimal"
-                            placeholder="0.00"
-                            [formControl]="interestAmount"
-                            [attr.aria-label]="'debts.interest.' + debt()!.direction | transloco"
-                          />
-                        </label>
-                        @if (interestValue() > 0) {
-                          <button
-                            type="button"
-                            class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                            (click)="pick('category')"
-                          >
-                            <span class="flex w-10 shrink-0 justify-center">
-                              <app-icon-badge
-                                [icon]="interestCategory()?.icon ?? ''"
-                                [color]="interestCategory()?.color ?? ''"
-                                [fallback]="categoryIcon"
-                                [size]="32"
-                              />
-                            </span>
-                            <span
-                              class="min-w-0 flex-1 truncate text-base"
-                              [class.text-muted-foreground]="!interestCategory()"
-                              >{{
-                                interestCategory()?.name ?? ('debts.interestCategory' | transloco)
-                              }}</span
-                            >
-                            <ng-icon
-                              name="lucideChevronRight"
-                              size="20"
-                              class="text-muted-foreground"
-                              aria-hidden="true"
-                            />
-                          </button>
-                          @if (interestMissing()) {
-                            <p role="alert" class="px-4 pb-2 pl-17 text-sm text-destructive">
-                              {{ 'debts.categoryRequired' | transloco }}
-                            </p>
-                          }
-                        }
-                      </div>
-                    }
-                    @if (hint(); as text) {
-                      <p class="-mt-1 px-1 text-sm text-muted-foreground">{{ text }}</p>
-                    }
-                  </div>
-                  <div sheetFooter class="relative flex flex-col pt-3">
-                    <!-- Under the keypad while it shows: ✓ first, then save (one action at a time). -->
-                    <div class="flex" [attr.inert]="keypad() ? '' : null">
-                      <button
-                        hlmBtn
-                        type="submit"
-                        class="h-11 min-w-0 flex-1 text-base"
-                        [disabled]="!debtService.canWrite()"
-                      >
-                        {{ 'transactions.save' | transloco }}
-                      </button>
-                    </div>
-                    @if (keypad()) {
-                      <app-calc-keypad
-                        class="absolute -inset-x-4 -bottom-4 z-10 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
-                        fitBelow="app-date-row"
-                        [quickAmounts]="quickAmounts()"
-                        [minorUnit]="minorUnit()"
-                        [locale]="languageService.locale()"
-                        (pressed)="press($event)"
-                        (quickPressed)="addQuick($event)"
-                      />
-                    }
-                  </div>
-                </app-sheet-frame>
-              </form>
-            }
-            @case ('wallet') {
-              <app-sheet-frame
-                [title]="walletLabel()"
-                leadingIcon="back"
-                [leadingLabel]="'sheet.back' | transloco"
-                (leading)="view.set('form')"
-              >
-                <app-wallet-pick
-                  [wallets]="walletItems()"
-                  [empty]="'debts.noWallet' | transloco"
-                  [chosen]="f.walletId.value"
-                  (picked)="chooseWallet($event)"
-                />
-              </app-sheet-frame>
-            }
-            @case ('category') {
-              <app-sheet-frame
-                [title]="'debts.interestCategory' | transloco"
-                leadingIcon="back"
-                [leadingLabel]="'sheet.back' | transloco"
-                (leading)="view.set('form')"
-              >
-                <app-debt-category-pick
-                  [bookId]="debt()?.bookId ?? ''"
-                  [type]="debt()?.direction === 'lent' ? 'income' : 'expense'"
-                  [chosen]="interestCategoryId()"
-                  (picked)="interestCategoryId.set($event); view.set('form')"
-                />
-              </app-sheet-frame>
-            }
-            @case ('note') {
-              <app-sheet-frame
-                [title]="'transactions.note' | transloco"
-                leadingIcon="back"
-                [leadingLabel]="'sheet.back' | transloco"
-                (leading)="view.set('form')"
-              >
-                <app-textarea-field
-                  [control]="f.note"
-                  [label]="'transactions.note' | transloco"
-                  [hideLabel]="true"
-                  [rows]="10"
-                  [maxLength]="noteMax"
-                  [hint]="note().length + ' / ' + noteMax"
-                />
-              </app-sheet-frame>
-            }
-          }
-        </div>
-      </hlm-drawer-content>
-    </hlm-drawer>
-  `,
+  templateUrl: './entry-sheet.html',
 })
 export class DebtEntrySheet {
   private nnfb = inject(NonNullableFormBuilder)
@@ -446,17 +99,17 @@ export class DebtEntrySheet {
   protected walletIcon = WALLET_DEFAULT_ICON
   protected categoryIcon = CATEGORY_DEFAULT_ICON as UserIcon
   protected noteMax = DEBT_LIMITS.NOTE_MAX
-  protected state = this.debtService.entrySheet
+
+  // ── The sheet ──────────────────────────────────────────────────────────────
+
+  /** What the sheet is open for, kept while it closes. Set by `DebtService.entrySheet`. */
+  protected state = keepWhileClosing(this.debtService.entrySheet)
+  protected open = signal(false)
   protected view = signal<View>('form')
   /** How deep the view is: a deeper one slides in from the right, going back from the left. */
   protected depth = computed(() => (this.view() === 'form' ? 0 : 1))
-  protected keypad = signal(false)
-  protected open = signal(false)
-  protected interestCategoryId = signal<string | null>(null)
-  /** Quick amounts are Thai banknotes: THB wallets only (currency.md → Web screens). */
-  protected quickAmounts = computed(() =>
-    this.quickAmountsService.forCurrency(this.debt()?.currencyCode ?? '')
-  )
+
+  // ── The debt ───────────────────────────────────────────────────────────────
 
   /** The debt the sheet's row belongs to (also a rule's or a refused entry's). */
   private debtId = signal<string | null>(null)
@@ -464,14 +117,24 @@ export class DebtEntrySheet {
     const id = this.debtId()
     return id ? this.debtService.byId(id) : null
   })
+  /** The amount is in the debt's currency. */
   protected minorUnit = computed(() =>
     this.walletService.minorUnit(this.debt()?.currencyCode ?? '')
   )
+  /** The repayment rule being edited (debt rule 13), if any. */
+  protected rule = computed(() => {
+    const state = this.state()
+    return state?.mode === 'rule' ? this.recurringService.byId(state.id) : null
+  })
+
+  // ── The form ───────────────────────────────────────────────────────────────
+
+  /** Transaction rule 3: 1 … 10¹⁵ minor units of the debt's currency. */
   private amountValid: ValidatorFn = (control) => {
     if (typeof control.value !== 'string') {
       return null
     }
-    const result = evaluate(control.value, this.minorUnit())
+    const result = parseMajor(control.value, this.minorUnit())
     if (!result.ok) {
       return { amountFormat: 'transactions.amountFormat' }
     }
@@ -496,24 +159,31 @@ export class DebtEntrySheet {
     note: ['', [Validators.maxLength(DEBT_LIMITS.NOTE_MAX)]],
     occurredOn: [''],
   })
-  protected interestAmount = this.nnfb.control('')
-  private interestValues = toSignal(this.interestAmount.valueChanges, { initialValue: '' })
-  protected values = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() })
 
-  protected rule = computed(() => {
-    const state = this.state()
-    return state?.mode === 'rule' ? this.recurringService.byId(state.id) : null
-  })
+  /** The amount row's keypad: opens by itself when adding. */
+  protected keypad = new AmountKeypad(this.form.controls.amount, () => this.minorUnit())
+
+  protected values = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() })
+  /** "principal" (borrow / lend more) or "repayment" (pay / get back). */
   private kind = computed(() => this.values().kind ?? 'repayment')
+  protected note = computed(() => (this.values().note ?? '').trim())
+  protected lastDay = computed(() => addDays(this.transactionService.today(), 365))
+  /** Quick amounts are Thai banknotes: THB wallets only (currency.md → Web screens). */
+  protected quickAmounts = computed(() =>
+    this.quickAmountsService.forCurrency(this.debt()?.currencyCode ?? '')
+  )
+
+  // ── Wallet ─────────────────────────────────────────────────────────────────
+
   /** A `repaid` debt borrows more without a wallet (nothing comes in, debt rule 3). */
   protected needsWallet = computed(
     () => !(this.debt()?.countAs === 'repaid' && this.kind() === 'principal')
   )
-  protected note = computed(() => (this.values().note ?? '').trim())
   protected wallet = computed<Wallet | null>(() => {
     const id = this.values().walletId ?? ''
     return id ? this.walletService.byId(id) : null
   })
+  /** The book's open wallets in the debt's currency. */
   protected walletChoices = computed(() => {
     const debt = this.debt()
     return debt
@@ -527,25 +197,39 @@ export class DebtEntrySheet {
       this.walletChoices(),
       this.walletService,
       this.languageService.locale(),
-      (key) => this.transloco.translate(key)
+      (key) => this.t(key)
     )
   )
-  protected lastDay = computed(() => addDays(this.transactionService.today(), 365))
+  protected walletLabel = computed(() => {
+    this.languageService.language()
+    return this.t(`debts.walletOf.${this.debt()?.direction ?? 'borrowed'}.${this.kind()}`)
+  })
+
+  // ── Interest (Q5): a counted transaction beside a repayment ────────────────
+
+  protected interestAmount = this.nnfb.control('')
+  private interestValues = toSignal(this.interestAmount.valueChanges, { initialValue: '' })
   protected interestValue = computed(() => {
     const parsed = parseMajor(this.interestValues() || '0', this.minorUnit())
     return parsed.ok ? parsed.minor : 0
   })
+  protected interestCategoryId = signal<string | null>(null)
   protected interestCategory = computed(() => {
     const id = this.interestCategoryId()
     return id ? this.categoryService.byId(id) : null
   })
+  /** Interest typed but no category for it: the row shows its error. */
   protected interestMissing = signal(false)
+  /** Only a new repayment of a debt counted when spent carries interest. */
   protected interestAllowed = computed(() => {
     const state = this.state()
     return (
       state?.mode === 'create' && this.kind() === 'repayment' && this.debt()?.countAs === 'spent'
     )
   })
+
+  // ── Lines: the title, what is left, the hint ───────────────────────────────
+
   protected heading = computed(() => {
     this.languageService.language()
     const state = this.state()
@@ -557,10 +241,6 @@ export class DebtEntrySheet {
       return this.t(state.mode === 'fix' ? 'debts.fixEntry' : 'debts.editEntry')
     }
     return this.t(`debts.sheet.${debt?.direction ?? 'borrowed'}.${this.kind()}`)
-  })
-  protected walletLabel = computed(() => {
-    this.languageService.language()
-    return this.t(`debts.walletOf.${this.debt()?.direction ?? 'borrowed'}.${this.kind()}`)
   })
   private left = computed(() => {
     const debt = this.debt()
@@ -577,6 +257,7 @@ export class DebtEntrySheet {
   protected allText = computed(() =>
     this.state()?.mode === 'create' && this.kind() === 'repayment' ? this.leftText() : null
   )
+  /** A rule's schedule and next date, or "not counted" for a new entry. */
   protected hint = computed(() => {
     this.languageService.language()
     const rule = this.rule()
@@ -592,12 +273,10 @@ export class DebtEntrySheet {
     }
     return this.state()?.mode === 'create' ? this.t('debts.notCounted') : null
   })
-  private t = (key: string, params?: Record<string, unknown>) =>
-    this.transloco.translate(key, params)
 
   constructor() {
     effect(() => {
-      const state = this.state()
+      const state = this.debtService.entrySheet()
       untracked(() => {
         if (state) {
           this.start(state)
@@ -605,6 +284,20 @@ export class DebtEntrySheet {
         this.open.set(state !== null)
       })
     })
+  }
+
+  // ── Template actions ───────────────────────────────────────────────────────
+
+  /** Another row: the keypad closes. */
+  protected pick(view: 'wallet' | 'category' | 'note'): void {
+    this.keypad.close()
+    this.view.set(view)
+  }
+
+  protected chooseWallet(id: string): void {
+    this.form.controls.walletId.setValue(id)
+    this.form.controls.walletId.markAsDirty()
+    this.view.set('form')
   }
 
   protected balanceText(wallet: Wallet): string {
@@ -616,15 +309,17 @@ export class DebtEntrySheet {
     )
   }
 
+  /** "ทั้งหมด": the amount becomes what is left. */
   protected setAll(): void {
     const left = this.left()
     if (left > 0) {
-      this.form.controls.amount.setValue(toMajorText(left, this.minorUnit()).replace(/,/g, ''))
+      this.form.controls.amount.setValue(amountText(left, this.minorUnit()))
       this.form.controls.amount.markAsDirty()
-      this.keypad.set(false)
+      this.keypad.close()
     }
   }
 
+  /** Recurring rule 5: pause or resume the repayment rule, at once. */
   protected togglePause(): void {
     const rule = this.rule()
     if (!rule) {
@@ -634,65 +329,9 @@ export class DebtEntrySheet {
     toast.success(this.t(rule.isPaused ? 'recurring.resumed' : 'recurring.paused2'))
   }
 
-  protected leaveAmount(event: Event): void {
-    const target = event.target
-    if (
-      !this.keypad() ||
-      !(target instanceof Element) ||
-      target.closest('app-calc-amount-field') ||
-      !target.closest('button, input, label, textarea, select')
-    ) {
-      return
-    }
-    this.settleAmount()
-    this.keypad.set(false)
-  }
-
-  protected pick(view: 'wallet' | 'category' | 'note'): void {
-    this.settleAmount()
-    this.keypad.set(false)
-    this.view.set(view)
-  }
-
-  protected chooseWallet(id: string): void {
-    this.form.controls.walletId.setValue(id)
-    this.form.controls.walletId.markAsDirty()
-    this.view.set('form')
-  }
-
-  protected press(key: CalcKey | '='): void {
-    const control = this.form.controls.amount
-    if (key === '=') {
-      this.settleAmount()
-      this.keypad.set(false)
-      return
-    }
-    control.setValue(pressKey(control.value, key, this.minorUnit()))
-    control.markAsDirty()
-  }
-
-  protected addQuick(major: number): void {
-    const control = this.form.controls.amount
-    control.setValue(addQuickAmount(control.value, major, this.minorUnit()))
-    control.markAsDirty()
-  }
-
-  protected onKey(event: KeyboardEvent): void {
-    if (!this.keypad() || this.view() !== 'form' || event.target instanceof HTMLInputElement) {
-      return
-    }
-    const key = /^\d$/.test(event.key) ? (event.key as CalcKey) : CALC_KEYBOARD[event.key]
-    if (key) {
-      event.preventDefault()
-      event.stopPropagation()
-      this.press(key)
-    }
-  }
-
   protected save(): void {
     const state = this.state()
     const debt = this.debt()
-    this.settleAmount()
     this.form.controls.walletId.updateValueAndValidity({ emitEvent: false })
     const interest = this.interestAllowed() ? this.interestValue() : 0
     this.interestMissing.set(interest > 0 && !this.interestCategoryId())
@@ -704,7 +343,7 @@ export class DebtEntrySheet {
       return
     }
     const value = this.form.getRawValue()
-    const amount = evaluate(value.amount, this.minorUnit())
+    const amount = parseMajor(value.amount, this.minorUnit())
     const minor = amount.ok ? amount.minor : 0
     if (state.mode === 'rule') {
       const rule = this.rule()
@@ -741,6 +380,7 @@ export class DebtEntrySheet {
     this.finish()
   }
 
+  /** An entry (or the repayment rule) goes at once, "เลิกทำ" in the toast. */
   protected remove(): void {
     const state = this.state()
     if (state?.mode === 'rule') {
@@ -770,75 +410,75 @@ export class DebtEntrySheet {
   /** Saved, deleted, ✕, a swipe down, the backdrop or Escape: unsaved input goes (DESIGN.md §6). */
   protected finish(): void {
     this.form.markAsPristine()
-    this.state.set(null)
+    this.debtService.entrySheet.set(null)
   }
 
-  private refusedId(opId: string): string | null {
-    const row = this.debtService.refused(opId, 'debt_entries')
-    return row ? String(row['id']) : null
-  }
-
-  private settleAmount(): void {
-    const control = this.form.controls.amount
-    const result = evaluate(control.value, this.minorUnit())
-    if (result.ok && result.minor > 0 && /[+\-×÷]/.test(control.value)) {
-      control.setValue(toMajorText(result.minor, this.minorUnit()).replace(/,/g, ''))
-    }
-  }
-
-  private amountText(minor: number, currencyCode: string): string {
-    return minor > 0
-      ? toMajorText(minor, this.walletService.minorUnit(currencyCode)).replace(/,/g, '')
-      : ''
-  }
+  // ── Opening the sheet: the form starts from the state ──────────────────────
 
   private start(state: EntrySheetState): void {
     this.view.set('form')
     this.interestAmount.reset('')
     this.interestMissing.set(false)
-    if (state.mode === 'rule') {
-      const rule = this.recurringService.byId(state.id)
-      const debt = rule?.debtId ? this.debtService.byId(rule.debtId) : null
-      if (!rule || !debt) {
-        this.state.set(null)
+    switch (state.mode) {
+      case 'rule':
+        this.startRule(state)
         return
-      }
-      this.debtId.set(debt.id)
-      this.form.reset({
-        kind: 'repayment',
-        amount: this.amountText(rule.amount, debt.currencyCode),
-        walletId: rule.walletId,
-        note: rule.note,
-        occurredOn: rule.startOn,
-      })
-      this.keypad.set(false)
+      case 'create':
+        this.startCreate(state)
+        return
+      case 'edit':
+      case 'fix':
+        this.startEdit(state)
+        return
+    }
+  }
+
+  /** A repayment rule (debt rule 13): its amount, wallet and note. */
+  private startRule(state: StartState<'rule'>): void {
+    const rule = this.recurringService.byId(state.id)
+    const debt = rule?.debtId ? this.debtService.byId(rule.debtId) : null
+    if (!rule || !debt) {
+      this.debtService.entrySheet.set(null)
       return
     }
-    if (state.mode === 'create') {
-      const debt = this.debtService.byId(state.debtId)
-      if (!debt) {
-        this.state.set(null)
-        return
-      }
-      this.debtId.set(debt.id)
-      this.interestCategoryId.set(this.debtService.interestCategory(debt.id))
-      const last = this.debtService
-        .history(debt.id)
-        .find((item) => item.kind === 'entry' && item.entry.walletId !== null)
-      const lastWallet = last?.kind === 'entry' ? last.entry.walletId : null
-      const usable = this.walletChoices()
-      const walletId =
-        usable.find((wallet) => wallet.id === lastWallet)?.id ?? usable.at(0)?.id ?? ''
-      this.form.reset({
-        kind: state.kind,
-        amount: '',
-        walletId,
-        note: '',
-        occurredOn: this.transactionService.today(),
-      })
-      this.keypad.set(true)
+    this.debtId.set(debt.id)
+    this.form.reset({
+      kind: 'repayment',
+      amount: amountText(rule.amount, this.walletService.minorUnit(debt.currencyCode)),
+      walletId: rule.walletId,
+      note: rule.note,
+      occurredOn: rule.startOn,
+    })
+    this.keypad.open.set(false)
+  }
+
+  /** A new entry: from the wallet the debt last used (else the first of its currency), today. */
+  private startCreate(state: StartState<'create'>): void {
+    const debt = this.debtService.byId(state.debtId)
+    if (!debt) {
+      this.debtService.entrySheet.set(null)
       return
     }
+    this.debtId.set(debt.id)
+    this.interestCategoryId.set(this.debtService.interestCategory(debt.id))
+    const last = this.debtService
+      .history(debt.id)
+      .find((item) => item.kind === 'entry' && item.entry.walletId !== null)
+    const lastWallet = last?.kind === 'entry' ? last.entry.walletId : null
+    const usable = this.walletChoices()
+    const walletId = usable.find((wallet) => wallet.id === lastWallet)?.id ?? usable.at(0)?.id ?? ''
+    this.form.reset({
+      kind: state.kind,
+      amount: '',
+      walletId,
+      note: '',
+      occurredOn: this.transactionService.today(),
+    })
+    this.keypad.open.set(true)
+  }
+
+  /** An entry from the history, or "fix" a refused one (its refused values, errors showing). */
+  private startEdit(state: StartState<'edit' | 'fix'>): void {
     const refused =
       state.mode === 'fix' ? this.debtService.refused(state.opId, 'debt_entries') : null
     const entry =
@@ -849,21 +489,32 @@ export class DebtEntrySheet {
           : null
     const debt = entry ? this.debtService.byId(entry.debtId) : null
     if (!entry || !debt) {
-      this.state.set(null)
+      this.debtService.entrySheet.set(null)
       return
     }
     this.debtId.set(debt.id)
     this.form.reset({
       kind: entry.kind,
-      amount: this.amountText(entry.amount, debt.currencyCode),
+      amount: amountText(entry.amount, this.walletService.minorUnit(debt.currencyCode)),
       walletId: entry.walletId ?? '',
       note: entry.note,
       occurredOn: entry.occurredOn,
     })
-    this.keypad.set(false)
+    this.keypad.open.set(false)
     if (refused) {
       this.form.markAllAsTouched()
       this.form.markAsDirty()
     }
   }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  /** The id of the entry a refused op wrote. */
+  private refusedId(opId: string): string | null {
+    const row = this.debtService.refused(opId, 'debt_entries')
+    return row ? String(row['id']) : null
+  }
+
+  private t = (key: string, params?: Record<string, unknown>) =>
+    this.transloco.translate(key, params)
 }

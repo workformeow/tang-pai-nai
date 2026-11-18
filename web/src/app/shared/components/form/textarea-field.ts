@@ -9,23 +9,7 @@ import { fieldErrorMessage } from './field-error'
 @Component({
   selector: 'app-textarea-field',
   imports: [ReactiveFormsModule, HlmFieldImports, HlmTextarea],
-  template: `
-    <div hlmField>
-      <label hlmFieldLabel [class.sr-only]="hideLabel()">{{ label() }}</label>
-      <textarea
-        hlmTextarea
-        [formControl]="control()"
-        [rows]="rows()"
-        [style.min-height.lh]="rows()"
-        [placeholder]="placeholder()"
-        [attr.maxlength]="maxLength()"
-      ></textarea>
-      @if (hint()) {
-        <p hlmFieldDescription class="-mt-2">{{ hint() }}</p>
-      }
-      <hlm-field-error class="-mt-2">{{ error() }}</hlm-field-error>
-    </div>
-  `,
+  templateUrl: './textarea-field.html',
 })
 export class TextareaField {
   control = input.required<FormControl<string>>()

@@ -39,8 +39,7 @@ import { NetworkStatusService } from '@/core/network'
 import { OfflineService } from '@/core/offline'
 import { NavHistory } from '@/core/routing'
 import { ReauthStep } from '@/features/account/components/reauth-step'
-import { deviceLabel } from '@/features/account/device-label'
-import type { DeviceLabel } from '@/features/account/device-label'
+import { deviceRow } from '@/features/account/device-label'
 import { ReauthFlow } from '@/features/account/reauth-flow'
 import { GoogleLogo } from '@/shared/components/brand'
 
@@ -49,14 +48,6 @@ type GoogleAction = 'link' | 'unlink'
 
 /** What the user is asked to confirm before it happens (none of these can be undone). */
 type Confirming = { kind: 'unlink' } | { kind: 'revoke'; id: string } | { kind: 'revokeOthers' }
-
-interface DeviceRow {
-  session: AuthDeviceSession
-  label: DeviceLabel
-  signedIn: string
-  /** `null` under a minute ago ("just now"). */
-  lastActive: string | null
-}
 
 const LINK_FAILURES: Record<GoogleLinkFailure, string> = {
   google_in_use: 'security.googleInUse',
@@ -68,16 +59,6 @@ const LINK_FAILURES: Record<GoogleLinkFailure, string> = {
 
 const isLinkFailure = (value: string): value is GoogleLinkFailure =>
   Object.hasOwn(LINK_FAILURES, value)
-
-const DEVICE_ICONS: Record<DeviceLabel['kind'], string> = {
-  phone: 'lucideSmartphone',
-  tablet: 'lucideTablet',
-  computer: 'lucideMonitor',
-}
-
-const MINUTE = 60_000
-const HOUR = 60 * MINUTE
-const DAY = 24 * HOUR
 
 /**
  * Account › Security (auth spec rules 28–30, 4.4a): the ways to sign in (password, Google) and
@@ -110,481 +91,7 @@ const DAY = 24 * HOUR
     }),
     ReauthFlow,
   ],
-  template: `
-    <div class="flex flex-col gap-6 p-4">
-      <button
-        hlmBtn
-        variant="ghost"
-        type="button"
-        class="tpn-hit -ms-1 h-9 gap-1 self-start tpn-glass rounded-full ps-2 pe-3.5"
-        (click)="back()"
-      >
-        <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
-        {{ 'title.account' | transloco }}
-      </button>
-
-      @if (!networkStatusService.isOnline()) {
-        <p role="status" class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {{ 'security.offline' | transloco }}
-        </p>
-      }
-
-      @if (authStore.user(); as user) {
-        <section class="flex flex-col gap-3" aria-labelledby="ways-heading">
-          <h2 id="ways-heading" class="text-sm font-medium text-muted-foreground">
-            {{ 'security.waysHeading' | transloco }}
-          </h2>
-          <div
-            class="divide-y divide-border rounded-xl border border-border bg-card text-card-foreground"
-          >
-            <a
-              [routerLink]="isDemo() ? null : '/account/password'"
-              class="flex min-h-14 items-center gap-3 px-4 py-3"
-              [class.opacity-60]="isDemo()"
-              [attr.aria-disabled]="isDemo() || null"
-            >
-              <span
-                class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl text-muted-foreground"
-                aria-hidden="true"
-              >
-                <ng-icon name="lucideKeyRound" />
-              </span>
-              <span class="flex min-w-0 flex-1 flex-col">
-                <span class="text-base">{{ 'account.password' | transloco }}</span>
-                <span class="text-sm text-muted-foreground">
-                  {{
-                    (isDemo()
-                      ? 'demo.notAllowed'
-                      : user.hasPassword
-                        ? 'account.passwordSet'
-                        : 'account.passwordUnset'
-                    ) | transloco
-                  }}
-                </span>
-              </span>
-              @if (!isDemo()) {
-                <ng-icon
-                  name="lucideChevronRight"
-                  size="20"
-                  class="text-muted-foreground"
-                  aria-hidden="true"
-                />
-              }
-            </a>
-
-            @if (phoneEnabled() && isDemo()) {
-              <div
-                class="flex min-h-14 items-center gap-3 px-4 py-3 opacity-60"
-                aria-disabled="true"
-              >
-                <ng-container [ngTemplateOutlet]="phoneRow" />
-              </div>
-            } @else if (phoneEnabled()) {
-              <a routerLink="/account/phone" class="flex min-h-14 items-center gap-3 px-4 py-3">
-                <ng-container [ngTemplateOutlet]="phoneRow" />
-                <ng-icon
-                  name="lucideChevronRight"
-                  size="20"
-                  class="text-muted-foreground"
-                  aria-hidden="true"
-                />
-              </a>
-            } @else if (phoneFeature && phone()) {
-              <!-- SMS is off: a saved number still shows, read-only (rule 21). -->
-              <div class="flex min-h-14 items-center gap-3 px-4 py-3">
-                <ng-container [ngTemplateOutlet]="phoneRow" />
-              </div>
-            }
-            <ng-template #phoneRow>
-              <span
-                class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl text-muted-foreground"
-                aria-hidden="true"
-              >
-                <ng-icon name="lucidePhone" />
-              </span>
-              <span class="flex min-w-0 flex-1 flex-col">
-                <span class="text-base">{{ 'account.phone' | transloco }}</span>
-                <span class="text-sm text-muted-foreground tabular-nums">
-                  @if (isDemo()) {
-                    {{ 'demo.notAllowed' | transloco }}
-                  } @else {
-                    {{ phone() ?? ('account.phoneNotAdded' | transloco) }}
-                  }
-                </span>
-              </span>
-            </ng-template>
-
-            @if (googleEnabled() || google()) {
-              <div class="flex min-h-14 items-center gap-3 px-4 py-3">
-                <span
-                  class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted"
-                  aria-hidden="true"
-                >
-                  <app-google-logo />
-                </span>
-                <span class="flex min-w-0 flex-1 flex-col">
-                  <span class="text-base">{{ 'account.google' | transloco }}</span>
-                  <span class="truncate text-sm text-muted-foreground">
-                    @if (isDemo()) {
-                      {{ 'demo.notAllowed' | transloco }}
-                    } @else if (google(); as identity) {
-                      {{ identity.email }}
-                    } @else {
-                      {{ 'account.googleNotLinked' | transloco }}
-                    }
-                  </span>
-                </span>
-                @if (google()) {
-                  <button
-                    hlmBtn
-                    variant="outline"
-                    size="sm"
-                    type="button"
-                    class="h-10 shrink-0 px-3"
-                    [disabled]="isBusy() || !networkStatusService.isOnline()"
-                    (click)="ask({ kind: 'unlink' })"
-                  >
-                    {{ 'security.unlink' | transloco }}
-                  </button>
-                } @else {
-                  <button
-                    hlmBtn
-                    variant="outline"
-                    size="sm"
-                    type="button"
-                    class="h-10 shrink-0 px-3"
-                    [disabled]="
-                      isBusy() || !networkStatusService.isOnline() || !googleEnabled() || isDemo()
-                    "
-                    (click)="runGoogle('link')"
-                  >
-                    @if (busyWith() === 'link') {
-                      <hlm-spinner [aria-label]="'security.linking' | transloco" />
-                    }
-                    {{ 'security.link' | transloco }}
-                  </button>
-                }
-              </div>
-            }
-          </div>
-
-          @if (googleError(); as message) {
-            <p role="alert" class="-mt-1 text-sm text-destructive">
-              {{ message.key | transloco: message.params }}
-            </p>
-          }
-
-          @if (confirming()?.kind === 'unlink' && !reauth.pending()) {
-            <div
-              class="flex scroll-mb-24 flex-col gap-3 rounded-xl border border-border bg-card p-4 text-card-foreground"
-              data-confirm
-            >
-              <p class="text-sm">{{ 'security.unlinkConfirmText' | transloco }}</p>
-              <button
-                hlmBtn
-                variant="destructive"
-                type="button"
-                class="h-11 w-full text-base"
-                [disabled]="isBusy() || !networkStatusService.isOnline()"
-                (click)="runGoogle('unlink')"
-              >
-                @if (busyWith() === 'unlink') {
-                  <hlm-spinner [aria-label]="'security.unlinking' | transloco" />
-                }
-                {{ 'security.unlinkConfirm' | transloco }}
-              </button>
-              <button
-                hlmBtn
-                variant="outline"
-                type="button"
-                class="h-11 w-full"
-                [disabled]="isBusy()"
-                (click)="confirming.set(null)"
-              >
-                {{ 'account.cancel' | transloco }}
-              </button>
-            </div>
-          }
-
-          @if (reauth.pending(); as action) {
-            <app-reauth-step
-              [email]="user.email"
-              [hasPassword]="user.hasPassword"
-              [method]="reauth.method()"
-              [codeSent]="reauth.codeSent()"
-              [secondsLeft]="reauth.secondsLeft()"
-              [isProcessing]="isBusy()"
-              [error]="reauth.error()"
-              (passwordSubmitted)="runGoogle(action, $event)"
-              (sendCode)="reauth.sendCode()"
-              (codeSubmitted)="confirmWithCode(action, $event)"
-              (methodChange)="reauth.switchMethod($event)"
-              (cancelled)="cancelGoogle()"
-            />
-          }
-        </section>
-      }
-
-      @if (offlineService.isTrusted()) {
-        <section class="flex flex-col gap-3" aria-labelledby="device-heading">
-          <h2 id="device-heading" class="text-sm font-medium text-muted-foreground">
-            {{ 'security.deviceHeading' | transloco }}
-          </h2>
-          <div
-            class="divide-y divide-border rounded-xl border border-border bg-card text-card-foreground"
-          >
-            <div class="flex min-h-14 items-center gap-3 px-4 py-3">
-              <span
-                class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl text-muted-foreground"
-                aria-hidden="true"
-              >
-                <ng-icon name="lucideLockKeyhole" />
-              </span>
-              <span class="flex min-w-0 flex-1 flex-col">
-                <span class="text-base">{{ 'security.pinLock' | transloco }}</span>
-                <span class="text-sm text-muted-foreground">
-                  {{ (offlineService.hasPin() ? 'security.pinOn' : 'security.pinOff') | transloco }}
-                </span>
-              </span>
-              <a
-                hlmBtn
-                variant="outline"
-                size="sm"
-                routerLink="/account/pin"
-                [queryParams]="offlineService.hasPin() ? { off: 1 } : {}"
-                class="h-10 shrink-0 px-3"
-              >
-                {{ (offlineService.hasPin() ? 'security.turnOff' : 'security.turnOn') | transloco }}
-              </a>
-            </div>
-            @if (offlineService.hasPin()) {
-              <a routerLink="/account/pin" class="flex min-h-14 items-center gap-3 px-4 py-3">
-                <span
-                  class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl text-muted-foreground"
-                  aria-hidden="true"
-                >
-                  <ng-icon name="lucideKeyRound" />
-                </span>
-                <span class="flex-1 text-base">{{ 'security.changePin' | transloco }}</span>
-                <ng-icon
-                  name="lucideChevronRight"
-                  size="20"
-                  class="text-muted-foreground"
-                  aria-hidden="true"
-                />
-              </a>
-            }
-          </div>
-        </section>
-      }
-
-      <section class="flex flex-col gap-3" aria-labelledby="devices-heading">
-        <h2 id="devices-heading" class="text-sm font-medium text-muted-foreground">
-          {{ 'security.devicesHeading' | transloco }}
-        </h2>
-
-        @if (devices(); as rows) {
-          <ul
-            class="divide-y divide-border rounded-xl border border-border bg-card text-card-foreground"
-          >
-            @for (row of rows; track row.session.id) {
-              <li
-                class="flex scroll-mb-24 flex-col gap-3 px-4 py-3"
-                [attr.data-confirm]="isConfirmingRevoke(row.session.id) ? '' : null"
-              >
-                <div class="flex min-h-10 items-center gap-3">
-                  <span
-                    class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl text-muted-foreground"
-                    aria-hidden="true"
-                  >
-                    <ng-icon [name]="deviceIcon(row.label)" />
-                  </span>
-                  <span class="flex min-w-0 flex-1 flex-col">
-                    <span class="truncate text-base">
-                      {{ row.label.name ?? ('security.unknownDevice' | transloco) }}
-                    </span>
-                    <span class="text-sm text-muted-foreground">
-                      {{ 'security.signedInOn' | transloco: { date: row.signedIn } }}
-                    </span>
-                    <span class="text-sm text-muted-foreground">
-                      @if (row.session.current) {
-                        {{ 'security.activeNow' | transloco }}
-                      } @else if (row.lastActive === null) {
-                        {{ 'security.lastActiveJustNow' | transloco }}
-                      } @else {
-                        {{ 'security.lastActive' | transloco }}
-                        <span class="whitespace-nowrap">{{ row.lastActive }}</span>
-                      }
-                    </span>
-                  </span>
-                  @if (row.session.current) {
-                    <span
-                      class="shrink-0 rounded-full bg-brand/15 px-2.5 py-1 text-xs font-medium text-foreground"
-                    >
-                      {{ 'security.thisDevice' | transloco }}
-                    </span>
-                  } @else if (!isConfirmingRevoke(row.session.id)) {
-                    <button
-                      hlmBtn
-                      variant="outline"
-                      size="sm"
-                      type="button"
-                      class="h-10 shrink-0 px-3"
-                      [disabled]="isBusy() || !networkStatusService.isOnline()"
-                      (click)="ask({ kind: 'revoke', id: row.session.id })"
-                    >
-                      {{ 'security.signOutDevice' | transloco }}
-                    </button>
-                  }
-                </div>
-                @if (isConfirmingRevoke(row.session.id)) {
-                  <p class="text-sm">{{ 'security.signOutDeviceConfirmText' | transloco }}</p>
-                  <div class="flex gap-3">
-                    <button
-                      hlmBtn
-                      variant="outline"
-                      type="button"
-                      class="h-11 flex-1"
-                      [disabled]="isBusy()"
-                      (click)="confirming.set(null)"
-                    >
-                      {{ 'account.cancel' | transloco }}
-                    </button>
-                    <button
-                      hlmBtn
-                      variant="destructive"
-                      type="button"
-                      class="h-11 flex-1"
-                      [disabled]="isBusy() || !networkStatusService.isOnline()"
-                      (click)="revoke(row.session.id)"
-                    >
-                      @if (busyWith() === 'revoke') {
-                        <hlm-spinner [aria-label]="'account.signingOut' | transloco" />
-                      }
-                      {{ 'security.signOutDevice' | transloco }}
-                    </button>
-                  </div>
-                }
-              </li>
-            }
-          </ul>
-
-          @if (devicesError(); as message) {
-            <p role="alert" class="-mt-1 text-sm text-destructive">
-              {{ message.key | transloco: message.params }}
-            </p>
-          }
-
-          @if (otherCount() > 0) {
-            @if (confirming()?.kind === 'revokeOthers') {
-              <div
-                class="flex scroll-mb-24 flex-col gap-3 rounded-xl border border-border bg-card p-4 text-card-foreground"
-                data-confirm
-              >
-                <p class="text-sm">{{ 'security.signOutOthersConfirmText' | transloco }}</p>
-                <button
-                  hlmBtn
-                  variant="destructive"
-                  type="button"
-                  class="h-11 w-full text-base"
-                  [disabled]="isBusy() || !networkStatusService.isOnline()"
-                  (click)="revokeOthers()"
-                >
-                  @if (busyWith() === 'revokeOthers') {
-                    <hlm-spinner [aria-label]="'account.signingOut' | transloco" />
-                  }
-                  {{ 'security.signOutOthers' | transloco }}
-                </button>
-                <button
-                  hlmBtn
-                  variant="outline"
-                  type="button"
-                  class="h-11 w-full"
-                  [disabled]="isBusy()"
-                  (click)="confirming.set(null)"
-                >
-                  {{ 'account.cancel' | transloco }}
-                </button>
-              </div>
-            } @else {
-              <button
-                hlmBtn
-                variant="outline"
-                type="button"
-                class="h-11 w-full text-base"
-                [disabled]="isBusy() || !networkStatusService.isOnline()"
-                (click)="ask({ kind: 'revokeOthers' })"
-              >
-                {{ 'security.signOutOthers' | transloco }}
-              </button>
-            }
-          }
-        } @else if (devicesError(); as message) {
-          <div class="flex flex-col items-start gap-2">
-            <p role="alert" class="text-sm text-destructive">
-              {{ message.key | transloco: message.params }}
-            </p>
-            <button
-              hlmBtn
-              variant="outline"
-              type="button"
-              class="h-11"
-              [disabled]="!networkStatusService.isOnline()"
-              (click)="loadDevices()"
-            >
-              {{ 'security.retry' | transloco }}
-            </button>
-          </div>
-        } @else {
-          <!-- An online-only list: a skeleton while it loads (DESIGN.md §6 Loading). -->
-          <div
-            class="divide-y divide-border rounded-xl border border-border bg-card"
-            [attr.aria-label]="'security.loadingDevices' | transloco"
-            role="status"
-          >
-            @for (item of [1, 2]; track item) {
-              <div class="flex min-h-16 items-center gap-3 px-4 py-3" aria-hidden="true">
-                <span class="size-10 shrink-0 animate-pulse rounded-full bg-muted"></span>
-                <span class="flex flex-1 flex-col gap-2">
-                  <span class="h-4 w-32 animate-pulse rounded bg-muted"></span>
-                  <span class="h-3 w-48 animate-pulse rounded bg-muted"></span>
-                </span>
-              </div>
-            }
-          </div>
-        }
-      </section>
-
-      <!-- Privacy rule 5: the last row, in destructive red. -->
-      <section class="flex flex-col gap-3" aria-labelledby="delete-heading">
-        <h2 id="delete-heading" class="text-sm font-medium text-muted-foreground">
-          {{ 'security.deleteHeading' | transloco }}
-        </h2>
-        <a
-          [routerLink]="isDemo() ? null : '/account/delete'"
-          class="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-destructive focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          [class.opacity-60]="isDemo()"
-          [attr.aria-disabled]="isDemo() || null"
-        >
-          <span
-            class="flex size-10 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-xl"
-            aria-hidden="true"
-          >
-            <ng-icon name="lucideTrash2" />
-          </span>
-          <span class="flex min-w-0 flex-1 flex-col">
-            <span class="text-base">{{ 'security.deleteAccount' | transloco }}</span>
-            <span class="text-sm text-muted-foreground">
-              {{ (isDemo() ? 'demo.notAllowed' : 'security.deleteAccountHint') | transloco }}
-            </span>
-          </span>
-          @if (!isDemo()) {
-            <ng-icon name="lucideChevronRight" size="20" aria-hidden="true" />
-          }
-        </a>
-      </section>
-    </div>
-  `,
+  templateUrl: './security-page.html',
 })
 export class SecurityPage {
   private navHistory = inject(NavHistory)
@@ -599,7 +106,11 @@ export class SecurityPage {
   protected offlineService = inject(OfflineService)
   protected reauth = inject(ReauthFlow<GoogleAction>)
 
-  protected googleEnabled = signal(false)
+  /** Demo rule 9: the credential rows show, turned off, with "ใช้ไม่ได้ในโหมด Demo". */
+  protected isDemo = computed(() => this.authStore.user()?.isDemo === true)
+
+  // ── Ways to sign in: password, phone, Google (rules 29–30) ─────────────────
+
   /** Off until the phone feature is finished (`PHONE_FEATURE`): no phone row at all. */
   protected phoneFeature = inject(PHONE_FEATURE)
   protected phoneEnabled = signal(false)
@@ -607,21 +118,27 @@ export class SecurityPage {
     const phone = this.authStore.user()?.phone
     return phone ? formatThaiMobile(phone) : null
   })
+  protected googleEnabled = signal(false)
   // Google is the only provider, linked at most once per user (rule 29).
   protected google = computed(() => this.authStore.user()?.identities.at(0) ?? null)
-  /** Demo rule 9: the credential rows show, turned off, with "ใช้ไม่ได้ในโหมด Demo". */
-  protected isDemo = computed(() => this.authStore.user()?.isDemo === true)
   protected googleError = signal<UiMessage | null>(null)
+
+  // ── Signed-in devices (rule 28) ────────────────────────────────────────────
 
   private sessions = signal<AuthDeviceSession[] | null>(null)
   protected devicesError = signal<UiMessage | null>(null)
+  /** The rows; null while they load. */
   protected devices = computed(() => {
     const sessions = this.sessions()
-    return sessions ? sessions.map((session) => this.toRow(session)) : null
+    const locale = this.languageService.locale()
+    const now = Date.now()
+    return sessions ? sessions.map((session) => deviceRow(session, locale, now)) : null
   })
   protected otherCount = computed(
     () => this.sessions()?.filter((session) => !session.current).length ?? 0
   )
+
+  // ── One question and one action at a time, across the page ─────────────────
 
   protected confirming = signal<Confirming | null>(null)
   /** The action in flight, for its spinner; every button waits while one runs. */
@@ -654,14 +171,7 @@ export class SecurityPage {
     void this.loadDevices()
   }
 
-  protected async loadDevices(): Promise<void> {
-    this.devicesError.set(null)
-    try {
-      this.sessions.set(await this.authService.sessions())
-    } catch (error) {
-      this.devicesError.set(authErrorMessage(toApiError(error), 'security.devicesFailed'))
-    }
-  }
+  // ── Template actions: asking first ─────────────────────────────────────────
 
   protected ask(confirming: Confirming): void {
     this.googleError.set(null)
@@ -683,6 +193,8 @@ export class SecurityPage {
     const confirming = this.confirming()
     return confirming?.kind === 'revoke' && confirming.id === id
   }
+
+  // ── Template actions: Google ───────────────────────────────────────────────
 
   /** Link or unlink; on `REAUTH_REQUIRED` the confirm step shows and sends it again (rule 13). */
   protected async runGoogle(action: GoogleAction, currentPassword?: string): Promise<void> {
@@ -722,6 +234,17 @@ export class SecurityPage {
     this.confirming.set(null)
   }
 
+  // ── Template actions: devices ──────────────────────────────────────────────
+
+  protected async loadDevices(): Promise<void> {
+    this.devicesError.set(null)
+    try {
+      this.sessions.set(await this.authService.sessions())
+    } catch (error) {
+      this.devicesError.set(authErrorMessage(toApiError(error), 'security.devicesFailed'))
+    }
+  }
+
   protected async revoke(id: string): Promise<void> {
     this.busyWith.set('revoke')
     this.devicesError.set(null)
@@ -756,45 +279,8 @@ export class SecurityPage {
     this.busyWith.set(null)
   }
 
-  protected deviceIcon(label: DeviceLabel): string {
-    return DEVICE_ICONS[label.kind]
-  }
-
   /** Back where it was opened from, else up (NavHistory). */
   protected back(): void {
     this.navHistory.back()
-  }
-
-  private toRow(session: AuthDeviceSession): DeviceRow {
-    const locale = this.languageService.locale()
-    const signedInAt = new Date(session.signedInAt)
-    const sameYear = signedInAt.getFullYear() === new Date().getFullYear()
-    const signedIn = new Intl.DateTimeFormat(locale, {
-      day: 'numeric',
-      month: 'short',
-      year: sameYear ? undefined : 'numeric',
-    }).format(signedInAt)
-    return {
-      session,
-      label: deviceLabel(session.userAgent),
-      signedIn,
-      lastActive: this.relativeTime(new Date(session.lastUsedAt), locale),
-    }
-  }
-
-  /** "5 minutes ago" / "5 นาทีที่ผ่านมา"; `null` under a minute. */
-  private relativeTime(at: Date, locale: string): string | null {
-    const format = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
-    const elapsed = Date.now() - at.getTime()
-    if (elapsed < MINUTE) {
-      return null
-    }
-    if (elapsed < HOUR) {
-      return format.format(-Math.floor(elapsed / MINUTE), 'minute')
-    }
-    if (elapsed < DAY) {
-      return format.format(-Math.floor(elapsed / HOUR), 'hour')
-    }
-    return format.format(-Math.floor(elapsed / DAY), 'day')
   }
 }

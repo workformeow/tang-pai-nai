@@ -1,0 +1,72 @@
+@for (group of days(); track group.day) {
+  <section
+    class="rounded-2xl border border-border bg-card pt-1 pb-1.5"
+    [attr.aria-label]="group.title + ' ' + group.subtitle"
+  >
+    <div class="flex items-center gap-3 px-4 pt-3 pb-1.5">
+      <span class="min-w-11 text-[2rem] leading-none font-semibold tabular-nums" aria-hidden="true">
+        {{ group.number }}
+      </span>
+      <span
+        class="flex min-w-0 flex-1 flex-col text-[0.8125rem] leading-snug text-muted-foreground"
+      >
+        <span>{{ group.title }}</span>
+        <span>{{ group.subtitle }}</span>
+      </span>
+      <span class="text-base font-semibold tabular-nums">{{ group.total }}</span>
+    </div>
+    <ul>
+      @for (row of group.items; track row.item.id) {
+        <li>
+          <button
+            type="button"
+            class="flex min-h-15 w-full items-center gap-3 px-4 py-2.5 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+            (click)="open(row.item)"
+          >
+            <span class="relative shrink-0">
+              <app-icon-badge
+                [icon]="row.item.categoryIcon"
+                [color]="row.item.categoryColor"
+                [fallback]="categoryIcon"
+              />
+              @if (row.wallet; as wallet) {
+                <app-icon-badge
+                  class="absolute -right-1 -bottom-1 rounded-full ring-2 ring-card"
+                  [icon]="wallet.icon"
+                  [color]="wallet.color"
+                  [fallback]="walletIcon"
+                  [size]="20"
+                />
+              }
+            </span>
+            <span class="flex min-w-0 flex-1 flex-col">
+              <span class="truncate text-base font-semibold">{{ row.item.categoryName }}</span>
+              @if (row.wallet; as wallet) {
+                <span class="sr-only">{{ wallet.name }}</span>
+              }
+              @if (row.item.note) {
+                <span class="truncate text-sm text-muted-foreground">{{ row.item.note }}</span>
+              }
+              @if (row.pending) {
+                <span class="flex items-center gap-1 text-xs text-muted-foreground">
+                  <ng-icon name="lucideCloud" size="12" aria-hidden="true" />
+                  {{ 'transactions.pending' | transloco }}
+                </span>
+              }
+            </span>
+            <span
+              class="shrink-0 text-right text-base tabular-nums"
+              [class.text-income]="row.positive"
+              [class.text-expense]="!row.positive"
+            >
+              {{ row.amount }}
+            </span>
+          </button>
+        </li>
+      }
+    </ul>
+  </section>
+}
+@if (hasMore()) {
+  <div #more class="h-px" aria-hidden="true"></div>
+}

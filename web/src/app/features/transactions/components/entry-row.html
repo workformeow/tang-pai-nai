@@ -1,0 +1,127 @@
+@let item = row().item;
+<button
+  type="button"
+  class="flex min-h-15 w-full items-center gap-3 px-4 py-2.5 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+  (click)="opened.emit()"
+>
+  <span class="relative shrink-0">
+    @if (item.kind === 'transfer') {
+      <span class="flex size-10 items-center justify-center rounded-full bg-muted text-foreground">
+        <ng-icon name="lucideArrowLeftRight" size="20" aria-hidden="true" />
+      </span>
+    } @else if (item.kind === 'debt') {
+      <span class="flex size-10 items-center justify-center rounded-full bg-muted text-foreground">
+        <ng-icon name="lucideHandCoins" size="20" aria-hidden="true" />
+      </span>
+    } @else {
+      <app-icon-badge
+        [icon]="item.categoryIcon"
+        [color]="item.categoryColor"
+        [fallback]="categoryIcon"
+      />
+    }
+    @if (row().wallet; as wallet) {
+      <!-- Which wallet, on "ทุกกระเป๋า" (owner's choice ก in #8). -->
+      <app-icon-badge
+        class="absolute -right-1 -bottom-1 rounded-full ring-2 ring-card"
+        [icon]="wallet.icon"
+        [color]="wallet.color"
+        [fallback]="walletIcon"
+        [size]="20"
+      />
+    }
+  </span>
+  <span class="flex min-w-0 flex-1 flex-col">
+    @if (item.kind === 'transfer') {
+      <span class="flex min-w-0 items-center gap-1">
+        <span class="truncate text-base font-semibold">{{ 'transfers.title' | transloco }}</span>
+        @if (item.recurringId) {
+          <ng-icon
+            name="lucideRepeat"
+            size="13"
+            class="shrink-0 text-muted-foreground"
+            [attr.aria-label]="'recurring.fromRule' | transloco"
+          />
+        }
+      </span>
+      <span class="truncate text-sm text-muted-foreground">{{
+        (item.side === 'out' ? 'transfers.toWallet' : 'transfers.fromWallet')
+          | transloco: { name: item.otherWalletName }
+      }}</span>
+    } @else if (item.kind === 'debt') {
+      <!-- Money of a debt, not income or expense (debt → Web screens). -->
+      <span class="flex min-w-0 items-center gap-1">
+        <span class="truncate text-base font-semibold">{{
+          'debts.entry.' + item.direction + '.' + item.entryKind | transloco
+        }}</span>
+        @if (item.recurringId) {
+          <ng-icon
+            name="lucideRepeat"
+            size="13"
+            class="shrink-0 text-muted-foreground"
+            [attr.aria-label]="'recurring.fromRule' | transloco"
+          />
+        }
+      </span>
+      <span class="truncate text-sm text-muted-foreground">{{ item.person }}</span>
+    } @else {
+      <span class="flex min-w-0 items-center gap-1">
+        <span class="truncate text-base font-semibold">{{ item.categoryName }}</span>
+        @if (item.recurringId) {
+          <!-- An occurrence of a recurring rule (recurring rule 11). -->
+          <ng-icon
+            name="lucideRepeat"
+            size="13"
+            class="shrink-0 text-muted-foreground"
+            [attr.aria-label]="'recurring.fromRule' | transloco"
+          />
+        }
+        @if (item.debtId) {
+          <!-- Counted money of a debt: an instalment, interest (debt rule 3). -->
+          <ng-icon
+            name="lucideHandCoins"
+            size="13"
+            class="shrink-0 text-muted-foreground"
+            [attr.aria-label]="'debts.linked' | transloco"
+          />
+        }
+        @if (item.eventName; as eventName) {
+          <!-- The event / trip it is tagged to (event → Web screens 4). -->
+          <span
+            class="flex min-w-0 shrink items-center gap-0.5 rounded-md bg-brand/10 px-1.5 text-xs font-semibold text-brand"
+          >
+            <ng-icon name="lucidePlane" size="11" class="shrink-0" aria-hidden="true" />
+            <span class="sr-only">{{ 'events.field' | transloco }}</span>
+            <span class="truncate">{{ eventName }}</span>
+          </span>
+        }
+      </span>
+    }
+    @if (row().wallet; as wallet) {
+      <span class="sr-only">{{ wallet.name }}</span>
+    }
+    @if (item.note) {
+      <span class="truncate text-sm text-muted-foreground">{{ item.note }}</span>
+    }
+    @if (row().touchedBy; as line) {
+      <!-- Who else touched it last (shared-activity rule 6). -->
+      <span class="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+        <ng-icon name="lucideUsers" size="12" class="shrink-0" aria-hidden="true" />
+        <span class="truncate">{{ line }}</span>
+      </span>
+    }
+    @if (row().pending) {
+      <span class="flex items-center gap-1 text-xs text-muted-foreground">
+        <ng-icon name="lucideCloud" size="12" aria-hidden="true" />
+        {{ 'transactions.pending' | transloco }}
+      </span>
+    }
+  </span>
+  <span
+    class="shrink-0 text-right text-base tabular-nums"
+    [class.text-income]="row().positive"
+    [class.text-expense]="!row().positive"
+  >
+    {{ row().amount }}
+  </span>
+</button>

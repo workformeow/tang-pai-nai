@@ -11,14 +11,6 @@ import { PrivacyPage } from '@/features/account'
 @Component({
   selector: 'app-privacy-notice-page',
   imports: [RouterLink, TranslocoPipe, HlmButton, PrivacyPage],
-  template: `
-    <div class="flex flex-1 flex-col gap-2">
-      <h1 class="text-2xl font-semibold">{{ 'title.privacy' | transloco }}</h1>
-      <app-privacy-page class="-mx-4 block" />
-      <a hlmBtn variant="outline" routerLink="/auth/sign-in" class="mt-auto h-11 w-full text-base">
-        {{ 'auth.backToSignIn' | transloco }}
-      </a>
-    </div>
-  `,
+  templateUrl: './privacy-notice-page.html',
 })
 export class PrivacyNoticePage {}

@@ -13,33 +13,7 @@ import { fieldErrorMessage } from './field-error'
   selector: 'app-password-field',
   imports: [TranslocoPipe, ReactiveFormsModule, HlmFieldImports, HlmInput, NgIcon],
   providers: [provideIcons({ lucideEye, lucideEyeOff })],
-  template: `
-    <div hlmField>
-      <label hlmFieldLabel>{{ label() }}</label>
-      <div class="relative">
-        <input
-          hlmInput
-          class="pe-11"
-          [formControl]="control()"
-          [type]="visible() ? 'text' : 'password'"
-          [attr.autocomplete]="autocomplete()"
-        />
-        <button
-          type="button"
-          class="absolute inset-y-0 end-0 flex w-11 items-center justify-center text-muted-foreground"
-          [attr.aria-label]="(visible() ? 'form.hidePassword' : 'form.showPassword') | transloco"
-          [attr.aria-pressed]="visible()"
-          (click)="toggleVisible()"
-        >
-          <ng-icon [name]="visible() ? 'lucideEyeOff' : 'lucideEye'" size="18" aria-hidden="true" />
-        </button>
-      </div>
-      @if (hint()) {
-        <p hlmFieldDescription class="-mt-2">{{ hint() }}</p>
-      }
-      <hlm-field-error class="-mt-2">{{ error() }}</hlm-field-error>
-    </div>
-  `,
+  templateUrl: './password-field.html',
 })
 export class PasswordField {
   control = input.required<FormControl<string>>()

@@ -64,6 +64,8 @@ export class RecurringService {
 
   canWrite = this.bookService.canWrite
 
+  // ── The current book's rules (the rules page) ──────────────────────────────
+
   /** The current book's live rules, as the rules page shows them (rule order: next first). */
   items = computed<RuleItem[]>(() => {
     const bookId = this.bookService.current()?.id
@@ -123,6 +125,8 @@ export class RecurringService {
       untracked(() => this.recordDue())
     })
   }
+
+  // ── Reading and editing a rule (rules 4–6, 8) ──────────────────────────────
 
   /** A live rule of any book on this device. */
   byId(id: string): RecurringRule | null {
@@ -266,6 +270,8 @@ export class RecurringService {
     })
   }
 
+  // ── Due occurrences of ask-first rules (rule 10) ───────────────────────────
+
   /**
    * Rule 10: records the due occurrence of `ruleId` on `on`, as the rule says or with `values`
    * (the form, e.g. this month's bill); the rule's next date moves past what is handled.
@@ -316,6 +322,8 @@ export class RecurringService {
     return due.length
   }
 
+  // ── Occurrences to come (rule 17), opening a rule ──────────────────────────
+
   /**
    * Rule 17: the occurrences to come in `range` (from tomorrow, at most 3 months ahead) of the
    * current book's active rules with a wallet in `walletIds` (all when null). Never stored.
@@ -363,6 +371,8 @@ export class RecurringService {
       this.transactionService.open({ mode: 'rule', id })
     }
   }
+
+  // ── Recording (rules 7–9, 12–14): the pass and its steps ───────────────────
 
   /** Rule 7 over every book of the user; tells the user what it recorded. */
   private recordDue(): void {
@@ -579,6 +589,8 @@ export class RecurringService {
       )
       .map((row) => toRule(fromSql(RECURRING_TABLE, row)))
   }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
 
   private toItem(rule: RecurringRule, today: string): RuleItem {
     const wallet = this.walletService.byId(rule.walletId)

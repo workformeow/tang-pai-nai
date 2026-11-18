@@ -22,38 +22,7 @@ let nextId = 0
   selector: 'app-amount-field',
   imports: [ReactiveFormsModule, TranslocoPipe, NgIcon, HlmButton, HlmFieldImports, HlmInput],
   providers: [provideIcons({ lucideMinus, lucidePlus })],
-  template: `
-    <div hlmField>
-      <label class="sr-only" [for]="inputId">{{ label() }}</label>
-      <div class="flex items-center gap-3">
-        <button
-          hlmBtn
-          variant="outline"
-          size="icon"
-          type="button"
-          class="size-11 shrink-0"
-          [class.text-expense]="negative().value"
-          [attr.aria-pressed]="negative().value"
-          [attr.aria-label]="'form.negativeAmount' | transloco"
-          [disabled]="negative().disabled"
-          (click)="flip()"
-        >
-          <ng-icon [name]="negative().value ? 'lucideMinus' : 'lucidePlus'" size="20" />
-        </button>
-        <input
-          hlmInput
-          class="h-12 min-w-0 flex-1 rounded-none border-0 border-b bg-transparent px-0 text-right text-2xl font-semibold tabular-nums shadow-none focus-visible:ring-0 data-[matches-spartan-invalid=true]:ring-0 md:text-2xl dark:bg-transparent"
-          inputmode="decimal"
-          autocomplete="off"
-          [id]="inputId"
-          [formControl]="control()"
-          [placeholder]="placeholder()"
-        />
-        <ng-content select="[amountSuffix]" />
-      </div>
-      <hlm-field-error class="-mt-2 pl-14">{{ error() }}</hlm-field-error>
-    </div>
-  `,
+  templateUrl: './amount-field.html',
 })
 export class AmountField {
   control = input.required<FormControl<string>>()

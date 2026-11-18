@@ -1,0 +1,28 @@
+<div hlmField>
+  <div class="flex items-center gap-3">
+    <button
+      type="button"
+      class="relative shrink-0 rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card focus-visible:outline-none"
+      [attr.aria-label]="iconLabel()"
+      (click)="iconClick.emit()"
+    >
+      <app-icon-badge [icon]="icon()" [color]="color()" [size]="52" [fallback]="fallback()" />
+      <span
+        class="absolute -right-0.5 -bottom-0.5 flex size-5 items-center justify-center rounded-full bg-card text-foreground ring-1 ring-border"
+        aria-hidden="true"
+      >
+        <ng-icon name="lucidePencil" size="11" />
+      </span>
+    </button>
+    <label class="sr-only" [for]="inputId">{{ label() }}</label>
+    <input
+      hlmInput
+      class="h-12 rounded-none border-0 border-b bg-transparent px-0 text-lg shadow-none focus-visible:ring-0 data-[matches-spartan-invalid=true]:ring-0 md:text-lg dark:bg-transparent"
+      autocomplete="off"
+      [id]="inputId"
+      [formControl]="control()"
+      [placeholder]="label()"
+    />
+  </div>
+  <hlm-field-error class="-mt-2 pl-16">{{ error() }}</hlm-field-error>
+</div>

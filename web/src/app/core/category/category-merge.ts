@@ -1,7 +1,14 @@
 import { findPending, fromSql, moveOpLast, putRow, queueWrite } from '@/core/offline'
 import type { LocalDatabase, SyncRow } from '@/core/offline'
-import { DEBT_TABLE, RECURRING_TABLE, TRANSACTION_TABLE } from '@/core/wallet'
+import {
+  DEBT_TABLE,
+  RECURRING_TABLE,
+  toWallet,
+  TRANSACTION_TABLE,
+  WALLET_TABLE,
+} from '@/core/wallet'
 import { CATEGORY_TABLE } from './category.type'
+import type { Category, CategoryMergeMode } from './category.type'
 
 /** How many merges in a row are followed (a target merged again later), as on the server. */
 const MAX_HOPS = 5
@@ -140,5 +147,105 @@ export const followMerges = (db: LocalDatabase, now: number): void => {
   // Read again: the children just merged hold transactions too.
   for (const { id, target } of mergeLeftovers(db).categories) {
     moveTransactions(db, id, target, now)
+  }
+}
+
+// ── Merging here (CategoryService.merge, mergePlan) ──────────────────────────
+
+/** Rule 15's plan: the source, where its children go, which move and which merge where. */
+export interface MergeSteps {
+  source: Category
+  /** The parent the moved children go under: the target, or the target's parent. */
+  parentId: string
+  moves: Category[]
+  merges: { child: Category; into: string }[]
+}
+
+const findCategory = (db: LocalDatabase, id: string): Category | null =>
+  findRow(db, CATEGORY_TABLE, id) as unknown as Category | null
+
+const liveChildren = (db: LocalDatabase, parentId: string): Category[] =>
+  db
+    .selectObjects(
+      `SELECT * FROM ${CATEGORY_TABLE} WHERE parent_id = ? AND deleted_at IS NULL
+       ORDER BY sort_order, created_at, id`,
+      [parentId]
+    )
+    .map((row) => fromSql(CATEGORY_TABLE, row) as unknown as Category)
+
+/**
+ * Rule 15's checks and plan for merging `sourceId` into `targetId`: null when it can't (gone,
+ * archived target, itself or its own child, another book or type). With `mode` "move", an open
+ * child whose name is taken under the new parent merges into that one instead (rule 2).
+ */
+export const mergeSteps = (
+  db: LocalDatabase,
+  sourceId: string,
+  targetId: string,
+  mode: CategoryMergeMode
+): MergeSteps | null => {
+  const source = findCategory(db, sourceId)
+  const target = findCategory(db, targetId)
+  if (
+    !source ||
+    !target ||
+    source.deletedAt !== null ||
+    target.deletedAt !== null ||
+    target.isArchived ||
+    source.id === target.id ||
+    target.parentId === source.id ||
+    source.bookId !== target.bookId ||
+    source.type !== target.type
+  ) {
+    return null
+  }
+  const parentId = target.parentId ?? target.id
+  const children = liveChildren(db, source.id)
+  if (mode === 'all') {
+    return {
+      source,
+      parentId,
+      moves: [],
+      merges: children.map((child) => ({ child, into: target.id })),
+    }
+  }
+  const taken = new Map(
+    liveChildren(db, parentId)
+      .filter((child) => !child.isArchived)
+      .map((child) => [child.name.toLowerCase(), child.id])
+  )
+  const moves: Category[] = []
+  const merges: { child: Category; into: string }[] = []
+  for (const child of children) {
+    const clash = child.isArchived ? undefined : taken.get(child.name.toLowerCase())
+    if (clash) {
+      merges.push({ child, into: clash })
+    } else {
+      moves.push(child)
+      if (!child.isArchived) {
+        taken.set(child.name.toLowerCase(), child.id)
+      }
+    }
+  }
+  return { source, parentId, moves, merges }
+}
+
+/** Rule 15: merged ids leave every live wallet's `hiddenCategoryIds` of the book. */
+export const dropMergedHidden = (
+  db: LocalDatabase,
+  bookId: string,
+  ids: readonly string[],
+  now: number
+): void => {
+  const wallets = db
+    .selectObjects(`SELECT * FROM ${WALLET_TABLE} WHERE book_id = ? AND deleted_at IS NULL`, [
+      bookId,
+    ])
+    .map((row) => toWallet(fromSql(WALLET_TABLE, row)))
+  for (const wallet of wallets) {
+    const kept = wallet.hiddenCategoryIds.filter((id) => !ids.includes(id))
+    if (kept.length !== wallet.hiddenCategoryIds.length) {
+      queueWrite(db, WALLET_TABLE, 'upsert', { ...wallet, hiddenCategoryIds: kept, updatedAt: now })
+    }
   }
 }

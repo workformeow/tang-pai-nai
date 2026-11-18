@@ -1,0 +1,64 @@
+import { Component, computed, inject } from '@angular/core'
+import { TranslocoPipe } from '@jsverse/transloco'
+import { NgIcon, provideIcons } from '@ng-icons/core'
+import { lucideChevronLeft } from '@ng-icons/lucide'
+import { BookService } from '@/core/book'
+import { NavHistory, PageTitleStrategy, parentOf } from '@/core/routing'
+import { WalletService } from '@/core/wallet'
+import {
+  currentUrl,
+  isBookTab,
+  isReportCurrencies,
+  isReportsTab,
+  isTransactionsTab,
+} from '@/layout/book-routes'
+import { BookSwitcher } from '@/layout/book-switcher/book-switcher'
+import { ReportUnitMenu } from '@/layout/report-unit-menu/report-unit-menu'
+import { SyncStatus } from '@/layout/sync-status/sync-status'
+import { TransactionsHeader } from '@/layout/transactions-header/transactions-header'
+import { UpdateBanner } from '@/layout/update-banner/update-banner'
+
+@Component({
+  selector: 'app-header',
+  imports: [
+    TranslocoPipe,
+    NgIcon,
+    SyncStatus,
+    UpdateBanner,
+    BookSwitcher,
+    TransactionsHeader,
+    ReportUnitMenu,
+  ],
+  providers: [provideIcons({ lucideChevronLeft })],
+  host: {
+    class:
+      'sticky top-0 z-10 block border-b border-border bg-background/95 pt-[env(safe-area-inset-top)] backdrop-blur',
+  },
+  templateUrl: './app-header.html',
+})
+export class AppHeader {
+  protected pageTitleStrategy = inject(PageTitleStrategy)
+  protected navHistory = inject(NavHistory)
+  private bookService = inject(BookService)
+  private walletService = inject(WalletService)
+  private url = currentUrl()
+
+  /** The book tabs show the current book instead of the title (book.md → Web screens). */
+  /** A page inside a tab has a ‹: back where it was opened from, else up (`NavHistory`). */
+  protected parent = computed(() => parentOf(this.url()))
+  /** The Reports tab's own page shares the Transactions tab's header (report.md Q2–Q3). */
+  protected reportsHeader = computed(() => isReportsTab(this.url()))
+  /** "ดูตาม" on the all-currencies page, the Reports tab's own units (#24). */
+  protected unitMenu = computed(() => isReportCurrencies(this.url()))
+  /** The Transactions tab's own header, once its first-wallet step is done (wallet rule 12). */
+  protected transactionsHeader = computed(
+    () =>
+      (isTransactionsTab(this.url()) || this.reportsHeader()) &&
+      this.bookService.current() !== null &&
+      this.walletService.hasWallet()
+  )
+  /** A page inside a tab (‹) shows its title instead of the book. */
+  protected showSwitcher = computed(
+    () => isBookTab(this.url()) && this.parent() === null && this.bookService.current() !== null
+  )
+}

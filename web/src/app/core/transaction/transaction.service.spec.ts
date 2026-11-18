@@ -9,6 +9,7 @@ import { findOp, getRow, listOps, OfflineService, putRow, SyncService } from '@/
 import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
 import { WalletService } from '@/core/wallet'
+import { ActivityService } from './activity.service'
 import { TransactionService } from './transaction.service'
 import type { TransactionValues } from './transaction.type'
 
@@ -147,12 +148,14 @@ describe('TransactionService', () => {
   afterEach(() => db.close())
 
   describe('activity (docs/features/shared-activity.md)', () => {
+    // ActivityService reads the same database and TransactionService.today().
+    const activity = () => TestBed.inject(ActivityService)
     const now = Date.now()
     const recent = now - 60_000
 
     it('has no scope while only I wrote in the book (rule 7)', () => {
       transaction('mine', { createdAt: recent, updatedAt: recent })
-      expect(service.activityScope()).toBeNull()
+      expect(activity().scope()).toBeNull()
     })
 
     it('reaches the shared wallets and those someone else wrote in, and says when sharing ended (rules 1, 7)', () => {
@@ -162,21 +165,21 @@ describe('TransactionService', () => {
         createdAt: recent,
         updatedAt: recent,
       })
-      expect(service.activityScope()).toEqual({
+      expect(activity().scope()).toEqual({
         walletIds: ['cash'],
         ended: false,
         expiresAt: recent + 90 * 86_400_000,
       })
-      service.setShares('p1', ['card'], 1)
-      expect(service.activityScope()?.walletIds).toEqual(['card', 'cash'])
-      service.setShares('p1', [], 0)
-      expect(service.activityScope()).toMatchObject({ walletIds: ['cash'], ended: true })
+      activity().setShares('p1', ['card'], 1)
+      expect(activity().scope()?.walletIds).toEqual(['card', 'cash'])
+      activity().setShares('p1', [], 0)
+      expect(activity().scope()).toMatchObject({ walletIds: ['cash'], ended: true })
     })
 
     it('forgets a member’s row once it is 90 days old (rule 1)', () => {
       const old = now - 91 * 86_400_000
       transaction('theirs', { addedBy: 'm1', updatedBy: 'm1', createdAt: old, updatedAt: old })
-      expect(service.activityScope()).toBeNull()
+      expect(activity().scope()).toBeNull()
     })
 
     it('lists the latest action of each row in scope, deleted ones too, newest first (rules 1–4)', () => {
@@ -192,7 +195,7 @@ describe('TransactionService', () => {
       transaction('elsewhere', { walletId: 'card', updatedBy: 'm1', updatedAt: recent })
       transaction('old', { updatedBy: 'm1', createdAt: 1, updatedAt: now - 91 * 86_400_000 })
 
-      const lines = service.activity({ walletIds: ['cash'], ended: false, expiresAt: null })
+      const lines = activity().list({ walletIds: ['cash'], ended: false, expiresAt: null })
       expect(lines.map((line) => [line.id, line.action, line.actor])).toEqual([
         ['added', 'added', 'm1'],
         ['edited', 'edited', 'm1'],

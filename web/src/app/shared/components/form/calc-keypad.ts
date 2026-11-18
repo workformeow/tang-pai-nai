@@ -49,78 +49,8 @@ interface Key {
     'animate.enter': 'keypad-enter',
     'animate.leave': 'keypad-leave',
   },
-  styles: `
-    :host(.keypad-enter) {
-      animation: keypad-up 200ms cubic-bezier(0, 0, 0.58, 1);
-    }
-    :host(.keypad-leave) {
-      animation: keypad-down 150ms cubic-bezier(0.42, 0, 1, 1) forwards;
-    }
-    @keyframes keypad-up {
-      from {
-        transform: translateY(100%);
-      }
-    }
-    @keyframes keypad-down {
-      to {
-        transform: translateY(100%);
-      }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      @keyframes keypad-up {
-        from {
-          opacity: 0;
-        }
-      }
-      @keyframes keypad-down {
-        to {
-          opacity: 0;
-        }
-      }
-    }
-  `,
-  template: `
-    @if (quickAmounts().length > 0) {
-      <div
-        class="mb-1.5 flex shrink-0 gap-1.5"
-        role="group"
-        [attr.aria-label]="'keypad.quickLabel' | transloco"
-      >
-        @for (item of quick(); track item.value) {
-          <button
-            type="button"
-            class="flex h-9 min-w-0 flex-1 items-center justify-center rounded-full border border-border bg-card text-[0.9375rem] font-medium tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:opacity-70"
-            [attr.aria-label]="'keypad.quickAdd' | transloco: { amount: item.text }"
-            (click)="quickPressed.emit(item.value)"
-          >
-            {{ item.text }}
-          </button>
-        }
-      </div>
-    }
-    <div
-      class="grid flex-1 grid-cols-4 grid-rows-[repeat(4,minmax(2.75rem,1fr))] gap-1.5"
-      role="group"
-      [attr.aria-label]="'keypad.label' | transloco"
-    >
-      @for (item of keys; track item.key) {
-        <button
-          type="button"
-          class="flex items-center justify-center rounded-xl text-2xl tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:opacity-70 disabled:opacity-30"
-          [class]="classOf(item)"
-          [disabled]="item.key === '.' && minorUnit() === 0"
-          [attr.aria-label]="item.label ? (item.label | transloco) : null"
-          (click)="pressed.emit(item.key)"
-        >
-          @if (item.icon) {
-            <ng-icon [name]="item.icon" size="22" aria-hidden="true" />
-          } @else {
-            {{ item.text ?? item.key }}
-          }
-        </button>
-      }
-    </div>
-  `,
+  styleUrl: './calc-keypad.css',
+  templateUrl: './calc-keypad.html',
 })
 export class CalcKeypad {
   private host = inject<ElementRef<HTMLElement>>(ElementRef)

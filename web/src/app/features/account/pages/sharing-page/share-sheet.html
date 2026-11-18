@@ -1,0 +1,212 @@
+<hlm-drawer [state]="state() ? 'open' : 'closed'" (closed)="closed.emit()">
+  <hlm-drawer-content
+    *hlmDrawerPortal
+    class="mx-auto h-[92dvh] w-full max-w-120 data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
+  >
+    @if (state(); as current) {
+      <app-sheet-frame
+        [title]="title()"
+        [leadingIcon]="confirming() ? 'back' : 'close'"
+        [leadingLabel]="(confirming() ? 'sheet.back' : 'sheet.close') | transloco"
+        (leading)="confirming() ? confirming.set(false) : closed.emit()"
+      >
+        <div class="flex flex-col gap-4">
+          @if (!sharingService.canCall()) {
+            <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {{ 'sharing.needsOnline' | transloco }}
+            </p>
+          }
+          @switch (current.view) {
+            @case ('leave') {
+              <p class="text-base font-semibold">
+                {{ 'sharing.leaveHeading' | transloco: { name: current.group.owner.displayName } }}
+              </p>
+              <p class="text-sm text-muted-foreground">
+                {{ 'sharing.leaveText' | transloco: { name: current.group.owner.displayName } }}
+              </p>
+            }
+            @case ('pending') {
+              <div class="rounded-xl border border-border bg-card px-4 py-3">
+                <p class="text-base break-all">{{ current.invite.email }}</p>
+                <p class="text-sm text-muted-foreground">
+                  {{ 'sharing.' + current.invite.role | transloco }} ·
+                  {{ walletNames(current.invite.walletIds) }}
+                </p>
+                <p class="text-sm text-muted-foreground">
+                  {{ 'sharing.sentOn' | transloco: { date: date(current.invite.lastSentAt) } }}
+                  ·
+                  {{ 'sharing.expires' | transloco: { date: date(current.invite.expiresAt) } }}
+                </p>
+              </div>
+            }
+            @default {
+              @if (confirming() && current.view === 'member') {
+                <p class="text-base font-semibold">
+                  {{ 'sharing.removeHeading' | transloco: { name: current.member.displayName } }}
+                </p>
+                <p class="text-sm text-muted-foreground">
+                  {{ 'sharing.removeText' | transloco: { name: current.member.displayName } }}
+                </p>
+              } @else {
+                <form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="submit()">
+                  @if (current.view === 'member') {
+                    <div class="rounded-xl border border-border bg-card px-4 py-3">
+                      <p class="text-base">{{ current.member.displayName }}</p>
+                      <p class="text-sm break-all text-muted-foreground">
+                        {{ current.member.email }} ·
+                        {{ 'sharing.joined' | transloco: { date: date(current.member.addedAt) } }}
+                      </p>
+                    </div>
+                  } @else {
+                    <app-input-field
+                      [control]="form.controls.email"
+                      [label]="'sharing.email' | transloco"
+                      type="email"
+                      inputmode="email"
+                      autocomplete="off"
+                      placeholder="name@example.com"
+                    />
+                  }
+                  <div class="flex flex-col gap-2">
+                    <span class="text-sm font-medium text-muted-foreground">{{
+                      'sharing.roleAll' | transloco
+                    }}</span>
+                    <app-segmented-field
+                      [control]="$any(form.controls.role)"
+                      [label]="'sharing.role' | transloco"
+                      [options]="roleOptions()"
+                    />
+                    <p class="text-sm text-muted-foreground">
+                      {{ 'sharing.' + role() + 'Hint' | transloco }}
+                    </p>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between px-1">
+                      <span class="text-sm font-medium text-muted-foreground">{{
+                        'sharing.walletsPicked'
+                          | transloco: { count: pickedCount(), total: walletItems().length }
+                      }}</span>
+                      <button
+                        type="button"
+                        class="min-h-10 px-1 text-sm font-semibold text-brand"
+                        (click)="toggleAll()"
+                      >
+                        {{
+                          (pickedCount() === walletItems().length
+                            ? 'sharing.selectNone'
+                            : 'sharing.selectAll'
+                          ) | transloco
+                        }}
+                      </button>
+                    </div>
+                    @if (walletItems().length === 0) {
+                      <p class="text-sm text-muted-foreground">
+                        {{ 'sharing.noWallets' | transloco }}
+                      </p>
+                    } @else {
+                      <app-toggle-list-field
+                        [control]="form.controls.offWalletIds"
+                        [label]="'sharing.walletsPicked' | transloco"
+                        [items]="walletItems()"
+                      />
+                    }
+                    @if (current.view === 'invite' && pickedCount() === 0) {
+                      <p class="px-1 text-sm text-destructive">
+                        {{ 'sharing.pickOne' | transloco }}
+                      </p>
+                    }
+                  </div>
+                  @if (current.view === 'invite') {
+                    <p class="text-sm text-muted-foreground">
+                      {{ 'sharing.inviteNote' | transloco }}
+                    </p>
+                  } @else {
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      type="button"
+                      class="h-11 text-destructive"
+                      [disabled]="busy() || !sharingService.canCall()"
+                      (click)="confirming.set(true)"
+                    >
+                      {{ 'sharing.remove' | transloco }}
+                    </button>
+                  }
+                </form>
+              }
+            }
+          }
+          @if (error(); as key) {
+            <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">
+              {{ key | transloco }}
+            </p>
+          }
+        </div>
+        <div sheetFooter class="flex flex-col gap-2 pt-3">
+          @switch (current.view) {
+            @case ('pending') {
+              <button
+                hlmBtn
+                type="button"
+                class="h-11 w-full text-base"
+                [disabled]="busy() || !sharingService.canCall()"
+                (click)="run('resend')"
+              >
+                {{ 'sharing.resend' | transloco }}
+              </button>
+              <button
+                hlmBtn
+                variant="ghost"
+                type="button"
+                class="h-11 w-full text-base text-destructive"
+                [disabled]="busy() || !sharingService.canCall()"
+                (click)="run('cancel')"
+              >
+                {{ 'sharing.cancelInvite' | transloco }}
+              </button>
+            }
+            @case ('leave') {
+              <button
+                hlmBtn
+                variant="destructive"
+                type="button"
+                class="h-11 w-full text-base"
+                [disabled]="busy() || !sharingService.canCall()"
+                (click)="run('leave')"
+              >
+                {{ 'sharing.leaveConfirm' | transloco }}
+              </button>
+            }
+            @default {
+              @if (confirming()) {
+                <button
+                  hlmBtn
+                  variant="destructive"
+                  type="button"
+                  class="h-11 w-full text-base"
+                  [disabled]="busy() || !sharingService.canCall()"
+                  (click)="run('remove')"
+                >
+                  {{ 'sharing.remove' | transloco }}
+                </button>
+              } @else {
+                <button
+                  hlmBtn
+                  type="button"
+                  class="h-11 w-full text-base"
+                  [disabled]="busy() || !sharingService.canCall() || !canSubmit()"
+                  (click)="submit()"
+                >
+                  @if (busy()) {
+                    <hlm-spinner class="size-5" />
+                  }
+                  {{ (current.view === 'invite' ? 'sharing.send' : 'sharing.save') | transloco }}
+                </button>
+              }
+            }
+          }
+        </div>
+      </app-sheet-frame>
+    }
+  </hlm-drawer-content>
+</hlm-drawer>

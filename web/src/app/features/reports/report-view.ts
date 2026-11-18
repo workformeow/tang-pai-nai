@@ -12,6 +12,9 @@ const dmy = (day: string) => `${day.slice(8, 10)}/${day.slice(5, 7)}/${day.slice
 /**
  * A period by name, not by distance (`ต.ค. 2026`, `Q3 2026`, `2026`, `01/10/2026 – 15/10/2026`),
  * for the summary's heading and a category's share line.
+ * e.g. (the app's Thai locale) `periodName('month', { from: '2026-10-01', to: '2026-10-31' }, locale)` →
+ * `'ต.ค. 2026'`; `'quarter'` from `'2026-07-01'` → `'Q3 2026'`; `'custom'` 1–15 Oct →
+ * `'01/10/2026 – 15/10/2026'`
  */
 export const periodName = (
   unit: ReportUnit,
@@ -31,7 +34,10 @@ export const periodName = (
   }
 }
 
-/** A share of a whole as a rounded percentage (display only; the amounts stay exact). */
+/**
+ * A share of a whole as a rounded percentage (display only; the amounts stay exact).
+ * e.g. `sharePercent(1, 3, locale)` → `'33.3%'`, `sharePercent(5, 0, locale)` → `'0%'`
+ */
 export const sharePercent = (part: number, whole: number, locale: string): string =>
   new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 1 }).format(
     whole > 0 ? part / whole : 0

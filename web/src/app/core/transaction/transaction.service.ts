@@ -1,8 +1,7 @@
 import { DOCUMENT } from '@angular/common'
 import { computed, effect, inject, Service, signal, untracked } from '@angular/core'
-import { AuthStore } from '@/core/auth'
 import { BookService } from '@/core/book'
-import { CATEGORY_TABLE, followMerges, hasMergeLeftovers } from '@/core/category'
+import { CATEGORY_TABLE } from '@/core/category'
 import type { CategoryType } from '@/core/category'
 import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } from '@/core/offline'
 import type { LocalDatabase, SqlValue } from '@/core/offline'
@@ -15,8 +14,9 @@ import {
 } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
 import { addDays, toDay } from '@/shared/utils'
-import { ACTIVITY_MS, ACTOR_SQL, latestAction } from './activity'
+import { hasOrphans, sweepOrphans } from './orphan-sweep'
 import { PERIOD_UNITS, periodRange, periodTabs } from './period'
+import { mergeEntries, toEventOption, toTransaction, toTransfer } from './transaction-rows'
 import {
   EVENT_TABLE,
   TRANSACTION_PREF_PREFIX,
@@ -25,8 +25,6 @@ import {
 } from './transaction.type'
 import type { PeriodTab, PeriodUnit } from './period'
 import type {
-  ActivityItem,
-  ActivityScope,
   DayRange,
   DebtEntryItem,
   EntryItem,
@@ -46,6 +44,8 @@ const ORDER = 'ORDER BY t.occurred_on DESC, t.created_at DESC, t.id DESC'
 /**
  * The current book's transactions on this device (docs/features/transaction.md). Reads come
  * from the local database through its indexes (Volume); every write goes through the outbox.
+ * Also holds the Transactions tab's view (wallet, period) and the transaction sheet's state.
+ * Who else wrote in the book is `ActivityService`.
  */
 @Service()
 export class TransactionService {
@@ -54,11 +54,11 @@ export class TransactionService {
   private bookService = inject(BookService)
   private walletService = inject(WalletService)
   private window = inject(DOCUMENT).defaultView
-  private authStore = inject(AuthStore)
 
   canWrite = this.bookService.canWrite
   serverDown = this.bookService.serverDown
-
+  /** The device's date, refreshed when the app comes back and every minute. */
+  today = signal(toDay())
   /** Transactions and transfers with an op still waiting to sync ("รอ sync"). */
   pendingIds = computed(
     () =>
@@ -76,64 +76,46 @@ export class TransactionService {
       )
   )
 
-  /** The open transaction sheet (layout/transaction-sheet), if any. */
+  // ── The transaction sheet ──────────────────────────────────────────────────
+
+  /** The open transaction sheet (sheets/transaction-sheet), if any. */
   sheet = signal<TransactionSheetState | null>(null)
-  /**
-   * Names behind `addedBy` (sharing rule 15), read online by `core/sharing` (the owner's members,
-   * a shared book's people); memory only.
-   */
-  people = signal<ReadonlyMap<string, string>>(new Map())
-  /**
-   * Per own book, what the owner's sharing read said (`core/sharing` `loadOwner`): the wallets
-   * shared with at least one member and how many members there are. Memory only.
-   */
-  shares = signal<ReadonlyMap<string, { walletIds: readonly string[]; members: number }>>(new Map())
 
-  /**
-   * The current book's activity scope (shared-activity rules 1, 7), or null when it has none: a
-   * shared book in use reaches all its wallets; an own book the wallets shared with someone plus
-   * any holding a row someone else wrote in the last 90 days, so it stays after the sharing ends
-   * until that row is 90 days old.
-   */
-  activityScope = computed<ActivityScope | null>(() => {
-    const book = this.bookService.current()
-    if (!book) {
-      return null
-    }
-    if (this.bookService.isShared()) {
-      return { walletIds: null, ended: false, expiresAt: null }
-    }
-    this.today() // the 90 days move on with the date
-    const me = this.authStore.user()?.id ?? ''
-    const foreign = this.read(
-      (db) =>
-        db.selectObjects(
-          `SELECT t.wallet_id AS wallet_id, MAX(t.updated_at) AS last
-             FROM ${TRANSACTION_TABLE} t
-             WHERE t.book_id = ? AND t.updated_at >= ? AND (${ACTOR_SQL}) IS NOT NULL
-               AND (${ACTOR_SQL}) <> ?
-             GROUP BY t.wallet_id`,
-          [book.id, Date.now() - ACTIVITY_MS, me]
-        ),
-      []
-    )
-    const share = this.shares().get(book.id)
-    const walletIds = [
-      ...new Set([...(share?.walletIds ?? []), ...foreign.map((row) => String(row['wallet_id']))]),
-    ]
-    if (walletIds.length === 0) {
-      return null
-    }
-    const last = foreign.reduce((max, row) => Math.max(max, Number(row['last'])), 0)
-    return {
-      walletIds,
-      ended: share !== undefined && share.members === 0,
-      expiresAt: last > 0 ? last + ACTIVITY_MS : null,
-    }
-  })
+  open(state: TransactionSheetState): void {
+    this.sheet.set(state)
+  }
 
-  // The Transactions tab's view (transaction.md → Web screens), shared by the header (wallet
-  // switcher, ⋮ "ดูตาม") and the page. The wallet and the unit are remembered per book.
+  /** "Fix" from the sync sheet: the refused values of a rejected transaction op. */
+  openFix(opId: string): void {
+    const op = this.syncService.rejectedOp(opId)
+    if (!op || op.table !== TRANSACTION_TABLE) {
+      return
+    }
+    const row = op.row
+    const text = (key: string) => (typeof row[key] === 'string' ? row[key] : '')
+    const bookId = text('bookId')
+    this.open({
+      mode: 'fix',
+      opId,
+      id: op.rowId,
+      bookId: this.bookService.byId(bookId) ? bookId : (this.bookService.current()?.id ?? bookId),
+      values: {
+        walletId: text('walletId'),
+        categoryId: text('categoryId'),
+        amount: typeof row['amount'] === 'number' ? row['amount'] : 0,
+        occurredOn: text('occurredOn'),
+        note: text('note'),
+        excludeFromReport: row['excludeFromReport'] === true,
+        debtId: text('debtId') || null,
+        eventId: text('eventId') || null,
+      },
+    })
+  }
+
+  // ── The Transactions tab's view (transaction.md → Web screens) ─────────────
+  // Shared by the header (wallet switcher, ⋮ "ดูตาม") and the page. The wallet and the unit
+  // are remembered per book.
+
   /** The chosen wallet, or null for "ทุกกระเป๋า". */
   viewWalletId = signal<string | null>(null)
   unit = signal<PeriodUnit>('month')
@@ -142,8 +124,6 @@ export class TransactionService {
   /** The header's wallet switcher sheet and the custom range sheet. */
   walletSheet = signal(false)
   customSheet = signal(false)
-  /** The device's date, refreshed when the app comes back and every minute. */
-  today = signal(toDay())
 
   /** The chosen wallet while it's live, else null ("ทุกกระเป๋า"). */
   viewWallet = computed<Wallet | null>(() => {
@@ -205,34 +185,41 @@ export class TransactionService {
     const refresh = () => this.today.set(toDay())
     this.window?.document.addEventListener('visibilitychange', refresh)
     this.window?.setInterval(refresh, 60_000)
-    // Rule 10: a wallet or category deleted on a device that didn't know all its transactions
-    // leaves live ones behind; whichever device sees that tombstones the ones it holds.
+    // Rule 10 (orphan-sweep.ts): rows left pointing at a tombstone here become tombstones too.
     effect(() => {
       this.offlineService.changes()
       if (!this.canWrite()) {
         return
       }
       untracked(() => {
-        const db = this.offlineService.db()
-        if (hasMergeLeftovers(db) || this.orphans(db).length > 0 || hasDebtOrphans(db)) {
+        if (hasOrphans(this.offlineService.db())) {
           const now = Date.now()
-          this.offlineService.write((tx) => {
-            // A merged category's rows follow it instead (category rule 15).
-            followMerges(tx, now)
-            for (const row of this.orphans(tx)) {
-              queueWrite(tx, TRANSACTION_TABLE, 'delete', {
-                ...row,
-                updatedAt: now,
-                deletedAt: now,
-              })
-            }
-            // Debt rule 10: the same for debts and their entries.
-            tombstoneDebtOrphans(tx, now)
-          })
+          this.offlineService.write((tx) => sweepOrphans(tx, now))
         }
       })
     })
   }
+
+  /** Chooses the wallet the tab shows (null: "ทุกกระเป๋า"); remembered for the book. */
+  selectWallet(id: string | null): void {
+    this.viewWalletId.set(id)
+    this.writeView()
+  }
+
+  /** Chooses "ดูตาม"; the tabs start again on the current period. */
+  selectUnit(unit: PeriodUnit): void {
+    this.unit.set(unit)
+    this.tab.set(0)
+    this.writeView()
+  }
+
+  /** A custom range (from ≤ to). */
+  selectCustom(range: DayRange): void {
+    this.custom.set(range)
+    this.selectUnit('custom')
+  }
+
+  // ── Reading the list ───────────────────────────────────────────────────────
 
   /**
    * The current book's live transactions in `range` (in order, rule 13), with their category
@@ -289,64 +276,6 @@ export class TransactionService {
       return transactions
     }
     return mergeEntries(transactions, sides)
-  }
-
-  /**
-   * The current book's live debt entries with a wallet in `range` whose wallet is in
-   * `walletIds` (all when null), in rule 13's order (debt → Web screens).
-   */
-  debtEntries(range: DayRange, walletIds: readonly string[] | null = null): DebtEntryItem[] {
-    const bookId = this.bookService.current()?.id
-    if (!bookId || walletIds?.length === 0) {
-      return []
-    }
-    const parts = ['e.book_id = ?', 'e.deleted_at IS NULL', 'e.wallet_id IS NOT NULL']
-    const params: SqlValue[] = [bookId]
-    if (range.from) {
-      parts.push('e.occurred_on >= ?')
-      params.push(range.from)
-    }
-    if (range.to) {
-      parts.push('e.occurred_on <= ?')
-      params.push(range.to)
-    }
-    if (walletIds) {
-      parts.push(`e.wallet_id IN (${walletIds.map(() => '?').join(', ')})`)
-      params.push(...walletIds)
-    }
-    return this.read(
-      (db) =>
-        db
-          .selectObjects(
-            `SELECT e.*, d.direction AS d_direction, d.person AS d_person,
-               ${DEBT_ENTRY_SIGN_SQL} AS signed, w.name AS w_name, w.currency_code AS w_currency
-             FROM ${DEBT_ENTRY_TABLE} e
-             JOIN ${DEBT_TABLE} d ON d.id = e.debt_id
-             LEFT JOIN ${WALLET_TABLE} w ON w.id = e.wallet_id
-             WHERE ${parts.join(' AND ')}
-             ORDER BY e.occurred_on DESC, e.created_at DESC, e.id DESC`,
-            params
-          )
-          .map((row) => ({
-            kind: 'debt' as const,
-            id: String(row['id']),
-            debtId: String(row['debt_id']),
-            entryKind:
-              row['kind'] === 'principal' ? ('principal' as const) : ('repayment' as const),
-            direction: row['d_direction'] === 'lent' ? ('lent' as const) : ('borrowed' as const),
-            person: String(row['d_person'] ?? ''),
-            walletId: String(row['wallet_id']),
-            walletName: String(row['w_name'] ?? ''),
-            currencyCode: String(row['w_currency'] ?? ''),
-            signed: Number(row['signed']),
-            amount: Number(row['amount']),
-            occurredOn: String(row['occurred_on']),
-            note: typeof row['note'] === 'string' ? row['note'] : '',
-            recurringId: typeof row['recurring_id'] === 'string' ? row['recurring_id'] : null,
-            createdAt: Number(row['created_at']),
-          })),
-      []
-    )
   }
 
   /**
@@ -410,6 +339,64 @@ export class TransactionService {
     )
   }
 
+  /**
+   * The current book's live debt entries with a wallet in `range` whose wallet is in
+   * `walletIds` (all when null), in rule 13's order (debt → Web screens).
+   */
+  debtEntries(range: DayRange, walletIds: readonly string[] | null = null): DebtEntryItem[] {
+    const bookId = this.bookService.current()?.id
+    if (!bookId || walletIds?.length === 0) {
+      return []
+    }
+    const parts = ['e.book_id = ?', 'e.deleted_at IS NULL', 'e.wallet_id IS NOT NULL']
+    const params: SqlValue[] = [bookId]
+    if (range.from) {
+      parts.push('e.occurred_on >= ?')
+      params.push(range.from)
+    }
+    if (range.to) {
+      parts.push('e.occurred_on <= ?')
+      params.push(range.to)
+    }
+    if (walletIds) {
+      parts.push(`e.wallet_id IN (${walletIds.map(() => '?').join(', ')})`)
+      params.push(...walletIds)
+    }
+    return this.read(
+      (db) =>
+        db
+          .selectObjects(
+            `SELECT e.*, d.direction AS d_direction, d.person AS d_person,
+               ${DEBT_ENTRY_SIGN_SQL} AS signed, w.name AS w_name, w.currency_code AS w_currency
+             FROM ${DEBT_ENTRY_TABLE} e
+             JOIN ${DEBT_TABLE} d ON d.id = e.debt_id
+             LEFT JOIN ${WALLET_TABLE} w ON w.id = e.wallet_id
+             WHERE ${parts.join(' AND ')}
+             ORDER BY e.occurred_on DESC, e.created_at DESC, e.id DESC`,
+            params
+          )
+          .map((row) => ({
+            kind: 'debt' as const,
+            id: String(row['id']),
+            debtId: String(row['debt_id']),
+            entryKind:
+              row['kind'] === 'principal' ? ('principal' as const) : ('repayment' as const),
+            direction: row['d_direction'] === 'lent' ? ('lent' as const) : ('borrowed' as const),
+            person: String(row['d_person'] ?? ''),
+            walletId: String(row['wallet_id']),
+            walletName: String(row['w_name'] ?? ''),
+            currencyCode: String(row['w_currency'] ?? ''),
+            signed: Number(row['signed']),
+            amount: Number(row['amount']),
+            occurredOn: String(row['occurred_on']),
+            note: typeof row['note'] === 'string' ? row['note'] : '',
+            recurringId: typeof row['recurring_id'] === 'string' ? row['recurring_id'] : null,
+            createdAt: Number(row['created_at']),
+          })),
+      []
+    )
+  }
+
   /** Rule 11: income, expense and net per currency, leaving out `excludeFromReport` rows. */
   summary(range: DayRange, walletIds: readonly string[] | null = null): MoneySummary[] {
     const where = this.where(range, walletIds)
@@ -465,18 +452,59 @@ export class TransactionService {
       }))
   }
 
-  /** The person of a live debt (the form's "หนี้" row, debt rule 3), or null. */
-  debtPerson(id: string | null): string | null {
-    if (!id) {
-      return null
+  // ── What the transaction form starts with and offers ───────────────────────
+
+  /** The wallet a new transaction starts on: the last one used here, if still open. */
+  defaultWalletId(bookId = this.bookService.current()?.id ?? ''): string | null {
+    const open = this.walletService.openWallets()
+    const last = this.storage()?.getItem(`${TRANSACTION_PREF_PREFIX}${bookId}`)
+    return open.find((wallet) => wallet.id === last)?.id ?? open.at(0)?.id ?? null
+  }
+
+  /** The type a new transaction starts on: the last one added in the book here (8.2). */
+  lastType(bookId = this.bookService.current()?.id ?? ''): CategoryType {
+    try {
+      return this.storage()?.getItem(`${TRANSACTION_PREF_PREFIX}type:${bookId}`) === 'income'
+        ? 'income'
+        : 'expense'
+    } catch {
+      return 'expense'
     }
-    return this.read((db) => {
-      const value = db.selectValue(
-        `SELECT person FROM ${DEBT_TABLE} WHERE id = ? AND deleted_at IS NULL`,
-        [id]
-      )
-      return typeof value === 'string' ? value : null
-    }, null)
+  }
+
+  rememberType(type: CategoryType, bookId = this.bookService.current()?.id ?? ''): void {
+    try {
+      this.storage()?.setItem(`${TRANSACTION_PREF_PREFIX}type:${bookId}`, type)
+    } catch {
+      // A full or blocked storage only loses the convenience.
+    }
+  }
+
+  /**
+   * "ใช้บ่อย" (8.2): ids of the book's `type` categories with the most live transactions dated
+   * in the last `days` days, ties to the one recorded last. Through the (`book_id`,
+   * `occurred_on`) index; the picker keeps those it offers.
+   */
+  frequentCategoryIds(bookId: string, type: CategoryType, days = 90, limit = 12): string[] {
+    if (!bookId) {
+      return []
+    }
+    return this.read(
+      (db) =>
+        db
+          .selectObjects(
+            `SELECT t.category_id AS id, count(*) AS uses, max(t.created_at) AS last
+             FROM ${TRANSACTION_TABLE} t
+             JOIN ${CATEGORY_TABLE} c ON c.id = t.category_id
+             WHERE t.book_id = ? AND t.deleted_at IS NULL AND t.occurred_on >= ? AND c.type = ?
+             GROUP BY t.category_id
+             ORDER BY uses DESC, last DESC
+             LIMIT ?`,
+            [bookId, addDays(this.today(), -days), type, limit]
+          )
+          .map((row) => String(row['id'])),
+      []
+    )
   }
 
   /**
@@ -498,6 +526,16 @@ export class TransactionService {
     )
   }
 
+  /** Event rule 5: the open event whose dates hold `day` (the latest start), or null. */
+  defaultEventId(bookId: string, day: string): string | null {
+    return (
+      this.eventOptions(bookId).find(
+        (event) =>
+          !event.isClosed && event.startOn <= day && (event.endOn === null || day <= event.endOn)
+      )?.id ?? null
+    )
+  }
+
   /** `id` when it names a live event, else null (a deleted event's rows keep its id, rule 7). */
   liveEventId(id: string | null | undefined): string | null {
     if (!id) {
@@ -513,15 +551,21 @@ export class TransactionService {
     )
   }
 
-  /** Event rule 5: the open event whose dates hold `day` (the latest start), or null. */
-  defaultEventId(bookId: string, day: string): string | null {
-    return (
-      this.eventOptions(bookId).find(
-        (event) =>
-          !event.isClosed && event.startOn <= day && (event.endOn === null || day <= event.endOn)
-      )?.id ?? null
-    )
+  /** The person of a live debt (the form's "หนี้" row, debt rule 3), or null. */
+  debtPerson(id: string | null): string | null {
+    if (!id) {
+      return null
+    }
+    return this.read((db) => {
+      const value = db.selectValue(
+        `SELECT person FROM ${DEBT_TABLE} WHERE id = ? AND deleted_at IS NULL`,
+        [id]
+      )
+      return typeof value === 'string' ? value : null
+    }, null)
   }
+
+  // ── Writing ────────────────────────────────────────────────────────────────
 
   /** A live transaction of any book on this device. */
   byId(id: string): Transaction | null {
@@ -591,176 +635,7 @@ export class TransactionService {
     })
   }
 
-  /** What the owner's sharing read says about `bookId` (see `shares`). */
-  setShares(bookId: string, walletIds: readonly string[], members: number): void {
-    this.shares.update((map) => new Map(map).set(bookId, { walletIds, members }))
-  }
-
-  /**
-   * The current book's activity within `scope` (shared-activity rules 1–4): its rows touched in
-   * the last 90 days, deleted ones included, newest action first.
-   */
-  activity(scope: ActivityScope): ActivityItem[] {
-    const book = this.bookService.current()
-    if (!book) {
-      return []
-    }
-    this.today()
-    const me = this.authStore.user()?.id ?? null
-    const ownerId = this.bookService.shared()?.owner.id ?? me
-    const pending = this.pendingIds()
-    const params: SqlValue[] = [book.id, Date.now() - ACTIVITY_MS]
-    let wallets = ''
-    if (scope.walletIds) {
-      if (scope.walletIds.length === 0) {
-        return []
-      }
-      wallets = `AND t.wallet_id IN (${scope.walletIds.map(() => '?').join(', ')})`
-      params.push(...scope.walletIds)
-    }
-    return this.read(
-      (db) =>
-        db
-          .selectObjects(
-            `SELECT t.*, c.type AS c_type, c.name AS c_name, c.icon AS c_icon, c.color AS c_color,
-               w.name AS w_name, w.currency_code AS w_currency
-             FROM ${TRANSACTION_TABLE} t
-             LEFT JOIN ${CATEGORY_TABLE} c ON c.id = t.category_id
-             LEFT JOIN ${WALLET_TABLE} w ON w.id = t.wallet_id
-             WHERE t.book_id = ? AND t.updated_at >= ? ${wallets}
-             ORDER BY t.updated_at DESC, t.id DESC`,
-            params
-          )
-          .map((row) => {
-            const transaction = toTransaction(fromSql(TRANSACTION_TABLE, row))
-            return {
-              ...transaction,
-              ...latestAction(transaction, ownerId, me, pending.has(transaction.id)),
-              kind: 'transaction' as const,
-              type: row['c_type'] === 'income' ? ('income' as const) : ('expense' as const),
-              categoryName: String(row['c_name'] ?? ''),
-              categoryIcon: String(row['c_icon'] ?? ''),
-              categoryColor: String(row['c_color'] ?? ''),
-              walletName: String(row['w_name'] ?? ''),
-              currencyCode: String(row['w_currency'] ?? ''),
-              eventName: null,
-            }
-          }),
-      []
-    )
-  }
-
-  /** Adds names behind `addedBy` (sharing rule 15). */
-  addPeople(people: readonly { id: string; displayName: string }[]): void {
-    const next = new Map(this.people())
-    for (const person of people) {
-      next.set(person.id, person.displayName)
-    }
-    this.people.set(next)
-  }
-
-  /** Chooses the wallet the tab shows (null: "ทุกกระเป๋า"); remembered for the book. */
-  selectWallet(id: string | null): void {
-    this.viewWalletId.set(id)
-    this.writeView()
-  }
-
-  /** Chooses "ดูตาม"; the tabs start again on the current period. */
-  selectUnit(unit: PeriodUnit): void {
-    this.unit.set(unit)
-    this.tab.set(0)
-    this.writeView()
-  }
-
-  /** A custom range (from ≤ to). */
-  selectCustom(range: DayRange): void {
-    this.custom.set(range)
-    this.selectUnit('custom')
-  }
-
-  /** The wallet a new transaction starts on: the last one used here, if still open. */
-  defaultWalletId(bookId = this.bookService.current()?.id ?? ''): string | null {
-    const open = this.walletService.openWallets()
-    const last = this.storage()?.getItem(`${TRANSACTION_PREF_PREFIX}${bookId}`)
-    return open.find((wallet) => wallet.id === last)?.id ?? open.at(0)?.id ?? null
-  }
-
-  /**
-   * "ใช้บ่อย" (8.2): ids of the book's `type` categories with the most live transactions dated
-   * in the last `days` days, ties to the one recorded last. Through the (`book_id`,
-   * `occurred_on`) index; the picker keeps those it offers.
-   */
-  frequentCategoryIds(bookId: string, type: CategoryType, days = 90, limit = 12): string[] {
-    if (!bookId) {
-      return []
-    }
-    return this.read(
-      (db) =>
-        db
-          .selectObjects(
-            `SELECT t.category_id AS id, count(*) AS uses, max(t.created_at) AS last
-             FROM ${TRANSACTION_TABLE} t
-             JOIN ${CATEGORY_TABLE} c ON c.id = t.category_id
-             WHERE t.book_id = ? AND t.deleted_at IS NULL AND t.occurred_on >= ? AND c.type = ?
-             GROUP BY t.category_id
-             ORDER BY uses DESC, last DESC
-             LIMIT ?`,
-            [bookId, addDays(this.today(), -days), type, limit]
-          )
-          .map((row) => String(row['id'])),
-      []
-    )
-  }
-
-  /** The type a new transaction starts on: the last one added in the book here (8.2). */
-  lastType(bookId = this.bookService.current()?.id ?? ''): CategoryType {
-    try {
-      return this.storage()?.getItem(`${TRANSACTION_PREF_PREFIX}type:${bookId}`) === 'income'
-        ? 'income'
-        : 'expense'
-    } catch {
-      return 'expense'
-    }
-  }
-
-  rememberType(type: CategoryType, bookId = this.bookService.current()?.id ?? ''): void {
-    try {
-      this.storage()?.setItem(`${TRANSACTION_PREF_PREFIX}type:${bookId}`, type)
-    } catch {
-      // A full or blocked storage only loses the convenience.
-    }
-  }
-
-  open(state: TransactionSheetState): void {
-    this.sheet.set(state)
-  }
-
-  /** "Fix" from the sync sheet: the refused values of a rejected transaction op. */
-  openFix(opId: string): void {
-    const op = this.syncService.rejectedOp(opId)
-    if (!op || op.table !== TRANSACTION_TABLE) {
-      return
-    }
-    const row = op.row
-    const text = (key: string) => (typeof row[key] === 'string' ? row[key] : '')
-    const bookId = text('bookId')
-    this.open({
-      mode: 'fix',
-      opId,
-      id: op.rowId,
-      bookId: this.bookService.byId(bookId) ? bookId : (this.bookService.current()?.id ?? bookId),
-      values: {
-        walletId: text('walletId'),
-        categoryId: text('categoryId'),
-        amount: typeof row['amount'] === 'number' ? row['amount'] : 0,
-        occurredOn: text('occurredOn'),
-        note: text('note'),
-        excludeFromReport: row['excludeFromReport'] === true,
-        debtId: text('debtId') || null,
-        eventId: text('eventId') || null,
-      },
-    })
-  }
+  // ── Helpers ────────────────────────────────────────────────────────────────
 
   /** The WHERE clause of `list` / `summary`, or null when no wallet is chosen. */
   private where(
@@ -859,18 +734,6 @@ export class TransactionService {
     }
   }
 
-  /** Live transactions whose wallet or category is a tombstone here (rule 10). */
-  private orphans(db: LocalDatabase): Transaction[] {
-    return db
-      .selectObjects(
-        `SELECT t.* FROM ${TRANSACTION_TABLE} t
-         LEFT JOIN ${WALLET_TABLE} w ON w.id = t.wallet_id
-         LEFT JOIN ${CATEGORY_TABLE} c ON c.id = t.category_id
-         WHERE t.deleted_at IS NULL AND (w.deleted_at IS NOT NULL OR c.deleted_at IS NOT NULL)`
-      )
-      .map((row) => toTransaction(fromSql(TRANSACTION_TABLE, row)))
-  }
-
   private find(db: LocalDatabase, id: string): Transaction | null {
     const row = db.selectObjects(`SELECT * FROM ${TRANSACTION_TABLE} WHERE id = ?`, [id]).at(0)
     return row ? toTransaction(fromSql(TRANSACTION_TABLE, row)) : null
@@ -879,117 +742,5 @@ export class TransactionService {
   private read<T>(work: (db: LocalDatabase) => T, fallback: T): T {
     this.offlineService.changes()
     return this.offlineService.isOpen() ? work(this.offlineService.db()) : fallback
-  }
-}
-
-const toTransaction = (row: Record<string, unknown>): Transaction => ({
-  id: String(row['id']),
-  bookId: String(row['bookId']),
-  walletId: String(row['walletId']),
-  categoryId: String(row['categoryId']),
-  amount: Number(row['amount']),
-  occurredOn: String(row['occurredOn']),
-  note: typeof row['note'] === 'string' ? row['note'] : '',
-  excludeFromReport: row['excludeFromReport'] === true,
-  recurringId: typeof row['recurringId'] === 'string' ? row['recurringId'] : null,
-  debtId: typeof row['debtId'] === 'string' ? row['debtId'] : null,
-  eventId: typeof row['eventId'] === 'string' ? row['eventId'] : null,
-  addedBy: typeof row['addedBy'] === 'string' ? row['addedBy'] : null,
-  updatedBy: typeof row['updatedBy'] === 'string' ? row['updatedBy'] : null,
-  createdAt: Number(row['createdAt']),
-  updatedAt: Number(row['updatedAt']),
-  deletedAt: typeof row['deletedAt'] === 'number' ? row['deletedAt'] : null,
-  changeSeq: typeof row['changeSeq'] === 'number' ? row['changeSeq'] : null,
-})
-
-const toEventOption = (row: Record<string, unknown>): EventOption => ({
-  id: String(row['id']),
-  name: typeof row['name'] === 'string' ? row['name'] : '',
-  icon: typeof row['icon'] === 'string' ? row['icon'] : '',
-  color: typeof row['color'] === 'string' ? row['color'] : '',
-  startOn: typeof row['startOn'] === 'string' ? row['startOn'] : '',
-  endOn: typeof row['endOn'] === 'string' ? row['endOn'] : null,
-  isClosed: row['isClosed'] === true,
-})
-
-/** The sign of an amount from its category's type (rule 11): income +, expense −. */
-export const signedAmount = (amount: number, type: CategoryType): number =>
-  type === 'income' ? amount : -amount
-
-export const toTransfer = (row: Record<string, unknown>) => ({
-  id: String(row['id']),
-  bookId: String(row['bookId']),
-  fromWalletId: String(row['fromWalletId']),
-  toWalletId: String(row['toWalletId']),
-  amount: Number(row['amount']),
-  occurredOn: String(row['occurredOn']),
-  note: typeof row['note'] === 'string' ? row['note'] : '',
-  recurringId: typeof row['recurringId'] === 'string' ? row['recurringId'] : null,
-  createdAt: Number(row['createdAt']),
-  updatedAt: Number(row['updatedAt']),
-  deletedAt: typeof row['deletedAt'] === 'number' ? row['deletedAt'] : null,
-  changeSeq: typeof row['changeSeq'] === 'number' ? row['changeSeq'] : null,
-})
-
-/** Rule 13's order (negative: `a` shows first); a transfer's outgoing side before its incoming. */
-const compareEntries = (a: EntryItem, b: EntryItem): number =>
-  b.occurredOn.localeCompare(a.occurredOn) ||
-  b.createdAt - a.createdAt ||
-  b.id.localeCompare(a.id) ||
-  (a.kind === 'transfer' && a.side === 'out' ? -1 : 0)
-
-/** Two lists in rule 13's order merged into one (one pass). */
-const mergeEntries = (a: readonly EntryItem[], b: readonly EntryItem[]): EntryItem[] => {
-  if (b.length === 0) {
-    return [...a]
-  }
-  const merged: EntryItem[] = []
-  let i = 0
-  let j = 0
-  while (i < a.length || j < b.length) {
-    const x = a.at(i)
-    const y = b.at(j)
-    if (x && (!y || compareEntries(x, y) <= 0)) {
-      merged.push(x)
-      i++
-    } else if (y) {
-      merged.push(y)
-      j++
-    }
-  }
-  return merged
-}
-
-/** Debt rule 10: live debts and entries left pointing at a tombstone here. */
-const DEBT_ORPHANS = {
-  // A repaid debt whose category is a tombstone (a merged one followed it already), or whose
-  // book went (the book sweep covers that).
-  debts: `SELECT d.* FROM ${DEBT_TABLE} d JOIN categories c ON c.id = d.category_id
-          WHERE d.deleted_at IS NULL AND c.deleted_at IS NOT NULL`,
-  // An entry whose debt or wallet is a tombstone.
-  entries: `SELECT e.* FROM ${DEBT_ENTRY_TABLE} e
-            LEFT JOIN ${DEBT_TABLE} d ON d.id = e.debt_id
-            LEFT JOIN ${WALLET_TABLE} w ON w.id = e.wallet_id
-            WHERE e.deleted_at IS NULL AND (d.deleted_at IS NOT NULL OR w.deleted_at IS NOT NULL)`,
-} as const
-
-const hasDebtOrphans = (db: LocalDatabase): boolean =>
-  db.selectObjects(`${DEBT_ORPHANS.debts} LIMIT 1`).length > 0 ||
-  db.selectObjects(`${DEBT_ORPHANS.entries} LIMIT 1`).length > 0
-
-/** Tombstones what `hasDebtOrphans` finds: the debts first, then every entry they leave. */
-const tombstoneDebtOrphans = (db: LocalDatabase, now: number): void => {
-  for (const [table, query] of [
-    [DEBT_TABLE, DEBT_ORPHANS.debts],
-    [DEBT_ENTRY_TABLE, DEBT_ORPHANS.entries],
-  ] as const) {
-    for (const row of db.selectObjects(query)) {
-      queueWrite(db, table, 'delete', {
-        ...fromSql(table, row),
-        id: String(row['id']),
-        updatedAt: now,
-        deletedAt: now,
-      })
-    }
   }
 }

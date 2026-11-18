@@ -1,0 +1,50 @@
+<button
+  type="button"
+  class="flex min-h-15 w-full items-center gap-3 px-4 py-2.5 text-left opacity-65 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+  (click)="opened.emit()"
+>
+  <span
+    class="relative shrink-0 rounded-full outline-[1.5px] outline-offset-2 outline-muted-foreground outline-dashed"
+  >
+    @if (row().occurrence.item.rule.kind !== 'transaction') {
+      <span class="flex size-10 items-center justify-center rounded-full bg-muted text-foreground">
+        <ng-icon
+          [name]="
+            row().occurrence.item.rule.kind === 'debt' ? 'lucideHandCoins' : 'lucideArrowLeftRight'
+          "
+          size="20"
+          aria-hidden="true"
+        />
+      </span>
+    } @else {
+      <app-icon-badge
+        [icon]="row().occurrence.item.icon"
+        [color]="row().occurrence.item.color"
+        [fallback]="categoryIcon"
+      />
+    }
+    @if (row().wallet; as wallet) {
+      <app-icon-badge
+        class="absolute -right-1 -bottom-1 rounded-full ring-2 ring-card"
+        [icon]="wallet.icon"
+        [color]="wallet.color"
+        [fallback]="walletIcon"
+        [size]="20"
+      />
+    }
+  </span>
+  <span class="flex min-w-0 flex-1 flex-col">
+    <span class="truncate text-base font-semibold">{{ row().title }}</span>
+    <span class="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+      <ng-icon name="lucideRepeat" size="13" class="shrink-0" aria-hidden="true" />
+      <span class="truncate">{{ row().sub }}</span>
+    </span>
+  </span>
+  <span
+    class="shrink-0 text-right text-base tabular-nums"
+    [class.text-income]="row().positive"
+    [class.text-expense]="!row().positive"
+  >
+    {{ row().amount }}
+  </span>
+</button>

@@ -8,17 +8,7 @@ import { HlmSwitch } from '@spartan-ng/helm/switch'
 @Component({
   selector: 'app-switch-field',
   imports: [ReactiveFormsModule, HlmFieldImports, HlmSwitch],
-  template: `
-    <div hlmField orientation="horizontal">
-      <div hlmFieldContent>
-        <label hlmFieldLabel>{{ label() }}</label>
-        @if (hint()) {
-          <p hlmFieldDescription>{{ hint() }}</p>
-        }
-      </div>
-      <hlm-switch [formControl]="control()" />
-    </div>
-  `,
+  templateUrl: './switch-field.html',
 })
 export class SwitchField {
   control = input.required<FormControl<boolean>>()

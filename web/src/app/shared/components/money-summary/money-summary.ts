@@ -24,39 +24,7 @@ export interface MoneySummaryLine {
   selector: 'app-money-summary-card',
   imports: [TranslocoPipe],
   host: { class: 'block' },
-  template: `
-    <section
-      class="grid grid-cols-2 gap-x-3 gap-y-2 rounded-xl border border-border bg-card px-4 py-3"
-      [attr.aria-label]="'transactions.summary' | transloco"
-    >
-      <div class="flex flex-col">
-        <span class="text-xs text-muted-foreground">{{ 'categories.income' | transloco }}</span>
-        <span class="text-base font-semibold tabular-nums" [class.text-income]="line().hasIncome">
-          {{ line().income }}
-        </span>
-      </div>
-      <div class="flex flex-col items-end">
-        <span class="text-xs text-muted-foreground">{{ 'categories.expense' | transloco }}</span>
-        <span class="text-base font-semibold text-expense tabular-nums">{{ line().expense }}</span>
-      </div>
-      <div class="col-span-2 flex justify-between border-t border-border pt-2 text-sm">
-        <span class="text-muted-foreground">{{ 'transactions.net' | transloco }}</span>
-        <span class="font-semibold tabular-nums">{{ line().net }}</span>
-      </div>
-      @if (line().transfer; as transfer) {
-        <div class="col-span-2 -mt-1 flex justify-between text-sm">
-          <span class="text-muted-foreground">{{ 'transfers.summaryLine' | transloco }}</span>
-          <span class="font-semibold tabular-nums">{{ transfer }}</span>
-        </div>
-      }
-      @if (line().debt; as debt) {
-        <div class="col-span-2 -mt-1 flex justify-between text-sm">
-          <span class="text-muted-foreground">{{ 'debts.summaryLine' | transloco }}</span>
-          <span class="font-semibold tabular-nums">{{ debt }}</span>
-        </div>
-      }
-    </section>
-  `,
+  templateUrl: './money-summary.html',
 })
 export class MoneySummaryCard {
   line = input.required<MoneySummaryLine>()

@@ -20,3 +20,17 @@ describe('sharePercent', () => {
     expect(sharePercent(5, 0, 'en-GB')).toBe('0%')
   })
 })
+
+const locale = 'th-TH-u-ca-gregory'
+
+describe('doc examples (report-view.ts)', () => {
+  it('match the e.g. lines', () => {
+    expect(periodName('month', { from: '2026-10-01', to: '2026-10-31' }, locale)).toBe('ต.ค. 2026')
+    expect(periodName('quarter', { from: '2026-07-01', to: '2026-09-30' }, locale)).toBe('Q3 2026')
+    expect(periodName('custom', { from: '2026-10-01', to: '2026-10-15' }, locale)).toBe(
+      '01/10/2026 – 15/10/2026'
+    )
+    expect(sharePercent(1, 3, locale)).toBe('33.3%')
+    expect(sharePercent(5, 0, locale)).toBe('0%')
+  })
+})

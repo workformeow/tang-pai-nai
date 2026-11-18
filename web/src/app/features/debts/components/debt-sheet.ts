@@ -23,16 +23,18 @@ import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
 import { BookService } from '@/core/book'
 import { CATEGORY_DEFAULT_ICON, CategoryService } from '@/core/category'
 import { DEBT_LIMITS, DEBTS_ROUTE, DebtService, toDebt } from '@/core/debt'
-import type { DebtCountAs, DebtDirection, PlanValues } from '@/core/debt'
+import type { DebtCountAs, DebtDirection } from '@/core/debt'
 import { LanguageService } from '@/core/i18n'
 import { describeRepeat, shortDate } from '@/core/recurring'
 import { NavHistory } from '@/core/routing'
 import { QuickAmountsService, TRANSACTION_LIMITS, TransactionService } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
+import { evenInstalment, toPlanValues } from '@/features/debts/debt-plan'
 import { walletPickItems } from '@/features/debts/debt-view'
 import { DateRow } from '@/shared/components/date-row'
 import {
+  AmountKeypad,
   CalcAmountField,
   CalcKeypad,
   FORM_IMPORTS,
@@ -41,21 +43,10 @@ import {
 } from '@/shared/components/form'
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
-import { SheetFrame } from '@/shared/components/sheet'
+import { keepWhileClosing, SheetFrame } from '@/shared/components/sheet'
 import { Slide } from '@/shared/components/slide'
 import { WalletPick } from '@/shared/components/wallet-pick'
-import {
-  addDays,
-  addMonths,
-  addQuickAmount,
-  CALC_KEYBOARD,
-  evaluate,
-  formatMoney,
-  parseMajor,
-  pressKey,
-  toMajorText,
-} from '@/shared/utils'
-import type { CalcKey } from '@/shared/utils'
+import { addDays, addMonths, formatMoney, parseMajor } from '@/shared/utils'
 import { DebtCategoryPick } from './category-pick'
 
 /** Whether the form a control sits in describes a `repaid` debt (the validators run before the
@@ -108,584 +99,7 @@ type View = 'form' | 'wallet' | 'category' | 'note' | 'plan' | 'planWallet' | 'c
       lucideWallet,
     }),
   ],
-  template: `
-    @let f = form.controls;
-    <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="finish()">
-      <hlm-drawer-content
-        *hlmDrawerPortal
-        class="mx-auto h-[92dvh] w-full max-w-[480px] overflow-x-clip data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
-        (keydown)="onKey($event)"
-      >
-        <div class="flex min-h-0 flex-1 flex-col" [appSlide]="depth()">
-          @switch (view()) {
-            @case ('form') {
-              <form [formGroup]="form" class="flex min-h-0 flex-1 flex-col" (ngSubmit)="save()">
-                <app-sheet-frame
-                  [title]="heading() | transloco"
-                  [leadingLabel]="'sheet.close' | transloco"
-                  (leading)="finish()"
-                >
-                  @if (editing()) {
-                    <div sheetActions class="flex">
-                      <button
-                        hlmBtn
-                        variant="ghost"
-                        size="icon"
-                        type="button"
-                        class="tpn-hit size-9 text-destructive"
-                        [disabled]="!debtService.canWrite()"
-                        [attr.aria-label]="'debts.delete' | transloco"
-                        (click)="view.set('confirmDelete')"
-                      >
-                        <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
-                      </button>
-                    </div>
-                  }
-                  <div
-                    class="flex flex-col gap-4"
-                    (pointerdown)="leaveAmount($event)"
-                    (focusin)="leaveAmount($event)"
-                  >
-                    @if (!debtService.canWrite()) {
-                      <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                        {{
-                          (debtService.serverDown() ? 'sync.serverDownWrite' : 'debts.needsOnline')
-                            | transloco
-                        }}
-                      </p>
-                    }
-                    @if (!editing()) {
-                      <app-segmented-field
-                        [control]="f.direction"
-                        [label]="'debts.direction' | transloco"
-                        [options]="directionOptions()"
-                      />
-                    }
-                    <div
-                      class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
-                    >
-                      <div>
-                        <label class="flex min-h-15 items-center gap-3 px-4 py-2">
-                          <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
-                            <ng-icon name="lucideUser" size="22" aria-hidden="true" />
-                          </span>
-                          <span class="flex min-w-0 flex-1 flex-col">
-                            <span class="text-xs text-muted-foreground">{{
-                              'debts.person.' + direction() | transloco
-                            }}</span>
-                            <input
-                              class="w-full bg-transparent text-base outline-none placeholder:text-muted-foreground"
-                              autocomplete="off"
-                              list="debt-people"
-                              [maxLength]="personMax"
-                              [placeholder]="'debts.personPlaceholder' | transloco"
-                              [formControl]="f.person"
-                            />
-                          </span>
-                        </label>
-                        <datalist id="debt-people">
-                          @for (name of debtService.people(); track name) {
-                            <option [value]="name"></option>
-                          }
-                        </datalist>
-                        @if (f.person.touched && f.person.invalid) {
-                          <p role="alert" class="px-4 pb-2 pl-17 text-sm text-destructive">
-                            {{ 'debts.personRequired' | transloco }}
-                          </p>
-                        }
-                      </div>
-                      @if (!editing()) {
-                        <div class="px-4">
-                          <app-calc-amount-field
-                            [control]="f.amount"
-                            [label]="
-                              (repaid() ? 'debts.amountTotal' : 'transactions.amount') | transloco
-                            "
-                            [currencyCode]="currencyCode()"
-                            [minorUnit]="minorUnit()"
-                            [locale]="languageService.locale()"
-                            [active]="keypad()"
-                            (activate)="keypad.set(true)"
-                          />
-                        </div>
-                        @if (!repaid()) {
-                          <button
-                            type="button"
-                            class="flex min-h-15 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                            (click)="pick('wallet')"
-                          >
-                            <span class="flex w-10 shrink-0 justify-center">
-                              @if (wallet(); as item) {
-                                <app-icon-badge
-                                  [icon]="item.icon"
-                                  [color]="item.color"
-                                  [fallback]="walletIcon"
-                                  [size]="32"
-                                />
-                              } @else {
-                                <ng-icon
-                                  name="lucideWallet"
-                                  size="22"
-                                  class="text-muted-foreground"
-                                  aria-hidden="true"
-                                />
-                              }
-                            </span>
-                            <span class="flex min-w-0 flex-1 flex-col">
-                              <span class="text-xs text-muted-foreground">{{
-                                'debts.walletOf.' + direction() + '.principal' | transloco
-                              }}</span>
-                              <span class="truncate text-base">{{ wallet()?.name ?? '' }}</span>
-                            </span>
-                            @if (wallet(); as item) {
-                              <span class="shrink-0 text-sm text-muted-foreground tabular-nums">{{
-                                balanceText(item)
-                              }}</span>
-                            }
-                            <ng-icon
-                              name="lucideChevronRight"
-                              size="20"
-                              class="text-muted-foreground"
-                              aria-hidden="true"
-                            />
-                          </button>
-                          @if (f.walletId.touched && f.walletId.invalid) {
-                            <p role="alert" class="px-4 pb-2 pl-17 text-sm text-destructive">
-                              {{ 'debts.walletRequired' | transloco }}
-                            </p>
-                          }
-                        }
-                      }
-                      @if (repaid()) {
-                        <button
-                          type="button"
-                          class="flex min-h-15 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                          (click)="pick('category')"
-                        >
-                          <span class="flex w-10 shrink-0 justify-center">
-                            <app-icon-badge
-                              [icon]="category()?.icon ?? ''"
-                              [color]="category()?.color ?? ''"
-                              [fallback]="categoryIcon"
-                              [size]="32"
-                            />
-                          </span>
-                          <span class="flex min-w-0 flex-1 flex-col">
-                            <span class="text-xs text-muted-foreground">{{
-                              'debts.categoryOf' | transloco
-                            }}</span>
-                            <span class="truncate text-base">{{ category()?.name ?? '' }}</span>
-                          </span>
-                          <ng-icon
-                            name="lucideChevronRight"
-                            size="20"
-                            class="text-muted-foreground"
-                            aria-hidden="true"
-                          />
-                        </button>
-                        @if (f.categoryId.touched && f.categoryId.invalid) {
-                          <p role="alert" class="px-4 pb-2 pl-17 text-sm text-destructive">
-                            {{ 'debts.categoryRequired' | transloco }}
-                          </p>
-                        }
-                      }
-                      <button
-                        type="button"
-                        class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                        [attr.aria-label]="('transactions.note' | transloco) + ' ' + note()"
-                        (click)="pick('note')"
-                      >
-                        <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
-                          <ng-icon name="lucideTextAlignStart" size="22" aria-hidden="true" />
-                        </span>
-                        <span
-                          class="min-w-0 flex-1 truncate text-base"
-                          [class.text-muted-foreground]="!note()"
-                        >
-                          {{ note() || ('transactions.note' | transloco) }}
-                        </span>
-                        <ng-icon
-                          name="lucideChevronRight"
-                          size="20"
-                          class="text-muted-foreground"
-                          aria-hidden="true"
-                        />
-                      </button>
-                      @if (!editing()) {
-                        <app-date-row
-                          [today]="transactionService.today()"
-                          [locale]="languageService.locale()"
-                          [control]="f.occurredOn"
-                          [value]="values().occurredOn ?? ''"
-                          [max]="lastDay()"
-                        />
-                      }
-                    </div>
-                    @if (!editing() && direction() === 'borrowed') {
-                      <section class="flex flex-col gap-2">
-                        <h3 class="px-1 text-sm font-medium text-muted-foreground">
-                          {{ 'debts.countAs' | transloco }}
-                        </h3>
-                        <div
-                          class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
-                          role="radiogroup"
-                          [attr.aria-label]="'debts.countAs' | transloco"
-                        >
-                          @for (option of countOptions; track option) {
-                            <button
-                              type="button"
-                              role="radio"
-                              class="flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                              [attr.aria-checked]="f.countAs.value === option"
-                              (click)="setCountAs(option)"
-                            >
-                              <span class="flex min-w-0 flex-1 flex-col">
-                                <span class="text-base">{{
-                                  'debts.count.' + option | transloco
-                                }}</span>
-                                <span class="text-sm text-muted-foreground">{{
-                                  'debts.count.' + option + 'Hint' | transloco
-                                }}</span>
-                              </span>
-                              <span
-                                class="size-5 shrink-0 rounded-full border-2 border-border"
-                                [class.border-6]="f.countAs.value === option"
-                                [class.border-brand]="f.countAs.value === option"
-                                aria-hidden="true"
-                              ></span>
-                            </button>
-                          }
-                        </div>
-                      </section>
-                    }
-                    @if (!editing()) {
-                      <!-- Instalments as a recurring rule (debt rule 13). -->
-                      <div class="overflow-hidden rounded-2xl border border-border bg-card">
-                        <button
-                          type="button"
-                          class="flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                          (click)="pick('plan')"
-                        >
-                          <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
-                            <ng-icon name="lucideRepeat" size="22" aria-hidden="true" />
-                          </span>
-                          <span class="flex min-w-0 flex-1 flex-col">
-                            @if (planText(); as text) {
-                              <span class="truncate text-base font-semibold text-brand">{{
-                                text.title
-                              }}</span>
-                              <span class="truncate text-sm text-muted-foreground">{{
-                                text.sub
-                              }}</span>
-                            } @else {
-                              <span class="text-base">{{ 'debts.plan' | transloco }}</span>
-                              <span class="text-sm text-muted-foreground">{{
-                                'debts.planNone' | transloco
-                              }}</span>
-                            }
-                          </span>
-                          <ng-icon
-                            name="lucideChevronRight"
-                            size="20"
-                            class="text-muted-foreground"
-                            aria-hidden="true"
-                          />
-                        </button>
-                      </div>
-                      @if (planHint(); as hint) {
-                        <p class="-mt-2 px-1 text-sm text-muted-foreground">{{ hint }}</p>
-                      }
-                    }
-                    <button
-                      type="button"
-                      class="flex min-h-11 items-center gap-1 self-start px-1 text-sm text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                      [attr.aria-expanded]="more()"
-                      (click)="more.set(!more())"
-                    >
-                      {{ 'transactions.more' | transloco }}
-                      <ng-icon
-                        name="lucideChevronDown"
-                        size="16"
-                        [class.rotate-180]="more()"
-                        aria-hidden="true"
-                      />
-                    </button>
-                    @if (more()) {
-                      <div
-                        class="-mt-2 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
-                      >
-                        @if (values().dueOn) {
-                          <app-date-row
-                            [today]="transactionService.today()"
-                            [locale]="languageService.locale()"
-                            [control]="f.dueOn"
-                            [value]="values().dueOn ?? ''"
-                            [label]="'debts.dueOn' | transloco"
-                            [max]="'2099-12-31'"
-                          />
-                          <button
-                            type="button"
-                            class="flex min-h-12 w-full items-center px-4 text-left text-sm text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                            (click)="setDue(null)"
-                          >
-                            {{ 'debts.dueClear' | transloco }}
-                          </button>
-                        } @else {
-                          <button
-                            type="button"
-                            class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                            (click)="setDue(defaultDue())"
-                          >
-                            <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
-                              <ng-icon name="lucideClock" size="22" aria-hidden="true" />
-                            </span>
-                            <span class="flex-1 text-base">{{ 'debts.dueOn' | transloco }}</span>
-                            <span class="text-sm text-muted-foreground">{{
-                              'debts.dueNone' | transloco
-                            }}</span>
-                          </button>
-                        }
-                      </div>
-                    }
-                  </div>
-                  <div sheetFooter class="relative flex flex-col pt-3">
-                    <!-- Under the keypad while it shows: ✓ first, then save (one action at a time). -->
-                    <div class="flex" [attr.inert]="keypad() ? '' : null">
-                      <button
-                        hlmBtn
-                        type="submit"
-                        class="h-11 min-w-0 flex-1 text-base"
-                        [disabled]="!debtService.canWrite()"
-                      >
-                        {{ 'transactions.save' | transloco }}
-                      </button>
-                    </div>
-                    @if (keypad()) {
-                      <app-calc-keypad
-                        class="absolute -inset-x-4 -bottom-4 z-10 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
-                        [quickAmounts]="quickAmounts()"
-                        [minorUnit]="minorUnit()"
-                        [locale]="languageService.locale()"
-                        (pressed)="press($event)"
-                        (quickPressed)="addQuick($event)"
-                      />
-                    }
-                  </div>
-                </app-sheet-frame>
-              </form>
-            }
-            @case ('wallet') {
-              <app-sheet-frame
-                [title]="'debts.walletOf.' + direction() + '.principal' | transloco"
-                leadingIcon="back"
-                [leadingLabel]="'sheet.back' | transloco"
-                (leading)="view.set('form')"
-              >
-                <app-wallet-pick
-                  [wallets]="walletItems()"
-                  [empty]="'debts.noWallet' | transloco"
-                  [chosen]="f.walletId.value"
-                  (picked)="chooseWallet($event)"
-                />
-              </app-sheet-frame>
-            }
-            @case ('planWallet') {
-              <app-sheet-frame
-                [title]="'debts.planWallet' | transloco"
-                leadingIcon="back"
-                [leadingLabel]="'sheet.back' | transloco"
-                (leading)="view.set('plan')"
-              >
-                <app-wallet-pick
-                  [wallets]="walletItems()"
-                  [empty]="'debts.noWallet' | transloco"
-                  [chosen]="planWalletId()"
-                  (picked)="planWalletId.set($event); view.set('plan')"
-                />
-              </app-sheet-frame>
-            }
-            @case ('category') {
-              <app-sheet-frame
-                [title]="'debts.categoryOf' | transloco"
-                leadingIcon="back"
-                [leadingLabel]="'sheet.back' | transloco"
-                (leading)="view.set('form')"
-              >
-                <app-debt-category-pick
-                  [bookId]="bookId()"
-                  type="expense"
-                  [chosen]="f.categoryId.value"
-                  (picked)="chooseCategory($event)"
-                />
-              </app-sheet-frame>
-            }
-            @case ('note') {
-              <app-sheet-frame
-                [title]="'transactions.note' | transloco"
-                leadingIcon="back"
-                [leadingLabel]="'sheet.back' | transloco"
-                (leading)="view.set('form')"
-              >
-                <app-textarea-field
-                  [control]="f.note"
-                  [label]="'transactions.note' | transloco"
-                  [hideLabel]="true"
-                  [rows]="10"
-                  [maxLength]="noteMax"
-                  [hint]="note().length + ' / ' + noteMax"
-                />
-              </app-sheet-frame>
-            }
-            @case ('plan') {
-              <app-sheet-frame
-                [title]="'debts.plan' | transloco"
-                leadingIcon="back"
-                [leadingLabel]="'sheet.back' | transloco"
-                (leading)="view.set('form')"
-              >
-                <div class="flex flex-col gap-4">
-                  <div
-                    class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
-                  >
-                    <div class="flex min-h-14 items-center gap-3 px-4 py-2">
-                      <span class="min-w-0 flex-1 text-base">{{
-                        'debts.planCount' | transloco
-                      }}</span>
-                      <button
-                        hlmBtn
-                        variant="outline"
-                        size="icon"
-                        type="button"
-                        class="size-10"
-                        [disabled]="planCount() <= 0"
-                        [attr.aria-label]="'debts.planLess' | transloco"
-                        (click)="stepCount(-1)"
-                      >
-                        <ng-icon name="lucideMinus" size="18" aria-hidden="true" />
-                      </button>
-                      <span class="min-w-10 text-center text-base font-semibold tabular-nums">{{
-                        planCount() || '–'
-                      }}</span>
-                      <button
-                        hlmBtn
-                        variant="outline"
-                        size="icon"
-                        type="button"
-                        class="size-10"
-                        [disabled]="planCount() >= 999"
-                        [attr.aria-label]="'debts.planMore' | transloco"
-                        (click)="stepCount(1)"
-                      >
-                        <ng-icon name="lucidePlus" size="18" aria-hidden="true" />
-                      </button>
-                    </div>
-                    <label class="flex min-h-14 items-center gap-3 px-4 py-2">
-                      <span class="min-w-0 flex-1 text-base">{{
-                        'debts.planAmount' | transloco
-                      }}</span>
-                      <input
-                        class="w-32 rounded-md border border-input bg-transparent px-2 py-1.5 text-right text-base tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        inputmode="decimal"
-                        [formControl]="planAmount"
-                        [attr.aria-label]="'debts.planAmount' | transloco"
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                      (click)="view.set('planWallet')"
-                    >
-                      <span class="min-w-0 flex-1 text-base">{{
-                        'debts.planWallet' | transloco
-                      }}</span>
-                      <span class="truncate text-sm text-muted-foreground">{{
-                        planWallet()?.name ?? ''
-                      }}</span>
-                      <ng-icon
-                        name="lucideChevronRight"
-                        size="20"
-                        class="text-muted-foreground"
-                        aria-hidden="true"
-                      />
-                    </button>
-                    <app-date-row
-                      [today]="transactionService.today()"
-                      [locale]="languageService.locale()"
-                      [control]="planStart"
-                      [value]="planStartValue()"
-                      [label]="'debts.planFirst' | transloco"
-                      [max]="'2099-12-31'"
-                    />
-                  </div>
-                  <section class="flex flex-col gap-2">
-                    <h3 class="px-1 text-sm font-medium text-muted-foreground">
-                      {{ 'recurring.when' | transloco }}
-                    </h3>
-                    <div
-                      class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
-                      role="radiogroup"
-                      [attr.aria-label]="'recurring.when' | transloco"
-                    >
-                      @for (option of [false, true]; track option) {
-                        <button
-                          type="button"
-                          role="radio"
-                          class="flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                          [attr.aria-checked]="planConfirm() === option"
-                          (click)="planConfirm.set(option)"
-                        >
-                          <span class="min-w-0 flex-1 text-base">{{
-                            (option ? 'recurring.ask' : 'recurring.auto') | transloco
-                          }}</span>
-                          <span
-                            class="size-5 shrink-0 rounded-full border-2 border-border"
-                            [class.border-6]="planConfirm() === option"
-                            [class.border-brand]="planConfirm() === option"
-                            aria-hidden="true"
-                          ></span>
-                        </button>
-                      }
-                    </div>
-                  </section>
-                  <p class="px-1 text-sm text-muted-foreground">
-                    {{ (planCount() > 0 ? 'debts.planHint' : 'debts.planOff') | transloco }}
-                  </p>
-                </div>
-              </app-sheet-frame>
-            }
-            @case ('confirmDelete') {
-              <app-sheet-frame
-                [title]="'debts.deleteHeading' | transloco"
-                leadingIcon="back"
-                [leadingLabel]="'sheet.back' | transloco"
-                (leading)="view.set('form')"
-              >
-                <div class="flex flex-col gap-3 text-sm text-muted-foreground">
-                  <p class="text-base font-semibold text-foreground">
-                    {{ 'debts.deleteQuestion' | transloco: { name: f.person.value } }}
-                  </p>
-                  <p>{{ deleteText() }}</p>
-                  <p>{{ 'debts.deleteCloseInstead' | transloco }}</p>
-                </div>
-                <div sheetFooter class="pt-3">
-                  <button
-                    hlmBtn
-                    variant="destructive"
-                    type="button"
-                    class="h-11 w-full text-base"
-                    [disabled]="!debtService.canWrite()"
-                    (click)="remove()"
-                  >
-                    {{ 'debts.delete' | transloco }}
-                  </button>
-                </div>
-              </app-sheet-frame>
-            }
-          }
-        </div>
-      </hlm-drawer-content>
-    </hlm-drawer>
-  `,
+  templateUrl: './debt-sheet.html',
 })
 export class DebtSheet {
   private nnfb = inject(NonNullableFormBuilder)
@@ -705,20 +119,24 @@ export class DebtSheet {
   protected noteMax = DEBT_LIMITS.NOTE_MAX
   protected personMax = DEBT_LIMITS.PERSON_MAX
   protected readonly countOptions: readonly DebtCountAs[] = ['spent', 'repaid']
-  protected state = this.debtService.sheet
+
+  // ── The sheet ──────────────────────────────────────────────────────────────
+
+  /** What the sheet is open for; null = closed. Set by `DebtService.open()`. */
+  protected state = keepWhileClosing(this.debtService.sheet)
+  protected open = signal(false)
   protected view = signal<View>('form')
   /** How deep the view is: a deeper one slides in from the right, going back from the left. */
   protected depth = computed(() => {
     const view = this.view()
     return view === 'form' ? 0 : view === 'planWallet' ? 2 : 1
   })
-  protected keypad = signal(false)
+  /** The folded "เพิ่มเติม" options (the due date). */
   protected more = signal(false)
-  protected open = signal(false)
-  /** Quick amounts are Thai banknotes: THB wallets only (currency.md → Web screens). */
-  protected quickAmounts = computed(() => this.quickAmountsService.forCurrency(this.currencyCode()))
 
-  /** Rule 6 (transaction rule 3): 1 … 10¹⁵ minor units. */
+  // ── The form ───────────────────────────────────────────────────────────────
+
+  /** Rule 6 (transaction rule 3): 1 … 10¹⁵ minor units; an edit has no amount. */
   private amountValid: ValidatorFn = (control) => {
     if (typeof control.value !== 'string' || this.state()?.mode === 'edit') {
       return null
@@ -727,7 +145,7 @@ export class DebtSheet {
     const walletId: unknown = control.parent?.get('walletId')?.value
     const wallet =
       typeof walletId === 'string' && walletId ? this.walletService.byId(walletId) : null
-    const result = evaluate(
+    const result = parseMajor(
       control.value,
       this.walletService.minorUnit(wallet?.currencyCode ?? this.walletService.defaultCurrency())
     )
@@ -744,6 +162,7 @@ export class DebtSheet {
   /** The wallet is needed unless a `repaid` debt (or an edit). */
   private walletValid: ValidatorFn = (control) =>
     this.state()?.mode === 'edit' || repaidIn(control) || control.value ? null : { required: true }
+  /** A `repaid` debt needs the instalments' category. */
   private categoryValid: ValidatorFn = (control) =>
     repaidIn(control) && !control.value ? { required: true } : null
 
@@ -758,19 +177,13 @@ export class DebtSheet {
     countAs: this.nnfb.control<DebtCountAs>('spent'),
     dueOn: [''],
   })
-  // Instalments (debt rule 13): monthly from the first one, n of them.
-  protected planAmount = this.nnfb.control('')
-  protected planStart = this.nnfb.control('')
-  protected planCount = signal(0)
-  protected planConfirm = signal(false)
-  protected planWalletId = signal<string | null>(null)
-  private planStartValues = toSignal(this.planStart.valueChanges, { initialValue: '' })
-  protected planStartValue = computed(
-    () => this.planStartValues() || this.transactionService.today()
-  )
+
+  /** The amount row's keypad (8.2). */
+  protected keypad = new AmountKeypad(this.form.controls.amount, () => this.minorUnit())
 
   protected values = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() })
   protected direction = computed(() => this.values().direction ?? 'borrowed')
+  /** Borrowed and counted as "ชำระคืน": no wallet, the instalments' category instead. */
   protected repaid = computed(() => {
     const state = this.state()
     if (state?.mode === 'edit') {
@@ -779,6 +192,17 @@ export class DebtSheet {
     return this.direction() === 'borrowed' && this.values().countAs === 'repaid'
   })
   protected note = computed(() => (this.values().note ?? '').trim())
+  protected lastDay = computed(() => addDays(this.transactionService.today(), 365))
+  protected directionOptions = computed(() => {
+    this.languageService.language()
+    return (['borrowed', 'lent'] as const).map((value) => ({
+      value,
+      label: this.transloco.translate(`debts.${value}`),
+    }))
+  })
+
+  // ── Mode: what is being created or edited ──────────────────────────────────
+
   protected editing = computed(() => this.state()?.mode === 'edit')
   protected heading = computed(() => {
     const state = this.state()
@@ -788,6 +212,18 @@ export class DebtSheet {
         ? 'debts.fixHeading'
         : `debts.createHeading.${this.direction()}`
   })
+  /** Delete's confirm line: how many entries go with the debt (debt rule 5). */
+  protected deleteText = computed(() => {
+    this.languageService.language()
+    const state = this.state()
+    const id = state?.mode === 'edit' ? state.id : null
+    const history = id ? this.debtService.history(id) : []
+    const entries = history.filter((item) => item.kind === 'entry').length
+    return this.t('debts.deleteText', { count: entries })
+  })
+
+  // ── Wallet, category and currency ──────────────────────────────────────────
+
   protected bookId = computed(() => this.bookService.current()?.id ?? '')
   protected walletChoices = computed(() => this.walletService.openOf(this.bookId()))
   protected walletItems = computed(() =>
@@ -795,33 +231,42 @@ export class DebtSheet {
       this.walletChoices(),
       this.walletService,
       this.languageService.locale(),
-      (key) => this.transloco.translate(key)
+      (key) => this.t(key)
     )
   )
   protected wallet = computed<Wallet | null>(() => {
     const id = this.values().walletId ?? ''
     return id ? this.walletService.byId(id) : null
   })
-  protected planWallet = computed<Wallet | null>(() => {
-    const id = this.planWalletId()
-    return id ? this.walletService.byId(id) : null
-  })
   protected category = computed(() => {
     const id = this.values().categoryId ?? ''
     return id ? this.categoryService.byId(id) : null
   })
+  /** The debt's currency: its wallet's, or the default before one is picked (a `repaid` debt). */
   protected currencyCode = computed(
     () => this.wallet()?.currencyCode ?? this.walletService.defaultCurrency()
   )
   protected minorUnit = computed(() => this.walletService.minorUnit(this.currencyCode()))
-  protected lastDay = computed(() => addDays(this.transactionService.today(), 365))
-  protected directionOptions = computed(() => {
-    this.languageService.language()
-    return (['borrowed', 'lent'] as const).map((value) => ({
-      value,
-      label: this.transloco.translate(`debts.${value}`),
-    }))
+  /** Quick amounts are Thai banknotes: THB wallets only (currency.md → Web screens). */
+  protected quickAmounts = computed(() => this.quickAmountsService.forCurrency(this.currencyCode()))
+
+  // ── "ผ่อนเป็นงวด" (debt rule 13): monthly from the first one, n of them ─────
+
+  protected planCount = signal(0)
+  protected planAmount = this.nnfb.control('')
+  protected planStart = this.nnfb.control('')
+  /** Ask before recording each instalment, or record by itself. */
+  protected planConfirm = signal(false)
+  protected planWalletId = signal<string | null>(null)
+  private planStartValues = toSignal(this.planStart.valueChanges, { initialValue: '' })
+  protected planStartValue = computed(
+    () => this.planStartValues() || this.transactionService.today()
+  )
+  protected planWallet = computed<Wallet | null>(() => {
+    const id = this.planWalletId()
+    return id ? this.walletService.byId(id) : null
   })
+  /** The plan row: "ผ่อน 10 งวด งวดละ ฿1,000.00" and "ทุกเดือน วันที่ 25 · กระเป๋า · ถาม". */
   protected planText = computed(() => {
     this.languageService.language()
     const count = this.planCount()
@@ -837,16 +282,17 @@ export class DebtSheet {
       locale
     )
     return {
-      title: this.transloco.translate('debts.planTitle', { count, amount: money }),
+      title: this.t('debts.planTitle', { count, amount: money }),
       sub: [
         describeRepeat({ frequency: 'month', interval: 1 }, this.planStartValue(), this.t, locale),
         this.planWallet()?.name ?? '',
-        this.transloco.translate(this.planConfirm() ? 'recurring.ask' : 'recurring.auto'),
+        this.t(this.planConfirm() ? 'recurring.ask' : 'recurring.auto'),
       ]
         .filter((part) => part)
         .join(' · '),
     }
   })
+  /** The line under the plan row: the first and the last instalment's dates. */
   protected planHint = computed(() => {
     this.languageService.language()
     const count = this.planCount()
@@ -856,21 +302,11 @@ export class DebtSheet {
     const locale = this.languageService.locale()
     const first = this.planStartValue()
     const last = addMonths(first, count - 1)
-    return this.transloco.translate('debts.planLine', {
+    return this.t('debts.planLine', {
       first: shortDate(first, locale),
       last: shortDate(last, locale),
     })
   })
-  protected deleteText = computed(() => {
-    this.languageService.language()
-    const state = this.state()
-    const id = state?.mode === 'edit' ? state.id : null
-    const history = id ? this.debtService.history(id) : []
-    const entries = history.filter((item) => item.kind === 'entry').length
-    return this.transloco.translate('debts.deleteText', { count: entries })
-  })
-  private t = (key: string, params?: Record<string, unknown>) =>
-    this.transloco.translate(key, params)
 
   constructor() {
     this.form.controls.direction.valueChanges.pipe(takeUntilDestroyed()).subscribe((direction) => {
@@ -883,7 +319,7 @@ export class DebtSheet {
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.revalidate())
     effect(() => {
-      const state = this.state()
+      const state = this.debtService.sheet()
       untracked(() => {
         if (state) {
           this.start()
@@ -893,64 +329,11 @@ export class DebtSheet {
     })
   }
 
-  protected balanceText(wallet: Wallet): string {
-    return formatMoney(
-      this.walletService.balance(wallet),
-      wallet.currencyCode,
-      this.walletService.minorUnit(wallet.currencyCode),
-      this.languageService.locale()
-    )
-  }
+  // ── Template actions: rows and pickers ─────────────────────────────────────
 
-  protected setCountAs(value: DebtCountAs): void {
-    this.form.controls.countAs.setValue(value)
-    this.form.markAsDirty()
-  }
-
-  protected defaultDue(): string {
-    return addMonths(this.transactionService.today(), 1)
-  }
-
-  protected setDue(day: string | null): void {
-    this.form.controls.dueOn.setValue(day ?? '')
-    this.form.markAsDirty()
-  }
-
-  protected stepCount(step: number): void {
-    const count = Math.min(999, Math.max(0, this.planCount() + step))
-    this.planCount.set(count)
-    // The instalment starts as the total split evenly, while the user hasn't typed one.
-    const total = evaluate(this.form.controls.amount.value, this.minorUnit())
-    if (
-      count > 0 &&
-      total.ok &&
-      total.minor > 0 &&
-      (!this.planAmount.dirty || !this.planAmount.value)
-    ) {
-      this.planAmount.setValue(
-        toMajorText(Math.ceil(total.minor / count), this.minorUnit()).replace(/,/g, '')
-      )
-    }
-    this.form.markAsDirty()
-  }
-
-  protected leaveAmount(event: Event): void {
-    const target = event.target
-    if (
-      !this.keypad() ||
-      !(target instanceof Element) ||
-      target.closest('app-calc-amount-field') ||
-      !target.closest('button, input, label, textarea, select')
-    ) {
-      return
-    }
-    this.settleAmount()
-    this.keypad.set(false)
-  }
-
+  /** Another row: the expression settles and the keypad closes. */
   protected pick(view: 'wallet' | 'category' | 'note' | 'plan'): void {
-    this.settleAmount()
-    this.keypad.set(false)
+    this.keypad.close()
     if (view === 'plan' && !this.planWalletId()) {
       this.planWalletId.set(
         this.form.controls.walletId.value || this.walletChoices().at(0)?.id || null
@@ -971,38 +354,52 @@ export class DebtSheet {
     this.view.set('form')
   }
 
-  protected press(key: CalcKey | '='): void {
-    const control = this.form.controls.amount
-    if (key === '=') {
-      this.settleAmount()
-      this.keypad.set(false)
-      return
-    }
-    control.setValue(pressKey(control.value, key, this.minorUnit()))
-    control.markAsDirty()
+  protected balanceText(wallet: Wallet): string {
+    return formatMoney(
+      this.walletService.balance(wallet),
+      wallet.currencyCode,
+      this.walletService.minorUnit(wallet.currencyCode),
+      this.languageService.locale()
+    )
   }
 
-  protected addQuick(major: number): void {
-    const control = this.form.controls.amount
-    control.setValue(addQuickAmount(control.value, major, this.minorUnit()))
-    control.markAsDirty()
+  /** "นับเป็นรายจ่าย" or "ชำระคืน" (borrowed only). */
+  protected setCountAs(value: DebtCountAs): void {
+    this.form.controls.countAs.setValue(value)
+    this.form.markAsDirty()
   }
 
-  protected onKey(event: KeyboardEvent): void {
-    if (!this.keypad() || this.view() !== 'form' || event.target instanceof HTMLInputElement) {
-      return
-    }
-    const key = /^\d$/.test(event.key) ? (event.key as CalcKey) : CALC_KEYBOARD[event.key]
-    if (key) {
-      event.preventDefault()
-      event.stopPropagation()
-      this.press(key)
-    }
+  /** The due date a new one starts on: a month from today. */
+  protected defaultDue(): string {
+    return addMonths(this.transactionService.today(), 1)
   }
+
+  /** The due date, or null to clear it. */
+  protected setDue(day: string | null): void {
+    this.form.controls.dueOn.setValue(day ?? '')
+    this.form.markAsDirty()
+  }
+
+  /** The plan view's − / +: the instalment starts as the total split evenly, until one is typed. */
+  protected stepCount(step: number): void {
+    const count = Math.min(999, Math.max(0, this.planCount() + step))
+    this.planCount.set(count)
+    const total = parseMajor(this.form.controls.amount.value, this.minorUnit())
+    if (
+      count > 0 &&
+      total.ok &&
+      total.minor > 0 &&
+      (!this.planAmount.dirty || !this.planAmount.value)
+    ) {
+      this.planAmount.setValue(evenInstalment(total.minor, count, this.minorUnit()))
+    }
+    this.form.markAsDirty()
+  }
+
+  // ── Template actions: save and delete ──────────────────────────────────────
 
   protected save(): void {
     const state = this.state()
-    this.settleAmount()
     this.revalidate()
     if (!state || this.form.invalid || !this.debtService.canWrite()) {
       this.form.markAllAsTouched()
@@ -1027,25 +424,18 @@ export class DebtSheet {
       this.finish()
       return
     }
-    const amount = evaluate(value.amount, this.minorUnit())
+    const amount = parseMajor(value.amount, this.minorUnit())
     const repaid = value.direction === 'borrowed' && value.countAs === 'repaid'
-    const planAmount = parseMajor(this.planAmount.value || '0', this.minorUnit())
-    const planWallet = this.planWalletId()
-    const plan: PlanValues | null =
-      this.planCount() > 0 && planAmount.ok && planAmount.minor > 0 && planWallet
-        ? {
-            repeat: {
-              frequency: 'month',
-              interval: 1,
-              endOn: null,
-              endCount: this.planCount(),
-              confirm: this.planConfirm(),
-            },
-            startOn: this.planStartValue(),
-            amount: planAmount.minor,
-            walletId: planWallet,
-          }
-        : null
+    const plan = toPlanValues(
+      {
+        count: this.planCount(),
+        amount: this.planAmount.value,
+        startOn: this.planStartValue(),
+        confirm: this.planConfirm(),
+        walletId: this.planWalletId(),
+      },
+      this.minorUnit()
+    )
     const id = this.debtService.create(
       {
         ...edit,
@@ -1063,6 +453,7 @@ export class DebtSheet {
     void this.router.navigate([DEBTS_ROUTE, id])
   }
 
+  /** Debt rule 5: after the confirm view; off its page if the sheet was opened there. */
   protected remove(): void {
     const state = this.state()
     if (state?.mode !== 'edit') {
@@ -1080,57 +471,61 @@ export class DebtSheet {
   /** Saved, deleted, ✕, a swipe down, the backdrop or Escape: unsaved input goes (DESIGN.md §6). */
   protected finish(): void {
     this.form.markAsPristine()
-    this.state.set(null)
+    this.debtService.sheet.set(null)
   }
 
-  private revalidate(): void {
-    this.form.controls.walletId.updateValueAndValidity({ emitEvent: false })
-    this.form.controls.categoryId.updateValueAndValidity({ emitEvent: false })
-    this.form.controls.amount.updateValueAndValidity({ emitEvent: false })
-  }
-
-  private settleAmount(): void {
-    const control = this.form.controls.amount
-    const result = evaluate(control.value, this.minorUnit())
-    if (result.ok && result.minor > 0 && /[+\-×÷]/.test(control.value)) {
-      control.setValue(toMajorText(result.minor, this.minorUnit()).replace(/,/g, ''))
-    }
-  }
+  // ── Opening the sheet: the form starts from the state ──────────────────────
 
   private start(): void {
     const state = this.state()
     this.view.set('form')
+    this.resetPlan()
+    if (!state) {
+      return
+    }
+    if (state.mode === 'create') {
+      this.startCreate(state.direction)
+      return
+    }
+    this.startEdit()
+  }
+
+  /** No plan: the first instalment a month from today. */
+  private resetPlan(): void {
     this.planCount.set(0)
     this.planConfirm.set(false)
     this.planWalletId.set(null)
     this.planAmount.reset('')
     this.planStart.reset(addMonths(this.transactionService.today(), 1))
-    if (!state) {
-      return
-    }
-    if (state.mode === 'create') {
-      const walletId =
-        this.transactionService.viewWallet()?.id ?? this.transactionService.defaultWalletId() ?? ''
-      this.form.reset({
-        direction: state.direction,
-        person: '',
-        amount: '',
-        walletId,
-        categoryId: '',
-        note: '',
-        occurredOn: this.transactionService.today(),
-        countAs: 'spent',
-        dueOn: '',
-      })
-      this.more.set(false)
-      this.keypad.set(false)
-      return
-    }
-    const refused = state.mode === 'fix' ? this.debtService.refused(state.opId, 'debts') : null
+  }
+
+  /** ยืมมา / ให้ยืม: from the wallet being viewed (or the default one), dated today. */
+  private startCreate(direction: DebtDirection): void {
+    const walletId =
+      this.transactionService.viewWallet()?.id ?? this.transactionService.defaultWalletId() ?? ''
+    this.form.reset({
+      direction,
+      person: '',
+      amount: '',
+      walletId,
+      categoryId: '',
+      note: '',
+      occurredOn: this.transactionService.today(),
+      countAs: 'spent',
+      dueOn: '',
+    })
+    this.more.set(false)
+    this.keypad.open.set(false)
+  }
+
+  /** An edit (person, note, due date, category), or "fix" a rejected op (its refused values). */
+  private startEdit(): void {
+    const state = this.state()
+    const refused = state?.mode === 'fix' ? this.debtService.refused(state.opId, 'debts') : null
     const debt =
-      state.mode === 'edit' ? this.debtService.byId(state.id) : refused ? toDebt(refused) : null
+      state?.mode === 'edit' ? this.debtService.byId(state.id) : refused ? toDebt(refused) : null
     if (!debt) {
-      this.state.set(null)
+      this.debtService.sheet.set(null)
       return
     }
     this.form.reset({
@@ -1145,10 +540,22 @@ export class DebtSheet {
       dueOn: debt.dueOn ?? '',
     })
     this.more.set(debt.dueOn !== null)
-    this.keypad.set(false)
+    this.keypad.open.set(false)
     if (refused) {
       this.form.markAllAsTouched()
       this.form.markAsDirty()
     }
   }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  /** The wallet, category and amount rules depend on the direction and "นับเป็น". */
+  private revalidate(): void {
+    this.form.controls.walletId.updateValueAndValidity({ emitEvent: false })
+    this.form.controls.categoryId.updateValueAndValidity({ emitEvent: false })
+    this.form.controls.amount.updateValueAndValidity({ emitEvent: false })
+  }
+
+  private t = (key: string, params?: Record<string, unknown>) =>
+    this.transloco.translate(key, params)
 }

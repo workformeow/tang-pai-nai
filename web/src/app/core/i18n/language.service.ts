@@ -33,7 +33,7 @@ export class LanguageService {
   private readonly STORAGE_KEY = 'tpn-lang'
 
   language = signal<LanguageOption>(this.readLanguage())
-  /** `th-TH` (Buddhist era) or `en-GB` (Gregorian, day-month order). */
+  /** `th-TH-u-ca-gregory` (Thai, ค.ศ.) or `en-GB` (day-month order). */
   locale = computed(() => this.language().locale)
 
   /** Loads the saved language before the first render, so no screen flashes untranslated keys. */

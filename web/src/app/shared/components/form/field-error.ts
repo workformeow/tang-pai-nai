@@ -27,6 +27,9 @@ type Translate = (key: string, params?: Record<string, unknown>) => string
 /**
  * Message for the first error of a control. An error whose value is a string is a translation key
  * (see `withMessage`); otherwise the default key for that error is used.
+ * e.g. (Thai) `firstErrorMessage({ required: true }, t)` → `'กรุณากรอกข้อมูลนี้'`,
+ * `{ nameTaken: 'wallets.nameTaken' }` → `'สมุดนี้มีกระเป๋าเงินชื่อนี้แล้ว'`,
+ * `{ maxlength: { requiredLength: 50, actualLength: 51 } }` → `'ต้องไม่เกิน 50 ตัวอักษร'`, `null` → `''`
  */
 export const firstErrorMessage = (
   errors: ValidationErrors | null,

@@ -4,8 +4,8 @@
 > real balances, the "has transactions" rules of wallets and categories). **8.2 built**: quick
 > amounts, toasts on top, "ใช้บ่อย" categories, copy, save and add another, the last type. API: `api/src/features/transaction/`
 > (sync handler only). Web: `core/transaction` (`TransactionService`, `period.ts`),
-> `layout/transactions-header`, `layout/transaction-sheet`, `layout/view-wallet-sheet`,
-> `layout/custom-range-sheet`, `features/transactions` (the Transactions tab).
+> `layout/transactions-header`, `sheets/transaction-sheet`, `sheets/view-wallet-sheet`,
+> `shared/components/period/custom-range-sheet`, `features/transactions` (the Transactions tab).
 
 ## Purpose
 
@@ -70,8 +70,8 @@ never stored (ROADMAP → Money & data).
    doesn't refuse an archived one, so an expense added offline isn't bounced because another
    device archived its wallet meanwhile; it shows in the archived wallet's history.
 3. `amount` is an integer from 1 to 10¹⁵ in minor units. The form takes major units on its
-   number keypad and works them out as exact fractions to the currency's `minorUnit`
-   (`evaluate`, no floats).
+   number keypad (digits, `.`, `000`, quick amounts; no operators, owner 2026-11) and reads
+   them as an exact number of the currency's `minorUnit` (`parseMajor`, no floats).
 4. `occurredOn` is a real calendar date (`YYYY-MM-DD`), from 2000-01-01 to at most one year after
    today. The form starts on **today** (the device's local date). Server check: the shape, a real
    date, and not after the server's today + 1 year + 1 day (time zones).

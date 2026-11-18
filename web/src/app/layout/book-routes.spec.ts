@@ -1,4 +1,10 @@
-import { isBookTab, isReportCurrencies, isReportsTab, isWalletTab } from './book-routes'
+import {
+  isBookTab,
+  isReportCurrencies,
+  isReportsTab,
+  isTransactionsTab,
+  isWalletTab,
+} from './book-routes'
 
 describe('isBookTab', () => {
   it('is true on the tabs that show a book, their child pages and queries', () => {
@@ -43,5 +49,18 @@ describe('isReportCurrencies', () => {
     expect(isReportCurrencies('/reports/currencies?x=1')).toBe(true)
     expect(isReportCurrencies('/reports')).toBe(false)
     expect(isReportCurrencies('/reports/category/c1')).toBe(false)
+  })
+})
+
+describe('doc examples (book-routes.ts)', () => {
+  it('match the e.g. lines', () => {
+    expect(isBookTab('/wallets/debts')).toBe(true)
+    expect(isBookTab('/account')).toBe(false)
+    expect(isWalletTab('/transactions?fix=1')).toBe(true)
+    expect(isWalletTab('/reports')).toBe(false)
+    expect(isReportsTab('/reports?unit=year')).toBe(true)
+    expect(isReportsTab('/reports/currencies')).toBe(false)
+    expect(isTransactionsTab('/transactions#top')).toBe(true)
+    expect(isReportCurrencies('/reports/currencies')).toBe(true)
   })
 })

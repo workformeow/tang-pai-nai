@@ -47,6 +47,29 @@ const relativeParent = {
 // Every `no-restricted-imports` config below must include these (later configs replace, not merge).
 const importBoundaries = [featureBoundary, relativeParent]
 
+// Layer direction (AGENTS.md §2): features → core → shared, layout → sheets → core → shared.
+/** @param {string} layer @param {string[]} banned */
+const layerBan = (layer, banned) => ({
+  group: banned.flatMap((name) => [`@/${name}`, `@/${name}/**`]),
+  message: `${layer}/ must not import ${banned.map((name) => `${name}/`).join(', ')} (AGENTS.md §2, dependency direction).`,
+})
+const layerConfigs = [
+  { layer: 'shared', banned: ['core', 'layout', 'sheets', 'features'] },
+  { layer: 'core', banned: ['layout', 'sheets', 'features'] },
+  { layer: 'sheets', banned: ['layout', 'features'] },
+  { layer: 'layout', banned: ['features'] },
+].map(({ layer, banned }) => ({
+  files: [`src/app/${layer}/**/*.ts`],
+  // Specs may read app-wide fixtures, e.g. shared specs import the i18n JSON from core.
+  ignores: ['**/*.spec.ts'],
+  rules: {
+    'no-restricted-imports': [
+      'error',
+      { patterns: [...importBoundaries, layerBan(layer, banned)] },
+    ],
+  },
+}))
+
 // Inside a feature, a page in `pages/<page>/` imports the feature's own files (`<feature>.store.ts`,
 // …) by `@/features/<feature>/...`, since `../` is banned. So each feature gets the boundary with
 // its own folder carved out; other features stay reachable only through their `index.ts`.
@@ -65,11 +88,59 @@ const ownFeatureConfigs = featureNames.map((name) => ({
         patterns: [
           { ...featureBoundary, group: ['@/features/*/*', `!@/features/${name}/**`] },
           relativeParent,
+          layerBan('features', ['layout', 'sheets']),
         ],
       },
     ],
   },
 }))
+
+// Folder per component (AGENTS.md §2): a component in `layout/` or `sheets/` lives in
+// `<root>/<name>/<name>.ts`, a routed page in `pages/<name>/<name>.ts`, the shape
+// `ng g c <path>/<name>` writes. Files in a
+// page folder other than the page itself are its own child components, so only the page's own
+// name is checked there; spec test hosts are skipped.
+/** @type {import('eslint').Rule.RuleModule} */
+const componentFolderRule = {
+  meta: {
+    type: 'problem',
+    messages: {
+      folder:
+        "Component file '{{name}}.ts' must live in its own folder: {{root}}/{{name}}/{{name}}.ts",
+    },
+    schema: [
+      {
+        type: 'object',
+        properties: { root: { type: 'string' }, sameName: { type: 'boolean' } },
+        additionalProperties: false,
+      },
+    ],
+  },
+  create(context) {
+    const { root, sameName = true } = context.options[0] ?? {}
+    const parts = context.filename.replaceAll('\\', '/').split('/')
+    const name = (parts.at(-1) ?? '').replace(/\.ts$/, '')
+    const dir = parts.at(-2)
+    const misplaced = dir === root || (sameName && dir !== name)
+    if (!misplaced) {
+      return {}
+    }
+    return {
+      /** @param {import('estree').Node & { expression?: import('estree').Expression }} node */
+      Decorator(node) {
+        const call = node.expression
+        if (
+          call?.type === 'CallExpression' &&
+          call.callee.type === 'Identifier' &&
+          call.callee.name === 'Component'
+        ) {
+          context.report({ node, messageId: 'folder', data: { name, root } })
+        }
+      },
+    }
+  },
+}
+const localPlugin = { rules: { 'component-folder': componentFolderRule } }
 
 export default defineConfig(
   // ── Ignores ───────────────────────────────────────────────────────────────
@@ -96,7 +167,8 @@ export default defineConfig(
       angular.configs.tsRecommended,
       prettier, // MUST be last: turns off ESLint rules that conflict with Prettier
     ],
-    // Lints inline templates inside @Component({ template: `...` })
+    // Lints inline templates inside @Component({ template: `...` }). Only spec test hosts still
+    // have them; every app component uses a separate .html (AGENTS.md §3 Component files).
     processor: angular.processInlineTemplates,
     languageOptions: {
       parserOptions: {
@@ -178,6 +250,9 @@ export default defineConfig(
         'error',
         { type: 'element', prefix: 'app', style: 'kebab-case' },
       ],
+      // Every component is split into .ts / .html (/ .css), never an inline template or styles
+      // (AGENTS.md §3 Component files). Spec files are exempt below: test hosts stay inline.
+      '@angular-eslint/component-max-inline-declarations': ['error', { template: 0, styles: 0 }],
     },
   },
 
@@ -202,6 +277,29 @@ export default defineConfig(
     },
   },
 
+  // ── Layer direction (layerConfigs; features get theirs in ownFeatureConfigs) ──
+  ...layerConfigs,
+
+  // ── Folder per component: layout/, sheets/, pages/ (componentFolderRule) ────
+  {
+    files: ['src/app/layout/**/*.ts'],
+    ignores: ['**/*.spec.ts'],
+    plugins: { local: localPlugin },
+    rules: { 'local/component-folder': ['error', { root: 'layout' }] },
+  },
+  {
+    files: ['src/app/sheets/**/*.ts'],
+    ignores: ['**/*.spec.ts'],
+    plugins: { local: localPlugin },
+    rules: { 'local/component-folder': ['error', { root: 'sheets' }] },
+  },
+  {
+    files: ['src/app/features/*/pages/**/*.ts'],
+    ignores: ['**/*.spec.ts'],
+    plugins: { local: localPlugin },
+    rules: { 'local/component-folder': ['error', { root: 'pages', sameName: false }] },
+  },
+
   // ── A feature may import its own internals (see ownFeatureConfigs) ───────────
   ...ownFeatureConfigs,
 
@@ -212,6 +310,7 @@ export default defineConfig(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
       'no-console': 'off',
+      '@angular-eslint/component-max-inline-declarations': 'off',
     },
   }
 )

@@ -54,390 +54,61 @@ import { formatMoney } from '@/shared/utils'
       lucidePlus,
     }),
   ],
-  template: `
-    @let open = walletService.openWallets();
-    @let listed = listedWallets();
-    @let cards = walletService.cards();
-    @let archived = walletService.archived();
-    <div class="flex flex-col gap-6 p-4">
-      @if (!shared() && !walletService.canWrite()) {
-        <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {{
-            (walletService.serverDown() ? 'sync.serverDownWrite' : 'wallets.needsOnline')
-              | transloco
-          }}
-        </p>
-      }
-      <div class="flex flex-col gap-3">
-        <section
-          class="flex flex-col gap-1 rounded-xl border border-border bg-card px-4 py-3 text-card-foreground"
-          aria-labelledby="wallets-total"
-        >
-          <h2 id="wallets-total" class="text-sm text-muted-foreground">
-            {{ 'wallets.total' | transloco }}
-          </h2>
-          @let several = totals().length > 1;
-          @for (line of totals(); track line.currencyCode) {
-            <p class="flex items-center gap-3">
-              @if (several) {
-                <!-- Currency rule 8: "$" and "¥" are shared, so the flag and code say which. -->
-                <span
-                  class="flex shrink-0 items-center gap-2 text-sm font-semibold text-muted-foreground"
-                >
-                  <app-currency-flag class="h-4.5 w-6" [code]="line.currencyCode" />
-                  {{ line.currencyCode }}
-                </span>
-              }
-              <span
-                class="min-w-0 flex-1 text-2xl font-semibold tabular-nums"
-                [class.text-right]="several"
-                [class.text-expense]="line.amount < 0"
-              >
-                {{ line.text }}
-              </span>
-            </p>
-          }
-          @for (line of afterCards(); track line.currencyCode) {
-            <!-- Credit-card rule 6 (Q1): the total less what the cards owe. -->
-            <p class="text-sm text-muted-foreground tabular-nums">
-              {{ 'wallets.afterCards' | transloco: { amount: line.text } }}
-            </p>
-          }
-        </section>
-
-        <!-- Debts (debt.md Q8–Q9): what is owed and lent, each opening the debts page. Under the
-             total, so 20 wallets never push it out of sight; one row while nothing is owed. -->
-        @if (!shared()) {
-          <section class="flex flex-col gap-3" aria-labelledby="wallets-debts">
-            <h2 id="wallets-debts" class="text-sm font-medium text-muted-foreground">
-              {{ 'debts.walletsHeading' | transloco }}
-            </h2>
-            @if (!hasDebts()) {
-              <a
-                class="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 py-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                [routerLink]="debtsRoute"
-              >
-                <span
-                  class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground"
-                >
-                  <ng-icon name="lucideHandCoins" size="20" aria-hidden="true" />
-                </span>
-                <span class="min-w-0 flex-1 text-base text-muted-foreground">
-                  {{ 'debts.walletsNone' | transloco }}
-                </span>
-                <ng-icon
-                  name="lucideChevronRight"
-                  size="18"
-                  class="text-muted-foreground"
-                  aria-hidden="true"
-                />
-              </a>
-            } @else {
-              <ul class="divide-y divide-border rounded-xl border border-border bg-card">
-                @for (line of debtLines(); track line.direction) {
-                  <li>
-                    <a
-                      class="flex min-h-16 items-center gap-3 px-4 py-2.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                      [routerLink]="debtsRoute"
-                      [queryParams]="line.direction === 'lent' ? { tab: 'lent' } : {}"
-                    >
-                      <span
-                        class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground"
-                      >
-                        <ng-icon name="lucideHandCoins" size="20" aria-hidden="true" />
-                      </span>
-                      <span class="flex min-w-0 flex-1 flex-col">
-                        <span class="text-base">{{ 'debts.' + line.direction | transloco }}</span>
-                        <span class="text-sm text-muted-foreground">
-                          {{
-                            'debts.walletsLine.' + line.direction | transloco: { count: line.count }
-                          }}
-                          @if (line.overdue > 0) {
-                            ·
-                            <span class="text-destructive">{{
-                              'debts.overdueCount' | transloco: { count: line.overdue }
-                            }}</span>
-                          }
-                        </span>
-                      </span>
-                      <span
-                        class="shrink-0 text-base tabular-nums"
-                        [class.text-expense]="line.direction === 'borrowed' && line.count > 0"
-                        [class.text-income]="line.direction === 'lent' && line.count > 0"
-                        >{{ line.text }}</span
-                      >
-                      <ng-icon
-                        name="lucideChevronRight"
-                        size="18"
-                        class="text-muted-foreground"
-                        aria-hidden="true"
-                      />
-                    </a>
-                  </li>
-                }
-              </ul>
-            }
-          </section>
-        }
-
-        @if (listed.length > 0) {
-          <section class="flex flex-col gap-3" aria-labelledby="wallets-open">
-            <div class="flex items-center justify-between gap-3">
-              <h2 id="wallets-open" class="text-sm font-medium text-muted-foreground">
-                {{
-                  (shared() ? 'wallets.sharedListHeading' : 'wallets.listHeading')
-                    | transloco: { count: listed.length }
-                }}
-              </h2>
-              @if (open.length > 1 && !shared()) {
-                <button
-                  hlmBtn
-                  variant="ghost"
-                  type="button"
-                  class="-my-3 -mr-2 h-11"
-                  [attr.aria-pressed]="ordering()"
-                  [disabled]="!walletService.canWrite()"
-                  (click)="ordering.set(!ordering())"
-                >
-                  {{ (ordering() ? 'wallets.orderDone' : 'wallets.order') | transloco }}
-                </button>
-              }
-            </div>
-            <ul
-              class="divide-y divide-border rounded-xl border border-border bg-card text-card-foreground"
-              cdkDropList
-              cdkDropListLockAxis="y"
-              [cdkDropListDisabled]="!ordering()"
-              (cdkDropListDropped)="drop($event)"
-            >
-              @for (wallet of listed; track wallet.id) {
-                <li
-                  class="flex min-h-14 items-center gap-3 bg-card py-2 pr-2 pl-4 first:rounded-t-xl last:rounded-b-xl"
-                  cdkDrag
-                  [cdkDragStartDelay]="dragDelay"
-                  cdkDragPreviewClass="tpn-drag-preview"
-                >
-                  <div
-                    *cdkDragPlaceholder
-                    class="min-h-14 border-2 border-dashed border-border bg-muted"
-                  ></div>
-                  @if (ordering()) {
-                    <app-icon-badge
-                      [icon]="wallet.icon"
-                      [color]="wallet.color"
-                      [fallback]="defaultIcon"
-                    />
-                    <span class="min-w-0 flex-1 truncate text-base">{{ wallet.name }}</span>
-                    <button
-                      hlmBtn
-                      variant="ghost"
-                      size="icon"
-                      type="button"
-                      class="size-11 touch-none"
-                      cdkDragHandle
-                      [attr.aria-label]="'wallets.dragItem' | transloco: { name: wallet.name }"
-                      (keydown.arrowup)="moveBy($event, wallet.id, -1)"
-                      (keydown.arrowdown)="moveBy($event, wallet.id, 1)"
-                    >
-                      <ng-icon name="lucideGripVertical" size="20" aria-hidden="true" />
-                    </button>
-                  } @else {
-                    <ng-container *ngTemplateOutlet="row; context: { $implicit: wallet }" />
-                  }
-                </li>
-              }
-            </ul>
-            @if (ordering()) {
-              <p class="text-sm text-muted-foreground">{{ 'wallets.orderHint' | transloco }}</p>
-            }
-          </section>
-        }
-      </div>
-
-      <!-- A shared book (sharing rule 10): its balances only, no wallet actions or debts. -->
-      @if (!shared()) {
-        @if (walletService.atLimit()) {
-          <p class="text-sm text-muted-foreground">{{ 'wallets.limit' | transloco }}</p>
-        }
-        <div class="flex gap-2">
-          @if (!walletService.atLimit()) {
-            <button
-              hlmBtn
-              variant="outline"
-              type="button"
-              class="h-11 min-w-0 flex-1"
-              [disabled]="!walletService.canWrite()"
-              (click)="walletService.open({ mode: 'create' })"
-            >
-              <ng-icon name="lucidePlus" size="20" aria-hidden="true" />
-              {{ 'wallets.add' | transloco }}
-            </button>
-          }
-          @if (walletService.openWallets().length > 1) {
-            <!-- Transfer (#9): a gold tint, so it doesn't read like the outline "add" (owner). -->
-            <button
-              hlmBtn
-              variant="ghost"
-              type="button"
-              class="h-11 min-w-0 flex-1 bg-brand/10 text-brand hover:bg-brand/15 hover:text-brand"
-              [disabled]="!walletService.canWrite()"
-              (click)="transferService.open({ mode: 'create' })"
-            >
-              <ng-icon name="lucideArrowLeftRight" size="20" aria-hidden="true" />
-              {{ 'transfers.open' | transloco }}
-            </button>
-          }
-        </div>
-      }
-
-      @if (cards.length > 0 && !ordering()) {
-        <!-- Credit cards (credit-card rule 6): what each owes, and "ชำระ" while it owes. -->
-        <section class="flex flex-col gap-3" aria-labelledby="wallets-cards">
-          <div class="flex items-center justify-between gap-3">
-            <h2 id="wallets-cards" class="text-sm font-medium text-muted-foreground">
-              {{ 'wallets.cardsHeading' | transloco: { count: cards.length } }}
-            </h2>
-            @if (owedText(); as owed) {
-              <p class="text-sm text-muted-foreground tabular-nums">
-                {{ 'wallets.owedTotal' | transloco: { amount: owed } }}
-              </p>
-            }
-          </div>
-          <ul
-            class="divide-y divide-border rounded-xl border border-border bg-card text-card-foreground"
-          >
-            @for (card of cards; track card.id) {
-              @let owed = walletService.owed(card);
-              <li class="flex min-h-16 items-center gap-2 py-2 pr-3 pl-4">
-                <button
-                  type="button"
-                  class="-my-2 -ml-4 flex min-h-16 min-w-0 flex-1 items-center gap-3 py-2 pl-4 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                  [attr.aria-label]="
-                    'wallets.editItem' | transloco: { name: card.name, balance: owedOf(card) }
-                  "
-                  (click)="openWallet(card)"
-                >
-                  <app-icon-badge
-                    [icon]="card.icon"
-                    [color]="card.color"
-                    [fallback]="defaultIcon"
-                  />
-                  <span class="flex min-w-0 flex-1 flex-col">
-                    <span class="truncate text-base">{{ card.name }}</span>
-                    <span class="text-sm text-muted-foreground">
-                      @if (walletService.pendingIds().has(card.id)) {
-                        {{ 'wallets.pending' | transloco }}
-                      } @else {
-                        {{ (owed > 0 ? 'wallets.owed' : 'wallets.nothingOwed') | transloco }}
-                      }
-                    </span>
-                  </span>
-                  <span
-                    class="shrink-0 text-right text-base tabular-nums"
-                    [class.text-expense]="owed > 0"
-                  >
-                    {{ owed > 0 ? owedOf(card) : balanceText(card) }}
-                  </span>
-                </button>
-                @if (owed > 0) {
-                  <button
-                    hlmBtn
-                    variant="ghost"
-                    type="button"
-                    class="h-9 shrink-0 bg-brand/10 px-3 text-brand hover:bg-brand/15 hover:text-brand"
-                    [disabled]="!walletService.canWrite()"
-                    [attr.aria-label]="
-                      'wallets.payItem' | transloco: { name: card.name, amount: owedOf(card) }
-                    "
-                    (click)="transferService.pay(card.id)"
-                  >
-                    {{ 'wallets.pay' | transloco }}
-                  </button>
-                }
-              </li>
-            }
-          </ul>
-        </section>
-      }
-
-      @if (archived.length > 0) {
-        <section class="flex flex-col gap-3">
-          <button
-            type="button"
-            class="-mx-2 flex h-11 items-center gap-2 rounded-md px-2 text-left text-sm font-medium text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-            aria-controls="wallets-archived"
-            [attr.aria-expanded]="showArchived()"
-            (click)="showArchived.set(!showArchived())"
-          >
-            <ng-icon
-              [name]="showArchived() ? 'lucideChevronDown' : 'lucideChevronRight'"
-              size="20"
-              aria-hidden="true"
-            />
-            {{ 'wallets.archivedHeading' | transloco: { count: archived.length } }}
-          </button>
-          @if (showArchived()) {
-            <ul
-              id="wallets-archived"
-              class="divide-y divide-border rounded-xl border border-border bg-card text-card-foreground"
-            >
-              @for (wallet of archived; track wallet.id) {
-                <li class="flex min-h-14 items-center py-2 pr-2 pl-4">
-                  <ng-container *ngTemplateOutlet="row; context: { $implicit: wallet }" />
-                </li>
-              }
-            </ul>
-          }
-        </section>
-      }
-    </div>
-
-    <ng-template #row let-wallet>
-      <button
-        type="button"
-        class="-my-2 -mr-2 -ml-4 flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2 pr-4 pl-4 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-        [attr.aria-label]="
-          'wallets.editItem' | transloco: { name: wallet.name, balance: balanceText(wallet) }
-        "
-        (click)="openWallet(wallet)"
-      >
-        <app-icon-badge [icon]="wallet.icon" [color]="wallet.color" [fallback]="defaultIcon" />
-        <span class="flex min-w-0 flex-1 flex-col">
-          <span class="truncate text-base">{{ wallet.name }}</span>
-          @if (wallet.currencyCode !== defaultCurrency) {
-            <span class="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <app-currency-flag class="h-3 w-4" [code]="wallet.currencyCode" />
-              {{ wallet.currencyCode }}
-            </span>
-          }
-          @if (wallet.excludeFromTotal && !wallet.isArchived) {
-            <span class="text-sm text-muted-foreground">
-              {{ 'wallets.excluded' | transloco }}
-            </span>
-          }
-          @if (walletService.pendingIds().has(wallet.id)) {
-            <span class="text-sm text-muted-foreground">
-              {{ 'wallets.pending' | transloco }}
-            </span>
-          }
-        </span>
-        <span
-          class="shrink-0 text-right text-base tabular-nums"
-          [class.text-expense]="walletService.balance(wallet) < 0"
-          [class.text-muted-foreground]="wallet.isArchived"
-        >
-          {{ balanceText(wallet) }}
-        </span>
-      </button>
-    </ng-template>
-  `,
+  templateUrl: './wallets-page.html',
 })
 export class WalletsPage {
   private languageService = inject(LanguageService)
   protected walletService = inject(WalletService)
   protected transferService = inject(TransferService)
   private debtService = inject(DebtService)
+  private bookService = inject(BookService)
+  private transactionService = inject(TransactionService)
+  private router = inject(Router)
+
+  /** A book shared with me is in use (sharing rule 10). */
+  protected shared = this.bookService.isShared
+  protected defaultIcon = WALLET_DEFAULT_ICON
+  /** A wallet in another currency shows its flag and code under the name (currency.md). */
+  protected defaultCurrency = DEFAULT_CURRENCY
   protected debtsRoute = DEBTS_ROUTE
+
+  // ── The total (rule 7; credit-card rule 6) ─────────────────────────────────
+
+  /** Rule 7: one line per currency; ฿0.00 while nothing counts. */
+  protected totals = computed(() => {
+    const locale = this.languageService.locale()
+    const totals = this.walletService.totals()
+    const lines =
+      totals.length > 0
+        ? totals
+        : [
+            {
+              currencyCode: this.walletService.defaultCurrency(),
+              minorUnit: this.walletService.minorUnit(this.walletService.defaultCurrency()),
+              amount: 0,
+            },
+          ]
+    return lines.map((line) => ({
+      ...line,
+      text: formatMoney(line.amount, line.currencyCode, line.minorUnit, locale),
+    }))
+  })
+
+  /** Credit-card rule 6 (Q1): the total less what the cards owe, while they owe something. */
+  protected afterCards = computed(() => {
+    const locale = this.languageService.locale()
+    const totals = this.walletService.totals()
+    return this.walletService.owedTotals().map((owed) => {
+      const total = totals.find((line) => line.currencyCode === owed.currencyCode)?.amount ?? 0
+      return {
+        currencyCode: owed.currencyCode,
+        text: formatMoney(total - owed.amount, owed.currencyCode, owed.minorUnit, locale),
+      }
+    })
+  })
+
+  // ── Debts (debt.md Q8–Q9) ──────────────────────────────────────────────────
+
   /** Open debts per direction: how many, overdue, what is left (one currency per line). */
   protected debtLines = computed(() => {
     const locale = this.languageService.locale()
@@ -469,36 +140,12 @@ export class WalletsPage {
   /** Any open debt either way; without one the card is a single row to the debts page. */
   protected hasDebts = computed(() => this.debtLines().some((line) => line.count > 0))
 
-  protected defaultIcon = WALLET_DEFAULT_ICON
-  /** A wallet in another currency shows its flag and code under the name (currency.md). */
-  protected defaultCurrency = DEFAULT_CURRENCY
-  private bookService = inject(BookService)
-  private transactionService = inject(TransactionService)
-  private router = inject(Router)
-  /** A book shared with me is in use (sharing rule 10). */
-  protected shared = this.bookService.isShared
-  protected ordering = signal(false)
-  protected showArchived = signal(false)
+  // ── The wallet list and its order mode ─────────────────────────────────────
 
-  /** Rule 7: one line per currency; ฿0.00 while nothing counts. */
-  protected totals = computed(() => {
-    const locale = this.languageService.locale()
-    const totals = this.walletService.totals()
-    const lines =
-      totals.length > 0
-        ? totals
-        : [
-            {
-              currencyCode: this.walletService.defaultCurrency(),
-              minorUnit: this.walletService.minorUnit(this.walletService.defaultCurrency()),
-              amount: 0,
-            },
-          ]
-    return lines.map((line) => ({
-      ...line,
-      text: formatMoney(line.amount, line.currencyCode, line.minorUnit, locale),
-    }))
-  })
+  /** Order mode: every open wallet, cards too, with a drag handle. */
+  protected ordering = signal(false)
+  /** The archived wallets, folded away until opened. */
+  protected showArchived = signal(false)
 
   /**
    * The wallet list: open wallets without the cards, which have their own section
@@ -508,6 +155,11 @@ export class WalletsPage {
     const open = this.walletService.openWallets()
     return this.ordering() ? open : open.filter((wallet) => !wallet.isCreditCard)
   })
+
+  /** Touch: press and hold the handle before dragging, so scrolling the list still works. */
+  protected dragDelay = { touch: 300, mouse: 0 }
+
+  // ── Credit cards (credit-card rule 6) ──────────────────────────────────────
 
   /** What the cards owe per currency, joined; null while they owe nothing. */
   protected owedText = computed(() => {
@@ -520,34 +172,22 @@ export class WalletsPage {
       : null
   })
 
-  /** Credit-card rule 6 (Q1): the total less what the cards owe, while they owe something. */
-  protected afterCards = computed(() => {
-    const locale = this.languageService.locale()
-    const totals = this.walletService.totals()
-    return this.walletService.owedTotals().map((owed) => {
-      const total = totals.find((line) => line.currencyCode === owed.currencyCode)?.amount ?? 0
-      return {
-        currencyCode: owed.currencyCode,
-        text: formatMoney(total - owed.amount, owed.currencyCode, owed.minorUnit, locale),
-      }
-    })
-  })
+  // ── Template actions ───────────────────────────────────────────────────────
 
-  protected owedOf(wallet: Wallet): string {
+  /** A wallet's balance in its currency. */
+  protected balanceText(wallet: Wallet): string {
     return formatMoney(
-      this.walletService.owed(wallet),
+      this.walletService.balance(wallet),
       wallet.currencyCode,
       this.walletService.minorUnit(wallet.currencyCode),
       this.languageService.locale()
     )
   }
 
-  /** Touch: press and hold the handle before dragging, so scrolling the list still works. */
-  protected dragDelay = { touch: 300, mouse: 0 }
-
-  protected balanceText(wallet: Wallet): string {
+  /** What a card owes, in its currency. */
+  protected owedOf(wallet: Wallet): string {
     return formatMoney(
-      this.walletService.balance(wallet),
+      this.walletService.owed(wallet),
       wallet.currencyCode,
       this.walletService.minorUnit(wallet.currencyCode),
       this.languageService.locale()
@@ -564,6 +204,7 @@ export class WalletsPage {
     this.walletService.open({ mode: 'edit', id: wallet.id })
   }
 
+  /** A drag ended: the wallet moves to where it was dropped. */
   protected drop(event: CdkDragDrop<unknown>): void {
     const wallet = this.walletService.openWallets().at(event.previousIndex)
     if (wallet) {

@@ -52,7 +52,12 @@ const LENGTH: Partial<Record<PeriodUnit, (start: string) => string>> = {
   year: (start) => addDays(addMonths(start, 12), -1),
 }
 
-/** The days a tab covers; `custom` is the range the user chose. */
+/**
+ * The days a tab covers; `custom` is the range the user chose.
+ * e.g. today `'2026-11-18'`: `periodRange('month', 0, today, none)` → `{ from: '2026-11-01', to: '2026-11-30' }`,
+ * `('week', -1, …)` → `{ from: '2026-11-09', to: '2026-11-15' }` (weeks start on Monday),
+ * `('month', 'future', …)` → `{ from: '2026-12-01', to: null }`, `('all', 0, …)` → `{ from: null, to: null }`
+ */
 export const periodRange = (
   unit: PeriodUnit,
   tab: PeriodTab,
@@ -78,6 +83,8 @@ export const periodRange = (
  * The tabs of `unit`, oldest first: back to the period holding `firstDay` (the book's oldest
  * transaction), at least the previous one, then the current one; the month view ends with the
  * future. `all` and `custom` have one tab.
+ * e.g. `periodTabs('month', '2026-11-18', '2026-08-03')` → `[-3, -2, -1, 0, 'future']`,
+ * `periodTabs('year', '2026-11-18', null)` → `[-1, 0]`
  */
 export const periodTabs = (
   unit: PeriodUnit,
@@ -105,7 +112,13 @@ const pad = (value: number) => String(value).padStart(2, '0')
 const dm = (day: string) => `${day.slice(8, 10)}/${day.slice(5, 7)}`
 const dmy = (day: string) => `${dm(day)}/${day.slice(0, 4)}`
 
-/** A tab's label: "เดือนนี้", "เดือนที่แล้ว", then dates (`09/2026`, `Q3 2026`, `2024`). */
+/**
+ * A tab's label: a key for this and the last period, else dates (ค.ศ.).
+ * e.g. today `'2026-11-18'`: `periodLabel('month', 0, today, none)` → `{ key: 'transactions.period.monthThis' }`,
+ * `('month', -2, …)` → `{ text: '09/2026' }`, `('quarter', -2, …)` → `{ text: 'Q2 2026' }`,
+ * `('week', -2, …)` → `{ text: '02/11 – 08/11/2026' }`,
+ * `('custom', 0, today, { from: '2026-11-01', to: null })` → `{ text: '01/11/2026 – …' }`
+ */
 export const periodLabel = (
   unit: PeriodUnit,
   tab: PeriodTab,

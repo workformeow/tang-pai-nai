@@ -17,18 +17,7 @@ import { NavProgress } from '@/layout'
 @Component({
   imports: [RouterOutlet, HlmToaster, NavProgress],
   selector: 'app-root',
-  template: `
-    <app-nav-progress />
-    <router-outlet />
-    <!-- Colours come from the theme tokens. Toasts sit at the top of the screen (owner's choice
-         in 8.2, DESIGN.md §6): at the bottom they covered the keypad and a sheet's main button.
-         Sonner pins them 16px from the top on phones; the notch's inset comes first. -->
-    <hlm-toaster
-      #toaster
-      position="top-center"
-      class="top-[calc(0.5rem+env(safe-area-inset-top))]!"
-    />
-  `,
+  templateUrl: './app.html',
 })
 export class App {
   private document = inject(DOCUMENT)

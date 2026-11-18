@@ -11,31 +11,7 @@ import { fieldErrorMessage } from './field-error'
 @Component({
   selector: 'app-otp-field',
   imports: [ReactiveFormsModule, HlmFieldImports, BrnInputOtp, HlmInputOtpImports],
-  template: `
-    <div hlmField>
-      <label hlmFieldLabel class="justify-center" [class.sr-only]="hideLabel()">{{
-        label()
-      }}</label>
-      <!-- Centred, with 48px slots and large digits: easier to read and tap than the defaults.
-           The hidden input underneath is 16px, or iOS Safari zooms in when it gets focus. -->
-      <brn-input-otp
-        hlmInputOtp
-        class="justify-center"
-        inputMode="numeric"
-        inputAutocomplete="one-time-code"
-        inputClass="text-base"
-        [length]="length()"
-        [formControl]="control()"
-      >
-        <div hlmInputOtpGroup>
-          @for (slot of slots(); track $index) {
-            <hlm-input-otp-slot class="size-12 text-xl font-medium tabular-nums" [index]="$index" />
-          }
-        </div>
-      </brn-input-otp>
-      <hlm-field-error class="-mt-2 text-center">{{ error() }}</hlm-field-error>
-    </div>
-  `,
+  templateUrl: './otp-field.html',
 })
 export class OtpField {
   control = input.required<FormControl<string>>()

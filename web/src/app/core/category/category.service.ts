@@ -19,7 +19,13 @@ import {
   TRANSACTION_TABLE,
   WALLET_TABLE,
 } from '@/core/wallet'
-import { followMerges, hasMergeLeftovers, moveTransactions } from './category-merge'
+import {
+  dropMergedHidden,
+  followMerges,
+  hasMergeLeftovers,
+  mergeSteps,
+  moveTransactions,
+} from './category-merge'
 import { CATEGORY_LIMITS, CATEGORY_TABLE } from './category.type'
 import type {
   Category,
@@ -44,16 +50,58 @@ export class CategoryService {
   private syncService = inject(SyncService)
   private bookService = inject(BookService)
 
+  canWrite = this.bookService.canWrite
+  serverDown = this.bookService.serverDown
+
+  // ── The category sheet ─────────────────────────────────────────────────────
+
+  /** The open category sheet (sheets/category-sheet), if any. */
+  sheet = signal<CategorySheetState | null>(null)
+
+  open(state: CategorySheetState): void {
+    this.sheet.set(state)
+  }
+
+  /** "Fix" from the sync sheet: the refused values of a rejected category op. */
+  openFix(opId: string): void {
+    const op = this.syncService.rejectedOp(opId)
+    if (!op || op.table !== CATEGORY_TABLE) {
+      return
+    }
+    const row = op.row
+    const text = (key: string) => (typeof row[key] === 'string' ? row[key] : '')
+    const bookId = text('bookId')
+    const parentId = text('parentId')
+    // A refused category of a book that is gone is saved into the current one, and a parent
+    // that is gone or archived here is dropped (rules 1, 3).
+    const live = this.bookService.byId(bookId)
+    const parent = parentId ? this.byId(parentId) : null
+    this.open({
+      mode: 'fix',
+      opId,
+      id: op.rowId,
+      bookId: live ? bookId : (this.bookService.current()?.id ?? bookId),
+      values: {
+        name: text('name'),
+        icon: text('icon'),
+        color: text('color'),
+        type: row['type'] === 'income' ? 'income' : 'expense',
+        parentId: live && parent && !parent.isArchived ? parentId : null,
+      },
+    })
+  }
+
+  // ── The current book's categories (rules 10–11) ────────────────────────────
+
   /** The current book's live categories in order (rule 10), archived ones included. */
   categories = computed(() => {
     const bookId = this.bookService.current()?.id
     return bookId ? this.ofBook(bookId) : []
   })
+
   /** Open categories (rule 11 counts them). */
   openCategories = computed(() => this.categories().filter((category) => !category.isArchived))
   atLimit = computed(() => this.openCategories().length >= CATEGORY_LIMITS.PER_BOOK)
-  canWrite = this.bookService.canWrite
-  serverDown = this.bookService.serverDown
 
   /** Categories with an op still waiting to sync ("รอ sync"). */
   pendingIds = computed(
@@ -70,9 +118,6 @@ export class CategoryService {
         )
       )
   )
-
-  /** The open category sheet (layout/category-sheet), if any. */
-  sheet = signal<CategorySheetState | null>(null)
 
   constructor() {
     // Rule 6: a parent deleted on a device that didn't know all its children leaves live ones
@@ -111,18 +156,6 @@ export class CategoryService {
     return this.toTree(categories, type, false)
   }
 
-  private toTree(categories: Category[], type: CategoryType, archived: boolean): CategoryNode[] {
-    const all = categories.filter((category) => category.type === type)
-    return all
-      .filter((category) => category.parentId === null && category.isArchived === archived)
-      .map((category) => ({
-        category,
-        children: all.filter(
-          (child) => child.parentId === category.id && child.isArchived === archived
-        ),
-      }))
-  }
-
   /** Archived children of open parents: shown in the archived group on their own. */
   archivedChildren(type: CategoryType): Category[] {
     const byId = new Map(this.categories().map((category) => [category.id, category]))
@@ -152,6 +185,8 @@ export class CategoryService {
     return this.categories().filter((category) => category.parentId === id)
   }
 
+  // ── One category ───────────────────────────────────────────────────────────
+
   byId(id: string): Category | null {
     this.offlineService.changes()
     if (!this.offlineService.isOpen()) {
@@ -180,38 +215,71 @@ export class CategoryService {
     )
   }
 
-  open(state: CategorySheetState): void {
-    this.sheet.set(state)
+  /**
+   * Rules 4 and 6: whether the category has live transactions, or a live debt's instalments go
+   * to it (debt rule 9): type fixed, archive only.
+   */
+  hasTransactions(id: string | null): boolean {
+    if (id === null) {
+      return false
+    }
+    return this.read(
+      (db) =>
+        db.selectValue(
+          `SELECT EXISTS (SELECT 1 FROM ${TRANSACTION_TABLE} WHERE category_id = ? AND deleted_at IS NULL)
+             OR EXISTS (SELECT 1 FROM ${DEBT_TABLE} WHERE category_id = ? AND deleted_at IS NULL)`,
+          [id, id]
+        ) === 1,
+      false
+    )
   }
 
-  /** "Fix" from the sync sheet: the refused values of a rejected category op. */
-  openFix(opId: string): void {
-    const op = this.syncService.rejectedOp(opId)
-    if (!op || op.table !== CATEGORY_TABLE) {
-      return
+  /** Rule 6's line and rule 15's confirm: how many live transactions a category holds. */
+  transactionCount(id: string | null): number {
+    if (id === null) {
+      return 0
     }
-    const row = op.row
-    const text = (key: string) => (typeof row[key] === 'string' ? row[key] : '')
-    const bookId = text('bookId')
-    const parentId = text('parentId')
-    // A refused category of a book that is gone is saved into the current one, and a parent
-    // that is gone or archived here is dropped (rules 1, 3).
-    const live = this.bookService.byId(bookId)
-    const parent = parentId ? this.byId(parentId) : null
-    this.open({
-      mode: 'fix',
-      opId,
-      id: op.rowId,
-      bookId: live ? bookId : (this.bookService.current()?.id ?? bookId),
-      values: {
-        name: text('name'),
-        icon: text('icon'),
-        color: text('color'),
-        type: row['type'] === 'income' ? 'income' : 'expense',
-        parentId: live && parent && !parent.isArchived ? parentId : null,
-      },
-    })
+    return this.read(
+      (db) =>
+        Number(
+          db.selectValue(
+            `SELECT count(*) FROM ${TRANSACTION_TABLE} WHERE category_id = ? AND deleted_at IS NULL`,
+            [id]
+          )
+        ),
+      0
+    )
   }
+
+  /** Live recurring rules on the category: they fix its type (recurring rules 14–15). */
+  ruleCount(id: string | null): number {
+    if (id === null) {
+      return 0
+    }
+    return this.read(
+      (db) =>
+        Number(
+          db.selectValue(
+            `SELECT count(*) FROM ${RECURRING_TABLE} WHERE category_id = ? AND deleted_at IS NULL`,
+            [id]
+          )
+        ),
+      0
+    )
+  }
+
+  /** The book's open wallets that list the category's own id (rule 13). */
+  hiddenIn(categoryId: string, bookId: string): string[] {
+    return this.read(
+      (db) =>
+        this.openWallets(db, bookId)
+          .filter((wallet) => wallet.hiddenCategoryIds.includes(categoryId))
+          .map((wallet) => wallet.id),
+      []
+    )
+  }
+
+  // ── Writing (rules 6–7, 10, 13) ────────────────────────────────────────────
 
   /**
    * Creates (`id` null) or updates a category in `bookId` (the current book by default); a
@@ -266,51 +334,6 @@ export class CategoryService {
     return rowId
   }
 
-  /** The book's open wallets that list the category's own id (rule 13). */
-  hiddenIn(categoryId: string, bookId: string): string[] {
-    return this.read(
-      (db) =>
-        this.openWallets(db, bookId)
-          .filter((wallet) => wallet.hiddenCategoryIds.includes(categoryId))
-          .map((wallet) => wallet.id),
-      []
-    )
-  }
-
-  private writeHiddenIn(
-    db: LocalDatabase,
-    bookId: string,
-    categoryId: string,
-    hiddenIn: readonly string[],
-    now: number
-  ): void {
-    for (const wallet of this.openWallets(db, bookId)) {
-      const listed = wallet.hiddenCategoryIds.includes(categoryId)
-      const wanted = hiddenIn.includes(wallet.id)
-      if (listed === wanted) {
-        continue
-      }
-      const ids = wanted
-        ? [...wallet.hiddenCategoryIds, categoryId]
-        : wallet.hiddenCategoryIds.filter((other) => other !== categoryId)
-      queueWrite(db, WALLET_TABLE, 'upsert', {
-        ...wallet,
-        hiddenCategoryIds: cleanHidden(db, ids),
-        updatedAt: now,
-      })
-    }
-  }
-
-  private openWallets(db: LocalDatabase, bookId: string) {
-    return db
-      .selectObjects(
-        `SELECT * FROM ${WALLET_TABLE}
-         WHERE book_id = ? AND deleted_at IS NULL AND is_archived = 0`,
-        [bookId]
-      )
-      .map((row) => toWallet(fromSql(WALLET_TABLE, row)))
-  }
-
   /**
    * Rule 7: archive (a parent takes its open children along), or bring back (a parent brings its
    * children whose names are free). Coming back needs a free name, a place among the 200 and an
@@ -356,42 +379,6 @@ export class CategoryService {
     return null
   }
 
-  /**
-   * Rules 4 and 6: whether the category has live transactions, or a live debt's instalments go
-   * to it (debt rule 9): type fixed, archive only.
-   */
-  hasTransactions(id: string | null): boolean {
-    if (id === null) {
-      return false
-    }
-    return this.read(
-      (db) =>
-        db.selectValue(
-          `SELECT EXISTS (SELECT 1 FROM ${TRANSACTION_TABLE} WHERE category_id = ? AND deleted_at IS NULL)
-             OR EXISTS (SELECT 1 FROM ${DEBT_TABLE} WHERE category_id = ? AND deleted_at IS NULL)`,
-          [id, id]
-        ) === 1,
-      false
-    )
-  }
-
-  /** Live recurring rules on the category: they fix its type (recurring rules 14–15). */
-  ruleCount(id: string | null): number {
-    if (id === null) {
-      return 0
-    }
-    return this.read(
-      (db) =>
-        Number(
-          db.selectValue(
-            `SELECT count(*) FROM ${RECURRING_TABLE} WHERE category_id = ? AND deleted_at IS NULL`,
-            [id]
-          )
-        ),
-      0
-    )
-  }
-
   /** Rule 6: a tombstone, after the sheet's confirm view; only without live children or transactions. */
   remove(id: string): void {
     if (this.childrenOf(id).length > 0 || this.hasTransactions(id)) {
@@ -408,22 +395,35 @@ export class CategoryService {
     })
   }
 
-  /** Rule 6's line and rule 15's confirm: how many live transactions a category holds. */
-  transactionCount(id: string | null): number {
-    if (id === null) {
-      return 0
+  /** Rule 10: moves an open category to `to` among its open siblings; rewrites `sortOrder`. */
+  moveTo(id: string, to: number): void {
+    const category = this.byId(id)
+    if (!category) {
+      return
     }
-    return this.read(
-      (db) =>
-        Number(
-          db.selectValue(
-            `SELECT count(*) FROM ${TRANSACTION_TABLE} WHERE category_id = ? AND deleted_at IS NULL`,
-            [id]
-          )
-        ),
-      0
+    const siblings = this.categories().filter(
+      (other) => other.type === category.type && other.parentId === category.parentId
     )
+    const open = siblings.filter((other) => !other.isArchived)
+    const from = open.findIndex((other) => other.id === id)
+    if (from < 0 || to < 0 || to >= open.length || from === to) {
+      return
+    }
+    const [moved] = open.splice(from, 1)
+    open.splice(to, 0, moved)
+    // Archived siblings keep their places after the open ones.
+    const ordered = [...open, ...siblings.filter((other) => other.isArchived)]
+    const now = Date.now()
+    this.offlineService.write((db) => {
+      ordered.forEach((other, index) => {
+        if (other.sortOrder !== index) {
+          queueWrite(db, CATEGORY_TABLE, 'upsert', { ...other, sortOrder: index, updatedAt: now })
+        }
+      })
+    })
   }
+
+  // ── Merging (rule 15; the steps are in category-merge.ts) ──────────────────
 
   /**
    * Rule 15: the categories `id` may merge into, as a tree: every open category of its book
@@ -447,7 +447,7 @@ export class CategoryService {
   /** Rule 15: what merging `sourceId` into `targetId` would do; null when it can't. */
   mergePlan(sourceId: string, targetId: string, mode: CategoryMergeMode): CategoryMergePlan | null {
     return this.read((db) => {
-      const steps = this.mergeSteps(db, sourceId, targetId, mode)
+      const steps = mergeSteps(db, sourceId, targetId, mode)
       if (!steps) {
         return null
       }
@@ -485,7 +485,7 @@ export class CategoryService {
     const now = Date.now()
     let merged = false
     this.offlineService.write((db) => {
-      const steps = this.mergeSteps(db, sourceId, targetId, mode)
+      const steps = mergeSteps(db, sourceId, targetId, mode)
       if (!steps) {
         return
       }
@@ -500,7 +500,7 @@ export class CategoryService {
         moveOpLast(db, CATEGORY_TABLE, child.id)
       }
       const gone = [...steps.merges.map((merge) => merge.child.id), sourceId]
-      this.dropHidden(db, steps.source.bookId, gone, now)
+      dropMergedHidden(db, steps.source.bookId, gone, now)
       for (const { child, into } of [...steps.merges, { child: steps.source, into: targetId }]) {
         moveTransactions(db, child.id, into, now)
         queueWrite(db, CATEGORY_TABLE, 'upsert', {
@@ -516,121 +516,58 @@ export class CategoryService {
     return merged
   }
 
-  /** Rule 15's checks and plan: which children move under `parentId`, which merge where. */
-  private mergeSteps(
-    db: LocalDatabase,
-    sourceId: string,
-    targetId: string,
-    mode: CategoryMergeMode
-  ): {
-    source: Category
-    parentId: string
-    moves: Category[]
-    merges: { child: Category; into: string }[]
-  } | null {
-    const source = this.find(db, sourceId)
-    const target = this.find(db, targetId)
-    if (
-      !source ||
-      !target ||
-      source.deletedAt !== null ||
-      target.deletedAt !== null ||
-      target.isArchived ||
-      source.id === target.id ||
-      target.parentId === source.id ||
-      source.bookId !== target.bookId ||
-      source.type !== target.type
-    ) {
-      return null
-    }
-    const parentId = target.parentId ?? target.id
-    const children = this.liveChildren(db, source.id)
-    if (mode === 'all') {
-      return {
-        source,
-        parentId,
-        moves: [],
-        merges: children.map((child) => ({ child, into: target.id })),
-      }
-    }
-    // An open child whose name is taken there merges into that one instead (rule 2).
-    const taken = new Map(
-      this.liveChildren(db, parentId)
-        .filter((child) => !child.isArchived)
-        .map((child) => [child.name.toLowerCase(), child.id])
-    )
-    const moves: Category[] = []
-    const merges: { child: Category; into: string }[] = []
-    for (const child of children) {
-      const clash = child.isArchived ? undefined : taken.get(child.name.toLowerCase())
-      if (clash) {
-        merges.push({ child, into: clash })
-      } else {
-        moves.push(child)
-        if (!child.isArchived) {
-          taken.set(child.name.toLowerCase(), child.id)
-        }
-      }
-    }
-    return { source, parentId, moves, merges }
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  /** `categories` of one type as parents with their children, open or archived. */
+  private toTree(categories: Category[], type: CategoryType, archived: boolean): CategoryNode[] {
+    const all = categories.filter((category) => category.type === type)
+    return all
+      .filter((category) => category.parentId === null && category.isArchived === archived)
+      .map((category) => ({
+        category,
+        children: all.filter(
+          (child) => child.parentId === category.id && child.isArchived === archived
+        ),
+      }))
   }
 
-  private liveChildren(db: LocalDatabase, parentId: string): Category[] {
+  /** Rule 13: the wallets that list `categoryId` become exactly `hiddenIn`, in this write. */
+  private writeHiddenIn(
+    db: LocalDatabase,
+    bookId: string,
+    categoryId: string,
+    hiddenIn: readonly string[],
+    now: number
+  ): void {
+    for (const wallet of this.openWallets(db, bookId)) {
+      const listed = wallet.hiddenCategoryIds.includes(categoryId)
+      const wanted = hiddenIn.includes(wallet.id)
+      if (listed === wanted) {
+        continue
+      }
+      const ids = wanted
+        ? [...wallet.hiddenCategoryIds, categoryId]
+        : wallet.hiddenCategoryIds.filter((other) => other !== categoryId)
+      queueWrite(db, WALLET_TABLE, 'upsert', {
+        ...wallet,
+        hiddenCategoryIds: cleanHidden(db, ids),
+        updatedAt: now,
+      })
+    }
+  }
+
+  /** A book's open wallets, read inside a write. */
+  private openWallets(db: LocalDatabase, bookId: string) {
     return db
       .selectObjects(
-        `SELECT * FROM ${CATEGORY_TABLE} WHERE parent_id = ? AND deleted_at IS NULL ${ORDER}`,
-        [parentId]
+        `SELECT * FROM ${WALLET_TABLE}
+         WHERE book_id = ? AND deleted_at IS NULL AND is_archived = 0`,
+        [bookId]
       )
-      .map((row) => fromSql(CATEGORY_TABLE, row) as unknown as Category)
-  }
-
-  /** Rule 15: merged ids leave every live wallet's `hiddenCategoryIds` of the book. */
-  private dropHidden(db: LocalDatabase, bookId: string, ids: string[], now: number): void {
-    const wallets = db
-      .selectObjects(`SELECT * FROM ${WALLET_TABLE} WHERE book_id = ? AND deleted_at IS NULL`, [
-        bookId,
-      ])
       .map((row) => toWallet(fromSql(WALLET_TABLE, row)))
-    for (const wallet of wallets) {
-      const kept = wallet.hiddenCategoryIds.filter((id) => !ids.includes(id))
-      if (kept.length !== wallet.hiddenCategoryIds.length) {
-        queueWrite(db, WALLET_TABLE, 'upsert', {
-          ...wallet,
-          hiddenCategoryIds: kept,
-          updatedAt: now,
-        })
-      }
-    }
   }
 
-  /** Rule 10: moves an open category to `to` among its open siblings; rewrites `sortOrder`. */
-  moveTo(id: string, to: number): void {
-    const category = this.byId(id)
-    if (!category) {
-      return
-    }
-    const siblings = this.categories().filter(
-      (other) => other.type === category.type && other.parentId === category.parentId
-    )
-    const open = siblings.filter((other) => !other.isArchived)
-    const from = open.findIndex((other) => other.id === id)
-    if (from < 0 || to < 0 || to >= open.length || from === to) {
-      return
-    }
-    const [moved] = open.splice(from, 1)
-    open.splice(to, 0, moved)
-    // Archived siblings keep their places after the open ones.
-    const ordered = [...open, ...siblings.filter((other) => other.isArchived)]
-    const now = Date.now()
-    this.offlineService.write((db) => {
-      ordered.forEach((other, index) => {
-        if (other.sortOrder !== index) {
-          queueWrite(db, CATEGORY_TABLE, 'upsert', { ...other, sortOrder: index, updatedAt: now })
-        }
-      })
-    })
-  }
-
+  /** Rule 7: why `category` may not come back from the archive, or null. */
   private unarchiveRefusal(category: Category): CategoryUnarchiveRefusal | null {
     if (category.parentId !== null && this.byId(category.parentId)?.isArchived !== false) {
       return 'parentArchived'

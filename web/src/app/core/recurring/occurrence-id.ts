@@ -67,7 +67,11 @@ export const sha256 = (text: string): Uint8Array => {
   return out
 }
 
-/** The id of `ruleId`'s occurrence on `day`: a UUID (version 8, RFC 9562 variant). */
+/**
+ * The id of `ruleId`'s occurrence on `day`: a UUID (version 8, RFC 9562 variant), the same on
+ * every device. e.g. `occurrenceId('0190a1b2-0000-7000-8000-000000000001', '2026-11-25')` →
+ * `'d8e14289-aa08-8e77-9eba-70ad2dee81ef'`
+ */
 export const occurrenceId = (ruleId: string, day: string): string => {
   const bytes = sha256(`${ruleId}:${day}`).slice(0, 16)
   bytes[6] = (bytes[6] & 0x0f) | 0x80

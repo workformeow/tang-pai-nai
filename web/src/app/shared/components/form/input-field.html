@@ -1,0 +1,15 @@
+<div hlmField>
+  <label hlmFieldLabel>{{ label() }}</label>
+  <input
+    hlmInput
+    [formControl]="control()"
+    [type]="type()"
+    [placeholder]="placeholder()"
+    [attr.autocomplete]="autocomplete()"
+    [attr.inputmode]="inputmode()"
+  />
+  @if (hint()) {
+    <p hlmFieldDescription class="-mt-2">{{ hint() }}</p>
+  }
+  <hlm-field-error class="-mt-2">{{ error() }}</hlm-field-error>
+</div>

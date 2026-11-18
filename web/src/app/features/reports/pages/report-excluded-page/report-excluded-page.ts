@@ -15,25 +15,7 @@ import { PeriodStrip, Swipe } from '@/shared/components/period'
   selector: 'app-report-excluded-page',
   imports: [TranslocoPipe, PeriodStrip, Swipe, ReportDayList],
   host: { class: 'flex flex-col' },
-  template: `
-    <app-period-strip
-      class="pt-2"
-      [chips]="view.chips()"
-      [selected]="reportService.tab()"
-      [label]="'transactions.periods' | transloco"
-      (chosen)="view.choose($event)"
-    />
-    <div class="flex flex-col gap-3 px-4 pt-1 pb-4" appSwipe (swiped)="view.move($event)">
-      <p class="text-sm text-muted-foreground">{{ 'reports.excludedText' | transloco }}</p>
-      @if (items().length > 0) {
-        <app-report-day-list [items]="items()" [showWallet]="showWallet()" />
-      } @else {
-        <p class="py-6 text-center text-sm text-muted-foreground">
-          {{ 'reports.excludedEmpty' | transloco }}
-        </p>
-      }
-    </div>
-  `,
+  templateUrl: './report-excluded-page.html',
 })
 export class ReportExcludedPage {
   protected reportService = inject(ReportService)

@@ -10,17 +10,7 @@ import type { UserIcon } from './user-icons'
   imports: [NgIcon],
   providers: [provideIcons(USER_ICONS)],
   host: { 'aria-hidden': 'true', class: 'inline-flex shrink-0' },
-  template: `
-    <span
-      class="flex items-center justify-center rounded-full"
-      [style.width.px]="size()"
-      [style.height.px]="size()"
-      [style.background-color]="fill()"
-      [style.color]="glyph()"
-    >
-      <ng-icon [name]="name()" [size]="iconSize()" />
-    </span>
-  `,
+  templateUrl: './icon-badge.html',
 })
 export class IconBadge {
   icon = input.required<string>()
