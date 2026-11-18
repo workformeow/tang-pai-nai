@@ -49,10 +49,44 @@ export class DebtService {
   canWrite = this.bookService.canWrite
   serverDown = this.bookService.serverDown
 
-  /** The open sheets (the debts pages render them). */
+  // ── The sheets (the debts pages render them) ───────────────────────────────
+
   sheet = signal<DebtSheetState | null>(null)
   entrySheet = signal<EntrySheetState | null>(null)
+  /** The debt being closed ("ปิดหนี้"), by id. */
   closeSheet = signal<string | null>(null)
+
+  /** The debt sheet: create, edit, fix. */
+  open(state: DebtSheetState): void {
+    this.sheet.set(state)
+  }
+
+  /** The entry sheet: repay or add, edit an entry or a repayment rule, fix. */
+  openEntry(state: EntrySheetState): void {
+    this.entrySheet.set(state)
+  }
+
+  /** "Fix" from the sync sheet: a rejected debt or entry op opens its sheet. */
+  openFix(opId: string): boolean {
+    const op = this.syncService.rejectedOp(opId)
+    if (op?.table === DEBT_TABLE) {
+      this.open({ mode: 'fix', opId })
+      return true
+    }
+    if (op?.table === DEBT_ENTRY_TABLE) {
+      this.openEntry({ mode: 'fix', opId })
+      return true
+    }
+    return false
+  }
+
+  /** The refused values of a rejected op of `table`. */
+  refused(opId: string, table: string): Record<string, unknown> | null {
+    const op = this.syncService.rejectedOp(opId)
+    return op?.table === table ? { ...op.row, id: op.rowId } : null
+  }
+
+  // ── The current book's debts ───────────────────────────────────────────────
 
   /** The current book's live debts with their sums, open ones by due date (none last). */
   items = computed<DebtItem[]>(() => {
@@ -122,6 +156,7 @@ export class DebtService {
       []
     )
   })
+
   openItems = computed(() => this.items().filter((item) => !item.closed))
   atLimit = computed(() => this.openItems().length >= DEBT_LIMITS.OPEN_PER_BOOK)
 
@@ -161,6 +196,9 @@ export class DebtService {
     )
   })
 
+  // ── One debt ───────────────────────────────────────────────────────────────
+
+  /** A debt of the current book with its sums. */
   item(id: string): DebtItem | null {
     return this.items().find((item) => item.debt.id === id) ?? null
   }
@@ -173,6 +211,7 @@ export class DebtService {
     }, null)
   }
 
+  /** A live entry of any book on this device. */
   entryById(id: string): DebtEntry | null {
     return this.read((db) => {
       const entry = findEntry(db, id)
@@ -255,6 +294,17 @@ export class DebtService {
       []
     )
   }
+
+  /** The category last used for a debt's interest on this device. */
+  interestCategory(debtId: string): string | null {
+    try {
+      return this.storage()?.getItem(`${DEBT_PREF_PREFIX}interest:${debtId}`) ?? null
+    } catch {
+      return null
+    }
+  }
+
+  // ── Writing a debt (debt rules 2, 3, 5, 13) ────────────────────────────────
 
   /**
    * A new debt and its principal (debt rule 3) in one write; with `plan`, its instalments as a
@@ -392,6 +442,8 @@ export class DebtService {
     })
   }
 
+  // ── Entries and closing (debt rules 3–5) ───────────────────────────────────
+
   /**
    * Creates (`id` null) or updates an entry of `debtId`; `interest` adds a counted transaction
    * linked to the debt in the same write (debt rule 5, Q5).
@@ -448,6 +500,7 @@ export class DebtService {
     this.setEntryDeleted(id, true)
   }
 
+  /** Undo of `removeEntry`. */
   restoreEntry(id: string): void {
     this.setEntryDeleted(id, false)
   }
@@ -508,43 +561,9 @@ export class DebtService {
     })
   }
 
-  /** The category last used for a debt's interest on this device. */
-  interestCategory(debtId: string): string | null {
-    try {
-      return this.storage()?.getItem(`${DEBT_PREF_PREFIX}interest:${debtId}`) ?? null
-    } catch {
-      return null
-    }
-  }
+  // ── Helpers ────────────────────────────────────────────────────────────────
 
-  open(state: DebtSheetState): void {
-    this.sheet.set(state)
-  }
-
-  openEntry(state: EntrySheetState): void {
-    this.entrySheet.set(state)
-  }
-
-  /** "Fix" from the sync sheet: a rejected debt or entry op opens its sheet. */
-  openFix(opId: string): boolean {
-    const op = this.syncService.rejectedOp(opId)
-    if (op?.table === DEBT_TABLE) {
-      this.open({ mode: 'fix', opId })
-      return true
-    }
-    if (op?.table === DEBT_ENTRY_TABLE) {
-      this.openEntry({ mode: 'fix', opId })
-      return true
-    }
-    return false
-  }
-
-  /** The refused values of a rejected op of `table`. */
-  refused(opId: string, table: string): Record<string, unknown> | null {
-    const op = this.syncService.rejectedOp(opId)
-    return op?.table === table ? { ...op.row, id: op.rowId } : null
-  }
-
+  /** A counted transaction linked to `debt` (interest, a forgiven rest), inside a write. */
   private writeTransaction(
     db: LocalDatabase,
     debt: Debt,
@@ -588,6 +607,7 @@ export class DebtService {
     return id ?? this.walletService.openOf(debt.bookId).at(0)?.id ?? ''
   }
 
+  /** An entry becomes a tombstone, or live again. */
   private setEntryDeleted(id: string, deleted: boolean): void {
     const now = Date.now()
     this.offlineService.write((db) => {
@@ -611,6 +631,7 @@ export class DebtService {
     }
   }
 
+  /** Lasting on a trusted device, for the tab's life on an untrusted one. */
   private storage(): Storage | null {
     try {
       return this.offlineService.isTrusted()
