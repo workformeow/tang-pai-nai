@@ -8,7 +8,7 @@ import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
  * The inside of every bottom sheet (DESIGN.md §6 Bottom sheet): a header with close (X) or back
  * (‹) on the left in a glass disc (`tpn-glass`), the right-hand icons in one glass capsule, the title in the centre and icon actions on the right (`[sheetActions]`), a
  * body that scrolls, and the main action pinned at the bottom (`[sheetFooter]`). Put it in a
- * `hlm-drawer-content class="mx-auto h-[92dvh] w-full max-w-[480px]
+ * `hlm-drawer-content class="mx-auto h-[92dvh] w-full max-w-120
  * data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"`: every sheet is the same near-full height,
  * so its main action always sits in the same place.
  */

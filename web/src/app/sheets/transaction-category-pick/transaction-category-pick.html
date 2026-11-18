@@ -32,7 +32,7 @@
                 (click)="picked.emit(item.id)"
               >
                 <app-icon-badge [icon]="item.icon" [color]="item.color" [fallback]="categoryIcon" />
-                <span class="line-clamp-2 w-full text-center text-xs break-words">{{
+                <span class="line-clamp-2 w-full text-center text-xs wrap-break-word">{{
                   item.name
                 }}</span>
               </button>

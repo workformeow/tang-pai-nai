@@ -28,7 +28,7 @@ choice that isn't decided yet is marked **Proposal** until the owner confirms it
 ## 2. Layout
 
 - **Design for 375 × 812 first.** Wider screens centre the same column at **max 480px**
-  (`mx-auto max-w-[480px]`). There's no tablet or desktop layout.
+  (`mx-auto max-w-120`). There's no tablet or desktop layout.
 - **App shell** (`layout/`, built in #3):
 
   | Part           | Size                                     | Notes                                       |

@@ -1,7 +1,7 @@
 <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="open.set(false)">
   <hlm-drawer-content
     *hlmDrawerPortal
-    class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
+    class="mx-auto h-[92dvh] w-full max-w-120 data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
   >
     <app-sheet-frame
       [title]="'sync.heading' | transloco"
@@ -80,7 +80,7 @@
                     <p class="text-sm text-muted-foreground">
                       {{ 'sync.table' + op.table | transloco }}
                     </p>
-                    <p class="text-base break-words">
+                    <p class="text-base wrap-break-word">
                       {{ summary(op.row) }}
                       @if (op.op === 'delete') {
                         {{ 'sync.deleted' | transloco }}
@@ -136,7 +136,7 @@
                       {{ 'sync.table' + notice.table | transloco }} ·
                       {{ 'sync.noticeText' | transloco }}
                     </p>
-                    <p class="text-base break-words">
+                    <p class="text-base wrap-break-word">
                       {{ summary(notice.previous) }}
                       @if (notice.previous['deletedAt']) {
                         {{ 'sync.deleted' | transloco }}
