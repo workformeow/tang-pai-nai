@@ -6,7 +6,7 @@ import { BookService } from '@/core/book'
 import th from '@/core/i18n/th.json'
 import { NetworkStatusService } from '@/core/network'
 import { SharingService } from '@/core/sharing'
-import { TransactionService } from '@/core/transaction'
+import { ActivityService, TransactionService } from '@/core/transaction'
 import type { ActivityItem, ActivityScope } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import { toDay } from '@/shared/utils'
@@ -75,13 +75,11 @@ describe('ActivityPage', () => {
       providers: [
         {
           provide: TransactionService,
-          useValue: {
-            activityScope: scope,
-            activity: () => lines(),
-            people,
-            today: signal(toDay()),
-            open,
-          },
+          useValue: { today: signal(toDay()), open },
+        },
+        {
+          provide: ActivityService,
+          useValue: { scope, list: () => lines(), people },
         },
         { provide: WalletService, useValue: { minorUnit: () => 2 } },
         {

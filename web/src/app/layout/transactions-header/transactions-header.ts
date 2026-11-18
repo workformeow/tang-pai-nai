@@ -27,6 +27,7 @@ import {
   PERIOD_UNITS,
   TransactionService,
   TransferService,
+  ActivityService,
 } from '@/core/transaction'
 import type { PeriodUnit } from '@/core/transaction'
 import { BookSwitcher } from '@/layout/book-switcher/book-switcher'
@@ -75,6 +76,7 @@ import { Slide } from '@/shared/components/slide'
 export class TransactionsHeader {
   protected bookService = inject(BookService)
   protected transactionService = inject(TransactionService)
+  protected activityService = inject(ActivityService)
   private transferService = inject(TransferService)
   protected reportService = inject(ReportService)
   private languageService = inject(LanguageService)
@@ -160,7 +162,7 @@ export class TransactionsHeader {
   /** "เหลือ n วัน" on the menu item in the last week of an ended share (shared-activity rule 7). */
   protected activityLeft = computed(() => {
     this.languageService.language()
-    const scope = this.transactionService.activityScope()
+    const scope = this.activityService.scope()
     const days = scope?.ended ? activityDaysLeft(scope.expiresAt) : null
     return days === null || days > 7 ? null : activityLeftText(days, this.t)
   })

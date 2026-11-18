@@ -1,5 +1,7 @@
 export * from './activity'
+export * from './activity.service'
 export * from './transaction.service'
+export { signedAmount, toTransfer } from './transaction-rows'
 export * from './transaction.type'
 export * from './period'
 export * from './quick-amounts'

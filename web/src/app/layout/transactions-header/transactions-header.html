@@ -116,7 +116,7 @@
             />
           </button>
         }
-        @if (view() === 'transactions' && transactionService.activityScope()) {
+        @if (view() === 'transactions' && activityService.scope()) {
           <!-- Shared activity (rule 7): after the recurring rules, while the book has any. -->
           <button
             type="button"

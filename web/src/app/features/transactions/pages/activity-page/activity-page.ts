@@ -13,6 +13,7 @@ import {
   activityLeftText,
   signedAmount,
   TransactionService,
+  ActivityService,
 } from '@/core/transaction'
 import type { ActivityItem } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
@@ -53,6 +54,7 @@ interface ActivityDay {
 })
 export class ActivityPage {
   private transactionService = inject(TransactionService)
+  private activityService = inject(ActivityService)
   private walletService = inject(WalletService)
   private bookService = inject(BookService)
   private sharingService = inject(SharingService)
@@ -67,15 +69,15 @@ export class ActivityPage {
   private asked = new Set<string>()
 
   private items = computed<ActivityItem[]>(() => {
-    const scope = this.transactionService.activityScope()
-    return scope ? this.transactionService.activity(scope) : []
+    const scope = this.activityService.scope()
+    return scope ? this.activityService.list(scope) : []
   })
   protected hasMore = computed(() => this.items().length > this.limit())
 
   /** The ended-share line: "ดูกิจกรรมได้ถึง <date>", with the days left in the last week. */
   protected ended = computed(() => {
     this.languageService.language()
-    const scope = this.transactionService.activityScope()
+    const scope = this.activityService.scope()
     if (!scope?.ended || scope.expiresAt === null) {
       return null
     }
@@ -92,7 +94,7 @@ export class ActivityPage {
   protected days = computed<ActivityDay[]>(() => {
     this.languageService.language()
     const locale = this.languageService.locale()
-    const people = this.transactionService.people()
+    const people = this.activityService.people()
     const today = this.transactionService.today()
     const yesterday = toDay(new Date(Date.now() - 24 * 60 * 60 * 1000))
     const dayLabel = new Intl.DateTimeFormat(locale, {

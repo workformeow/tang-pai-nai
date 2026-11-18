@@ -32,6 +32,7 @@ import {
   periodLabel,
   TransactionService,
   TransferService,
+  ActivityService,
 } from '@/core/transaction'
 import type { EntryItem, PeriodTab } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
@@ -77,6 +78,7 @@ import { formatAmount, formatMoney } from '@/shared/utils'
 export class TransactionsPage {
   protected transactionService = inject(TransactionService)
   private transferService = inject(TransferService)
+  private activityService = inject(ActivityService)
   protected recurringService = inject(RecurringService)
   private walletService = inject(WalletService)
   private bookService = inject(BookService)
@@ -346,8 +348,7 @@ export class TransactionsPage {
     }
     const me = this.authStore.user()?.id ?? null
     const ownerId = this.bookService.shared()?.owner.id ?? me
-    const name = (id: string) =>
-      this.transactionService.people().get(id) ?? this.t('sharing.member')
+    const name = (id: string) => this.activityService.people().get(id) ?? this.t('sharing.member')
     const { action, actor } = latestAction(item, ownerId, me)
     if (action === 'edited' && actor) {
       return this.t('activity.editedBy', { name: name(actor) })

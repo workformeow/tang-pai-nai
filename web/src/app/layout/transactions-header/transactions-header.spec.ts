@@ -9,7 +9,7 @@ import { SyncService } from '@/core/offline'
 import type { SyncStatus } from '@/core/offline'
 import { ReportService } from '@/core/report'
 import type { ReportUnit } from '@/core/report'
-import { TransactionService, TransferService } from '@/core/transaction'
+import { ActivityService, TransactionService, TransferService } from '@/core/transaction'
 import type { ActivityScope, PeriodUnit, TransferSheetState } from '@/core/transaction'
 import { TransactionsHeader } from './transactions-header'
 
@@ -25,7 +25,6 @@ describe('TransactionsHeader', () => {
     customSheet,
     unit,
     selectUnit: (next: PeriodUnit) => unit.set(next),
-    activityScope,
   }
 
   const reportUnit = signal<ReportUnit>('month')
@@ -71,6 +70,7 @@ describe('TransactionsHeader', () => {
       ],
       providers: [
         { provide: TransactionService, useValue: transactions },
+        { provide: ActivityService, useValue: { scope: activityScope } },
         { provide: ReportService, useValue: reports },
         {
           provide: TransferService,

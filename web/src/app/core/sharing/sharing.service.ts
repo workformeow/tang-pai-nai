@@ -9,7 +9,7 @@ import { LiveService } from '@/core/live'
 import { NetworkStatusService } from '@/core/network'
 import { deleteOp, listOps, OfflineService, putRow, SyncService } from '@/core/offline'
 import type { LocalDatabase, SyncRow } from '@/core/offline'
-import { TransactionService } from '@/core/transaction'
+import { ActivityService } from '@/core/transaction'
 import type {
   OwnerSharing,
   ShareRole,
@@ -51,7 +51,7 @@ export class SharingService {
   private offlineService = inject(OfflineService)
   private syncService = inject(SyncService)
   private bookService = inject(BookService)
-  private transactionService = inject(TransactionService)
+  private activityService = inject(ActivityService)
   private transloco = inject(TranslocoService)
   private liveService = inject(LiveService)
   private window = inject(DOCUMENT).defaultView
@@ -268,7 +268,7 @@ export class SharingService {
         this.session.walletIds = walletIds
       }
     })
-    this.transactionService.addPeople(data.people)
+    this.activityService.addPeople(data.people)
     const shared = this.bookService.shared()
     if (shared) {
       this.bookService.shared.set({
@@ -355,11 +355,11 @@ export class SharingService {
     const data = (await this.api.get<OwnerSharing>(`/sharing/books/${bookId}`)).data as OwnerSharing
     this.owners.update((map) => new Map(map).set(bookId, data))
     // Sharing rule 15: the names behind "เพิ่มโดย …" on the owner's rows.
-    this.transactionService.addPeople(
+    this.activityService.addPeople(
       data.members.map((member) => ({ id: member.userId, displayName: member.displayName }))
     )
     // Shared-activity rule 1: which wallets the book's activity reaches, and whether it ended.
-    this.transactionService.setShares(
+    this.activityService.setShares(
       bookId,
       [...new Set(data.members.flatMap((member) => member.walletIds))],
       data.members.length
