@@ -61,7 +61,54 @@ export class WalletsPage {
   protected walletService = inject(WalletService)
   protected transferService = inject(TransferService)
   private debtService = inject(DebtService)
+  private bookService = inject(BookService)
+  private transactionService = inject(TransactionService)
+  private router = inject(Router)
+
+  /** A book shared with me is in use (sharing rule 10). */
+  protected shared = this.bookService.isShared
+  protected defaultIcon = WALLET_DEFAULT_ICON
+  /** A wallet in another currency shows its flag and code under the name (currency.md). */
+  protected defaultCurrency = DEFAULT_CURRENCY
   protected debtsRoute = DEBTS_ROUTE
+
+  // ── The total (rule 7; credit-card rule 6) ─────────────────────────────────
+
+  /** Rule 7: one line per currency; ฿0.00 while nothing counts. */
+  protected totals = computed(() => {
+    const locale = this.languageService.locale()
+    const totals = this.walletService.totals()
+    const lines =
+      totals.length > 0
+        ? totals
+        : [
+            {
+              currencyCode: this.walletService.defaultCurrency(),
+              minorUnit: this.walletService.minorUnit(this.walletService.defaultCurrency()),
+              amount: 0,
+            },
+          ]
+    return lines.map((line) => ({
+      ...line,
+      text: formatMoney(line.amount, line.currencyCode, line.minorUnit, locale),
+    }))
+  })
+
+  /** Credit-card rule 6 (Q1): the total less what the cards owe, while they owe something. */
+  protected afterCards = computed(() => {
+    const locale = this.languageService.locale()
+    const totals = this.walletService.totals()
+    return this.walletService.owedTotals().map((owed) => {
+      const total = totals.find((line) => line.currencyCode === owed.currencyCode)?.amount ?? 0
+      return {
+        currencyCode: owed.currencyCode,
+        text: formatMoney(total - owed.amount, owed.currencyCode, owed.minorUnit, locale),
+      }
+    })
+  })
+
+  // ── Debts (debt.md Q8–Q9) ──────────────────────────────────────────────────
+
   /** Open debts per direction: how many, overdue, what is left (one currency per line). */
   protected debtLines = computed(() => {
     const locale = this.languageService.locale()
@@ -93,36 +140,12 @@ export class WalletsPage {
   /** Any open debt either way; without one the card is a single row to the debts page. */
   protected hasDebts = computed(() => this.debtLines().some((line) => line.count > 0))
 
-  protected defaultIcon = WALLET_DEFAULT_ICON
-  /** A wallet in another currency shows its flag and code under the name (currency.md). */
-  protected defaultCurrency = DEFAULT_CURRENCY
-  private bookService = inject(BookService)
-  private transactionService = inject(TransactionService)
-  private router = inject(Router)
-  /** A book shared with me is in use (sharing rule 10). */
-  protected shared = this.bookService.isShared
-  protected ordering = signal(false)
-  protected showArchived = signal(false)
+  // ── The wallet list and its order mode ─────────────────────────────────────
 
-  /** Rule 7: one line per currency; ฿0.00 while nothing counts. */
-  protected totals = computed(() => {
-    const locale = this.languageService.locale()
-    const totals = this.walletService.totals()
-    const lines =
-      totals.length > 0
-        ? totals
-        : [
-            {
-              currencyCode: this.walletService.defaultCurrency(),
-              minorUnit: this.walletService.minorUnit(this.walletService.defaultCurrency()),
-              amount: 0,
-            },
-          ]
-    return lines.map((line) => ({
-      ...line,
-      text: formatMoney(line.amount, line.currencyCode, line.minorUnit, locale),
-    }))
-  })
+  /** Order mode: every open wallet, cards too, with a drag handle. */
+  protected ordering = signal(false)
+  /** The archived wallets, folded away until opened. */
+  protected showArchived = signal(false)
 
   /**
    * The wallet list: open wallets without the cards, which have their own section
@@ -132,6 +155,11 @@ export class WalletsPage {
     const open = this.walletService.openWallets()
     return this.ordering() ? open : open.filter((wallet) => !wallet.isCreditCard)
   })
+
+  /** Touch: press and hold the handle before dragging, so scrolling the list still works. */
+  protected dragDelay = { touch: 300, mouse: 0 }
+
+  // ── Credit cards (credit-card rule 6) ──────────────────────────────────────
 
   /** What the cards owe per currency, joined; null while they owe nothing. */
   protected owedText = computed(() => {
@@ -144,34 +172,22 @@ export class WalletsPage {
       : null
   })
 
-  /** Credit-card rule 6 (Q1): the total less what the cards owe, while they owe something. */
-  protected afterCards = computed(() => {
-    const locale = this.languageService.locale()
-    const totals = this.walletService.totals()
-    return this.walletService.owedTotals().map((owed) => {
-      const total = totals.find((line) => line.currencyCode === owed.currencyCode)?.amount ?? 0
-      return {
-        currencyCode: owed.currencyCode,
-        text: formatMoney(total - owed.amount, owed.currencyCode, owed.minorUnit, locale),
-      }
-    })
-  })
+  // ── Template actions ───────────────────────────────────────────────────────
 
-  protected owedOf(wallet: Wallet): string {
+  /** A wallet's balance in its currency. */
+  protected balanceText(wallet: Wallet): string {
     return formatMoney(
-      this.walletService.owed(wallet),
+      this.walletService.balance(wallet),
       wallet.currencyCode,
       this.walletService.minorUnit(wallet.currencyCode),
       this.languageService.locale()
     )
   }
 
-  /** Touch: press and hold the handle before dragging, so scrolling the list still works. */
-  protected dragDelay = { touch: 300, mouse: 0 }
-
-  protected balanceText(wallet: Wallet): string {
+  /** What a card owes, in its currency. */
+  protected owedOf(wallet: Wallet): string {
     return formatMoney(
-      this.walletService.balance(wallet),
+      this.walletService.owed(wallet),
       wallet.currencyCode,
       this.walletService.minorUnit(wallet.currencyCode),
       this.languageService.locale()
@@ -188,6 +204,7 @@ export class WalletsPage {
     this.walletService.open({ mode: 'edit', id: wallet.id })
   }
 
+  /** A drag ended: the wallet moves to where it was dropped. */
   protected drop(event: CdkDragDrop<unknown>): void {
     const wallet = this.walletService.openWallets().at(event.previousIndex)
     if (wallet) {
