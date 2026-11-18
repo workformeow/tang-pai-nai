@@ -35,6 +35,8 @@ const firstMatch = (userAgent: string, table: [RegExp, string][]): string | null
 /**
  * A short, human name for a user agent: browser and system ("Chrome · Android"). It's a hint for
  * the owner, not a security check: any client can send any user agent.
+ * e.g. Chrome on an Android phone → `{ name: 'Chrome · Android', kind: 'phone' }`, Safari on an iPad →
+ * `{ name: 'Safari · iPad', kind: 'tablet' }`, `deviceLabel(null)` → `{ name: null, kind: 'computer' }`
  */
 export const deviceLabel = (userAgent: string | null): DeviceLabel => {
   if (!userAgent) {

@@ -68,7 +68,11 @@ export const CURRENCY_FLAGS: Readonly<Record<string, string>> = {
   NZD: 'nz',
 }
 
-/** The flag's URL: `round` = the square file (drawn as a circle), `rect` = 4:3. */
+/**
+ * The flag's URL: `round` = the square file (drawn as a circle), `rect` = 4:3.
+ * e.g. `currencyFlagUrl('THB', 'round')` → `'/flags/1x1/th.svg'`,
+ * `currencyFlagUrl('JPY', 'rect')` → `'/flags/4x3/jp.svg'`, `currencyFlagUrl('XXX', 'round')` → `null`
+ */
 export const currencyFlagUrl = (code: string, shape: 'round' | 'rect'): string | null => {
   const flag = CURRENCY_FLAGS[code]
   return flag ? `/flags/${shape === 'round' ? '1x1' : '4x3'}/${flag}.svg` : null

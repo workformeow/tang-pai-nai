@@ -5,8 +5,9 @@ import type { ValidatorFn } from '@angular/forms'
 const THAI_MOBILE = /^[689]\d{8}$/
 
 /**
- * `081-234-5678`, `0812345678`, `+66 81 234 5678` or `66812345678` → `+66812345678`; anything
- * that isn't a Thai mobile number → `null`.
+ * A Thai mobile number as typed, in E.164; anything that isn't one → `null`.
+ * e.g. `normalizeThaiMobile('081-234-5678')` → `'+66812345678'`,
+ * `normalizeThaiMobile('+66 81 234 5678')` → `'+66812345678'`, `normalizeThaiMobile('021234567')` → `null`
  */
 export const normalizeThaiMobile = (raw: string): string | null => {
   const digits = raw.trim().replace(/[\s\-.()]/g, '')
@@ -21,7 +22,10 @@ export const normalizeThaiMobile = (raw: string): string | null => {
   return national !== null && THAI_MOBILE.test(national) ? `+66${national}` : null
 }
 
-/** `+66812345678` → `081-234-5678`, the Thai way (decided at the start of 4.4). */
+/**
+ * An E.164 Thai mobile number written the Thai way (decided at the start of 4.4).
+ * e.g. `formatThaiMobile('+66812345678')` → `'081-234-5678'`
+ */
 export const formatThaiMobile = (e164: string): string => {
   const national = `0${e164.replace(/^\+66/, '')}`
   return national.length === 10

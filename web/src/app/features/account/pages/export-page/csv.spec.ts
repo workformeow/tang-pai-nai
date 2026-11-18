@@ -32,3 +32,24 @@ describe('csv', () => {
     expect(exportFileName('บ้าน / Home', '2026-11-09')).toBe('tangpainai-Home-2026-11-09.csv')
   })
 })
+
+describe('doc examples (csv.ts)', () => {
+  it('match the e.g. lines', () => {
+    expect(csvText('=1+1')).toBe("'=1+1")
+    expect(csvText('-50')).toBe("'-50")
+    expect(csvText('ข้าวเย็น')).toBe('ข้าวเย็น')
+    expect(csvField('a,b')).toBe('"a,b"')
+    expect(csvField('say "hi"')).toBe('"say ""hi"""')
+    expect(csvField('plain')).toBe('plain')
+    expect(
+      toCsv([
+        ['a', 'b,c'],
+        ['1', '2'],
+      ])
+    ).toBe('﻿a,"b,c"\r\n1,2\r\n')
+    expect(exportFileName('My Book 2026', '2026-11-18')).toBe(
+      'tangpainai-My-Book-2026-2026-11-18.csv'
+    )
+    expect(exportFileName('ส่วนตัว', '2026-11-18')).toBe('tangpainai-2026-11-18.csv')
+  })
+})

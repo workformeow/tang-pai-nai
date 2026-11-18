@@ -17,6 +17,10 @@ export interface PlanInput {
 /**
  * Debt rule 13: the plan as a monthly recurring rule, or null when there is none (no count, no
  * amount or no wallet).
+ * e.g. `toPlanValues({ count: 3, amount: '333.34', startOn: '2026-12-18', confirm: false,
+ * walletId: 'cash' }, 2)` → `{ repeat: { frequency: 'month', interval: 1, endOn: null,
+ * endCount: 3, confirm: false }, startOn: '2026-12-18', amount: 33334, walletId: 'cash' }`;
+ * `count: 0` → `null`
  */
 export const toPlanValues = (plan: PlanInput, minorUnit: number): PlanValues | null => {
   const amount = parseMajor(plan.amount || '0', minorUnit)
@@ -37,6 +41,9 @@ export const toPlanValues = (plan: PlanInput, minorUnit: number): PlanValues | n
   }
 }
 
-/** The instalment a plan starts with: the total split evenly over `count`, rounded up. */
+/**
+ * The instalment a plan starts with: the total split evenly over `count`, rounded up.
+ * e.g. `evenInstalment(100000, 3, 2)` → `'333.34'`, `evenInstalment(10000, 4, 0)` → `'2500'`
+ */
 export const evenInstalment = (totalMinor: number, count: number, minorUnit: number): string =>
   amountText(Math.ceil(totalMinor / count), minorUnit)

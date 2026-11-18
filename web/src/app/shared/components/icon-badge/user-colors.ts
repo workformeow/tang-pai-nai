@@ -28,7 +28,10 @@ const RENAMED_COLORS: Readonly<Record<string, string>> = {
   '#ea580c': '#c2410c',
 }
 
-/** The colour to draw for a stored `color` (an old palette colour becomes its darker one). */
+/**
+ * The colour to draw for a stored `color` (an old palette colour becomes its darker one).
+ * e.g. `userColor('#EA580C')` → `'#c2410c'`, `userColor('#2563eb')` → `'#2563eb'`
+ */
 export const userColor = (hex: string): string => RENAMED_COLORS[hex.toLowerCase()] ?? hex
 
 const channel = (hex: string, at: number): number => {
@@ -40,7 +43,11 @@ const channel = (hex: string, at: number): number => {
 const luminance = (hex: string): number =>
   0.2126 * channel(hex, 1) + 0.7152 * channel(hex, 3) + 0.0722 * channel(hex, 5)
 
-/** `#ffffff` or `#000000`, whichever has the higher contrast on `hex`. */
+/**
+ * `#ffffff` or `#000000`, whichever has the higher contrast on `hex`.
+ * e.g. `glyphColor('#2563eb')` → `'#ffffff'`, `glyphColor('#facc15')` → `'#000000'`,
+ * `glyphColor('blue')` → `'#ffffff'`
+ */
 export const glyphColor = (hex: string): string => {
   if (!/^#[0-9a-f]{6}$/i.test(hex)) {
     return '#ffffff'

@@ -9,6 +9,8 @@ const CATEGORIES = 'categories'
 /**
  * Category rule 13: a category is hidden in a wallet when its own id is listed, or its parent's
  * (hiding a parent hides its children, also ones added later).
+ * e.g. `isHiddenIn(['food'], { id: 'drinks', parentId: 'food' })` → `true`,
+ * `isHiddenIn(['food'], { id: 'rent', parentId: null })` → `false`
  */
 export const isHiddenIn = (
   hidden: readonly string[],

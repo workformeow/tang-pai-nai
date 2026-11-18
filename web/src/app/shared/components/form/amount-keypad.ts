@@ -77,6 +77,8 @@ export class AmountKeypad {
 /**
  * Rule 3 of transactions and transfers: the amount is 1 … `max` minor units, in the minor unit of
  * the wallet named by the sibling control `walletControl`.
+ * e.g. (2 decimals) `'120'` → `null`, `''` → `{ amountRequired: 'transactions.amountRequired' }`,
+ * `'1.234'` → `{ amountFormat: 'transactions.amountFormat' }`
  */
 export const amountValidator =
   (walletControl: string, minorUnitOf: (walletId: string) => number, max: number): ValidatorFn =>

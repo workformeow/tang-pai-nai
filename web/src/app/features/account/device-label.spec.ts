@@ -66,3 +66,15 @@ describe('deviceRow', () => {
     expect(deviceRow(session('2025-11-05T09:00:00Z'), 'en-GB', now).signedIn).toBe('5 Nov 2025')
   })
 })
+
+describe('doc examples (device-label.ts)', () => {
+  it('match the e.g. lines', () => {
+    expect(deviceLabel(UA.androidChrome)).toEqual({ name: 'Chrome · Android', kind: 'phone' })
+    expect(
+      deviceLabel(
+        'Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
+      )
+    ).toEqual({ name: 'Safari · iPad', kind: 'tablet' })
+    expect(deviceLabel(null)).toEqual({ name: null, kind: 'computer' })
+  })
+})
