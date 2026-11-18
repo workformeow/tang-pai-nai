@@ -13,7 +13,13 @@ const monthsBetween = (from: string, to: string): number =>
   (Number(to.slice(0, 4)) - Number(from.slice(0, 4))) * 12 +
   (Number(to.slice(5, 7)) - Number(from.slice(5, 7)))
 
-/** The day of occurrence `k` (0 = `startOn`); a missing day of the month is its last day. */
+// The e.g. lines use `monthly` = every month from `'2026-01-31'`, and `end3` = the same with
+// `endCount: 3`.
+
+/**
+ * The day of occurrence `k` (0 = `startOn`); a missing day of the month is its last day.
+ * e.g. `occurrenceOn(monthly, 1)` → `'2026-02-28'`, `occurrenceOn(monthly, 2)` → `'2026-03-31'`
+ */
 export const occurrenceOn = (schedule: RecurringSchedule, k: number): string => {
   const { startOn, frequency, interval } = schedule
   switch (frequency) {
@@ -28,7 +34,7 @@ export const occurrenceOn = (schedule: RecurringSchedule, k: number): string => 
   }
 }
 
-/** The index of the first occurrence on or after `day`. */
+/** The index of the first occurrence on or after `day`. e.g. `indexOnOrAfter(monthly, '2026-03-01')` → `2` */
 export const indexOnOrAfter = (schedule: RecurringSchedule, day: string): number => {
   if (day <= schedule.startOn) {
     return 0
@@ -49,18 +55,21 @@ export const indexOnOrAfter = (schedule: RecurringSchedule, day: string): number
   return k
 }
 
-/** Whether occurrence `k` is past the rule's end (rule 3). */
+/** Whether occurrence `k` is past the rule's end (rule 3). e.g. `isPastEnd(end3, 2)` → `false`, `isPastEnd(end3, 3)` → `true` */
 export const isPastEnd = (schedule: RecurringSchedule, k: number): boolean =>
   (schedule.endCount !== null && k >= schedule.endCount) ||
   (schedule.endOn !== null && occurrenceOn(schedule, k) > schedule.endOn)
 
-/** The first occurrence on or after `day` that the rule still has, or null (ended). */
+/**
+ * The first occurrence on or after `day` that the rule still has, or null (ended).
+ * e.g. `nextOnOrAfter(monthly, '2026-02-15')` → `'2026-02-28'`, `nextOnOrAfter(end3, '2026-04-01')` → `null`
+ */
 export const nextOnOrAfter = (schedule: RecurringSchedule, day: string): string | null => {
   const k = indexOnOrAfter(schedule, day)
   return isPastEnd(schedule, k) ? null : occurrenceOn(schedule, k)
 }
 
-/** The rule's last occurrence, when it has an end. */
+/** The rule's last occurrence, when it has an end. e.g. `lastOccurrence(end3)` → `'2026-03-31'`, `monthly` → `null` */
 export const lastOccurrence = (schedule: RecurringSchedule): string | null => {
   if (schedule.endCount !== null) {
     const day = occurrenceOn(schedule, schedule.endCount - 1)
@@ -73,7 +82,11 @@ export const lastOccurrence = (schedule: RecurringSchedule): string | null => {
   return null
 }
 
-/** The occurrences from `from` to `to` (both included), at most `max`. */
+/**
+ * The occurrences from `from` to `to` (both included), at most `max`.
+ * e.g. `occurrencesBetween(monthly, '2026-01-01', '2026-04-30', 10)` →
+ * `['2026-01-31', '2026-02-28', '2026-03-31', '2026-04-30']`; with `max` 2 → the first two
+ */
 export const occurrencesBetween = (
   schedule: RecurringSchedule,
   from: string,
