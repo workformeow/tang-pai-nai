@@ -73,7 +73,11 @@ const MINUTE = 60_000
 const HOUR = 60 * MINUTE
 const DAY = 24 * HOUR
 
-/** "5 minutes ago" / "5 นาทีที่ผ่านมา", in whole minutes, hours or days; `null` under a minute. */
+/**
+ * How long ago, in whole minutes, hours or days; `null` under a minute.
+ * e.g. (`en-GB`) 30 s before `now` → `null`, 5 min → `'5 minutes ago'`, 3 h 59 min →
+ * `'3 hours ago'`, 2 days → `'2 days ago'`
+ */
 export const relativeTime = (at: Date, now: number, locale: string): string | null => {
   const format = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
   const elapsed = now - at.getTime()
