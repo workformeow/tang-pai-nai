@@ -168,6 +168,13 @@ Lover's black and green.
   the incoming side `+1,000.00` in the income colour ("ได้รับจาก X"), on a muted ⇄ badge. They
   never count in รายรับ / รายจ่าย / สุทธิ or a day's net; the summary card adds a "โอน" line
   with their signed net when the view's transfers don't cancel out.
+- **The Transactions tab's summary card stays second to the list** (owner, 2026-11): people come
+  for the rows. Two columns: รายรับ | รายจ่าย on top, then how the expense was paid (เงินสด /
+  โอน, บัตรเครดิต; `text-xs`, muted, regular weight, a three-column grid so the amounts align
+  next to their words) | สุทธิ (semibold). No bars or charts there: Reports has them. A credit
+  card shows as a small chip in the card's own colour with a white card glyph, the same in the
+  summary and before a row's amount; the word stays in a text colour (a user colour is never
+  text). Several currencies get chips (ทั้งหมด + flag and code) instead of stacked cards.
 - **Totals in different currencies** are shown one line per currency, never added together,
   in the book's wallet order, each line led by the currency's **flag and code** (`app-currency-flag`,
   a static SVG; never an emoji flag) because "$" and "¥" are shared (currency.md rules 6, 8).

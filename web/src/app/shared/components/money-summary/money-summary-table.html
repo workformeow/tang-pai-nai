@@ -1,0 +1,38 @@
+<section
+  class="rounded-xl border border-border bg-card px-4 py-2"
+  [attr.aria-label]="'transactions.summary' | transloco"
+>
+  <table class="w-full text-sm tabular-nums">
+    <thead>
+      <tr class="text-xs text-muted-foreground">
+        <th scope="col" class="py-1 text-left font-normal">
+          <span class="sr-only">{{ 'wallets.currency' | transloco }}</span>
+        </th>
+        <th scope="col" class="py-1 text-right font-normal">
+          {{ 'categories.income' | transloco }}
+        </th>
+        <th scope="col" class="py-1 text-right font-normal">
+          {{ 'categories.expense' | transloco }}
+        </th>
+        <th scope="col" class="py-1 text-right font-normal">
+          {{ 'transactions.net' | transloco }}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (line of lines(); track line.currencyCode) {
+        <tr class="border-t border-border">
+          <th scope="row" class="py-1.5 pr-2 text-left font-semibold">
+            <span class="flex items-center gap-1.5">
+              <app-currency-flag class="h-3.5 w-5" [code]="line.currencyCode" />
+              {{ line.currencyCode }}
+            </span>
+          </th>
+          <td class="py-1.5 text-right" [class.text-income]="line.hasIncome">{{ line.income }}</td>
+          <td class="py-1.5 text-right text-expense">{{ line.expense }}</td>
+          <td class="py-1.5 text-right font-semibold">{{ line.net }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</section>

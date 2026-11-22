@@ -194,6 +194,8 @@ export interface MoneySummary {
   transfer: number
   /** Debt entries in − out of the wallets in view (debt → Web screens: the "หนี้" line). */
   debt: number
+  /** The part of `expense` paid from credit cards (credit-card.md: the summary's split). */
+  cardExpense: number
 }
 
 /** Which transaction sheet is open: create, edit, or "fix" of a rejected op. */

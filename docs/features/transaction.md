@@ -109,7 +109,8 @@ never stored (ROADMAP → Money & data).
     - Archiving a wallet or category changes nothing for its transactions: they stay in the list,
       the totals and the balance.
 11. **Month summary** for a month and a set of wallets: `income` = Σ amount of income-type rows,
-    `expense` = Σ amount of expense-type rows, `net` = income − expense. All three leave out
+    `expense` = Σ amount of expense-type rows, `net` = income − expense, `cardExpense` = the
+    part of `expense` from credit cards (credit-card.md rule 10). All of them leave out
     `excludeFromReport` rows and are **one line per currency** when the wallets span several.
     **All wallets** ("ทุกกระเป๋า", decided at the start of #8) = the book's wallets **without**
     `excludeFromTotal`, and credit cards ([credit-card.md](credit-card.md) rule 2), archived
@@ -182,10 +183,17 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
     อนาคต = rows after this month), `31/10/2026 · เมื่อวาน · วันนี้`, `19/10 – 25/10/2026 ·
 สัปดาห์ที่แล้ว · สัปดาห์นี้`, `Q2 2026 …`, `2024 · ปีที่แล้ว · ปีนี้`; a sideways swipe over the list
     moves period. Only the chosen period's rows show;
-  - the summary card: รายรับ left, รายจ่าย right, สุทธิ under them (signed, one card per currency);
+  - the summary card: รายรับ top left, รายจ่าย top right, สุทธิ under รายจ่าย (signed); under
+    รายรับ, on "ทุกกระเป๋า" while both kinds were spent, how the expense was paid: เงินสด / โอน
+    and บัตรเครดิต (credit-card.md rule 10), small and muted, the amounts aligned. More than one
+    currency: chips over it (ทั้งหมด, then flag + code per currency, as Reports) choose one
+    currency's card, the first to start with, or ทั้งหมด, a table of one row per currency
+    (รายรับ · รายจ่าย · สุทธิ); the chips choose the summary only, the list keeps every row
+    (owner, 2026-11: five stacked cards pushed the list off the screen);
   - a card per day, newest first: the date large (`02`), วันนี้ / เมื่อวาน / the weekday over
     the month and year (ค.ศ.), the day's net right; rows: the category badge (with the wallet's
-    20px badge on its corner on "ทุกกระเป๋า" only), the category name (a transfer: two rows,
+    20px badge on its corner on "ทุกกระเป๋า" only, and a credit card's mark before the amount,
+    credit-card.md rule 10), the category name (a transfer: two rows,
     transfer.md → Web screens), the user's note under it
     (nothing when empty), "รอ sync" as a small cloud line, the signed amount right in income /
     expense colour without the currency symbol (it comes back when the rows mix currencies);

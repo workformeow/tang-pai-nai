@@ -34,16 +34,17 @@ import {
   TransferService,
   ActivityService,
 } from '@/core/transaction'
-import type { EntryItem, PeriodTab } from '@/core/transaction'
+import type { EntryItem, MoneySummary, PeriodTab } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import { DueSheet } from '@/features/transactions/components/due-sheet'
 import { EntryRow } from '@/features/transactions/components/entry-row'
 import { UpcomingRow } from '@/features/transactions/components/upcoming-row'
 import { addDayTotals, addUpcoming, groupByDay } from '@/features/transactions/day-groups'
 import type { DayContext, DayGroup } from '@/features/transactions/day-groups'
+import { CurrencyFlag } from '@/shared/components/currency-flag'
 import { EmptyState } from '@/shared/components/empty-state'
-import { MoneySummaryCard } from '@/shared/components/money-summary'
-import type { MoneySummaryLine } from '@/shared/components/money-summary'
+import { MoneySummaryCard, MoneySummaryTable } from '@/shared/components/money-summary'
+import type { MoneySplit, MoneySummaryRow } from '@/shared/components/money-summary'
 import { PeriodStrip, Swipe } from '@/shared/components/period'
 import { Slide } from '@/shared/components/slide'
 import { formatAmount, formatMoney } from '@/shared/utils'
@@ -62,6 +63,8 @@ import { formatAmount, formatMoney } from '@/shared/utils'
     HlmButton,
     EmptyState,
     MoneySummaryCard,
+    MoneySummaryTable,
+    CurrencyFlag,
     PeriodStrip,
     Swipe,
     Slide,
@@ -184,8 +187,22 @@ export class TransactionsPage {
   // ── The period: its summary and its days ───────────────────────────────────
 
   /** Rule 11 per currency; signed figures without the symbol (Money Lover style). */
-  protected summary = computed<(MoneySummaryLine & { currencyCode: string })[]>(() => {
+  protected summary = computed<MoneySummaryRow[]>(() => {
     const locale = this.languageService.locale()
+    // "ทุกกระเป๋า" only, and only when both kinds were spent: one colour would say nothing.
+    const allWallets = this.transactionService.viewWallet() === null
+    const card = this.walletService.cards().at(0)
+    const split = (line: MoneySummary): MoneySplit | null => {
+      const own = line.expense - line.cardExpense
+      if (!allWallets || !card || line.cardExpense <= 0 || own <= 0) {
+        return null
+      }
+      return {
+        own: formatAmount(-own, line.minorUnit, locale, true),
+        card: formatAmount(-line.cardExpense, line.minorUnit, locale, true),
+        cardColor: card.color,
+      }
+    }
     return this.transactionService.summaryLines().map((line) => ({
       currencyCode: line.currencyCode,
       hasIncome: line.income > 0,
@@ -194,7 +211,26 @@ export class TransactionsPage {
       net: formatAmount(line.net, line.minorUnit, locale, true),
       transfer: line.transfer ? formatAmount(line.transfer, line.minorUnit, locale, true) : null,
       debt: line.debt ? formatAmount(line.debt, line.minorUnit, locale, true) : null,
+      split: split(line),
     }))
+  })
+  /**
+   * The summary's currency chip (owner 2026-11, like Reports): one currency's card, or 'all' for
+   * the compact table. Chips show only with more than one currency (so on "ทุกกระเป๋า").
+   */
+  /** A currency code, `'all'`, or null for the first currency. */
+  protected summaryCurrency = signal<string | null>(null)
+  protected summaryChoice = computed(() => {
+    const lines = this.summary()
+    const chosen = this.summaryCurrency()
+    if (chosen === 'all' && lines.length > 1) {
+      return 'all'
+    }
+    return lines.find((line) => line.currencyCode === chosen) ?? lines.at(0) ?? null
+  })
+  protected summaryLine = computed(() => {
+    const choice = this.summaryChoice()
+    return choice === 'all' ? null : choice
   })
   /** The period's rows (one page of them at a time) grouped by day, newest first. */
   protected days = computed<DayGroup[]>(() => {
@@ -333,7 +369,14 @@ export class TransactionsPage {
       },
       walletOf: (id) => {
         const wallet = showWallet ? wallets.get(id) : undefined
-        return wallet ? { icon: wallet.icon, color: wallet.color, name: wallet.name } : null
+        return wallet
+          ? {
+              icon: wallet.icon,
+              color: wallet.color,
+              name: wallet.name,
+              isCreditCard: wallet.isCreditCard,
+            }
+          : null
       },
     }
   }

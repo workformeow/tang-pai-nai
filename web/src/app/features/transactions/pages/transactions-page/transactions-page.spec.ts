@@ -330,6 +330,122 @@ describe('TransactionsPage', () => {
     expect(element().textContent).not.toContain('ยอดค้าง')
   })
 
+  describe('cash / transfer vs credit card (owner 2026-11)', () => {
+    const summaryCard = () =>
+      element().querySelector(`section[aria-label="${th.transactions.summary}"]`)
+    const cardMarks = (row: Element) =>
+      row.querySelectorAll(`[role="img"][aria-label="${th.wallets.creditCard}"]`)
+
+    beforeEach(() => {
+      put('wallets', {
+        id: 'visa',
+        bookId: 'p1',
+        name: 'Visa',
+        currencyCode: 'THB',
+        initialBalance: 0,
+        icon: 'lucideCreditCard',
+        color: '#2563eb',
+        isCreditCard: true,
+        excludeFromTotal: true,
+        isArchived: false,
+        sortOrder: 2,
+      })
+    })
+
+    it('marks card rows before the amount and splits the expense, on "ทุกกระเป๋า" only', async () => {
+      transaction('a', { note: 'cash row', amount: 45000 })
+      transaction('b', { note: 'card row', amount: 500000, walletId: 'visa' })
+      await settle()
+      const byNote = (note: string) => rows().find((row) => row.textContent.includes(note))!
+      expect(cardMarks(byNote('card row'))).toHaveLength(1)
+      expect(cardMarks(byNote('cash row'))).toHaveLength(0)
+      const summary = summaryCard()?.textContent ?? ''
+      expect(summary).toContain(th.transactions.spendCash)
+      expect(summary).toContain('-450.00')
+      expect(summary).toContain(th.transactions.spendCard)
+      expect(summary).toContain('-5,000.00')
+
+      transactions.selectWallet('visa')
+      await settle()
+      expect(cardMarks(rows()[0])).toHaveLength(0)
+      expect(summaryCard()?.textContent).not.toContain(th.transactions.spendCash)
+    })
+
+    it('leaves the split out when only one kind was spent', async () => {
+      transaction('a', { amount: 45000 })
+      await settle()
+      expect(summaryCard()?.textContent).not.toContain(th.transactions.spendCash)
+    })
+  })
+
+  describe('currency chips over the summary (owner 2026-11)', () => {
+    const tabs = () =>
+      [...element().querySelectorAll<HTMLButtonElement>('[role="tab"]')].filter((tab) =>
+        tab.closest(`[aria-label="${th.wallets.currency}"]`)
+      )
+
+    beforeEach(() => {
+      putRow(db, 'currencies', {
+        code: 'JPY',
+        minorUnit: 0,
+        isActive: true,
+        sortOrder: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        changeSeq: 1,
+      })
+      put('wallets', {
+        id: 'yen',
+        bookId: 'p1',
+        name: 'yen',
+        currencyCode: 'JPY',
+        initialBalance: 0,
+        icon: 'lucideWallet',
+        color: '#16a34a',
+        excludeFromTotal: false,
+        isArchived: false,
+        sortOrder: 2,
+      })
+    })
+
+    it('shows one currency at a time, or all of them in a table', async () => {
+      transaction('a', { amount: 6500 })
+      transaction('b', { amount: 1200, walletId: 'yen' })
+      await settle()
+      expect(tabs().map((tab) => tab.textContent.trim())).toEqual([
+        th.transactions.allCurrencies,
+        'THB',
+        'JPY',
+      ])
+      // The first currency to start with.
+      expect(tabs()[1].getAttribute('aria-selected')).toBe('true')
+      expect(element().querySelectorAll('app-money-summary-card')).toHaveLength(1)
+      expect(element().querySelector('app-money-summary-card')?.textContent).toContain('-65.00')
+
+      tabs()[2].click()
+      await settle()
+      expect(element().querySelector('app-money-summary-card')?.textContent).toContain('-1,200')
+
+      tabs()[0].click()
+      await settle()
+      expect(element().querySelector('app-money-summary-card')).toBeNull()
+      const table = element().querySelectorAll('app-money-summary-table tbody tr')
+      expect([...table].map((tr) => tr.querySelector('th')?.textContent.trim())).toEqual([
+        'THB',
+        'JPY',
+      ])
+    })
+
+    it('has no chips with one currency in view', async () => {
+      transaction('a', { amount: 6500 })
+      transaction('b', { amount: 1200, walletId: 'yen' })
+      transactions.selectWallet('cash')
+      await settle()
+      expect(tabs()).toEqual([])
+      expect(element().querySelectorAll('app-money-summary-card')).toHaveLength(1)
+    })
+  })
+
   describe('recurring (docs/features/recurring.md)', () => {
     const rule = (id: string, extra: object = {}) =>
       put('recurring_rules', {
