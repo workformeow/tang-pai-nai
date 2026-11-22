@@ -590,7 +590,7 @@ Web only, no API change. Owner's choices after trying the app on a phone.
 - **The account tab is ตั้งค่า / Settings**: not โปรไฟล์ (then a data set, now สมุด) nor บัญชี (a bank
   account). Its icon is still `lucideCircleUser`.
 - **Number keypad** (transaction.md → Web screens): `app-calc-keypad` lost ÷ × − + and "=":
-  7 8 9 ⌫ / 4 5 6 C / 1 2 3 ✓ / 000 0 . in 44px rows, in every sheet that uses it
+  7 8 9 ⌫ / 4 5 6 C / 1 2 3 ✓ / 0 000 . in 44px rows, in every sheet that uses it
   (transaction, transfer, debt, repayment); ✓ closes it, and it slides up and down
   (`animate.enter` / `animate.leave` on its host, +2 kB gzip to the initial bundle). The
   calculator covered the form, and its "=" read as the save button. A quick amount now adds into the number (`500` → `600`), and a hardware

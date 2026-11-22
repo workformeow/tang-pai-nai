@@ -215,7 +215,7 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
     other control of the form is used (a row, the date, เพิ่มเติม; 8.2); a
     hardware keyboard types into it (digits, `.`, Backspace, Enter / Esc to close). **Numbers
     only** (owner, 2026-11, after trying it on a phone): 7 8 9 ⌫ / 4 5 6 C / 1 2 3 ✓ /
-    000 0 . in four rows; its top sits a little under the date row and the keys grow to fill
+    0 000 . in four rows; its top sits a little under the date row and the keys grow to fill
     the rest of the sheet, so it looks the same in the browser and the home-screen app (owner,
     2026-11; keys at least 44px, the keypad at most 460px tall); ✓ ("เสร็จ" to a screen reader) closes it, like a phone's number
     pad. It slides up as it opens and down as it closes (a fade under reduced motion). 8.1's calculator (÷ × − + and "=", from the Money Lover

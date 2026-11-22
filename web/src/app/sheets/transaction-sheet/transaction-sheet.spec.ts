@@ -367,8 +367,8 @@ describe('TransactionSheet', () => {
       '2',
       '3',
       th.keypad.done,
-      '000',
       '0',
+      '000',
       th.keypad.point,
     ])
     await keys('4', '2')
