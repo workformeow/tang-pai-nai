@@ -337,6 +337,7 @@ export class ReportService {
           net: 0,
           transfer: 0,
           debt: 0,
+          cardExpense: 0,
         })
       }
     }

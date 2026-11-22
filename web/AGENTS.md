@@ -461,7 +461,7 @@ values, fixOpId?, bookId?)` (remembers the wallet: `defaultWalletId()`), `remove
   `TransactionService.entries(range, walletIds)`: `list` merged in order with
   `transferSides` (each side in view is a `TransferItem` with `kind: 'transfer'` and `side`
   `out` | `in`, the outgoing one first). `MoneySummary.transfer` is the view's transfer net (in −
-  out; 0 for `null` wallets). Code that walks `items()` checks `kind`.
+  out; 0 for `null` wallets); `cardExpense` the expense from credit cards. Code that walks `items()` checks `kind`.
 - `core/wallet` and `core/category` read the `transactions` (and `core/wallet` the
   `transfers`) table **by name** (`TRANSACTION_TABLE`, `TRANSFER_TABLE` in `wallet.type.ts`),
   because `core/transaction` builds on them. Balances and `hasTransactions` count both sides of
@@ -479,7 +479,9 @@ values, fixOpId?, bookId?)` (remembers the wallet: `defaultWalletId()`), `remove
   `IntersectionObserver` sentinel; the list carries `[appSlide]="tabIndex()"` from
   `shared/components/slide`, which slides it in from the side of the chosen period (Web
   Animations, a fade only under reduced motion; the page host has `overflow-x-clip` for it); its summary card is `shared/components/money-summary`
-  (`app-money-summary-card`, also used by a shared wallet's page, so the two never drift). ➕
+  (`app-money-summary-card`, also used by a shared wallet's page, so the two never drift; its
+  `split` is the cash / card line, credit-card.md rule 10; with several currencies the page puts
+  currency chips over it and `app-money-summary-table` for ทั้งหมด). ➕
   opens the sheet (`BottomTabBar.add()`); "fix" goes to
   `/transactions?fix=<opId>` (the page asks both services; each opens only its own table's op).
   `sheets/transfer-sheet` (views `form` / `pick` (from or to) / `note`) is

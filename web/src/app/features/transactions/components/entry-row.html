@@ -118,10 +118,22 @@
     }
   </span>
   <span
-    class="shrink-0 text-right text-base tabular-nums"
+    class="flex shrink-0 items-center gap-1.5 text-right text-base tabular-nums"
     [class.text-income]="row().positive"
     [class.text-expense]="!row().positive"
   >
+    @if (card(); as card) {
+      <!-- Paid by credit card, on "ทุกกระเป๋า" (owner 2026-11: tell card spending from cash). -->
+      <span
+        class="flex h-4.5 w-6 items-center justify-center rounded-sm"
+        role="img"
+        [style.background-color]="card.fill"
+        [style.color]="card.glyph"
+        [attr.aria-label]="'wallets.creditCard' | transloco"
+      >
+        <ng-icon name="lucideCreditCard" size="14" aria-hidden="true" />
+      </span>
+    }
     {{ row().amount }}
   </span>
 </button>

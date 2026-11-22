@@ -405,18 +405,19 @@ export class TransactionService {
     }
     const sums = new Map<
       string,
-      { income: number; expense: number; transfer: number; debt: number }
+      { income: number; expense: number; transfer: number; debt: number; cardExpense: number }
     >()
-    const empty = () => ({ income: 0, expense: 0, transfer: 0, debt: 0 })
+    const empty = () => ({ income: 0, expense: 0, transfer: 0, debt: 0, cardExpense: 0 })
     const rows = this.read(
       (db) =>
         db.selectObjects(
-          `SELECT w.currency_code AS currency, c.type AS type, sum(t.amount) AS total
+          `SELECT w.currency_code AS currency, c.type AS type, w.is_credit_card AS card,
+             sum(t.amount) AS total
            FROM ${TRANSACTION_TABLE} t
            JOIN ${CATEGORY_TABLE} c ON c.id = t.category_id
            JOIN ${WALLET_TABLE} w ON w.id = t.wallet_id
            WHERE ${where.sql} AND t.exclude_from_report = 0
-           GROUP BY w.currency_code, c.type`,
+           GROUP BY w.currency_code, c.type, w.is_credit_card`,
           where.params
         ),
       []
@@ -424,7 +425,13 @@ export class TransactionService {
     for (const row of rows) {
       const code = String(row['currency'])
       const sum = sums.get(code) ?? empty()
-      sum[row['type'] === 'income' ? 'income' : 'expense'] += Number(row['total'])
+      const total = Number(row['total'])
+      if (row['type'] === 'income') {
+        sum.income += total
+      } else {
+        sum.expense += total
+        sum.cardExpense += row['card'] ? total : 0
+      }
       sums.set(code, sum)
     }
     // Transfer rule 5: never income or expense; their net in view explains the balance.
@@ -441,7 +448,7 @@ export class TransactionService {
     }
     return [...sums.entries()]
       .sort(([a], [b]) => this.walletService.compareCurrency(a, b))
-      .map(([currencyCode, { income, expense, transfer, debt }]) => ({
+      .map(([currencyCode, { income, expense, transfer, debt, cardExpense }]) => ({
         currencyCode,
         minorUnit: this.walletService.minorUnit(currencyCode),
         income,
@@ -449,6 +456,7 @@ export class TransactionService {
         net: income - expense,
         transfer,
         debt,
+        cardExpense,
       }))
   }
 

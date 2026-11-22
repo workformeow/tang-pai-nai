@@ -111,6 +111,27 @@ decision "Local-first").
 
 ---
 
+## Done: Cash vs credit card on the Transactions tab (2026-11)
+
+Web only, no API change (`isCreditCard` came with #18). Owner: in the family's spreadsheet it
+was hard to tell what was paid by card; mock-ups A–C, A1–A3, S1–S2 and K1–K3 were tried, A2 and
+K1b kept.
+
+- **Rows** (A2): on "ทุกกระเป๋า" a row in a credit card carries a small chip in the card's colour
+  with a card glyph before its amount (`RowWallet.isCreditCard`, `EntryRow.card`); the row keeps
+  its height. Upcoming rows don't (yet).
+- **Summary card** (K1b): รายรับ | รายจ่าย, then เงินสด / โอน and บัตรเครดิต (small, muted,
+  aligned) | สุทธิ; only on "ทุกกระเป๋า" while both kinds were spent
+  (`MoneySummary.cardExpense` from the same aggregate, `MoneySplit`). An 8px bar was tried first
+  and dropped: it outshone the list.
+- **Currency chips**: with more than one currency, ทั้งหมด + flag and code over the summary
+  (like Reports); one currency's card, the first to start with, or `app-money-summary-table`
+  for ทั้งหมด. They choose the summary only.
+- **Tests**: `summary()`'s `cardExpense`, the card's split and the table
+  (`money-summary.spec.ts`), the page's card marks, split and chips.
+
+---
+
 ## Done: Note in two taps (2026-11)
 
 Web only, no API change. Owner: adding a note took four taps (the row, the box, the keyboard's

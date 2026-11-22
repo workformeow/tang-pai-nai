@@ -30,7 +30,7 @@ const context: DayContext = {
   today: '2026-11-18',
   t: (key) => key,
   money: (minor, code) => `${code} ${minor}`,
-  walletOf: (id) => ({ icon: 'wallet', color: '#000', name: id }),
+  walletOf: (id) => ({ icon: 'wallet', color: '#000', name: id, isCreditCard: false }),
 }
 const about = () => ({ pending: false, touchedBy: null })
 

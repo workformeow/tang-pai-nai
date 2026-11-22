@@ -9,6 +9,8 @@ export interface RowWallet {
   icon: string
   color: string
   name: string
+  /** A credit card (credit-card.md): the row shows a card mark before its amount. */
+  isCreditCard: boolean
 }
 
 /** One stored row of a day: a transaction, a side of a transfer or a debt entry. */

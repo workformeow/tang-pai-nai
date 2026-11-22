@@ -241,6 +241,7 @@ describe('TransactionService', () => {
         net: 49000,
         transfer: 0,
         debt: 0,
+        cardExpense: 0,
       },
       {
         currencyCode: 'USD',
@@ -250,7 +251,22 @@ describe('TransactionService', () => {
         net: -700,
         transfer: 0,
         debt: 0,
+        cardExpense: 0,
       },
+    ])
+  })
+
+  it('counts the expense paid from credit cards apart, for the summary card', () => {
+    wallet('visa', { isCreditCard: true, excludeFromTotal: true })
+    transaction('a', { amount: 1000 })
+    transaction('b', { amount: 2500, walletId: 'visa' })
+    transaction('c', { amount: 300, walletId: 'visa', excludeFromReport: true })
+    transaction('d', { amount: 40000, walletId: 'visa', categoryId: 'salary' })
+    expect(service.summary(november)).toEqual([
+      expect.objectContaining({ income: 40000, expense: 3500, cardExpense: 2500 }),
+    ])
+    expect(service.summary(november, ['cash'])).toEqual([
+      expect.objectContaining({ expense: 1000, cardExpense: 0 }),
     ])
   })
 

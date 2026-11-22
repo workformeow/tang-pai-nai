@@ -69,6 +69,13 @@ a bill is paid with **one transfer** from a counted wallet to the card.
 9. **Shared wallets** (#16): a member sees the card like any shared wallet; it counts in no total
    of theirs (sharing rule as today). The server sends a member `isCreditCard: false`, so the
    member gets no card section, banner or pay sheet.
+10. **Transactions tab, "ทุกกระเป๋า"** (owner, 2026-11: tell card spending from cash, as the
+    family's spreadsheet did): a row in a card carries a small card mark (the card's colour, a
+    white card glyph, "บัตรเครดิต" to a screen reader) before its amount, on the same line, so
+    rows keep their height; the summary card splits the expense into **เงินสด / โอน** (every
+    other wallet) and **บัตรเครดิต** under the income, each signed, quieter than the net
+    (transaction.md rule 11). The split shows only while both kinds were spent in the period;
+    one wallet in view shows neither (all its rows are the same kind).
 
 ## Endpoints
 
@@ -82,6 +89,7 @@ None: the column travels through `/sync/push` and `/sync/pull` (`SyncWalletRow`)
 - **Wallets tab**: rule 6 (mock-up frame 1).
 - **Pay sheet**: rule 4 (frame 3); its title is "ชำระบัตร", the destination row isn't a picker.
 - **Card in the Transactions tab**: rule 7 (frame 4).
+- **Cards on "ทุกกระเป๋า"**: rule 10 (the row's card mark, A2; the summary's split, K1b).
 - **Transfer sheet chip**: rule 5 (frame 6).
 
 ## Interactions
