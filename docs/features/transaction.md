@@ -207,15 +207,17 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
     (opens the picker view: the chosen wallet's open, non-hidden categories of the type,
     children in their parent's tinted panel; a type with none left says so and opens the
     wallet's "หมวดหมู่ที่ใช้" over the form, category rule 13; switching type or wallet drops a
-    category that no longer fits), note (opens its own view with a tall box and a 500 counter;
-    ‹ keeps the text), date (‹ › a day, the middle opens the native date picker);
+    category that no longer fits), note (opens its own view with a tall box and a 500 counter, the
+    text focused so the keyboard is already up; the keyboard's return key reads "done" and
+    goes back to the form, as does leaving the text; Shift + Enter still starts a line; ‹ keeps
+    the text), date (‹ › a day, the middle opens the native date picker);
   - "ไม่รวมในรายงาน" folded under **เพิ่มเติม** (open by itself for a row that has it on);
   - the **number keypad** (`app-calc-keypad`) belongs to the amount row: it opens by itself
     when adding (not when editing) and on a tap on the amount, and closes on ✓ or when any
     other control of the form is used (a row, the date, เพิ่มเติม; 8.2); a
     hardware keyboard types into it (digits, `.`, Backspace, Enter / Esc to close). **Numbers
     only** (owner, 2026-11, after trying it on a phone): 7 8 9 ⌫ / 4 5 6 C / 1 2 3 ✓ /
-    000 0 . in four rows; its top sits a little under the date row and the keys grow to fill
+    0 000 . in four rows; its top sits a little under the date row and the keys grow to fill
     the rest of the sheet, so it looks the same in the browser and the home-screen app (owner,
     2026-11; keys at least 44px, the keypad at most 460px tall); ✓ ("เสร็จ" to a screen reader) closes it, like a phone's number
     pad. It slides up as it opens and down as it closes (a fade under reduced motion). 8.1's calculator (÷ × − + and "=", from the Money Lover

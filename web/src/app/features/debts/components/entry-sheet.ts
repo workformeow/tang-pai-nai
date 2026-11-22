@@ -1,4 +1,12 @@
-import { Component, computed, effect, inject, signal, untracked } from '@angular/core'
+import {
+  ApplicationRef,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import type { ValidatorFn } from '@angular/forms'
@@ -86,6 +94,7 @@ type StartState<M extends EntrySheetState['mode']> = Extract<EntrySheetState, { 
   templateUrl: './entry-sheet.html',
 })
 export class DebtEntrySheet {
+  private appRef = inject(ApplicationRef)
   private nnfb = inject(NonNullableFormBuilder)
   private transloco = inject(TranslocoService)
   protected languageService = inject(LanguageService)
@@ -289,6 +298,15 @@ export class DebtEntrySheet {
   // ── Template actions ───────────────────────────────────────────────────────
 
   /** Another row: the keypad closes. */
+  /**
+   * The note row. The view renders at once, inside the tap, so its text field takes the focus
+   * in the same tap: iOS Safari brings the keyboard up only for a focus made there.
+   */
+  protected openNote(): void {
+    this.pick('note')
+    this.appRef.tick()
+  }
+
   protected pick(view: 'wallet' | 'category' | 'note'): void {
     this.keypad.close()
     this.view.set(view)

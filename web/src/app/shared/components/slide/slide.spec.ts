@@ -4,10 +4,11 @@ import { Slide } from './slide'
 
 @Component({
   imports: [Slide],
-  template: `<div class="area" [appSlide]="place()"></div>`,
+  template: `<div class="area" [appSlide]="place()" [appSlideStill]="still()"></div>`,
 })
 class Host {
   place = signal(1)
+  still = signal(false)
 }
 
 describe('Slide', () => {
@@ -19,7 +20,8 @@ describe('Slide', () => {
     const view = element.ownerDocument.defaultView!
     view.matchMedia = vi.fn(() => ({ matches: reduced }) as MediaQueryList)
     fixture.detectChanges()
-    const go = (place: number) => {
+    const go = (place: number, still = false) => {
+      fixture.componentInstance.still.set(still)
       fixture.componentInstance.place.set(place)
       fixture.detectChanges()
     }
@@ -55,6 +57,17 @@ describe('Slide', () => {
     go(-1)
     go(0)
     expect(animate).not.toHaveBeenCalled()
+  })
+
+  it('shows a still view in place, and slides again on the way back', () => {
+    const { animate, go } = setup()
+    go(2, true)
+    expect(animate).not.toHaveBeenCalled()
+    go(1)
+    expect(animate).toHaveBeenLastCalledWith(
+      [{ opacity: 0, transform: 'translateX(-48px)' }, expect.objectContaining({ opacity: 1 })],
+      expect.anything()
+    )
   })
 
   it('only fades under reduced motion', () => {

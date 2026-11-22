@@ -1,4 +1,12 @@
-import { Component, computed, effect, inject, signal, untracked } from '@angular/core'
+import {
+  ApplicationRef,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { Router } from '@angular/router'
@@ -122,6 +130,7 @@ type StartState<M extends TransactionSheetState['mode']> = Extract<
   templateUrl: './transaction-sheet.html',
 })
 export class TransactionSheet {
+  private appRef = inject(ApplicationRef)
   private nnfb = inject(NonNullableFormBuilder)
   private transloco = inject(TranslocoService)
   private router = inject(Router)
@@ -386,6 +395,15 @@ export class TransactionSheet {
   // ── Template actions: rows and pickers ────────────────────────────────────
 
   /** Another row: the expression settles and the keypad closes, as in Money Lover. */
+  /**
+   * The note row. The view renders at once, inside the tap, so its text field takes the focus
+   * in the same tap: iOS Safari brings the keyboard up only for a focus made there.
+   */
+  protected openNote(): void {
+    this.pick('note')
+    this.appRef.tick()
+  }
+
   protected pick(view: Exclude<View, 'form'>): void {
     this.keypad.close()
     this.view.set(view)

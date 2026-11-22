@@ -182,7 +182,8 @@ Mock-up frames in brackets. Where (Q9): the Wallets tab's card and the ⋮ menu 
 - **Debt form** (3, 4), a sheet "เพิ่มรายการยืม" / "เพิ่มรายการให้ยืม" (following its own ยืมมา | ให้ยืม choice; the toast
   too: "บันทึกรายการยืมแล้ว") / "แก้ไขหนี้": tabs ยืมมา | ให้ยืม, then the card:
   person (free text with the names used before), amount (keypad), wallet "เงินเข้ากระเป๋า" /
-  "จ่ายจากกระเป๋า" (a category "ค่างวดเป็นรายจ่ายหมวด" for `repaid`), note, date; "นับเป็นรายจ่าย"
+  "จ่ายจากกระเป๋า" (a category "ค่างวดเป็นรายจ่ายหมวด" for `repaid`), note (the transaction
+  form's note view, in both debt sheets), date; "นับเป็นรายจ่าย"
   (two radio rows, borrowed only); "ผ่อนเป็นงวด" (the repeat view of #12 plus a count); under
   "เพิ่มเติม" "กำหนดคืน". Editing changes person, note, due date only (amounts are entries);
   delete in the header (12).

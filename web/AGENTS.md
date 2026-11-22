@@ -907,7 +907,7 @@ initialValue })`.
   | ----------------------- | ----------------------- | --------------------------------------------- |
   | `app-input-field`       | `FormControl<string>`   | text / email / tel / url / search             |
   | `app-password-field`    | `FormControl<string>`   | password with show/hide                       |
-  | `app-textarea-field`    | `FormControl<string>`   | multi-line note                               |
+  | `app-textarea-field`    | `FormControl<string>`   | multi-line note (`autofocus`, `doneOnEnter`)  |
   | `app-select-field`      | `FormControl<T \| ''>`  | short fixed list (native picker on phones)    |
   | `app-otp-field`         | `FormControl<string>`   | 6-digit code (`one-time-code`; `hideLabel`)   |
   | `app-switch-field`      | `FormControl<boolean>`  | on/off setting row                            |

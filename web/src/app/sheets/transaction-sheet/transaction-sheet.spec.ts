@@ -191,6 +191,26 @@ describe('TransactionSheet', () => {
     expect(toastState.toasts()).toEqual([])
   })
 
+  it("focuses the note within the tap, and the keyboard's done goes back to the form", async () => {
+    await open({ mode: 'create' })
+    button('บันทึกช่วยจำ', true)?.click()
+    // No settle: iOS brings the keyboard up only for a focus made inside the tap itself.
+    const note = document.activeElement
+    expect(note).toBeInstanceOf(HTMLTextAreaElement)
+    expect(note?.getAttribute('enterkeyhint')).toBe('done')
+    if (!(note instanceof HTMLTextAreaElement)) {
+      return
+    }
+    note.value = 'ลาเต้เย็น'
+    note.dispatchEvent(new Event('input'))
+    const enter = new KeyboardEvent('keydown', { key: 'Enter', cancelable: true })
+    note.dispatchEvent(enter)
+    await settle()
+    expect(enter.defaultPrevented).toBe(true)
+    expect(body().querySelector('textarea')).toBeNull()
+    expect(button('บันทึกช่วยจำ ลาเต้เย็น')).toBeDefined()
+  })
+
   it('needs an amount above 0 and a category before saving', async () => {
     await open({ mode: 'create' })
     await submit()
@@ -367,8 +387,8 @@ describe('TransactionSheet', () => {
       '2',
       '3',
       th.keypad.done,
-      '000',
       '0',
+      '000',
       th.keypad.point,
     ])
     await keys('4', '2')

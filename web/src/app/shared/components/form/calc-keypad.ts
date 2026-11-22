@@ -139,8 +139,8 @@ export class CalcKeypad {
     { key: '2', kind: 'digit' },
     { key: '3', kind: 'digit' },
     { key: '=', icon: 'lucideCheck', label: 'keypad.done', kind: 'done' },
-    { key: '000', kind: 'digit' },
     { key: '0', kind: 'digit' },
+    { key: '000', kind: 'digit' },
     { key: '.', label: 'keypad.point', kind: 'digit' },
   ]
 

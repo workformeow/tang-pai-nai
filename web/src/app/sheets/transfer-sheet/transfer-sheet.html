@@ -5,7 +5,11 @@
     class="mx-auto h-[92dvh] w-full max-w-120 overflow-x-clip data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
     (keydown)="keypad.onKey($event, view() === 'form')"
   >
-    <div class="flex min-h-0 flex-1 flex-col" [appSlide]="depth()">
+    <div
+      class="flex min-h-0 flex-1 flex-col"
+      [appSlide]="depth()"
+      [appSlideStill]="view() === 'note'"
+    >
       @switch (view()) {
         @case ('form') {
           <form [formGroup]="form" class="flex min-h-0 flex-1 flex-col" (ngSubmit)="save()">
@@ -191,7 +195,7 @@
                     type="button"
                     class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
                     [attr.aria-label]="('transactions.note' | transloco) + ' ' + note()"
-                    (click)="pick('note')"
+                    (click)="openNote()"
                   >
                     <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
                       <ng-icon name="lucideTextAlignStart" size="22" aria-hidden="true" />
@@ -321,6 +325,9 @@
           >
             <app-textarea-field
               [control]="f.note"
+              [autofocus]="true"
+              [doneOnEnter]="true"
+              (done)="view.set('form')"
               [label]="'transactions.note' | transloco"
               [hideLabel]="true"
               [rows]="10"

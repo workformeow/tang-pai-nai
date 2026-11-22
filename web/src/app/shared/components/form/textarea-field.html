@@ -1,12 +1,16 @@
 <div hlmField>
   <label hlmFieldLabel [class.sr-only]="hideLabel()">{{ label() }}</label>
   <textarea
+    #textarea
     hlmTextarea
     [formControl]="control()"
     [rows]="rows()"
     [style.min-height.lh]="rows()"
     [placeholder]="placeholder()"
     [attr.maxlength]="maxLength()"
+    [attr.enterkeyhint]="doneOnEnter() ? 'done' : null"
+    (keydown)="onKeydown($event)"
+    (blur)="onBlur()"
   ></textarea>
   @if (hint()) {
     <p hlmFieldDescription class="-mt-2">{{ hint() }}</p>
