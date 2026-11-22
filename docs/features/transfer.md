@@ -102,7 +102,8 @@ None of its own: table `transfers` in `/sync/pull` and `/sync/push` (OpenAPI
   รายรับ only): the same frame (DESIGN.md §6), title "โอนเงิน" / "แก้ไขการโอน", one card of rows:
   **from wallet** (with its ยอดเงิน), a **⇅ swap** button, **to wallet** (with its ยอดเงิน; only
   wallets of the from wallet's currency, never the same one), amount (keypad, quick amounts),
-  note, date. No category, no เพิ่มเติม. Errors: "เลือกกระเป๋าปลายทางก่อน", "ใส่จำนวนเงินที่มากกว่า
+  note (the transaction form's note view: focused at once, the keyboard's done goes back),
+  date. No category, no เพิ่มเติม. Errors: "เลือกกระเป๋าปลายทางก่อน", "ใส่จำนวนเงินที่มากกว่า
   0". Choosing the to wallet as the from wallet (or one of another currency) empties the to
   wallet. The pickers are a view in the same sheet, each wallet with its balance and "ไม่รวมใน
   ยอดรวม" when it has it. The keypad belongs to the amount row, as in the transaction form.

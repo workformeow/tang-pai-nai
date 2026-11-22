@@ -19,6 +19,12 @@ const EASE_OUT = 'cubic-bezier(0.2, 0, 0, 1)'
 export class Slide {
   /** The content's place in its row, e.g. the chosen period tab's index. */
   appSlide = input.required<number>()
+  /**
+   * Shows the content in place, without motion, while true: a view whose text field takes the
+   * focus as it opens (iOS draws the caret where the field ends up, so a moving field flickers;
+   * the keyboard coming up is the motion then). Leaving it still slides.
+   */
+  appSlideStill = input(false)
 
   private element = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement
   private last: number | null = null
@@ -27,9 +33,14 @@ export class Slide {
   constructor() {
     effect(() => {
       const place = this.appSlide()
+      const still = this.appSlideStill()
       const last = this.last
       this.last = place
       if (last === null || last < 0 || place < 0 || place === last) {
+        return
+      }
+      if (still) {
+        this.running?.cancel()
         return
       }
       this.play(place > last ? 1 : -1)

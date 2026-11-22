@@ -111,6 +111,23 @@ decision "Local-first").
 
 ---
 
+## Done: Note in two taps (2026-11)
+
+Web only, no API change. Owner: adding a note took four taps (the row, the box, the keyboard's
+OK, ‹); now the row opens it with the keyboard up and the keyboard's done goes back.
+
+- **Note view** (transaction, transfer, debt and repayment sheets): `app-textarea-field` takes
+  `autofocus` and `doneOnEnter` (the return key reads "done"; Enter or leaving the text emits
+  `done`; Shift + Enter and a composing Enter type; leaving while the app is in the background
+  doesn't count). The row's `openNote()` renders the view inside the tap (`ApplicationRef.tick()`),
+  so the focus lands there and iOS Safari brings the keyboard up (a hidden proxy input was tried
+  first and didn't). The view shows in place (`appSlideStill` on `appSlide`): a sliding field
+  flickered on iOS, its caret drawn where the field ends up.
+- **Checked** on an iPhone (owner) and in a desktop browser. **Tests**: `textarea-field.spec.ts`,
+  the slide's still case, the transaction sheet's focus-in-the-tap and done; web 843 → 850.
+
+---
+
 ## Done: Web clean-code refactor (WR, 2026-11)
 
 Built 2026-11-17 / 18 on `refactor/web-cleancode`, one commit per step, each checked in the app

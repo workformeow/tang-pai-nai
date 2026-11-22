@@ -207,8 +207,10 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
     (opens the picker view: the chosen wallet's open, non-hidden categories of the type,
     children in their parent's tinted panel; a type with none left says so and opens the
     wallet's "หมวดหมู่ที่ใช้" over the form, category rule 13; switching type or wallet drops a
-    category that no longer fits), note (opens its own view with a tall box and a 500 counter;
-    ‹ keeps the text), date (‹ › a day, the middle opens the native date picker);
+    category that no longer fits), note (opens its own view with a tall box and a 500 counter, the
+    text focused so the keyboard is already up; the keyboard's return key reads "done" and
+    goes back to the form, as does leaving the text; Shift + Enter still starts a line; ‹ keeps
+    the text), date (‹ › a day, the middle opens the native date picker);
   - "ไม่รวมในรายงาน" folded under **เพิ่มเติม** (open by itself for a row that has it on);
   - the **number keypad** (`app-calc-keypad`) belongs to the amount row: it opens by itself
     when adding (not when editing) and on a tap on the amount, and closes on ✓ or when any

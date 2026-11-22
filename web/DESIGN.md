@@ -224,7 +224,9 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   adding. **Quick amounts** (8.2) are a chip row on top of the keypad's panel (`20 · 50 · 100 ·
 500 · 1,000`, a tap adds; THB wallets only, #23), switched off in Account › การแสดงผล; with
   a 0-digit currency the "." key is off. The note is its own view
-  (‹ back keeps the text), so it can be long. There are no type tabs on the form (2026-11): the
+  (‹ back keeps the text), so it can be long. It opens with the text focused and the keyboard
+  up, and the keyboard's return key reads "done" and goes back to the form (so does leaving
+  the text, e.g. the iOS keyboard's ✓): one tap in, one tap out (owner, 2026-11). There are no type tabs on the form (2026-11): the
   category picker holds รายจ่าย / รายรับ tabs and the category sets the type, Money Lover
   style. Editing shows copy and delete in the header. The category picker starts with a "ใช้บ่อย" row (up to 4 badges with names, in a card) over the
   tree.
@@ -465,7 +467,10 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   (`appSlide`, `shared/components/slide`; the Transactions tab first). The views inside a sheet
   do the same by depth, like a navigation stack (owner, 2026-11): opening a picker or a step
   (wallet, category, note, a confirm) slides it in from the right, and ‹ or a pick that goes
-  back slides the earlier view in from the left. Pages work the same way (owner, 2026-11): the
+  back slides the earlier view in from the left. The one exception is a view whose text field
+  takes the focus as it opens (the note): it shows in place and the keyboard coming up is the
+  motion, because iOS draws the caret where the field ends up and a sliding field flickers
+  (`appSlideStill`); going back from it still slides. Pages work the same way (owner, 2026-11): the
   header's ‹ goes back to the page it was opened from (not always its parent), a page opened
   deeper inside the tab slides in from the right, and ‹ brings the earlier one back from the
   left. Switching bottom tabs has
