@@ -150,6 +150,13 @@ describe('createDrizzleSyncRepository', () => {
     expect(await repo.findOp('op-2')).not.toBeNull()
   })
 
+  it('deletes only the history entries made before the cutoff', async () => {
+    await repo.addHistory(history({ id: 'h1', changeSeq: 20, createdAt: 5 }))
+    await repo.addHistory(history({ id: 'h2', changeSeq: 30, createdAt: 50 }))
+    expect(await repo.deleteHistoryBefore(10)).toBe(1)
+    expect((await repo.notices(ALICE, PHONE, 0, 100)).map((notice) => notice.id)).toEqual(['h2'])
+  })
+
   it('gives notices only to the loser, not the overwriting device, within the cursor range', async () => {
     await repo.addHistory(history({ id: 'h1', changeSeq: 20 }))
     await repo.addHistory(history({ id: 'h2', changeSeq: 30 }))

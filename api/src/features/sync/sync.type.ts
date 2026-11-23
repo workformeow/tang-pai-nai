@@ -8,4 +8,6 @@ export interface SyncPushData {
 export interface SyncCleanupData {
   tombstones: number
   ops: number
+  /** `change_history` entries older than the retention. */
+  history: number
 }

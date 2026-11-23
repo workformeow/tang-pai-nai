@@ -5,15 +5,7 @@ import { authService } from './index'
 
 // Rule 20, run as `npm run auth:cleanup` by hand; on Vercel, Cron calls `GET /auth/cleanup` daily.
 try {
-  const removed = await authService.cleanup()
-  logger.info(
-    LOG.AUTH.cleanedUp(
-      removed.challenges,
-      removed.sessions,
-      removed.rateLimitBuckets,
-      removed.demoUsers
-    )
-  )
+  logger.info(LOG.AUTH.cleanedUp(await authService.cleanup()))
 } finally {
   client.close()
 }

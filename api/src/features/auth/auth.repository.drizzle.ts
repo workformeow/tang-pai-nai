@@ -572,10 +572,16 @@ export const createDrizzleAuthRepository = (db: Executor): AuthRepository => {
           .delete(rateLimitBuckets)
           .where(lt(rateLimitBuckets.windowStart, before))
           .returning({ key: rateLimitBuckets.key })
+        // Sharing only drops expired invites when the book invites again, so stale ones stay here.
+        const invites = await db
+          .delete(walletInvites)
+          .where(lt(walletInvites.expiresAt, before.getTime()))
+          .returning({ id: walletInvites.id })
         return {
           challenges: challenges.length,
           sessions: ended.length,
           rateLimitBuckets: buckets.length,
+          invites: invites.length,
         }
       }),
   }

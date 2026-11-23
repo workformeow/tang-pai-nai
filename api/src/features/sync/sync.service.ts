@@ -520,8 +520,11 @@ export const createSyncService = ({
     return { changes, notices, cursor, hasMore, tables: handlers.map((handler) => handler.table) }
   }
 
-  /** Rule 9: purge old tombstones and op records; a cursor below the watermark answers 410. */
-  const cleanup = async (): Promise<{ tombstones: number; ops: number }> => {
+  /**
+   * Rule 9: purge old tombstones, op records and conflict history; a cursor below the watermark
+   * answers 410, so no device can pull a notice that old any more.
+   */
+  const cleanup = async (): Promise<{ tombstones: number; ops: number; history: number }> => {
     const before = clock() - SYNC_LIMITS.RETENTION_MS
     let tombstones = 0
     let maxSeq = 0
@@ -536,7 +539,8 @@ export const createSyncService = ({
       await syncRepo.raisePurgedSeq(maxSeq)
     }
     const ops = await syncRepo.deleteOpsBefore(before)
-    return { tombstones, ops }
+    const history = await syncRepo.deleteHistoryBefore(before)
+    return { tombstones, ops, history }
   }
 
   return { push, pull, cleanup }

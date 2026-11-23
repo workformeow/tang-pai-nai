@@ -52,7 +52,7 @@ export const createSyncController = (syncService: SyncService) => {
   const cleanup = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const data: SyncCleanupData = await syncService.cleanup()
-      logger.info(LOG.SYNC.cleanedUp(data.tombstones, data.ops))
+      logger.info(LOG.SYNC.cleanedUp(data))
       const response = createResponse(SUCCESS.OK, data)
       res.status(HttpStatus.OK).json(response)
     } catch (error) {

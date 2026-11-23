@@ -139,6 +139,8 @@ export interface CleanupResult {
   challenges: number
   sessions: number
   rateLimitBuckets: number
+  /** Wallet invites nobody answered before they expired; they hold someone's email. */
+  invites: number
   /** Demo users past their 24 hours (demo rule 13). */
   demoUsers: number
 }

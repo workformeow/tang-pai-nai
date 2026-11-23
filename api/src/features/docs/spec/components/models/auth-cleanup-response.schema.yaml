@@ -10,7 +10,7 @@ properties:
     example: '2026-01-01T00:00:00.000Z'
   data:
     type: object
-    required: [challenges, sessions, rateLimitBuckets, demoUsers]
+    required: [challenges, sessions, rateLimitBuckets, invites, demoUsers]
     properties:
       challenges:
         type: integer
@@ -21,6 +21,10 @@ properties:
       rateLimitBuckets:
         type: integer
         example: 40
+      invites:
+        type: integer
+        description: Wallet invites more than 7 days past expiry (they hold someone's email)
+        example: 1
       demoUsers:
         type: integer
         description: Demo users created more than 24 hours ago, deleted with all their data

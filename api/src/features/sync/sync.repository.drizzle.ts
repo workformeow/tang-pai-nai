@@ -144,6 +144,15 @@ export const createDrizzleSyncRepository = (
         return removed.length
       }),
 
+    deleteHistoryBefore: async (before) =>
+      run('deleteHistoryBefore', async () => {
+        const removed = await db
+          .delete(changeHistory)
+          .where(lt(changeHistory.createdAt, before))
+          .returning({ id: changeHistory.id })
+        return removed.length
+      }),
+
     walletAccess: async (userId, walletId) =>
       run('walletAccess', async () => walletAccess(db, userId, walletId), { walletId }),
     sharedBookOf: async (walletId) =>

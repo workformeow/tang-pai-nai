@@ -112,6 +112,6 @@ export interface AuthRepository {
   /** Demo rule 13: deletes demo users created before `createdBefore`; returns how many. */
   deleteExpiredDemos(createdBefore: Date): Promise<number>
 
-  /** Deletes challenges, sessions and buckets that ended before `before`. */
+  /** Deletes challenges, sessions, buckets and wallet invites that ended before `before`. */
   deleteExpired(before: Date): Promise<Omit<CleanupResult, 'demoUsers'>>
 }

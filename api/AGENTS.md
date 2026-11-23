@@ -234,8 +234,8 @@ transactions) reads that table from `@/core/database/schema`, never the other fe
   `0009_purge_sync_probe_history.sql`); never edit the generated schema migration for it.
 - **Master data** registers `pull` only (pushes answer `READ_ONLY`); its rows come from a
   migration that also raises `sync_state.last_seq` (see `0005_currency_seed.sql`).
-- **Cleanup**: `npm run sync:cleanup` purges tombstones and `sync_ops` older than 90 days and
-  raises `purgedSeq` (a pull below it answers `410 CURSOR_EXPIRED`).
+- **Cleanup**: `npm run sync:cleanup` purges tombstones, `sync_ops` and `change_history` older
+  than 90 days and raises `purgedSeq` (a pull below it answers `410 CURSOR_EXPIRED`).
 - **Testing**: the service on `createMemorySyncRepository()` (any table name; `checks` and
   `shared` options) with a local `createSyncRegistry()`; handlers on a temporary SQLite file with
   the committed migrations (`book.repository.drizzle.test.ts`; `wallet.repository.drizzle.test.ts`
@@ -259,8 +259,8 @@ handler. **Editors write through sync** (below).
   and raw `sql` for the joins; a wallet a member may see is live, open and on a live book
   (`VISIBLE` in the adapter). A balance is computed there like the web's `WalletService`.
 - `wallet_invites` and `wallet_members` are server only. Invites match the verified
-  `users.email` when read; expired rows are ignored by every query and deleted on the next
-  invite. Rate limits use their own `hitRateLimit` on `rate_limit_buckets` (same SQL as auth's;
+  `users.email` when read; expired rows are ignored by every query, deleted on the next invite,
+  and by auth's daily cleanup 7 days after they expire (`authRepo.deleteExpired`). Rate limits use their own `hitRateLimit` on `rate_limit_buckets` (same SQL as auth's;
   the global mail cap shares auth's `email:global:day` key).
 - Every lookup a caller may not see answers `404` (`NotFoundError`), never `403`.
 - **Editors** (16.2, sharing rules 11–14): `features/sync` asks `walletAccess`
@@ -599,8 +599,9 @@ REAUTH_REQUIRED`. Revoking sessions needs an active session but no recent auth (
   new route that mails, texts, changes a credential or shares gets it too. Sync caps a demo at
   `SYNC_LIMITS.DEMO_ROWS` live rows (`demoRowCount`, `core/database`; a create past it is
   `DEMO_LIMIT`). `DELETE /auth/demo` deletes at once; `cleanup` deletes demos older than 24 hours.
-- **Cleanup**: `npm run auth:cleanup` deletes challenges, sessions and buckets that ended over 7
-  days ago, and demo users older than 24 hours (a Vercel Cron endpoint replaces it at deploy, #17).
+- **Cleanup**: `npm run auth:cleanup` deletes challenges, sessions, buckets and wallet invites
+  that ended over 7 days ago, and demo users older than 24 hours; on Vercel, Cron calls
+  `GET /auth/cleanup` daily (#17).
 - **Testing auth**: services use `createMemoryAuthRepository()` and `breachChecker:
 skipBreachCheck` (tests never call HIBP; `vitest.config.ts` also sets
   `PASSWORD_BREACH_CHECK=off`); HTTP tests build an app with

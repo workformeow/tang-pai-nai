@@ -687,9 +687,7 @@ export const createAuthController = (authService: AuthService, config: AuthContr
   const cleanup = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const data: CleanupResult = await authService.cleanup()
-      logger.info(
-        LOG.AUTH.cleanedUp(data.challenges, data.sessions, data.rateLimitBuckets, data.demoUsers)
-      )
+      logger.info(LOG.AUTH.cleanedUp(data))
       const response = createResponse(SUCCESS.OK, data)
       res.status(HttpStatus.OK).json(response)
     } catch (error) {

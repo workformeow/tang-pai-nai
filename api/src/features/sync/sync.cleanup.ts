@@ -14,8 +14,7 @@ import { syncService } from './index'
 
 // Rule 9, run as `npm run sync:cleanup` by hand; on Vercel, Cron calls `GET /sync/cleanup` daily.
 try {
-  const removed = await syncService.cleanup()
-  logger.info(LOG.SYNC.cleanedUp(removed.tombstones, removed.ops))
+  logger.info(LOG.SYNC.cleanedUp(await syncService.cleanup()))
 } finally {
   client.close()
 }

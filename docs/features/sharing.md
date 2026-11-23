@@ -52,7 +52,8 @@ Schema: `api/src/core/database/schema/sharing.ts` (invites) and `wallet.ts` (mem
    **10-minute** cooldown per invite for resend, and every send counts toward
    `EMAIL_DAILY_LIMIT`. A refused send creates nothing.
 5. An invite **expires after 14 days** (resend doesn't extend it). Expired rows are ignored
-   everywhere and deleted on the next invite write (no cleanup job).
+   everywhere, deleted on the next invite write, and deleted by the daily auth cleanup 7 days
+   after they expire ([auth.md](auth.md) rule 20), so an unanswered address doesn't stay.
 6. A signed-in user sees the pending invites addressed to their **verified** email (exact,
    case-insensitive), wherever they signed in from. Nothing joins until they **accept**; decline
    deletes the invite. Accepting adds the invite's wallets that are still open and live (none
