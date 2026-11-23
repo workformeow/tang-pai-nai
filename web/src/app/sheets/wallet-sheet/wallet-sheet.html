@@ -232,6 +232,18 @@
                   [control]="f.hiddenCategoryIds"
                   [label]="'wallets.categoriesUsed' | transloco"
                   [items]="categoryItems()"
+                  [allLabel]="
+                    (categoryTab() === 'expense'
+                      ? 'wallets.useEveryExpense'
+                      : 'wallets.useEveryIncome'
+                    ) | transloco
+                  "
+                  [allNote]="
+                    (categoriesUsed().used === 0
+                      ? 'categories.disabled'
+                      : 'wallets.categoriesUsedCount'
+                    ) | transloco: categoriesUsed()
+                  "
                 />
               } @else {
                 <p class="text-sm text-muted-foreground">

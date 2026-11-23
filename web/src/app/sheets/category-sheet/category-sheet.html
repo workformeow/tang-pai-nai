@@ -143,6 +143,8 @@
                       <span class="min-w-0 flex-1 truncate text-right">
                         @if (usedIn().used === usedIn().total) {
                           {{ 'categories.usedInAll' | transloco }}
+                        } @else if (usedIn().used === 0) {
+                          {{ 'categories.disabled' | transloco }}
                         } @else {
                           {{ 'categories.usedInSome' | transloco: usedIn() }}
                         }
@@ -230,6 +232,11 @@
               [control]="f.hiddenIn"
               [label]="'categories.usedInHeading' | transloco"
               [items]="walletItems()"
+              [allLabel]="'categories.usedInEvery' | transloco"
+              [allNote]="
+                (usedIn().used === 0 ? 'categories.disabled' : 'categories.usedInCount')
+                  | transloco: usedIn()
+              "
             />
           </app-sheet-frame>
         }

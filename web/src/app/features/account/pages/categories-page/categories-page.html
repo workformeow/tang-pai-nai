@@ -191,6 +191,7 @@
 </div>
 
 <ng-template #row let-category let-child="child" let-archived="archived">
+  @let off = archived ? undefined : disabled().get(category.id);
   <div
     class="flex items-center gap-3 py-2 pr-2"
     [class.min-h-14]="!child"
@@ -228,13 +229,24 @@
         (click)="categoryService.open({ mode: 'edit', id: category.id })"
       >
         <app-icon-badge
+          [class.opacity-50]="off"
           [icon]="category.icon"
           [color]="category.color"
           [size]="child ? 32 : 40"
           [fallback]="defaultIcon"
         />
         <span class="flex min-w-0 flex-1 flex-col">
-          <span class="truncate" [class.text-base]="!child">{{ category.name }}</span>
+          <span class="truncate" [class.text-base]="!child" [class.text-muted-foreground]="off">{{
+            category.name
+          }}</span>
+          @if (off) {
+            <span class="text-sm text-muted-foreground">
+              {{
+                (off === 'parent' ? 'categories.disabledWithParent' : 'categories.disabled')
+                  | transloco
+              }}
+            </span>
+          }
           @if (archived && !child && parentName(category); as parent) {
             <span class="text-sm text-muted-foreground">
               {{ 'categories.subOf' | transloco: { name: parent } }}

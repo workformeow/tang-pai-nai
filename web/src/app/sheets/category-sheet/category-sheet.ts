@@ -254,7 +254,7 @@ export class CategorySheet {
     }
     const parentId = this.formValue().parentId
     this.languageService.language()
-    const note = this.transloco.translate('categories.hiddenWithParent')
+    const note = this.transloco.translate('categories.disabledWithParent')
     return this.walletService.openOf(bookId).map((wallet) => ({
       id: wallet.id,
       label: wallet.name,

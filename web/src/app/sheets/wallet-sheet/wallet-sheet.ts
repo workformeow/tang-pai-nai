@@ -240,7 +240,7 @@ export class WalletSheet {
       return []
     }
     const hidden = this.hidden()
-    const note = this.transloco.translate('categories.hiddenWithParent')
+    const note = this.transloco.translate('categories.disabledWithParent')
     this.languageService.language()
     return this.categoryService
       .treeOf(bookId, this.categoryTab())
@@ -250,6 +250,16 @@ export class WalletSheet {
           this.categoryItem(child, true, hidden.includes(node.category.id) ? note : null)
         ),
       ])
+  })
+
+  /** The master switch's line: "ใช้ 9 จาก 12 หมวดหมู่" (the tab's rows; a locked child is off). */
+  protected categoriesUsed = computed(() => {
+    const items = this.categoryItems()
+    const hidden = this.hidden()
+    return {
+      used: items.filter((item) => !item.lockedNote && !hidden.includes(item.id)).length,
+      total: items.length,
+    }
   })
 
   constructor() {

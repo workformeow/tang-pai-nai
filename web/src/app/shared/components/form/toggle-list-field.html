@@ -1,3 +1,22 @@
+@if (allLabel(); as allLabel) {
+  <!-- The master switch, in its own card so it doesn't read as one more row. -->
+  <button
+    type="button"
+    role="switch"
+    class="mb-3 flex min-h-14 w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-2 text-left text-card-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed"
+    [attr.aria-checked]="allOn()"
+    [disabled]="!canSetAll() || control().disabled"
+    (click)="setAll(!allOn())"
+  >
+    <span class="flex min-w-0 flex-1 flex-col">
+      <span class="truncate font-medium">{{ allLabel }}</span>
+      @if (allNote()) {
+        <span class="text-xs text-muted-foreground">{{ allNote() }}</span>
+      }
+    </span>
+    <ng-container *ngTemplateOutlet="switch; context: { $implicit: allOn(), dim: !canSetAll() }" />
+  </button>
+}
 <ul
   class="divide-y divide-border rounded-xl border border-border bg-card text-card-foreground"
   [attr.aria-label]="label()"
@@ -44,20 +63,23 @@
         <span class="text-xs text-muted-foreground">{{ item.lockedNote }}</span>
       }
     </span>
-    <span
-      aria-hidden="true"
-      class="inline-flex h-[18.4px] w-8 shrink-0 items-center rounded-full border border-transparent transition-all {{
-        on ? 'bg-primary' : 'bg-input dark:bg-input/80'
-      }}"
-      [class.opacity-50]="locked"
-    >
-      <span
-        class="block size-4 rounded-full transition-transform {{
-          on
-            ? 'translate-x-[calc(100%-2px)] bg-background dark:bg-primary-foreground'
-            : 'bg-background dark:bg-foreground'
-        }}"
-      ></span>
-    </span>
+    <ng-container *ngTemplateOutlet="switch; context: { $implicit: on, dim: locked }" />
   </button>
+</ng-template>
+<ng-template #switch let-on let-dim="dim">
+  <span
+    aria-hidden="true"
+    class="inline-flex h-[18.4px] w-8 shrink-0 items-center rounded-full border border-transparent transition-all {{
+      on ? 'bg-primary' : 'bg-input dark:bg-input/80'
+    }}"
+    [class.opacity-50]="dim"
+  >
+    <span
+      class="block size-4 rounded-full transition-transform {{
+        on
+          ? 'translate-x-[calc(100%-2px)] bg-background dark:bg-primary-foreground'
+          : 'bg-background dark:bg-foreground'
+      }}"
+    ></span>
+  </span>
 </ng-template>

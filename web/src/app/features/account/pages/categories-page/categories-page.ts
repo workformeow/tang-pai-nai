@@ -17,6 +17,7 @@ import { HlmButton } from '@spartan-ng/helm/button'
 import { BookService } from '@/core/book'
 import { CATEGORY_DEFAULT_ICON, CategoryService } from '@/core/category'
 import type { Category, CategoryType } from '@/core/category'
+import { isHiddenIn, WalletService } from '@/core/wallet'
 import { EmptyState } from '@/shared/components/empty-state'
 import { IconBadge, userColor } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
@@ -56,6 +57,7 @@ export class CategoriesPage {
   private router = inject(Router)
   protected bookService = inject(BookService)
   protected categoryService = inject(CategoryService)
+  private walletService = inject(WalletService)
 
   protected tabs: readonly CategoryType[] = ['expense', 'income']
   protected defaultIcon = CATEGORY_DEFAULT_ICON as UserIcon
@@ -66,6 +68,33 @@ export class CategoriesPage {
   protected showArchived = signal(false)
 
   protected tree = computed(() => this.categoryService.tree(this.type()))
+  /**
+   * The tab's open categories no open wallet uses (category rule 13): `own` when hidden in every
+   * wallet, `parent` for a child of such a parent. Empty while the book has no open wallet.
+   */
+  protected disabled = computed(() => {
+    const wallets = this.walletService.openWallets()
+    const disabled = new Map<string, 'own' | 'parent'>()
+    if (wallets.length === 0) {
+      return disabled
+    }
+    const offEverywhere = (category: Category) =>
+      wallets.every((wallet) => isHiddenIn(wallet.hiddenCategoryIds, category))
+    for (const node of this.tree()) {
+      const parentOff = offEverywhere(node.category)
+      if (parentOff) {
+        disabled.set(node.category.id, 'own')
+      }
+      for (const child of node.children) {
+        if (parentOff) {
+          disabled.set(child.id, 'parent')
+        } else if (offEverywhere(child)) {
+          disabled.set(child.id, 'own')
+        }
+      }
+    }
+    return disabled
+  })
   /**
    * Archived parents, each followed by its archived children (indented), then archived children
    * of open parents (with "under <parent>").
