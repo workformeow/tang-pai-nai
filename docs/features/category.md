@@ -104,7 +104,14 @@ shows when the book is created (rule 8).
    (bowl, buffet, coffee cup, …), transport, home and bills, shopping, health, learning, family,
    giving, insurance, travel and income groups, as `tpn` where lucide has no clear picture. A new
    category starts with a default icon (`lucideShapes`) and colour; a name the web doesn't know
-   shows the default.
+   shows the default. Owner, 2026-11 (mock-ups
+   [category-icons.html](mockups/category-icons.html),
+   [category-colors.html](mockups/category-colors.html)): **people** (faces that tell family
+   members apart, e.g. a "shopping for my brother" expense and a "brother paid back" income,
+   plain transactions rather than a debt), **pets**, and **health and beauty** (haircut, dentist,
+   glasses, spa, …) groups join, with more food, transport, home, shopping and hobby icons; the
+   colour picker offers 4 shades of each of the 10 colours (DESIGN.md §3 Shades). The server
+   needs no change: it checks only the shapes of `icon` and `color`.
 10. **Order**: `sortOrder` ascending, then `createdAt`, then `id`, among siblings (same book,
     `type`, `parentId`). A new category goes last among its siblings. Reordering uses the order
     mode and grip handle of books (DESIGN.md §8): parents move with their children, a child

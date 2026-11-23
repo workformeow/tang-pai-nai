@@ -84,7 +84,9 @@ transaction rule 12; built in #8.1, transfers in #9).
    buffet), never a bank's or brand's logo. Because there are no logos, the set offers **several
    bank and card drawings** (and the user's colour), so someone with debit cards at three banks
    can tell them apart. A new wallet starts with a default icon (`lucideWallet`) and colour; the
-   user picks another from the catalogue at any time.
+   user picks another from the catalogue at any time. Since 2026-11 each of the 10 colours has 4
+   shades (DESIGN.md §3 Shades), e.g. four greens for a bank's debit and credit cards and two
+   delivery apps, and the digital group has a delivery scooter.
 
    The server checks only the shape (`^(lucide|tpn)[A-Z][A-Za-z0-9]*$`, ≤ 40 characters); a name
    the web doesn't know shows the default icon, as for books.

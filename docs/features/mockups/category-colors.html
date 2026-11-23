@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Colour picker options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --background: oklch(0.975 0.007 265); --foreground: oklch(0.2 0.03 265);
+  --card: oklch(1 0 0); --muted: oklch(0.94 0.014 265); --muted-fg: oklch(0.48 0.03 265);
+  --border: oklch(0.91 0.014 265); --brand: oklch(0.53 0.12 75); --ring: oklch(0.2 0.03 265);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+    --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+    --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82); --ring: oklch(0.97 0.01 265);
+  }
+}
+:root[data-theme="dark"] {
+  --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+  --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+  --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82); --ring: oklch(0.97 0.01 265);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--background); color: var(--foreground);
+  font-family: "IBM Plex Sans Thai", system-ui, sans-serif; font-size: 15px; }
+header.page { max-width: 1240px; margin: 0 auto; padding: 24px 16px 8px; }
+header.page h1 { font-size: 20px; margin: 0 0 4px; }
+header.page p { margin: 0; color: var(--muted-fg); font-size: 14px; line-height: 1.6; max-width: 900px; }
+.toggle { margin-top: 10px; display: inline-flex; gap: 4px; background: var(--muted); border-radius: 10px; padding: 3px; }
+.toggle button { border: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 8px; cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--card); font-weight: 600; }
+.grid { max-width: 1240px; margin: 0 auto; padding: 16px; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.phone { width: 360px; max-width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; }
+.phone > h2 { font-size: 13px; color: var(--muted-fg); font-weight: 500; margin: 0; padding: 12px 16px; background: var(--muted); }
+.phone > h2 b { color: var(--foreground); }
+.preview { display: flex; align-items: center; gap: 12px; padding: 16px; border-bottom: 1px solid var(--border); }
+.badge { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; flex: none; width: 48px; height: 48px; }
+.name { font-weight: 500; } .hex { font-size: 13px; color: var(--muted-fg); }
+.label { font-size: 14px; font-weight: 500; padding: 14px 16px 10px; }
+.sub { font-size: 12px; color: var(--muted-fg); padding: 10px 16px 6px; }
+.sw { display: grid; grid-template-columns: repeat(5, 1fr); justify-items: center; gap: 8px; padding: 0 16px; }
+.sw.small { grid-template-columns: repeat(5, 1fr); }
+.swatch { width: 44px; height: 44px; border-radius: 999px; border: 0; padding: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.swatch.s36 { width: 36px; height: 36px; }
+.swatch[aria-checked="true"] { outline: 2px solid var(--ring); outline-offset: 2px; }
+.shades { margin: 12px 16px 0; padding: 10px; background: var(--muted); border-radius: 14px; display: flex; justify-content: space-around; }
+.more { margin: 12px 16px 0; border: 0; background: none; color: var(--brand); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; padding: 8px 0; }
+.note { font-size: 13px; line-height: 1.6; padding: 12px 16px; color: var(--muted-fg); border-top: 1px solid var(--border); margin-top: 16px; }
+.note b { color: var(--foreground); font-weight: 600; }
+.pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 99px; background: var(--brand); color: var(--card); margin-left: 6px; vertical-align: 1px; }
+.row { display: flex; align-items: center; gap: 12px; padding: 8px 16px; }
+.row .badge { width: 40px; height: 40px; }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>ตัวเลือกสี: ให้เลือกง่าย ไม่เยอะเกิน</h1>
+  <p>หน้าจอแรกยังเห็นแค่ 10 สีเหมือนเดิม แต่เลือกเฉดเพิ่มได้ เช่น เขียวกสิกรเดบิตกับกสิกรเครดิต ลองกดสีในแต่ละแบบได้เลย
+  ทุกสียังใช้ไอคอนสีขาวได้ชัด (contrast ≥ 4.5:1)</p>
+  <div class="toggle" role="group" aria-label="โหมด">
+    <button type="button" data-t="light">สว่าง</button><button type="button" data-t="dark">มืด</button><button type="button" data-t="" aria-pressed="true">ตามระบบ</button>
+  </div>
+</header>
+<div class="grid">
+
+<section class="phone" id="a">
+  <h2><b>A · เลือกโทน แล้วเลือกเฉด</b><span class="pill">แนะนำ</span></h2>
+  <div class="preview"><span class="badge" data-badge></span><div><div class="name">กสิกร เครดิต</div><div class="hex" data-hex></div></div></div>
+  <div class="label">สี</div>
+  <div class="sw" data-hues></div>
+  <div class="shades" data-shades></div>
+  <div class="note">หน้าจอแรกยังมี <b>10 สีเดิม</b> กดสีไหนก็ได้สีหลักนั้นทันที (ใช้เหมือนเดิม) ถ้าอยากได้อ่อน/เข้มกว่าค่อยเลือกในแถบด้านล่าง ซึ่งมี 4 เฉดของโทนนั้น
+  รวมแล้วมี 40 สี แต่บนจอเห็นครั้งละไม่เกิน 14 สี</div>
+</section>
+
+<section class="phone" id="b">
+  <h2><b>B · 10 สี + “สีเพิ่มเติม”</b></h2>
+  <div class="preview"><span class="badge" data-badge></span><div><div class="name">กสิกร เครดิต</div><div class="hex" data-hex></div></div></div>
+  <div class="label">สี</div>
+  <div class="sw" data-base></div>
+  <button type="button" class="more" data-more>สีเพิ่มเติม (30) ▾</button>
+  <div data-extra hidden></div>
+  <div class="note">ปกติเห็น 10 สีเหมือนเดิม กด “สีเพิ่มเติม” แล้วเปิดเห็นทั้งหมด 40 สี จัดเป็นกลุ่มตามโทน
+  ข้อเสียคือพอเปิดแล้วสีจะเยอะในครั้งเดียว</div>
+</section>
+
+<section class="phone" id="c">
+  <h2><b>C · 20 สีคงที่</b></h2>
+  <div class="preview"><span class="badge" data-badge></span><div><div class="name">กสิกร เครดิต</div><div class="hex" data-hex></div></div></div>
+  <div class="label">สี</div>
+  <div class="sw" data-flat></div>
+  <div class="note">ง่ายที่สุด เพิ่มจาก 10 สีเป็น 20 สี (4 แถว) โดยไม่มีขั้นตอนเพิ่ม แต่เขียวมีแค่ 3 แบบ
+  ถ้าจะเพิ่มอีกในอนาคตจอจะยาวขึ้นเรื่อย ๆ</div>
+</section>
+
+<section class="phone">
+  <h2><b>ตัวอย่างผลลัพธ์ (แบบ A)</b> · กระเป๋าเขียว 4 ใบ</h2>
+  <div data-wallets></div>
+  <div class="note">เขียวทั้ง 4 ใบมาจากโทน “เขียว” โทนเดียว แต่ใช้คนละเฉด ร่วมกับรูปไอคอนที่ต่างกัน</div>
+</section>
+
+</div>
+<script>
+const FACE = '<circle cx="12" cy="13" r="9"/><path d="M3.5 10a8.5 8 0 0 1 17 0Z"/><path d="M20.5 10H23"/><path d="M9 13.5h.01"/><path d="M15 13.5h.01"/><path d="M9.5 17a3.5 3.5 0 0 0 5 0"/>'
+const CARD = '<rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/>'
+const CHIP = '<rect x="2" y="5" width="20" height="14" rx="2"/><rect x="5" y="9" width="5" height="4" rx="1"/><path d="M14 15h4"/>'
+const SCOOTER = '<circle cx="5.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/><path d="M8 17.5h8"/><path d="M18.5 15 16 6h-3"/><path d="M5.5 15H13l1.5-4"/><rect x="2" y="4" width="8" height="7" rx="1"/><path d="M6 4v3"/>'
+const QR = '<rect x="5" y="2" width="14" height="20" rx="2"/><rect x="8" y="6" width="3" height="3" rx="0.5"/><rect x="13" y="6" width="3" height="3" rx="0.5"/><rect x="8" y="11" width="3" height="3" rx="0.5"/><path d="M13 14h3"/><path d="M11 18h2"/>'
+const CHECK = '<path d="M20 6 9 17l-5-5"/>'
+const svg = (body, size) => `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`
+
+// 10 tones; the first shade of each is today's colour (kept, so stored rows still match).
+const TONES = [
+  ['น้ำเงิน', ['#2563eb', '#4f46e5', '#1d4ed8', '#1e3a8a']],
+  ['ฟ้าน้ำทะเล', ['#0e7490', '#0369a1', '#155e75', '#164e63']],
+  ['เขียวหัวเป็ด', ['#0f766e', '#115e59', '#065f46', '#134e4a']],
+  ['เขียว', ['#15803d', '#047857', '#4d7c0f', '#14532d']],
+  ['เหลืองทอง', ['#a16207', '#b45309', '#854d0e', '#713f12']],
+  ['ส้ม', ['#c2410c', '#9a3412', '#7c2d12', '#78350f']],
+  ['แดง', ['#dc2626', '#e11d48', '#b91c1c', '#991b1b']],
+  ['ชมพู', ['#db2777', '#be185d', '#a21caf', '#9d174d']],
+  ['ม่วง', ['#9333ea', '#7c3aed', '#6b21a8', '#581c87']],
+  ['เทา', ['#475569', '#57534e', '#334155', '#1f2937']],
+]
+const lum = (hex) => { const c = (i) => { const v = parseInt(hex.slice(i, i + 2), 16) / 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4 }; return 0.2126 * c(1) + 0.7152 * c(3) + 0.0722 * c(5) }
+const byLight = (list) => [...list].sort((a, b) => lum(b) - lum(a))
+const toneOf = (hex) => TONES.find(([, s]) => s.includes(hex))
+
+function swatch(hex, selected, size = '') {
+  return `<button type="button" class="swatch ${size}" role="radio" aria-checked="${hex === selected}" aria-label="${hex}" data-c="${hex}" style="background:${hex};color:#fff">${hex === selected ? svg(CHECK, size ? 16 : 20) : ''}</button>`
+}
+function preview(root, hex) {
+  root.querySelector('[data-badge]').style.background = hex
+  root.querySelector('[data-badge]').style.color = '#fff'
+  root.querySelector('[data-badge]').innerHTML = svg(FACE, 24)
+  root.querySelector('[data-hex]').textContent = hex
+}
+
+// A
+const a = document.getElementById('a')
+let aSel = '#14532d'
+function drawA() {
+  const tone = toneOf(aSel)
+  a.querySelector('[data-hues]').innerHTML = TONES.map(([, s]) => {
+    const on = s === tone[1]
+    return `<button type="button" class="swatch" role="radio" aria-checked="${on}" data-c="${s[0]}" style="background:${on ? aSel : s[0]};color:#fff">${on ? svg(CHECK, 20) : ''}</button>`
+  }).join('')
+  a.querySelector('[data-shades]').innerHTML = byLight(tone[1]).map((c) => swatch(c, aSel, 's36')).join('')
+  preview(a, aSel)
+}
+a.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-c]'); if (!b) return
+  const hex = b.dataset.c
+  const inHues = b.parentElement.matches('[data-hues]')
+  // tapping the chosen tone again keeps its shade; another tone starts at its main colour
+  if (inHues && toneOf(aSel)[1][0] === hex) return
+  aSel = hex; drawA()
+})
+drawA()
+
+// B
+const bEl = document.getElementById('b')
+let bSel = '#14532d', bOpen = true
+function drawB() {
+  bEl.querySelector('[data-base]').innerHTML = TONES.map(([, s]) => swatch(s[0], bSel)).join('')
+  const extra = bEl.querySelector('[data-extra]')
+  extra.hidden = !bOpen
+  bEl.querySelector('[data-more]').textContent = bOpen ? 'ซ่อนสีเพิ่มเติม ▴' : 'สีเพิ่มเติม (30) ▾'
+  extra.innerHTML = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]].map((idx) =>
+    [1, 2, 3].map((k) => `<div class="sw" style="margin-top:8px">${idx.map((i) => swatch(TONES[i][1][k], bSel)).join('')}</div>`).join('')
+  ).join('<div style="height:8px"></div>')
+  preview(bEl, bSel)
+}
+bEl.addEventListener('click', (e) => {
+  if (e.target.closest('[data-more]')) { bOpen = !bOpen; drawB(); return }
+  const b = e.target.closest('[data-c]'); if (!b) return
+  bSel = b.dataset.c; drawB()
+})
+drawB()
+
+// C
+const cEl = document.getElementById('c')
+const FLAT = ['#2563eb', '#1e3a8a', '#0e7490', '#0f766e', '#15803d',
+              '#047857', '#4d7c0f', '#14532d', '#a16207', '#854d0e',
+              '#c2410c', '#7c2d12', '#dc2626', '#e11d48', '#991b1b',
+              '#db2777', '#9333ea', '#6b21a8', '#475569', '#1f2937']
+let cSel = '#14532d'
+function drawC() { cEl.querySelector('[data-flat]').innerHTML = FLAT.map((c) => swatch(c, cSel)).join(''); preview(cEl, cSel) }
+cEl.addEventListener('click', (e) => { const b = e.target.closest('[data-c]'); if (!b) return; cSel = b.dataset.c; drawC() })
+drawC()
+
+// Example wallets
+document.querySelector('[data-wallets]').innerHTML = [
+  [CHIP, '#047857', 'กสิกร เดบิต'], [CARD, '#14532d', 'กสิกร เครดิต'],
+  [SCOOTER, '#15803d', 'Grab'], [QR, '#4d7c0f', 'LINE MAN'],
+].map(([i, c, n]) => `<div class="row"><span class="badge" style="background:${c};color:#fff">${svg(i, 20)}</span><div class="name">${n}</div></div>`).join('')
+
+document.querySelectorAll('.toggle button').forEach((b) => b.addEventListener('click', () => {
+  const t = b.dataset.t
+  if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme
+  document.querySelectorAll('.toggle button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)))
+}))
+</script>
+</body>
+</html>

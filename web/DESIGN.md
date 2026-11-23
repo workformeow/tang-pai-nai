@@ -126,6 +126,15 @@ checks). Five colours were darkened one step in #7; a row saved with an old one 
 new one (`userColor`) and saved with it on its next edit. Never use them for text on the page
 background.
 
+**Shades** (2026-11, owner's option A of three mock-ups): each of the 10 `USER_COLORS` is a
+**tone** with four shades in `COLOR_SHADES` (light to dark, the tone's own colour among them), 40
+colours in all, so similar wallets (a debit and a credit card at one bank, two delivery apps) can
+stay apart. `app-color-field` still shows the 10 swatches first; picking one picks its own colour,
+and a strip of its shades opens under them (`colorTone(hex)` finds the tone of a stored colour).
+The chosen tone's swatch shows the chosen shade. Every shade passes white at 4.5:1 too.
+`USER_COLORS` itself stays the 10 (the shared-activity avatars hash into it), and a shipped shade
+is never removed.
+
 **The accent is for "you are here" and "do this", nothing else**: the ➕, the one primary button,
 the active tab, the selected option, the focus ring. Don't use it for decoration, headings or
 amounts. That keeps it meaningful, and it's what makes the app look like itself rather than Money
@@ -434,7 +443,7 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 - Decorative icons get `aria-hidden="true"`. An icon that is the whole label of a control needs an
   `aria-label` on the control.
 - **Book icons** (#6.1): 16 curated lucide icons in `shared/components/icon-badge/user-icons.ts`
-  (`BOOK_ICONS`), on one of 10 `USER_COLORS`, shown by `app-icon-badge` (40px in rows, 28px
+  (`BOOK_ICONS`), on a user colour (§3: 10 tones, 4 shades each), shown by `app-icon-badge` (40px in rows, 28px
   in the header switcher). Never rename or remove a shipped icon; an unknown name shows
   `lucideUser`.
 - **Category and wallet icons**: the user picks from one curated catalogue (lucide + `tpn`),
@@ -448,11 +457,19 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   (`tpn-icons.ts`): banks (columns with ฿, tower, branch with awning, ATM), cards (chip,
   contactless, two stacked), baht coin, baht note, e-wallet QR, gold bar, savings jar, cash
   envelope.
-- **Category icons** (#7.1): `CATEGORY_ICON_GROUPS` (อาหารและเครื่องดื่ม, การเดินทาง,
-  บ้านและค่าใช้จ่าย, ช้อปปิ้ง, บันเทิงและสุขภาพ, ครอบครัวและชีวิต, รายรับ, อื่น ๆ), default
+- **Category icons** (#7.1): `CATEGORY_ICON_GROUPS` (คน, สัตว์เลี้ยง, สุขภาพและความงาม,
+  อาหารและเครื่องดื่ม, การเดินทาง, บ้านและค่าใช้จ่าย, ช้อปปิ้ง, บันเทิงและงานอดิเรก,
+  ครอบครัวและชีวิต, รายรับ, อื่น ๆ; each icon in one group only), default
   `lucideShapes`. `tpn` adds buffet, bubble tea, noodle bowl, tuk-tuk, water tap, temple and
   payslip; in 7.2 the buffet became a chafing dish (owner's pick), and the first drawing
-  (`tpnServingDomes`), a buffet line and "all you can eat" joined the food group. Sub-categories
+  (`tpnServingDomes`), a buffet line and "all you can eat" joined the food group. In 2026-11
+  (mock-up: `docs/features/mockups/category-icons.html`) 82 icons joined: the people, pets and
+  health-and-beauty groups, and more food, transport, home, shopping and hobby icons. `tpn` adds
+  seven **faces** (glasses and moustache, hair bun, older, fringe, cap, beard, long hair), so a
+  category for one family member (shopping paid for a brother who pays it back: two plain
+  categories, not a debt) shows a face of its own, plus a barber's pole, tooth, lipstick, spa
+  lotus, delivery scooter (also in the wallets' digital group), toll gate, gas cylinder, sneaker
+  and grill pan. Sub-categories
   show a 32px badge indented under their parent's 40px one. A new `tpn` icon is checked at 20px in a 40px badge beside lucide's
   before it ships.
 

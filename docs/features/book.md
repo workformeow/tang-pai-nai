@@ -44,8 +44,9 @@ they make their first book, then its first wallet.
    offline on another device with the same name is `rejected` with `CONFLICT`).
 3. `icon` is a lucide export name (`lucide` + PascalCase, ≤ 40 characters). The web app offers a
    curated set and shows a default icon for a name it doesn't know, so the server only checks the
-   shape. `color` is `#` + 6 lowercase hex digits; the web app offers a fixed palette and draws
-   the glyph white or black for contrast (DESIGN.md §3 User colours).
+   shape. `color` is `#` + 6 lowercase hex digits; the web app offers a fixed palette (10 colours,
+   4 shades each since 2026-11) and draws the glyph white or black for contrast (DESIGN.md §3
+   User colours).
 4. A user has at most **20 live books** (server check, `CONFLICT`; the web app hides "add" at
    20).
 5. **No automatic book.** A new user (or a user whose books are all deleted) has none, and

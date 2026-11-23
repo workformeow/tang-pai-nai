@@ -17,6 +17,35 @@ export const USER_COLORS = [
 ] as const
 
 /**
+ * The shades of each `USER_COLORS` colour (its tone), light to dark, the colour itself among
+ * them. The picker shows the 10 colours and, under the chosen one, its shades, so similar
+ * wallets (two cards at one bank, two delivery apps) can stay apart without a long palette.
+ * Every shade is dark enough for a white glyph too. Like the 10, a shipped shade stays.
+ */
+export const COLOR_SHADES: Readonly<Record<string, readonly string[]>> = {
+  '#2563eb': ['#2563eb', '#4f46e5', '#1d4ed8', '#1e3a8a'],
+  '#0e7490': ['#0e7490', '#0369a1', '#155e75', '#164e63'],
+  '#0f766e': ['#0f766e', '#115e59', '#065f46', '#134e4a'],
+  '#15803d': ['#4d7c0f', '#15803d', '#047857', '#14532d'],
+  '#a16207': ['#a16207', '#b45309', '#854d0e', '#713f12'],
+  '#c2410c': ['#c2410c', '#9a3412', '#78350f', '#7c2d12'],
+  '#dc2626': ['#e11d48', '#dc2626', '#b91c1c', '#991b1b'],
+  '#db2777': ['#db2777', '#be185d', '#a21caf', '#9d174d'],
+  '#9333ea': ['#9333ea', '#7c3aed', '#6b21a8', '#581c87'],
+  '#475569': ['#475569', '#57534e', '#334155', '#1f2937'],
+}
+
+/**
+ * The `USER_COLORS` colour whose shades hold `hex`, or `null` for a colour outside the palette.
+ * e.g. `colorTone('#14532D')` → `'#15803d'`, `colorTone('#15803d')` → `'#15803d'`,
+ * `colorTone('#123456')` → `null`
+ */
+export const colorTone = (hex: string): string | null => {
+  const color = hex.toLowerCase()
+  return Object.keys(COLOR_SHADES).find((tone) => COLOR_SHADES[tone].includes(color)) ?? null
+}
+
+/**
  * Colours of the palette before #7, made one step darker then. Rows keep the hex they were saved
  * with, so they are drawn with the new colour (`userColor`) and saved with it on their next edit.
  */

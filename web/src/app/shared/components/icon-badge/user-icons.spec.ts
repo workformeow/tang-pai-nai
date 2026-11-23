@@ -5,6 +5,7 @@ import {
   FALLBACK_ICON,
   knownIcon,
   BOOK_ICON_NAMES,
+  CATEGORY_ICON_GROUPS,
   USER_ICONS,
   WALLET_DEFAULT_ICON,
   WALLET_ICON_GROUPS,
@@ -38,6 +39,17 @@ describe('user icons', () => {
       expect(th.iconGroups).toHaveProperty(group.key)
     }
     expect(BOOK_ICON_NAMES.every((name) => name.startsWith('lucide'))).toBe(true)
+  })
+
+  it('builds the category catalogue from known icons, once each, in labelled groups', () => {
+    const names = CATEGORY_ICON_GROUPS.flatMap((group) => group.icons)
+    expect(new Set(names).size).toBe(names.length)
+    expect(names.every((name) => name in USER_ICONS)).toBe(true)
+    expect(names).toContain('lucideShapes')
+    for (const group of CATEGORY_ICON_GROUPS) {
+      expect(th.iconGroups).toHaveProperty(group.key)
+      expect(en.iconGroups).toHaveProperty(group.key)
+    }
   })
 
   it("draws every tpn icon in lucide's style: 24 × 24, 2px round stroke, no fill", () => {

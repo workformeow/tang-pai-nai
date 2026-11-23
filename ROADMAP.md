@@ -111,6 +111,36 @@ decision "Local-first").
 
 ---
 
+## Done: More icons and colour shades (2026-11)
+
+Web only, no API change (the server checks only the shapes of `icon` and `color`). Owner: tell
+family members, pets and similar wallets apart (two cards at one bank, Grab and LINE MAN), and
+health needs a haircut. Mock-ups: [category-icons.html](docs/features/mockups/category-icons.html)
+(icons kept as drawn) and [category-colors.html](docs/features/mockups/category-colors.html)
+(option A of A–C).
+
+- **Icons**: 82 more (66 lucide, 16 `tpn`: seven faces, barber's pole, tooth, lipstick, spa
+  lotus, delivery scooter, toll gate, gas cylinder, sneaker, grill pan). `CATEGORY_ICON_GROUPS`
+  gains คน, สัตว์เลี้ยง and สุขภาพและความงาม (first), and บันเทิงและสุขภาพ became
+  บันเทิงและงานอดิเรก (`funHobby`); each icon sits in one group. The scooter is in the wallets'
+  digital group too. Paying for a brother who pays back at month end stays two plain categories
+  (expense + income with his face), not a debt.
+- **Colours** (option A): the 10 `USER_COLORS` stay the swatches; under the chosen one a strip
+  of its 4 shades (`COLOR_SHADES`, `colorTone`), 40 colours in all, every one white-glyph safe.
+  `USER_COLORS` is unchanged, so stored colours and the activity avatars keep theirs. Used by
+  every colour picker (book, wallet, category, event). Options B (10 + "more", all 40 at once)
+  and C (20 fixed) were dropped: too many at once, or too few greens.
+- **Tests**: `COLOR_SHADES` / `colorTone`, the category catalogue (known, once each, labelled),
+  `color-field.spec.ts` (tone, shades, picking, a colour outside the palette).
+- Not done: the default category set is unchanged (no ตัดผม child under สุขภาพ); a user adds
+  it.
+- **Bundle budget** (owner, 2026-11): the initial bundle went 783.8 → 819.9 kB (192.6 → 198.8
+  kB gzip), because `app-icon-badge` registers every user icon and the shell draws badges (book
+  switcher), so the whole catalogue is in the initial bundle. The warning budget goes 800 →
+  **850 kB**; loading the catalogue lazily is left for later.
+
+---
+
 ## Done: Cash vs credit card on the Transactions tab (2026-11)
 
 Web only, no API change (`isCreditCard` came with #18). Owner: in the family's spreadsheet it
