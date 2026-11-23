@@ -36,6 +36,15 @@ export class ToggleListField {
   /** Names the list for screen readers. */
   label = input.required<string>()
   items = input.required<readonly ToggleListItem[]>()
+  /**
+   * A master switch in its own card above the list ("ใช้ทุกกระเป๋า"): on while every row that
+   * isn't locked is on. Switching it on turns every row on; switching it off turns the top-level
+   * rows off (a parent switched off takes its children with it, category rule 13). Locked rows
+   * stay as they are. Null leaves it out.
+   */
+  allLabel = input<string | null>(null)
+  /** The line under the master switch, e.g. "ใช้ 3 จาก 4 กระเป๋า". */
+  allNote = input('')
 
   /**
    * The ids switched off, as a signal: the page may set the control itself ("เลือกทั้งหมด"), and
@@ -63,6 +72,43 @@ export class ToggleListField {
     }
     return groups
   })
+
+  /** The rows the master switch can change. */
+  private free = computed(() => this.items().filter((item) => !item.lockedNote))
+  protected allOn = computed(() => {
+    const off = this.off()
+    const free = this.free()
+    return free.length > 0 && free.every((item) => !off.includes(item.id))
+  })
+  protected canSetAll = computed(() => this.free().length > 0)
+
+  protected setAll(on: boolean): void {
+    const control = this.control()
+    const off = control.value
+    if (on) {
+      // Every free row, and each child locked only because its parent here is off.
+      const clear = new Set<string>()
+      for (const { item, children } of this.groups()) {
+        if (item.lockedNote) {
+          continue
+        }
+        clear.add(item.id)
+        for (const child of children) {
+          if (!child.lockedNote || off.includes(item.id)) {
+            clear.add(child.id)
+          }
+        }
+      }
+      control.setValue(off.filter((id) => !clear.has(id)))
+    } else {
+      const add = this.groups()
+        .map((group) => group.item)
+        .filter((item) => !item.lockedNote && !off.includes(item.id))
+        .map((item) => item.id)
+      control.setValue([...off, ...add])
+    }
+    control.markAsDirty()
+  }
 
   protected toggle(id: string): void {
     const control = this.control()

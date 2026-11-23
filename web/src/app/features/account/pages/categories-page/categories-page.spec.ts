@@ -9,6 +9,7 @@ import { BookService } from '@/core/book'
 import { CategoryService } from '@/core/category'
 import type { Category, CategoryNode, CategoryType } from '@/core/category'
 import th from '@/core/i18n/th.json'
+import { WalletService } from '@/core/wallet'
 import { CategoriesPage } from './categories-page'
 
 const category = (id: string, extra: Partial<Category> = {}): Category => ({
@@ -57,6 +58,7 @@ describe('CategoriesPage', () => {
     openFix: vi.fn(),
     moveTo: vi.fn(),
   }
+  const walletStub = { openWallets: signal<{ hiddenCategoryIds: string[] }[]>([]) }
   const books = {
     current: signal({ id: 'p1', name: 'ส่วนตัว', icon: 'lucideUser', color: '#2563eb' }),
     switchSheet: signal(false),
@@ -93,6 +95,7 @@ describe('CategoriesPage', () => {
     categories.atLimit.set(false)
     categories.canWrite.set(true)
     categories.serverDown.set(false)
+    walletStub.openWallets.set([])
     query = new BehaviorSubject(convertToParamMap({}))
     TestBed.configureTestingModule({
       imports: [
@@ -106,6 +109,7 @@ describe('CategoriesPage', () => {
         provideRouter([]),
         { provide: CategoryService, useValue: categories },
         { provide: BookService, useValue: books },
+        { provide: WalletService, useValue: walletStub },
         { provide: ActivatedRoute, useValue: { queryParamMap: query } },
       ],
     })
@@ -127,6 +131,24 @@ describe('CategoriesPage', () => {
     expect(rows()).toEqual(['Salary'])
     button(th.categories.add)?.click()
     expect(categories.open).toHaveBeenCalledWith({ mode: 'create', type: 'income', parentId: null })
+  })
+
+  it('marks the categories no open wallet uses, a parent taking its children (rule 13)', async () => {
+    const line = (name: string) => button(`แก้ไข ${name}`)?.textContent ?? ''
+    // No open wallet: nothing is marked.
+    expect(page().textContent).not.toContain(th.categories.disabled)
+    walletStub.openWallets.set([{ hiddenCategoryIds: ['Food'] }, { hiddenCategoryIds: ['Food'] }])
+    await settle()
+    expect(line('Food')).toContain(th.categories.disabled)
+    expect(line('Coffee')).toContain(th.categories.disabledWithParent)
+    expect(line('Tea')).toContain(th.categories.disabledWithParent)
+    expect(line('Home')).not.toContain(th.categories.disabled)
+    // A child is off in every wallet, by its own id in one and its parent's in the other.
+    walletStub.openWallets.set([{ hiddenCategoryIds: ['Tea'] }, { hiddenCategoryIds: ['Food'] }])
+    await settle()
+    expect(line('Tea')).toContain(th.categories.disabled)
+    expect(line('Food')).not.toContain(th.categories.disabled)
+    expect(line('Coffee')).not.toContain(th.categories.disabledWithParent)
   })
 
   it('opens a category in the sheet when its row is tapped', () => {

@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Category disable mock-up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --background: oklch(0.975 0.007 265); --foreground: oklch(0.2 0.03 265);
+  --card: oklch(1 0 0); --muted: oklch(0.94 0.014 265); --muted-fg: oklch(0.48 0.03 265);
+  --primary: oklch(0.8 0.15 80); --primary-fg: oklch(0.2 0.03 70); --input: oklch(0.91 0.014 265);
+  --destructive: oklch(0.55 0.22 27); --border: oklch(0.91 0.014 265); --brand: oklch(0.53 0.12 75);
+  --mix: 9%;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+    --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+    --primary: oklch(0.82 0.15 82); --input: oklch(0.35 0.04 265); --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82); --mix: 15%;
+  }
+}
+:root[data-theme="dark"] {
+  --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+  --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+  --primary: oklch(0.82 0.15 82); --input: oklch(0.35 0.04 265); --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82); --mix: 15%;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--background); color: var(--foreground);
+  font-family: "IBM Plex Sans Thai", system-ui, sans-serif; font-size: 15px; }
+header.page, section > h2, section > p.lead { max-width: 1280px; margin-left: auto; margin-right: auto; padding-left: 16px; padding-right: 16px; }
+header.page { padding-top: 24px; padding-bottom: 8px; }
+header.page h1 { font-size: 20px; margin: 0 0 4px; }
+header.page p, p.lead { margin: 0; color: var(--muted-fg); font-size: 14px; line-height: 1.5; }
+section { margin-top: 28px; }
+section > h2 { font-size: 17px; margin-top: 0; margin-bottom: 4px; }
+.toggle { margin-top: 10px; display: inline-flex; gap: 4px; background: var(--muted); border-radius: 10px; padding: 3px; }
+.toggle button { border: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 8px; cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--card); font-weight: 600; }
+.grid { max-width: 1280px; margin: 0 auto; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 20px; }
+figure { margin: 0; width: 300px; max-width: 100%; }
+figcaption { font-size: 13px; color: var(--muted-fg); margin-bottom: 6px; min-height: 72px; line-height: 1.45; }
+figcaption b { color: var(--foreground); }
+.phone { height: 600px; border: 1px solid var(--border); border-radius: 24px; overflow: hidden;
+  background: var(--background); display: flex; flex-direction: column; }
+.sheet { margin-top: 40px; flex: 1; background: var(--card); border-radius: 18px 18px 0 0;
+  display: flex; flex-direction: column; box-shadow: 0 -2px 12px rgb(0 0 0 / 0.08); min-height: 0; }
+.bar { display: flex; align-items: center; height: 52px; padding: 0 4px; border-bottom: 1px solid var(--border); flex: none; }
+.bar .t { flex: 1; text-align: center; font-weight: 600; }
+.bar .ib { width: 44px; height: 44px; display: grid; place-items: center; }
+.bar .act { width: auto; padding: 0 10px; font-size: 14px; font-weight: 600; color: var(--brand); }
+.body { flex: 1; overflow: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.pagebar { height: 52px; display: flex; align-items: center; gap: 8px; padding: 0 8px; font-weight: 600; font-size: 17px; flex: none; }
+.badge { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: #fff; flex: none; }
+.badge.s { width: 32px; height: 32px; }
+.badge.xs { width: 28px; height: 28px; }
+.badge svg { width: 20px; height: 20px; }
+.badge.s svg, .badge.xs svg { width: 16px; height: 16px; }
+svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.card { border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
+.card > li, .card > .r { border-top: 1px solid var(--border); }
+.card > li:first-child, .card > .r:first-child { border-top: 0; }
+ul { list-style: none; margin: 0; padding: 0; }
+.r { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 14px; }
+.r.c { min-height: 48px; padding-left: 26px; }
+.lab { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.lab .n { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.r:not(.c) .lab .n { font-weight: 500; }
+.lab small { font-size: 12px; color: var(--muted-fg); }
+.sw { width: 32px; height: 18px; border-radius: 99px; background: var(--input); display: flex; align-items: center; padding: 0 1px; flex: none; }
+.sw i { width: 16px; height: 16px; border-radius: 50%; background: var(--card); box-shadow: 0 1px 2px rgb(0 0 0 / .2); }
+.sw.on { background: var(--primary); justify-content: flex-end; }
+.lock .badge, .lock .sw { opacity: .5; }
+.tree { margin: 0 10px 8px 22px; border-radius: 12px; background: color-mix(in oklch, var(--c) var(--mix), transparent);
+  border-left: 3px solid color-mix(in oklch, var(--c) 60%, transparent); }
+.tree .r { padding-left: 12px; }
+.hd { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; }
+.hd .h { font-size: 13px; color: var(--muted-fg); font-weight: 500; }
+.ghost { border: 0; background: transparent; font: inherit; font-size: 14px; font-weight: 600; color: var(--foreground);
+  padding: 8px 10px; margin: -8px -8px -8px 0; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; }
+.ghost.hi { outline: 2px dashed var(--brand); outline-offset: 0; }
+.outline { width: 100%; height: 44px; border-radius: 10px; border: 1px solid var(--border); background: var(--card);
+  color: var(--foreground); font: inherit; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.hi { outline: 2px dashed var(--brand); outline-offset: 2px; }
+.seg { display: flex; background: var(--muted); border-radius: 10px; padding: 3px; }
+.seg span { flex: 1; text-align: center; padding: 6px; border-radius: 8px; font-size: 14px; color: var(--muted-fg); }
+.seg span.on { background: var(--card); color: var(--foreground); font-weight: 600; }
+.line { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; border-top: 1px solid var(--border); }
+.line:first-child { border-top: 0; }
+.line .k { color: var(--muted-fg); }
+.line .v { flex: 1; text-align: right; }
+.line .v.off { color: var(--muted-fg); }
+.line svg { color: var(--muted-fg); }
+.bookbtn { display: flex; align-items: center; gap: 12px; padding: 8px 14px; min-height: 56px; }
+.bookbtn small { display: block; color: var(--muted-fg); font-size: 13px; }
+/* Disabled display in the category list */
+.dis .badge { opacity: .45; }
+.dis .n { color: var(--muted-fg); }
+.pill { font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--muted); color: var(--muted-fg); white-space: nowrap; }
+.r .end { color: var(--muted-fg); }
+.lr .badge, .lr .n { opacity: 1; }
+.dimall { opacity: .5; }
+.foot { padding: 12px 14px 18px; flex: none; }
+.btn { width: 100%; height: 44px; border-radius: 10px; border: 0; font: inherit; font-weight: 600; background: var(--primary); color: var(--primary-fg); }
+#B .phone, #C .phone { height: 720px; }
+.pillbtn { border: 1px solid var(--border); background: var(--card); color: var(--foreground); font: inherit; font-size: 13px;
+  font-weight: 600; height: 32px; padding: 0 12px; border-radius: 99px; display: inline-flex; align-items: center; gap: 6px; }
+.pillbtn svg { width: 16px; height: 16px; }
+.master .lab .n { font-weight: 600; }
+.toast { margin: 0 14px 10px; background: var(--foreground); color: var(--background); border-radius: 10px; padding: 10px 12px; font-size: 13px; display: flex; justify-content: space-between; }
+.toast b { color: var(--primary); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></symbol>
+  <symbol id="i-bank" viewBox="0 0 24 24"><line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="11"/><line x1="10" x2="10" y1="18" y2="11"/><line x1="14" x2="14" y1="18" y2="11"/><line x1="18" x2="18" y1="18" y2="11"/><polygon points="12 2 20 7 4 7"/></symbol>
+  <symbol id="i-food" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></symbol>
+  <symbol id="i-coffee" viewBox="0 0 24 24"><path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/><path d="M6 2v2"/></symbol>
+  <symbol id="i-car" viewBox="0 0 24 24"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></symbol>
+  <symbol id="i-fuel" viewBox="0 0 24 24"><line x1="3" x2="15" y1="22" y2="22"/><line x1="4" x2="14" y1="9" y2="9"/><path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18"/><path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-film" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-eyeoff" viewBox="0 0 24 24"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></symbol>
+  <symbol id="i-toff" viewBox="0 0 24 24"><circle cx="9" cy="12" r="3"/><rect width="20" height="14" x="2" y="5" rx="7"/></symbol>
+  <symbol id="i-ton" viewBox="0 0 24 24"><circle cx="15" cy="12" r="3"/><rect width="20" height="14" x="2" y="5" rx="7"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/></symbol>
+</svg>
+
+<header class="page">
+  <h1>ปิดใช้งานหมวดหมู่ (mock-up)</h1>
+  <p>ปุ่มเดียวสลับ "ปิดทั้งหมด / เปิดทั้งหมด" ในรายการสวิตช์ และสถานะ <b>ปิดใช้งาน</b> (ไม่ได้ใช้ในกระเป๋าใดเลย) ในหน้า Account › หมวดหมู่.
+     เส้นประสีทอง = ส่วนที่เพิ่มใหม่</p>
+  <div class="toggle" role="group" aria-label="Theme">
+    <button type="button" aria-pressed="true">ตามระบบ</button>
+    <button type="button" data-t="light" aria-pressed="false">สว่าง</button>
+    <button type="button" data-t="dark" aria-pressed="false">มืด</button>
+  </div>
+</header>
+
+<section>
+  <h2>A. ฟอร์มหมวดหมู่ › "ใช้ในกระเป๋า"</h2>
+  <p class="lead">ตำแหน่งปุ่มสลับ 3 แบบ. ปุ่มเขียนว่า "ปิดทั้งหมด" เมื่อยังมีกระเป๋าเปิดอยู่ และ "เปิดทั้งหมด" เมื่อปิดครบแล้ว. บันทึกด้วยปุ่มบันทึกของฟอร์มเหมือนเดิม.</p>
+  <div class="grid" id="A"></div>
+</section>
+
+<section>
+  <h2>B. ฟอร์มกระเป๋า › "หมวดหมู่ที่ใช้" (แท็บ รายจ่าย / รายรับ)</h2>
+  <p class="lead">ปุ่มทำงานเฉพาะแท็บที่เลือกอยู่. ปิดหมวดหลักก็ปิดหมวดรองตามอยู่แล้ว (หมวดรองจะล็อก) จึงพอที่จะปิดแค่หมวดหลักทุกตัว.</p>
+  <div class="grid" id="B"></div>
+</section>
+
+<section>
+  <h2>C. Account › หมวดหมู่: แสดงหมวดที่ปิดใช้งาน</h2>
+  <p class="lead">ข้อมูลตัวอย่าง: <b>การเดินทาง</b> ปิดใช้งาน (หมวดรองจางตาม), <b>กาแฟ</b> (หมวดรองของอาหาร) ปิดใช้งานเอง, <b>บันเทิง</b> ปิดใช้งาน, อาหาร/ที่อยู่อาศัย ใช้อยู่.</p>
+  <div class="grid" id="C"></div>
+</section>
+
+<script>
+const I = (n) => `<svg aria-hidden="true"><use href="#i-${n}"/></svg>`
+const badge = (icon, color, cls = '') => `<span class="badge ${cls}" style="background:${color}">${I(icon)}</span>`
+const sw = (on) => `<span class="sw ${on ? 'on' : ''}"><i></i></span>`
+const W = [
+  { n: 'เงินสด', i: 'wallet', c: '#16a34a' },
+  { n: 'กสิกร ออมทรัพย์', i: 'bank', c: '#15803d' },
+  { n: 'บัตรเครดิต KTC', i: 'card', c: '#7c3aed' },
+  { n: 'บัญชีเงินเดือน', i: 'bank', c: '#2563eb' },
+]
+const toggleRow = ({ i, c, n, on, note, child, lock }) =>
+  `<li class="r ${child ? 'c' : ''} ${lock ? 'lock' : ''}">${badge(i, c, child ? 's' : '')}
+    <span class="lab"><span class="n">${n}</span>${note ? `<small>${note}</small>` : ''}</span>${sw(on && !lock)}</li>`
+const walletList = (ons, locks = []) =>
+  `<ul class="card">${W.map((w, k) => toggleRow({ ...w, on: ons[k], lock: locks[k], note: locks[k] ? 'ซ่อนตามหมวดหมู่หลัก' : '' })).join('')}</ul>`
+const bar = (title, trailing = '') =>
+  `<div class="bar"><span class="ib">${I('left')}</span><span class="t">${title}</span>${trailing || '<span class="ib"></span>'}</div>`
+const phone = (cap, inner) => `<figure><figcaption>${cap}</figcaption><div class="phone">${inner}</div></figure>`
+const sheet = (title, body, trailing, foot = '') =>
+  `<div class="sheet">${bar(title, trailing)}<div class="body">${body}</div>${foot}</div>`
+const hd = (left, btn, hi = true) =>
+  `<div class="hd"><span class="h">${left}</span><button class="ghost ${hi ? 'hi' : ''}" type="button">${btn}</button></div>`
+
+const hdPill = (left, on) =>
+  `<div class="hd"><span class="h">${left}</span><button class="pillbtn hi" type="button">${I(on ? 'ton' : 'toff')} ${on ? 'เปิดทั้งหมด' : 'ปิดทั้งหมด'}</button></div>`
+const master = (label, sub, on) =>
+  `<ul class="card hi"><li class="r master"><span class="lab"><span class="n">${label}</span><small>${sub}</small></span>${sw(on)}</li></ul>`
+
+// ── A ─────────────────────────────────────────────────────────────
+const A = document.getElementById('A')
+A.innerHTML = [
+  phone('<b>A1 ปุ่ม ghost เหนือรายการ</b> (แบบ "จัดลำดับ" ในหน้าหมวดหมู่). ซ้ายบอกจำนวนที่ใช้. ยังเปิดอยู่ 3 ใบ → "ปิดทั้งหมด"',
+    sheet('ใช้ในกระเป๋า', hd('ใช้ 3 จาก 4 กระเป๋า', 'ปิดทั้งหมด') + walletList([1, 0, 1, 1]))),
+  phone('<b>A1 หลังกด</b>: ทุกสวิตช์ปิด ปุ่มกลายเป็น "เปิดทั้งหมด", ซ้ายเป็น "ปิดใช้งาน"',
+    sheet('ใช้ในกระเป๋า', hd('ปิดใช้งาน', 'เปิดทั้งหมด') + walletList([0, 0, 0, 0]))),
+  phone('<b>A1 กับหมวดรอง</b> (หมวดหลักซ่อนในบัตร KTC): แถวที่ล็อกไม่ถูกแตะ. ปิดครบ 3 ใบที่เหลือ = หมวดรองนี้ปิดใช้งาน',
+    sheet('ใช้ในกระเป๋า', hd('ใช้ 3 จาก 4 กระเป๋า', 'ปิดทั้งหมด') + walletList([1, 1, 0, 1], [0, 0, 1, 0]))),
+  phone('<b>A2 ปุ่มบนแถบหัว sheet</b> (ขวาบน แทนที่ว่าง). ประหยัดที่ แต่ห่างจากรายการและดูคล้ายปุ่มบันทึก',
+    sheet('ใช้ในกระเป๋า', walletList([1, 0, 1, 1]), `<span class="ib act hi">ปิดทั้งหมด</span>`)),
+  phone('<b>A3 ปุ่มเต็มความกว้างใต้รายการ</b> มีไอคอนสวิตช์. กดง่ายบนมือถือ แต่ถ้ากระเป๋าเยอะจะต้องเลื่อนลงไปหา',
+    sheet('ใช้ในกระเป๋า', walletList([1, 0, 1, 1]) + `<button class="outline hi" type="button">${I('toff')} ปิดทั้งหมด</button>`)),
+  phone('<b>A4 ปุ่มกรอบมน + ไอคอน</b> (A1 ที่ดูเป็นปุ่มชัดขึ้น): ตำแหน่งเดิม แต่มีกรอบและไอคอนสวิตช์ จึงไม่ดูเป็นข้อความเฉย ๆ',
+    sheet('ใช้ในกระเป๋า', hdPill('ใช้ 3 จาก 4 กระเป๋า', false) + walletList([1, 0, 1, 1]))),
+  phone('<b>A4 หลังกด</b>: ปุ่มกลายเป็น "เปิดทั้งหมด" (ไอคอนสวิตช์เปิด)',
+    sheet('ใช้ในกระเป๋า', hdPill('ปิดใช้งาน', true) + walletList([0, 0, 0, 0]))),
+  phone('<b>A5 สวิตช์หลัก "ใช้ทุกกระเป๋า"</b> ในการ์ดแยกเหนือรายการ: เปิด = ทุกใบเปิด. ใช้บางใบ (3/4) สวิตช์แสดงปิด → กดแล้ว<b>เปิดครบทุกใบ</b> (ต้องกดอีกครั้งถึงจะปิดหมด)',
+    sheet('ใช้ในกระเป๋า', master('ใช้ทุกกระเป๋า', 'ใช้ 3 จาก 4 กระเป๋า', false) + walletList([1, 0, 1, 1]))),
+  phone('<b>A5 เปิดครบ</b>: สวิตช์หลักเปิด กดอีกครั้ง = ปิดทุกใบ (บรรทัดล่างเป็น "ปิดใช้งาน")',
+    sheet('ใช้ในกระเป๋า', master('ใช้ทุกกระเป๋า', 'ใช้ทั้ง 4 กระเป๋า', true) + walletList([1, 1, 1, 1]))),
+  phone('<b>ฟอร์มหลัก</b> (ทุกแบบ): แถว "ใช้ในกระเป๋า" แสดง "ปิดใช้งาน" เมื่อไม่ได้ใช้ในกระเป๋าใด แทน "0 จาก 4 กระเป๋า"',
+    sheet('แก้ไขหมวดหมู่', `<div style="display:flex;gap:12px;align-items:center">${badge('film', '#db2777')}<span style="flex:1;border-bottom:1px solid var(--border);padding:8px 0;font-size:17px">บันเทิง</span></div>
+      <div class="seg"><span class="on">รายจ่าย</span><span>รายรับ</span></div>
+      <div class="card"><div class="line"><span class="k">หมวดหมู่หลัก</span><span class="v">ไม่มี</span>${I('right')}</div>
+      <div class="line hi" style="border-radius:0 0 12px 12px"><span class="k">ใช้ในกระเป๋า</span><span class="v off">ปิดใช้งาน</span>${I('right')}</div></div>`,
+      '', `<div class="foot"><button class="btn" type="button">บันทึก</button></div>`)),
+].join('')
+
+// ── B ─────────────────────────────────────────────────────────────
+const CATS = [
+  { n: 'อาหาร', i: 'food', c: '#ea580c', kids: [{ n: 'กาแฟ', i: 'coffee' }, { n: 'เดลิเวอรี', i: 'food' }] },
+  { n: 'การเดินทาง', i: 'car', c: '#2563eb', kids: [{ n: 'น้ำมัน', i: 'fuel' }, { n: 'ทางด่วน', i: 'car' }] },
+  { n: 'ที่อยู่อาศัย', i: 'home', c: '#0d9488', kids: [] },
+  { n: 'บันเทิง', i: 'film', c: '#db2777', kids: [] },
+]
+const catToggles = (parentOn, kidOff = {}) => `<ul class="card">${CATS.map((p, k) => `<li>${toggleRow({ ...p, on: parentOn[k] })}${
+  p.kids.length ? `<ul class="tree" style="--c:${p.c}">${p.kids.map((ch) => toggleRow({ ...ch, c: p.c, child: true, on: !kidOff[ch.n], lock: !parentOn[k], note: !parentOn[k] ? 'ซ่อนตามหมวดหมู่หลัก' : '' })).join('')}</ul>` : ''}</li>`).join('')}</ul>`
+const tabs = `<div class="seg"><span class="on">รายจ่าย</span><span>รายรับ</span></div>`
+const B = document.getElementById('B')
+B.innerHTML = [
+  phone('<b>B1 ปุ่ม ghost ใต้แท็บ</b> (แบบเดียวกับ A1). "ปิดทั้งหมด" ปิดหมวดรายจ่ายทุกตัว, แท็บรายรับไม่เปลี่ยน',
+    sheet('หมวดหมู่ที่ใช้ของเงินสด', tabs + hd('ใช้ 3 จาก 4 หมวดหมู่', 'ปิดทั้งหมด') + catToggles([1, 1, 1, 0], { 'กาแฟ': 1 }))),
+  phone('<b>B1 หลังกด</b>: หมวดหลักปิดทุกตัว หมวดรองล็อกตาม. กด "เปิดทั้งหมด" กลับมาเปิดหมวดหลักทุกตัว (หมวดรองที่เคยปิดเองยังปิด)',
+    sheet('หมวดหมู่ที่ใช้ของเงินสด', tabs + hd('ไม่ได้ใช้หมวดรายจ่าย', 'เปิดทั้งหมด') + catToggles([0, 0, 0, 0], { 'กาแฟ': 1 }))),
+  phone('<b>B2 ปุ่มเต็มความกว้างใต้รายการ</b> ระบุแท็บในข้อความ. ชัดว่าทำแค่แท็บนี้ แต่หมวดหมู่ยาว (30+) ต้องเลื่อนลงสุด',
+    sheet('หมวดหมู่ที่ใช้ของเงินสด', tabs + catToggles([1, 1, 1, 0], { 'กาแฟ': 1 }) + `<button class="outline hi" type="button">${I('toff')} ปิดหมวดรายจ่ายทั้งหมด</button>`)),
+  phone('<b>B4 ปุ่มกรอบมน</b> (คู่กับ A4) ใต้แท็บ',
+    sheet('หมวดหมู่ที่ใช้ของเงินสด', tabs + hdPill('ใช้ 3 จาก 4 หมวดหมู่', false) + catToggles([1, 1, 1, 0], { 'กาแฟ': 1 }))),
+  phone('<b>B5 สวิตช์หลัก</b> (คู่กับ A5) "ใช้ทุกหมวดรายจ่าย" ใต้แท็บ',
+    sheet('หมวดหมู่ที่ใช้ของเงินสด', tabs + master('ใช้ทุกหมวดรายจ่าย', 'ใช้ 3 จาก 4 หมวดหมู่', false) + catToggles([1, 1, 1, 0], { 'กาแฟ': 1 }))),
+  phone('<b>B3 ไม่ใส่ปุ่ม</b> (เหมือนเดิม). เคสที่ต้องปิดทั้งแท็บ เช่น บัตรเครดิตไม่มีรายรับ เกิดไม่บ่อย และรายรับมีไม่กี่หมวด',
+    sheet('หมวดหมู่ที่ใช้ของเงินสด', tabs + catToggles([1, 1, 1, 0], { 'กาแฟ': 1 }))),
+].join('')
+
+// ── C ─────────────────────────────────────────────────────────────
+// dis: parent disabled; kidDis: a child disabled on its own
+const STATE = { 'การเดินทาง': true, 'บันเทิง': true }
+const KIDDIS = { 'กาแฟ': true }
+const listRow = (cat, color, child, own, inherited, style) => {
+  const dis = own || inherited
+  let note = '', end = ''
+  if (dis && style === 'C1') note = `<small>${inherited ? 'ปิดตามหมวดหมู่หลัก' : 'ปิดใช้งาน'}</small>`
+  if (dis && style === 'C2' && own) end = `<span class="pill">ปิดใช้งาน</span>`
+  if (dis && style === 'C3' && own) end = `<span class="end" title="ปิดใช้งาน">${I('eyeoff')}</span>`
+  return `<li class="r ${child ? 'c' : ''} ${dis ? 'dis' : ''}">${badge(cat.i, color, child ? 's' : '')}
+    <span class="lab"><span class="n">${cat.n}</span>${note}</span>${end}</li>`
+}
+const page = (style, extra = '') => `<div class="pagebar">${I('left')} หมวดหมู่</div><div class="body" style="padding-top:4px">
+  <div class="card bookbtn">${badge('book', '#ca8a04', 'xs')}<span style="flex:1"><small>สมุด</small><b>ครอบครัว</b></span>${I('down')}</div>
+  <div class="seg"><span class="on">รายจ่าย (12)</span><span>รายรับ (5)</span></div>
+  <div class="hd"><span class="h">หมวดหมู่</span><button class="ghost" type="button">จัดลำดับ</button></div>
+  <ul class="card">${CATS.map((p) => {
+    const pd = !!STATE[p.n]
+    return `<li>${listRow(p, p.c, false, pd, false, style)}${p.kids.length ? `<ul class="tree ${pd && style !== 'C1' ? '' : ''}" style="--c:${p.c}">${p.kids.map((ch) => listRow(ch, p.c, true, !!KIDDIS[ch.n], pd, style)).join('')}</ul>` : ''}</li>`
+  }).join('')}</ul>${extra}</div>`
+const C = document.getElementById('C')
+C.innerHTML = [
+  phone('<b>C1 จาง + บรรทัดใต้ชื่อ</b> (ที่ผมแนะนำ): ไอคอนจาง ชื่อสีเทา และ "ปิดใช้งาน" ใต้ชื่อ. หมวดรองของหมวดที่ปิดเขียน "ปิดตามหมวดหมู่หลัก" (คู่กับ "ซ่อนตามหมวดหมู่หลัก" ที่มีอยู่)',
+    page('C1')),
+  phone('<b>C2 จาง + ป้าย "ปิดใช้งาน" ทางขวา</b>: อ่านไล่ตาเร็ว แถวสูงเท่าเดิม. หมวดรองที่ปิดตามหมวดหลักจางอย่างเดียว ไม่มีป้ายซ้ำ',
+    page('C2')),
+  phone('<b>C3 จาง + ไอคอนตาขีดฆ่า</b>: เบาสุด แต่ต้องเดาความหมายของไอคอน (ใส่ aria-label "ปิดใช้งาน" ให้ screen reader)',
+    page('C3')),
+].join('')
+
+document.querySelectorAll('.toggle button').forEach((b) => b.addEventListener('click', () => {
+  const t = b.dataset.t
+  if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme
+  document.querySelectorAll('.toggle button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)))
+}))
+</script>
+</body>
+</html>
