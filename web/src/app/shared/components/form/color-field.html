@@ -1,24 +1,59 @@
 <fieldset class="flex flex-col gap-3">
   <legend class="mb-3 text-sm font-medium">{{ label() }}</legend>
+  @let value = control().value;
+  @let tone = toneOf(value);
   <div class="grid grid-cols-5 justify-items-center gap-2">
     @for (color of colors(); track color; let index = $index) {
+      @let chosen = tone === color;
       <label
         class="flex size-11 cursor-pointer items-center justify-center rounded-full has-focus-visible:ring-2 has-focus-visible:ring-ring has-focus-visible:ring-offset-2 has-focus-visible:ring-offset-background"
-        [style.background-color]="color"
-        [style.color]="glyph(color)"
+        [style.background-color]="chosen ? value : color"
+        [style.color]="glyph(chosen ? value : color)"
       >
         <input
           type="radio"
           class="sr-only"
           [name]="group"
           [value]="color"
-          [formControl]="control()"
+          [checked]="chosen"
           [attr.aria-label]="'colors.label' | transloco: { number: index + 1 }"
+          (change)="pickTone(color)"
         />
-        @if (control().value === color) {
+        @if (chosen) {
           <ng-icon name="lucideCheck" size="20" aria-hidden="true" />
         }
       </label>
     }
   </div>
+  @if (tone && shadesOf(tone); as shades) {
+    <div
+      class="flex justify-around rounded-2xl bg-muted p-2"
+      role="radiogroup"
+      [attr.aria-label]="'colors.shades' | transloco"
+    >
+      @for (shade of shades; track shade; let index = $index) {
+        <label
+          class="flex size-9 cursor-pointer items-center justify-center rounded-full has-focus-visible:ring-2 has-focus-visible:ring-ring has-focus-visible:ring-offset-2 has-focus-visible:ring-offset-muted"
+          [class.ring-2]="value === shade"
+          [class.ring-foreground]="value === shade"
+          [class.ring-offset-2]="value === shade"
+          [class.ring-offset-muted]="value === shade"
+          [style.background-color]="shade"
+          [style.color]="glyph(shade)"
+        >
+          <input
+            type="radio"
+            class="sr-only"
+            [name]="group + '-shade'"
+            [value]="shade"
+            [formControl]="control()"
+            [attr.aria-label]="'colors.shade' | transloco: { number: index + 1 }"
+          />
+          @if (value === shade) {
+            <ng-icon name="lucideCheck" size="16" aria-hidden="true" />
+          }
+        </label>
+      }
+    </div>
+  }
 </fieldset>

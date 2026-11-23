@@ -319,7 +319,8 @@ reports) shows the **current book's** data.
   `features/account/pages/books-page`.
 - User icons and colours: `@/shared/components/icon-badge` (`app-icon-badge` with a `fallback`,
   `USER_ICONS` = the curated lucide icons + our `TPN_ICONS` SVG strings, `BOOK_ICONS`,
-  `WALLET_ICON_GROUPS`, `CATEGORY_ICON_GROUPS`, `USER_COLORS`, `userColor` (a stored colour as
+  `WALLET_ICON_GROUPS`, `CATEGORY_ICON_GROUPS`, `USER_COLORS` (the 10 tones), `COLOR_SHADES`
+  (each tone's 4 shades) and `colorTone`, `userColor` (a stored colour as
   drawn: old palette colours map to their darker ones), `glyphColor`, `knownIcon(name, fallback)`); pick them in
   the sheet's icon-and-colour view with `app-icon-field` (flat `icons` or titled `groups`) and
   `app-color-field`. A `tpn` icon is an SVG string in `tpn-icons.ts` drawn in lucide's style
