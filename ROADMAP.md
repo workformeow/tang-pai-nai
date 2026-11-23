@@ -111,6 +111,22 @@ decision "Local-first").
 
 ---
 
+## Done: Personal bills category (2026-11-23)
+
+Owner: a phone plan, AI and streaming are bills a person pays for themselves, not the home's,
+so they leave ที่อยู่อาศัย / บ้านและค่าใช้จ่าย.
+
+- **Icons**: `CATEGORY_ICON_GROUPS` gains ค่าบริการส่วนตัว (`personalBills`: phone, the new
+  `lucideBot` for AI, TV, cloud, calendar clock), after บ้านและค่าใช้จ่าย, which gives up those
+  four. Stored icon names are unchanged.
+- **Default set** (category rule 8): ค่าบริการส่วนตัว (ค่าโทรศัพท์, AI, สตรีมมิง) after
+  ที่อยู่อาศัย, 32 categories; home internet stays under ที่อยู่อาศัย; an app membership (Shopee
+  VIP) goes on the parent. Books made before keep theirs. The demo's copy matches
+  (`auth.demo-seed.ts`): the phone plan and the streaming rule move to their new categories,
+  plus an AI subscription ฿690 on the 12th (card).
+- **Tests**: the default-set counts (web `book.service.spec.ts`, API `auth.demo-seed.test.ts`);
+  the icon catalogue spec checks the new icon's labels.
+
 ## Done: More icons and colour shades (2026-11)
 
 Web only, no API change (the server checks only the shapes of `icon` and `color`). Owner: tell

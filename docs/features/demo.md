@@ -157,18 +157,18 @@ the request's language. **D** is the day the demo starts; the data covers the da
 same date 3 months ago" up to D, so each monthly row comes 3 times. Everyday rows follow the
 real day of the week, their amounts cycling by `k mod 4` (k = days before D); none while away
 on the trip (D-40 to D-35). A note is left empty where the category already says it (owner).
-About 420 rows in all (405–420 by the start day); the bank never goes below 0 for any start
+About 420 rows in all (408–423 by the start day); the bank never goes below 0 for any start
 day of the year.
 
 - **Book** ส่วนตัว / Personal, with the default categories (category rule 8).
 - **Wallets**: เงินสด ฿2,500 · บัญชีธนาคาร ฿80,000 · บัตรเครดิต −฿6,800 (a card, out of the
   total) · เงินออม ฿60,000 (out of the total) · เงินเยน ¥0 (JPY).
 - **Monthly**: rent ฿7,500 on the 1st (a rule, recorded by itself; its next occurrence is the
-  first after D) · home internet ฿599 on the 3rd · phone plan ฿499 on the 5th (both
-  อินเทอร์เน็ต) · gym ฿990 on the 8th (card) · electricity ฿1,150 / 1,380 / 1,240 and water
-  ฿165 / 190 / 180 on the 10th · money for Mom ฿3,000 on the 20th · salary ฿34,250 on the 25th
+  first after D) · home internet ฿599 on the 3rd · phone plan ฿499 on the 5th (ค่าโทรศัพท์)
+  · gym ฿990 on the 8th (card) · electricity ฿1,150 / 1,380 / 1,240 and water
+  ฿165 / 190 / 180 on the 10th · an AI subscription ฿690 on the 12th (card, AI) · money for Mom ฿3,000 on the 20th · salary ฿34,250 on the 25th
   · saving ฿5,000 to เงินออม on the 26th · a streaming subscription ฿419 on D's day of the
-  month (card, a rule that **asks first**: two recorded, D's due).
+  month (card, สตรีมมิง, a rule that **asks first**: two recorded, D's due).
 - **Everyday**: drinks (cash) and lunch (อาหารประจำวัน) Monday–Friday, the metro to work and
   back ฿74, dinner Monday–Thursday, a convenience store Tuesday and Thursday, dinner with friends
   on Friday and groceries on Saturday (card, the parent category), a taxi every other Saturday,
