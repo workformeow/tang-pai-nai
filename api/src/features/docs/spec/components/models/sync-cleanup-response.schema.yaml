@@ -10,7 +10,7 @@ properties:
     example: '2026-01-01T00:00:00.000Z'
   data:
     type: object
-    required: [tombstones, ops]
+    required: [tombstones, ops, history]
     properties:
       tombstones:
         type: integer
@@ -18,3 +18,7 @@ properties:
       ops:
         type: integer
         example: 310
+      history:
+        type: integer
+        description: Conflict history entries (`change_history`) older than 90 days
+        example: 4

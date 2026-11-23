@@ -53,16 +53,22 @@ export const LOG = {
     botCheckUnavailable: '[Auth] ⚠️ Bot check unavailable: allowed (fail open)',
     botCheckFailed: '[Auth] Bot check failed',
     emailDailyLimit: (limit: number) => `[Auth] ⚠️ Daily email cap (${limit}) reached`,
-    cleanedUp: (challenges: number, sessions: number, buckets: number, demoUsers: number) =>
-      `[Auth] Cleanup removed ${challenges} challenges, ${sessions} sessions, ${buckets} rate-limit buckets, ${demoUsers} demo users`,
+    cleanedUp: (removed: {
+      challenges: number
+      sessions: number
+      rateLimitBuckets: number
+      invites: number
+      demoUsers: number
+    }) =>
+      `[Auth] Cleanup removed ${removed.challenges} challenges, ${removed.sessions} sessions, ${removed.rateLimitBuckets} rate-limit buckets, ${removed.invites} wallet invites, ${removed.demoUsers} demo users`,
   },
   LIVE: {
     publishFailed: (provider: string) => `[Live] ⚠️ Poke via ${provider} not sent (push kept)`,
     lookupFailed: '[Live] ⚠️ Shared book lookup failed: its poke is skipped (push kept)',
   },
   SYNC: {
-    cleanedUp: (tombstones: number, ops: number) =>
-      `[Sync] Cleanup removed ${tombstones} tombstones, ${ops} op records`,
+    cleanedUp: (removed: { tombstones: number; ops: number; history: number }) =>
+      `[Sync] Cleanup removed ${removed.tombstones} tombstones, ${removed.ops} op records, ${removed.history} conflict history entries`,
   },
 }
 

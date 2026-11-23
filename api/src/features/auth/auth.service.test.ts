@@ -572,6 +572,7 @@ describe('cleanup', () => {
       challenges: 0,
       sessions: 0,
       rateLimitBuckets: 0,
+      invites: 0,
       demoUsers: 0,
     })
     ctx.advance(AUTH_LIMITS.CHALLENGE_TTL_MS + 1)

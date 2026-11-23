@@ -146,14 +146,49 @@ describe('deleteExpired', () => {
     await newChallenge('new@example.com', later(10))
     await newSession({ id: 's1', familyId: 'f', tokenHash: 'h1' })
     await repo.hitRateLimit('k', 60_000, AT)
+    const owner = await repo.createUser({ email: 'owner@example.com', displayName: 'o' })
+    await database.insert(books).values({
+      id: 'pa',
+      userId: owner.id,
+      name: 'pa',
+      icon: 'lucideHouse',
+      color: '#000',
+      sortOrder: 0,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 1,
+      updatedBy: 'device',
+    })
+    const invite = (id: string, email: string, expiresAt: Date) => ({
+      id,
+      bookId: 'pa',
+      ownerId: owner.id,
+      email,
+      role: 'viewer' as const,
+      walletIds: [],
+      createdAt: 1,
+      expiresAt: expiresAt.getTime(),
+      lastSentAt: 1,
+    })
+    await database
+      .insert(walletInvites)
+      .values([
+        invite('00000000-0000-7000-8000-0000000000e1', 'old@example.com', later(-10)),
+        invite('00000000-0000-7000-8000-0000000000e2', 'new@example.com', later(10_000)),
+      ])
 
     const removed = await repo.deleteExpired(later(5000))
 
-    expect(removed).toEqual({ challenges: 2, sessions: 1, rateLimitBuckets: 1 })
+    expect(removed).toEqual({ challenges: 2, sessions: 1, rateLimitBuckets: 1, invites: 1 })
+    expect((await database.select().from(walletInvites)).map((row) => row.email)).toEqual([
+      'new@example.com',
+    ])
     expect(await repo.deleteExpired(AT)).toEqual({
       challenges: 0,
       sessions: 0,
       rateLimitBuckets: 0,
+      invites: 0,
     })
   })
 })

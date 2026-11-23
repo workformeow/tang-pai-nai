@@ -29,6 +29,8 @@ export interface SyncRepository {
   /** Notices pull carries to `deviceId` of `userId` with `since < changeSeq <= upTo` (rule 12). */
   notices(userId: string, deviceId: string, since: number, upTo: number): Promise<SyncNotice[]>
   deleteOpsBefore(before: number): Promise<number>
+  /** Rule 9: drops `change_history` entries made before `before`; returns how many. */
+  deleteHistoryBefore(before: number): Promise<number>
   /** The wallet's owner and `userId`'s role on it; null when there's no such wallet (#16.2). */
   walletAccess(userId: string, walletId: string): Promise<WalletAccess | null>
   /** The wallet's book when the wallet is shared with someone (live-sync rule 6), else null. */

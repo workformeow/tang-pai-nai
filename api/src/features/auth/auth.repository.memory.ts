@@ -368,6 +368,8 @@ export const createMemoryAuthRepository = (
         challenges: challenges - state.challenges.length,
         sessions: sessions - state.sessions.length,
         rateLimitBuckets: buckets - state.buckets.size,
+        // This fake keeps no wallet invites.
+        invites: 0,
       }
     },
   }

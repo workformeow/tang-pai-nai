@@ -147,6 +147,11 @@ export const createMemorySyncRepository = (options: MemorySyncOptions = {}) => {
       }
       return Promise.resolve(removed)
     },
+    deleteHistoryBefore: async (before) => {
+      const count = state.history.length
+      state.history = state.history.filter((entry) => entry.createdAt >= before)
+      return Promise.resolve(count - state.history.length)
+    },
     pull: async (name, userId, since, limit) =>
       Promise.resolve(
         [...table(name).values()]

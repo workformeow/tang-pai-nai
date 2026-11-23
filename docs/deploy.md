@@ -99,8 +99,18 @@ themselves (a pull request's preview must not change the staging database).
 | `LIVE_PROVIDER`, `ABLY_API_KEY`                                 | `ably` and step 3c (unset: no live sync); never `local` on Vercel    |
 
 Vercel Cron calls `GET /auth/cleanup` and `GET /sync/cleanup` every day (02:17 and 02:47 Thai
-time) with `CRON_SECRET`, on **production only**. On staging run them by hand when needed:
-`curl -H "Authorization: Bearer <CRON_SECRET>" https://<staging API>/auth/cleanup`.
+time) with `CRON_SECRET`, on **production only**: preview deployments never run cron, and the
+dashboard's Schedules page stays empty until the first production deployment. On staging run
+both by hand now and then, either from `api/` against the staging Turso database (loads
+`api/.env.staging`):
+
+```bash
+npm run cleanup:staging
+```
+
+or through the staging API:
+`curl -H "Authorization: Bearer <CRON_SECRET>" https://<staging API>/auth/cleanup` (and
+`/sync/cleanup`).
 
 ## 5. Vercel: the web project
 

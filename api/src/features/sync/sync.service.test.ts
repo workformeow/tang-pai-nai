@@ -495,13 +495,19 @@ describe('createSyncService › pull', () => {
 })
 
 describe('createSyncService › cleanup', () => {
-  it('purges old tombstones and op records, and raises the watermark', async () => {
+  it('purges old tombstones, op records and conflict history, and raises the watermark', async () => {
     const { service, memory, tick, now } = setup()
     await one(service, ALICE, PHONE, op({ row: note('old', 'Old', NOW, { deletedAt: NOW }) }))
+    await one(service, ALICE, PHONE, op({ row: note('n1', 'Coffee', NOW) }))
+    await one(service, ALICE, PHONE, op({ row: note('n1', 'Latte', NOW + 5000), baseSeq: 3 }))
+    // A stale, older edit from the laptop loses: one history entry from before the retention.
+    await one(service, ALICE, LAPTOP, op({ row: note('n1', 'Tea', NOW + 1000), baseSeq: 3 }))
+    expect(memory.history()).toHaveLength(1)
     tick(SYNC_LIMITS.RETENTION_MS + 1)
     await one(service, ALICE, PHONE, op({ row: note('new', 'New', now(), { deletedAt: now() }) }))
     const removed = await service.cleanup()
-    expect(removed).toEqual({ tombstones: 1, ops: 1 })
+    expect(removed).toEqual({ tombstones: 1, ops: 4, history: 1 })
+    expect(memory.history()).toEqual([])
     expect(memory.row('notes', 'old')).toBeNull()
     expect(memory.row('notes', 'new')).not.toBeNull()
     expect(await memory.repo.purgedSeq()).toBe(2)

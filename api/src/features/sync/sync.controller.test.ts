@@ -175,7 +175,7 @@ describe('GET /sync/cleanup', () => {
       .set('Authorization', `Bearer ${CRON_SECRET}`)
     const body = res.body as AppResponse<SyncCleanupData>
     expect(res.status).toBe(HttpStatus.OK)
-    expect(body.data).toEqual({ tombstones: 0, ops: 0 })
+    expect(body.data).toEqual({ tombstones: 0, ops: 0, history: 0 })
   })
 
   it('refuses a user token with 401', async () => {

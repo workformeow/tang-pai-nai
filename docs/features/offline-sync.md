@@ -104,7 +104,8 @@ its row for a second create quietly: [recurring.md](recurring.md) rule 9).
   rows (rule 12). `loserDeviceId` is set when the push that lost is the one being answered
   (`overridden`): that device already hears it in the push result, so pull skips it. When an
   already applied row loses later, `loserDeviceId` is empty and pull gives the notice to every
-  device of `loserUserId` except `overwrittenByDevice`.
+  device of `loserUserId` except `overwrittenByDevice`. Entries older than 90 days are purged
+  with the tombstones: a cursor that old answers `410`, so no device could pull them any more.
 
 ### Device: local database (web)
 
@@ -315,8 +316,9 @@ status: pending | rejected, error? }`. It keeps **one pending op per row**: a ne
 - Rejection `code`s: `VALIDATION` (the feature's rules, with its message), `CONFLICT` (a feature
   rule about other rows, e.g. a book or wallet name in use), `ID_TAKEN` (row `id` or `opId` of another
   user), `UNKNOWN_TABLE`, `READ_ONLY` (a pull-only table such as currencies).
-- **Cleanup**: `npm run sync:cleanup` deletes tombstones and `sync_ops` older than 90 days and
-  raises `purgedSeq` (a Vercel Cron endpoint replaces it at deploy, #17, like `auth:cleanup`).
+- **Cleanup**: `npm run sync:cleanup` deletes tombstones, `sync_ops` and `change_history` older
+  than 90 days and raises `purgedSeq`; on Vercel, Cron calls `GET /sync/cleanup` daily (#17),
+  like `/auth/cleanup`.
 
 Feature REST endpoints stay. They serve shared wallets (members, online), admin/debug, and tests.
 The web app's **own** data goes through the local database + sync.

@@ -3,7 +3,8 @@ get:
     - Sync
   summary: Daily sync cleanup (Vercel Cron)
   description: >-
-    Deletes tombstones and sync op records older than 90 days and raises the purge watermark
+    Deletes tombstones, sync op records and conflict history older than 90 days and raises the
+    purge watermark
     (offline-sync rule 9), as `npm run sync:cleanup` does. Called daily by Vercel Cron with
     `CRON_SECRET`.
   operationId: syncCleanup
