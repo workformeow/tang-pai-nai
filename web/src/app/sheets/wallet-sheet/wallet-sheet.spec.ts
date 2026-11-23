@@ -278,7 +278,7 @@ describe('WalletSheet', () => {
     await settle()
     expect(toggle('Coffee').disabled).toBe(true)
     expect(toggle('Coffee').getAttribute('aria-checked')).toBe('false')
-    expect(toggle('Coffee').textContent).toContain(th.categories.hiddenWithParent)
+    expect(toggle('Coffee').textContent).toContain(th.categories.disabledWithParent)
     ;[...body().querySelectorAll('button[role="tab"]')]
       .find((b) => b.textContent.trim() === th.categories.income)
       ?.dispatchEvent(new Event('click'))
@@ -295,6 +295,35 @@ describe('WalletSheet', () => {
       'Food',
       'Salary',
     ])
+  })
+
+  it("switches a tab's categories all on or all off with one switch (category rule 13)", async () => {
+    category('Food')
+    category('Coffee', { parentId: 'Food' })
+    category('Taxi', { sortOrder: 1 })
+    category('Salary', { type: 'income' })
+    wallet('w1', { hiddenCategoryIds: ['Coffee'] })
+    wallets.open({ mode: 'edit', id: 'w1' })
+    await settle()
+    row(th.wallets.categoriesUsed)?.click()
+    await settle()
+    const master = () => toggle(th.wallets.useEveryExpense)
+    expect(master().getAttribute('aria-checked')).toBe('false')
+    expect(master().textContent).toContain('ใช้ 2 จาก 3 หมวดหมู่')
+    // On: every row of the tab, children included.
+    master().click()
+    await settle()
+    expect(toggle('Coffee').getAttribute('aria-checked')).toBe('true')
+    expect(master().getAttribute('aria-checked')).toBe('true')
+    // Off: the parents only; their children lock with them.
+    master().click()
+    await settle()
+    expect(toggle('Coffee').disabled).toBe(true)
+    expect(master().textContent).toContain(th.categories.disabled)
+    await click(th.sheet.back)
+    await submit()
+    // The income tab is untouched.
+    expect(wallets.byId('w1')?.hiddenCategoryIds).toEqual(['Food', 'Taxi'])
   })
 
   it('starts a new wallet with all categories in use, and keeps the choice made', async () => {

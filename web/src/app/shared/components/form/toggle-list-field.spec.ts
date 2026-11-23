@@ -57,3 +57,74 @@ describe('ToggleListField', () => {
     expect(checked()).toEqual(['true', 'true'])
   })
 })
+
+@Component({
+  imports: [ToggleListField],
+  template: `<app-toggle-list-field
+    [control]="control"
+    label="Categories"
+    [items]="items"
+    allLabel="Use every category"
+    allNote="note"
+  />`,
+})
+class MasterHost {
+  control = inject(NonNullableFormBuilder).control<string[]>([])
+  items: ToggleListItem[] = [item('p'), { ...item('c'), child: true }, item('q')]
+}
+
+describe('ToggleListField master switch', () => {
+  const setup = async (off: string[], items?: ToggleListItem[]) => {
+    const fixture = TestBed.createComponent(MasterHost)
+    fixture.componentInstance.control.setValue(off)
+    if (items) {
+      fixture.componentInstance.items = items
+    }
+    await fixture.whenStable()
+    const element = fixture.nativeElement as HTMLElement
+    const master = () => element.querySelector('[role="switch"]') as HTMLButtonElement
+    const click = async () => {
+      master().click()
+      await fixture.whenStable()
+    }
+    return { fixture, master, click, value: () => fixture.componentInstance.control.value }
+  }
+
+  it('is on only while every row is on', async () => {
+    const { master } = await setup(['c'])
+    expect(master().getAttribute('aria-checked')).toBe('false')
+    expect(master().textContent).toContain('Use every category')
+    expect(master().textContent).toContain('note')
+  })
+
+  it('turns every row on, then the top-level rows off (a parent takes its children)', async () => {
+    const { master, click, value } = await setup(['c'])
+    await click()
+    expect(value()).toEqual([])
+    expect(master().getAttribute('aria-checked')).toBe('true')
+    await click()
+    expect(value()).toEqual(['p', 'q'])
+  })
+
+  it('leaves a locked row alone, but turns on a child locked by its parent here', async () => {
+    const locked = (id: string, child = false): ToggleListItem => ({
+      ...item(id),
+      child,
+      lockedNote: 'locked',
+    })
+    const { master, click, value } = await setup(
+      ['p', 'c', 'l'],
+      [item('p'), locked('c', true), locked('l')]
+    )
+    await click()
+    expect(value()).toEqual(['l'])
+    // Every free row is on now, so the switch is on though 'l' stays off.
+    expect(master().getAttribute('aria-checked')).toBe('true')
+  })
+
+  it('is off and disabled when every row is locked', async () => {
+    const { master } = await setup([], [{ ...item('l'), lockedNote: 'locked' }])
+    expect(master().disabled).toBe(true)
+    expect(master().getAttribute('aria-checked')).toBe('false')
+  })
+})
