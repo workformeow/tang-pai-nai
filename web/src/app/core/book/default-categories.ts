@@ -53,6 +53,18 @@ export const DEFAULT_CATEGORIES: Readonly<
         { th: 'อินเทอร์เน็ต', en: 'Internet', icon: 'lucideWifi', color: '#9333ea' },
       ],
     },
+    {
+      // Owner, 2026-11-23: bills a person pays for themselves, apart from the home's.
+      th: 'ค่าบริการส่วนตัว',
+      en: 'Personal bills',
+      icon: 'lucideCalendarClock',
+      color: '#4f46e5',
+      children: [
+        { th: 'ค่าโทรศัพท์', en: 'Phone', icon: 'lucidePhone', color: '#2563eb' },
+        { th: 'AI', en: 'AI', icon: 'lucideBot', color: '#7c3aed' },
+        { th: 'สตรีมมิง', en: 'Streaming', icon: 'lucideTv', color: '#db2777' },
+      ],
+    },
     { th: 'ช้อปปิ้ง', en: 'Shopping', icon: 'lucideShoppingBag', color: '#db2777' },
     { th: 'บันเทิง', en: 'Entertainment', icon: 'lucideClapperboard', color: '#9333ea' },
     { th: 'สุขภาพ', en: 'Health', icon: 'lucideHeartPulse', color: '#dc2626' },

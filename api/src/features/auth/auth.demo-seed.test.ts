@@ -80,7 +80,7 @@ describe('buildDemoSeed', () => {
     const th = build()
     const en = build(TODAY, 'en')
 
-    expect(th.categories).toHaveLength(28)
+    expect(th.categories).toHaveLength(32)
     expect(category(th, 'อาหารประจำวัน').parentId).toBe(category(th, 'อาหารและเครื่องดื่ม').id)
     expect(category(th, 'รถไฟฟ้า').parentId).toBe(category(th, 'การเดินทาง').id)
     expect(en.book.name).toBe('Personal')

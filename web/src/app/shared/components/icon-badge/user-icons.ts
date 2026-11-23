@@ -12,6 +12,7 @@ import {
   lucideBird,
   lucideBone,
   lucideBookOpen,
+  lucideBot,
   lucideBriefcase,
   lucideBuilding2,
   lucideBus,
@@ -313,6 +314,7 @@ export const USER_ICONS = {
   lucideCigarette,
   lucideBadgePercent,
   lucideReceiptText,
+  lucideBot,
   ...TPN_ICONS,
 } as const
 
@@ -505,10 +507,6 @@ export const CATEGORY_ICON_GROUPS: readonly IconGroup[] = [
       'lucideFlame',
       'tpnGasCylinder',
       'lucideWifi',
-      'lucidePhone',
-      'lucideTv',
-      'lucideCloud',
-      'lucideCalendarClock',
       'lucideSofa',
       'lucideWashingMachine',
       'lucideWrench',
@@ -516,6 +514,12 @@ export const CATEGORY_ICON_GROUPS: readonly IconGroup[] = [
       'lucidePaintbrush',
       'lucideReceipt',
     ],
+  },
+  {
+    // Owner, 2026-11-23: bills a person pays for themselves (phone, AI, streaming), apart from
+    // the home's.
+    key: 'personalBills',
+    icons: ['lucidePhone', 'lucideBot', 'lucideTv', 'lucideCloud', 'lucideCalendarClock'],
   },
   {
     key: 'shopping',

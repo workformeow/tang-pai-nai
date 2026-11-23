@@ -211,6 +211,9 @@ type CategoryKey =
   | 'water'
   | 'electricity'
   | 'internet'
+  | 'phone'
+  | 'ai'
+  | 'streaming'
   | 'shopping'
   | 'entertainment'
   | 'health'
@@ -290,6 +293,17 @@ const CATEGORIES: Record<'expense' | 'income', CategorySeed[]> = {
           icon: 'lucideWifi',
           color: '#9333ea',
         },
+      ],
+    },
+    {
+      // Bills a person pays for themselves, apart from the home's.
+      name: t('ค่าบริการส่วนตัว', 'Personal bills'),
+      icon: 'lucideCalendarClock',
+      color: '#4f46e5',
+      children: [
+        { key: 'phone', name: t('ค่าโทรศัพท์', 'Phone'), icon: 'lucidePhone', color: '#2563eb' },
+        { key: 'ai', name: t('AI', 'AI'), icon: 'lucideBot', color: '#7c3aed' },
+        { key: 'streaming', name: t('สตรีมมิง', 'Streaming'), icon: 'lucideTv', color: '#db2777' },
       ],
     },
     {
@@ -532,10 +546,17 @@ const MONTHLY: Monthly[] = [
   },
   {
     name: t('ค่าโทรศัพท์รายเดือน', 'Phone plan'),
-    category: 'internet',
+    category: 'phone',
     wallet: 'bank',
     amounts: [499],
     day: 5,
+  },
+  {
+    name: t('ค่าสมาชิก AI', 'AI subscription'),
+    category: 'ai',
+    wallet: 'card',
+    amounts: [690],
+    day: 12,
   },
   {
     name: t('ค่าฟิตเนส', 'Gym membership'),
@@ -912,7 +933,7 @@ export const buildDemoSeed = ({ lang, today, now, newId = uuidv7 }: DemoSeedInpu
     id: newId(),
     bookId,
     walletId: walletId('card'),
-    categoryId: categoryId('entertainment'),
+    categoryId: categoryId('streaming'),
     amount: baht(SUBSCRIPTION.amount),
     note: text(SUBSCRIPTION.name),
     startOn: subscriptionStart,
@@ -933,7 +954,7 @@ export const buildDemoSeed = ({ lang, today, now, newId = uuidv7 }: DemoSeedInpu
       monthDay(subscriptionStart, k, dayOfMonth(subscriptionStart))
     )
     if (recorded.includes(day)) {
-      spend(day, SUBSCRIPTION.name, 'entertainment', 'card', baht(SUBSCRIPTION.amount), {
+      spend(day, SUBSCRIPTION.name, 'streaming', 'card', baht(SUBSCRIPTION.amount), {
         id: occurrenceId(subscription.id, day),
         recurringId: subscription.id,
       })
