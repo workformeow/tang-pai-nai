@@ -111,6 +111,24 @@ decision "Local-first").
 
 ---
 
+## Done: Disabled categories (2026-11-23)
+
+Web only, no API change. Owner: turn a category off in every wallet at once, and see in
+Account › หมวดหมู่ which ones no wallet uses. Mock-up:
+[category-disable.html](docs/features/mockups/category-disable.html) (owner's choice A5 / B5 / C1).
+
+- **Master switch** (category rule 13): `app-toggle-list-field` takes `allLabel` / `allNote`,
+  a switch in its own card above the rows. In the category form it is "ใช้ทุกกระเป๋า", in the
+  wallet form's "หมวดหมู่ที่ใช้" "ใช้ทุกหมวดรายจ่าย" / "ใช้ทุกหมวดรายรับ" (the tab shown). On =
+  every row on; off = the top-level rows off (children lock with them); locked rows untouched.
+  A switch, not a button, after the owner tried both.
+- **ปิดใช้งาน**: a category every open wallet hides is shown faded with "ปิดใช้งาน", its
+  children "ปิดตามหมวดหมู่หลัก". "ซ่อนตามหมวดหมู่หลัก" became "ปิดตามหมวดหมู่หลัก" everywhere
+  (one key, `categories.disabledWithParent`). The "ใช้ในกระเป๋า" row and both master lines
+  say "ปิดใช้งาน" at 0.
+- **Tests**: the master switch (`toggle-list-field.spec.ts`, the category and wallet sheets),
+  the disabled marks (`categories-page.spec.ts`).
+
 ## Done: Personal bills category (2026-11-23)
 
 Owner: a phone plan, AI and streaming are bills a person pays for themselves, not the home's,

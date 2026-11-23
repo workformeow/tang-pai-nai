@@ -149,6 +149,17 @@ shows when the book is created (rule 8).
     - **The category form chooses its wallets too** (decided while building 7.2, owner's idea):
       saving a category writes the book's open wallets whose list changes (its own id added
       or removed) in the same local write.
+    - **Disabled** (ปิดใช้งาน, owner 2026-11-23, web only): a category is disabled when every
+      open wallet of its book hides it (its own id or its parent's). A sub-category used in
+      even one wallet is not. A disabled parent's children are disabled with it ("ปิดตาม
+      หมวดหมู่หลัก"). A book with no open wallet has none. Nothing is stored: it is read from
+      `hiddenCategoryIds`.
+    - **One switch for all** (same change): both switch lists start with a master switch in a
+      card of its own, on while every row that isn't locked is on. Switching it on turns
+      every row on (children too); switching it off turns the top-level rows off, so the
+      children lock with their parents and keep their own state. Locked rows are never
+      changed. Mock-up: [mockups/category-disable.html](mockups/category-disable.html)
+      (owner's choice A5 / B5 / C1).
 
     Two devices editing the same wallet follow the usual later-edit-wins for the whole row.
 
@@ -239,7 +250,9 @@ Glossary: หมวดหมู่ / Category, หมวดหมู่ย่อ
 - **Account › หมวดหมู่** `/account/categories` (decided at the start of #7), a row under
   "สมุด": the current book's categories. At the top, the current book (icon + name),
   tapping it opens the book switch sheet. Tabs รายจ่าย / รายรับ, then the list: parents (40px
-  badge, name, "รอ sync" on a pending row) with their children indented under them, "เพิ่ม
+  badge, name, "รอ sync" on a pending row; a disabled one (rule 13) with its badge faded, its
+  name muted and "ปิดใช้งาน", or "ปิดตามหมวดหมู่หลัก" for a child of a disabled parent) with
+  their children indented under them, "เพิ่ม
   หมวดหมู่" (hidden at 200 with a line saying why), then a folded "เก็บถาวร (n)" group. Tap a row
   to edit it. "จัดลำดับ" switches to the order mode (rule 10).
 - **Category form** (a compact sheet, DESIGN.md §6): row 1 the icon on its colour and the name;
@@ -257,9 +270,10 @@ Glossary: หมวดหมู่ / Category, หมวดหมู่ย่อ
   like "หมวดหมู่หลัก": the label left, "ทั้งหมด" or "ซ่อน n" right (n = the book's open
   categories hidden here, children of a hidden parent included), a ›. It opens a view in the
   same sheet (‹ back, no bottom button, no explanation line): tabs รายจ่าย / รายรับ, then the
-  wallet's book's open categories, parents with their children indented, a switch each (on =
-  used; a child of a hidden parent shows off, locked, "ซ่อนตามหมวดหมู่หลัก"). The choice is part
-  of the form, saved with its one button.
+  master switch "ใช้ทุกหมวดรายจ่าย" / "ใช้ทุกหมวดรายรับ" ("ใช้ n จาก m หมวดหมู่", or "ปิดใช้งาน"
+  at 0; the tab shown only), then the wallet's book's open categories, parents with their
+  children indented, a switch each (on = used; a child of a hidden parent shows off, locked,
+  "ปิดตามหมวดหมู่หลัก"). The choice is part of the form, saved with its one button.
 - **Merge** (7.3, rule 15; mock-up: [mockups/category-merge.html](mockups/category-merge.html)): a header icon
   (`lucideMerge`, "ผสานหมวดหมู่") between archive and delete, in edit mode only, disabled when
   there is no possible target. The delete-disabled line of a category with transactions
@@ -276,8 +290,10 @@ Glossary: หมวดหมู่ / Category, หมวดหมู่ย่อ
     รายการรวมเข้า “X” ด้วย"; "“กาแฟ” จะถูกลบ เลิกทำไม่ได้". After the write the sheet closes
     and the toast says "ผสาน “กาแฟ” เข้ากับ “ร้านอาหาร” แล้ว" (no undo).
 - **Category form** (7.2): row 4 "ใช้ในกระเป๋า" (shown while the book has an open wallet):
-  "ทุกกระเป๋า" or "n จาก m กระเป๋า", opening a view of the book's open wallets with a switch
-  each (a wallet that hides the chosen parent shows off, locked). Saved with the category.
+  "ทุกกระเป๋า", "n จาก m กระเป๋า" or "ปิดใช้งาน" (0), opening a view with the master switch
+  "ใช้ทุกกระเป๋า" ("ใช้ n จาก m กระเป๋า" or "ปิดใช้งาน"), then the book's open wallets with a
+  switch each (a wallet that hides the chosen parent shows off, locked, "ปิดตามหมวดหมู่หลัก").
+  Saved with the category.
 
 ## Interactions
 

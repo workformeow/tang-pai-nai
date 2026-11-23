@@ -906,21 +906,21 @@ initialValue })`.
 - **Render fields with the shared wrappers** in `@/shared/components/form`. Never hand-build
   `<label>` + input + error markup in a feature:
 
-  | Field                   | Control type            | Use for                                       |
-  | ----------------------- | ----------------------- | --------------------------------------------- |
-  | `app-input-field`       | `FormControl<string>`   | text / email / tel / url / search             |
-  | `app-password-field`    | `FormControl<string>`   | password with show/hide                       |
-  | `app-textarea-field`    | `FormControl<string>`   | multi-line note (`autofocus`, `doneOnEnter`)  |
-  | `app-select-field`      | `FormControl<T \| ''>`  | short fixed list (native picker on phones)    |
-  | `app-otp-field`         | `FormControl<string>`   | 6-digit code (`one-time-code`; `hideLabel`)   |
-  | `app-switch-field`      | `FormControl<boolean>`  | on/off setting row                            |
-  | `app-icon-field`        | `FormControl<string>`   | pick a curated icon (radio grid, groups)      |
-  | `app-color-field`       | `FormControl<string>`   | pick a user colour (radio swatches)           |
-  | `app-name-icon-field`   | `FormControl<string>`   | compact sheet: icon button + name             |
-  | `app-amount-field`      | text + `negative` bool  | money in major units, +/− button, currency    |
-  | `app-segmented-field`   | `FormControl<string>`   | two or three short options (รายจ่าย / รายรับ) |
-  | `app-toggle-list-field` | `FormControl<string[]>` | rows with a switch each; holds the ids off    |
-  | `app-calc-amount-field` | `FormControl<string>`   | the keypad's number (amount row)              |
+  | Field                   | Control type            | Use for                                                                     |
+  | ----------------------- | ----------------------- | --------------------------------------------------------------------------- |
+  | `app-input-field`       | `FormControl<string>`   | text / email / tel / url / search                                           |
+  | `app-password-field`    | `FormControl<string>`   | password with show/hide                                                     |
+  | `app-textarea-field`    | `FormControl<string>`   | multi-line note (`autofocus`, `doneOnEnter`)                                |
+  | `app-select-field`      | `FormControl<T \| ''>`  | short fixed list (native picker on phones)                                  |
+  | `app-otp-field`         | `FormControl<string>`   | 6-digit code (`one-time-code`; `hideLabel`)                                 |
+  | `app-switch-field`      | `FormControl<boolean>`  | on/off setting row                                                          |
+  | `app-icon-field`        | `FormControl<string>`   | pick a curated icon (radio grid, groups)                                    |
+  | `app-color-field`       | `FormControl<string>`   | pick a user colour (radio swatches)                                         |
+  | `app-name-icon-field`   | `FormControl<string>`   | compact sheet: icon button + name                                           |
+  | `app-amount-field`      | text + `negative` bool  | money in major units, +/− button, currency                                  |
+  | `app-segmented-field`   | `FormControl<string>`   | two or three short options (รายจ่าย / รายรับ)                               |
+  | `app-toggle-list-field` | `FormControl<string[]>` | rows with a switch each; holds the ids off; `allLabel` adds a master switch |
+  | `app-calc-amount-field` | `FormControl<string>`   | the keypad's number (amount row)                                            |
 
   Every field takes `[control]` (the typed control, so templates are type-checked) plus `label`,
   and optionally `hint` / `placeholder`. Labels are linked to the control automatically, so there's
