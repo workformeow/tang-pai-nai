@@ -1,0 +1,4 @@
+{
+  "//": "The end-to-end tests are ES modules (import.meta); web/package.json has no type.",
+  "type": "module"
+}

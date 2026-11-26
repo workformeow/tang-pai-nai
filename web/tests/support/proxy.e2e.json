@@ -1,0 +1,9 @@
+{
+  "/api": {
+    "target": "http://localhost:3100",
+    "secure": false,
+    "pathRewrite": { "^/api": "" },
+    "headers": { "Origin": "https://localhost:4300" },
+    "logLevel": "warn"
+  }
+}
