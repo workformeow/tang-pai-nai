@@ -29,10 +29,22 @@ the owner's "Edit until the owner says OK" rule (root `CLAUDE.md`) applies as fo
 
 ## How to run
 
-`cd web && npm run e2e` (both browsers), or `npx playwright test --project=chromium`,
-`npx playwright test tests/groundwork.spec.ts`, `--ui` to watch it. Playwright starts the API and
-`ng serve` itself; nothing else needs to run, and `npm run dev` may run beside it. The first
-run waits for `ng serve` to build (about a minute). The report: `npx playwright show-report`.
+From `web/`. Playwright starts the API and `ng serve` itself; nothing else needs to run, and
+`npm run dev` may run beside it. The first run waits for `ng serve` to build (about a minute).
+
+| Script                 | What                                                                         |
+| ---------------------- | ---------------------------------------------------------------------------- |
+| `npm run e2e`          | every test, both browsers; the result in the HTML report (`e2e:report`)      |
+| `npm run e2e:list`     | the same, each test and its `console.log` printed in the terminal            |
+| `npm run e2e:chromium` | Chromium only, printed in the terminal: the quick loop while writing a test  |
+| `npm run e2e:ui`       | UI mode: run, step back through each action, pick locators, see the console  |
+| `npm run e2e:headed`   | Chromium in a visible window                                                 |
+| `npm run e2e:debug`    | Chromium with the Inspector, stopping at each action (and at `page.pause()`) |
+| `npm run e2e:report`   | opens the last HTML report (screenshots, traces, stdout of failed tests)     |
+| `npm run e2e:codegen`  | records clicks into test code against the **dev** app (`npm run dev`, 4200)  |
+
+One file or test: add it after `--`, e.g. `npm run e2e:chromium -- tests/sign-up.spec.ts` or
+`npm run e2e:chromium -- -g "signs up"`.
 
 ## Files
 
