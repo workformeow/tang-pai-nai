@@ -16,7 +16,7 @@ when its commit lands. Backlog entry in [`ROADMAP.md`](../../ROADMAP.md) → "En
 | 5    | Wrong input: bad email, wrong code (`OTP_INVALID`), 5 wrong (`OTP_LOCKED`) | ✅    |
 | 6    | Rate limits: too many wrong passwords, too many code requests              | ✅    |
 | 7    | Edit profile (display name)                                                | ✅    |
-| 8    | Sign out → sign-in page, local data wiped                                  | ⬜    |
+| 8    | Sign out → sign-in page, local data wiped                                  | ✅    |
 | 9    | Into CI (`.github/workflows/web.yml` at the repo root), once steady        | ⬜    |
 | —    | Later, if wanted: one journey test through the UI end to end (`test.step`) | ⬜    |
 
@@ -65,6 +65,7 @@ One file or test: add it after `--`, e.g. `npm run e2e:chromium -- tests/sign-up
 | `tests/wrong-input.spec.ts`       | step 5: a bad email, a wrong code, a locked code (one test each)                                                               |
 | `tests/rate-limits.spec.ts`       | step 6: too many wrong passwords, too many code requests (one test each)                                                       |
 | `tests/edit-profile.spec.ts`      | step 7: change the display name from the Account tab                                                                           |
+| `tests/sign-out.spec.ts`          | step 8: sign out from the Account tab, the vault gone, still signed out after a reload                                         |
 | `tests/first-transaction.spec.ts` | step 4: add a transaction through the UI, reload, read it back from the server                                                 |
 
 ## Decisions
@@ -210,3 +211,13 @@ and **per IP**. Every test comes from 127.0.0.1, so 20 sign-ups in a run would h
   server. The card's accessible name is its `aria-label` only ("แก้ไขโปรไฟล์"), so its name
   and email are found inside it with `getByText(…, { exact: true })`. 2 tests, steady over
   `--repeat-each=3`.
+- **Step 8** (2026-11-26): `tests/sign-out.spec.ts` on `withWallet` (data on the device) — the
+  vault (IndexedDB `tpn-vault`) is there first → Account tab → ออกจากระบบ → the sheet says the
+  device's data goes → its ออกจากระบบ → `/auth/sign-in`, the vault gone; a reload and `/` stay
+  on sign-in (the server ended the session), with no "เครื่องนี้มีข้อมูลของ …" line (that one is
+  for an expired session, which keeps the data). The `tpn-book:` keys a wipe also removes are
+  written only once a book or view is chosen, so `offline.service.spec.ts` covers them. Found:
+  WebKit's `indexedDB.databases()` can still list a database just deleted, so the "gone" check
+  is polled (a vault written again after the wipe would stay and still fail it). WebKit logs
+  "Importing a module script failed" from `ng serve` when a navigation cuts off a lazy chunk;
+  it is noise, the tests pass. 2 tests, steady over `--repeat-each=5`.
