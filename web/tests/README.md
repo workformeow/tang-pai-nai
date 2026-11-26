@@ -12,7 +12,7 @@ when its commit lands. Backlog entry in [`ROADMAP.md`](../../ROADMAP.md) → "En
 | 1    | Sign up with an email code (UI) → signed in, on the first-book step        | ✅    |
 | 2    | Create the first book (UI); given: a user                                  | ✅    |
 | 3    | Create the first wallet (UI); given: a user + a book (`withBook`)          | ✅    |
-| 4    | Add a transaction (UI) → synced, there after a reload; given: `withWallet` | ⬜    |
+| 4    | Add a transaction (UI) → synced, there after a reload; given: `withWallet` | ✅    |
 | 5    | Wrong input: bad email, wrong code (`OTP_INVALID`), 5 wrong (`OTP_LOCKED`) | ⬜    |
 | 6    | Rate limits: too many wrong passwords, too many code requests              | ⬜    |
 | 7    | Edit profile (display name)                                                | ⬜    |
@@ -48,20 +48,21 @@ One file or test: add it after `--`, e.g. `npm run e2e:chromium -- tests/sign-up
 
 ## Files
 
-| File                           | What                                                                                 |
-| ------------------------------ | ------------------------------------------------------------------------------------ |
-| `playwright.config.ts`         | browsers, ports, the two `webServer`s (API, `ng serve --ssl`)                        |
-| `tsconfig.e2e.json`            | types the config and `tests/` (ESLint's project service, `typecheck`)                |
-| `tests/package.json`           | `"type": "module"` for `tests/` only (`import.meta`; the app has none)               |
-| `tests/support/start-api.ts`   | new `api/data/e2e.db`, migrate, start the API with the e2e env and log               |
-| `tests/support/proxy.e2e.json` | `/api` → API on 3100, `Origin: https://localhost:4300`                               |
-| `tests/support/mail.ts`        | `readMail(email, after?)`: the newest code (and link) mailed to `email`              |
-| `tests/support/fixtures.ts`    | `test` / `expect` to import in every spec: `email`, `clientIp`, `signIn`, `withBook` |
-| `tests/support/api.ts`         | fixture helpers through the API: `signUp`, `pushRows`, `bookRow`                     |
-| `tests/groundwork.spec.ts`     | step 0: sign-in through the API, per-test IP rate limits                             |
-| `tests/sign-up.spec.ts`        | step 1: sign up through the UI                                                       |
-| `tests/first-book.spec.ts`     | step 2: create the first book through the UI                                         |
-| `tests/first-wallet.spec.ts`   | step 3: create the first wallet through the UI                                       |
+| File                              | What                                                                                      |
+| --------------------------------- | ----------------------------------------------------------------------------------------- |
+| `playwright.config.ts`            | browsers, ports, the two `webServer`s (API, `ng serve --ssl`)                             |
+| `tsconfig.e2e.json`               | types the config and `tests/` (ESLint's project service, `typecheck`)                     |
+| `tests/package.json`              | `"type": "module"` for `tests/` only (`import.meta`; the app has none)                    |
+| `tests/support/start-api.ts`      | new `api/data/e2e.db`, migrate, start the API with the e2e env and log                    |
+| `tests/support/proxy.e2e.json`    | `/api` → API on 3100, `Origin: https://localhost:4300`                                    |
+| `tests/support/mail.ts`           | `readMail(email, after?)`: the newest code (and link) mailed to `email`                   |
+| `tests/support/fixtures.ts`       | `test` / `expect` for every spec: `email`, `clientIp`, `signIn`, `withBook`, `withWallet` |
+| `tests/support/api.ts`            | through the API: `signUp`, `pushRows`, `pullRows`, `bookRow`, `categoryRow`, `walletRow`  |
+| `tests/groundwork.spec.ts`        | step 0: sign-in through the API, per-test IP rate limits                                  |
+| `tests/sign-up.spec.ts`           | step 1: sign up through the UI                                                            |
+| `tests/first-book.spec.ts`        | step 2: create the first book through the UI                                              |
+| `tests/first-wallet.spec.ts`      | step 3: create the first wallet through the UI                                            |
+| `tests/first-transaction.spec.ts` | step 4: add a transaction through the UI, reload, read it back from the server            |
 
 ## Decisions
 
@@ -122,6 +123,12 @@ Codes are stored hashed, so the database can't give them back.
   brings it in. `withBook` = a signed-in user with one book "ครอบครัว" and no wallet; it waits
   until the header names the book. A pushed book has **no categories** (the app writes the
   default set only when the book sheet creates a book); a fixture that needs them pushes them.
+  `withWallet` = a user with book "ครอบครัว", one expense category "อาหาร" and a THB wallet
+  "เงินสด" of ฿1,000 (pushed in that order: a row after the rows it points at); it waits for
+  "ยอดรวม ฿1,000.00" and hands over the user's `token`.
+- **What reached the server** is read back with `pullRows(request, token, table)`, the rows
+  another device's first pull would get. A second device can't sign in by code in the same
+  test: the API waits a minute between codes to one email (`RESEND_COOLDOWN_MS`).
 
 ### Rate limits
 
@@ -163,3 +170,12 @@ and **per IP**. Every test comes from 127.0.0.1, so 20 sign-ups in a run would h
   after a sheet closes, `ariaSnapshot()` still shows only the dialog: the page comes back into
   the accessibility tree when the close animation ends (not an app bug; `expect` waits through
   it). 2 tests, steady over `--repeat-each=3`.
+- **Step 4** (2026-11-26): `tests/first-transaction.spec.ts` on `withWallet` — ➕ → the amount
+  row → 2 5 0 on the keypad → หมวดหมู่ → อาหาร → บันทึก → the row "อาหาร เงินสด -250.00", "ยอดรวม
+  ฿750.00", "sync แล้ว"; the same after a reload; `pullRows` finds the one transaction (25 000
+  satang, the wallet and category ids). A plain save shows no toast (the row is the feedback).
+  Found: **on iPhone the sheet opens with the keypad closed.** CDK counts only inputs as
+  tabbable on iOS, so the drawer's `autoFocus: 'first-tabbable'` focuses the date field, whose
+  `focusin` closes the keypad (`AmountKeypad.leave`). Chromium keeps it open. The test taps the
+  amount row first, as a user would; the app fix is the owner's call. 2 tests, steady over
+  `--repeat-each=3`.

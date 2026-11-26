@@ -54,6 +54,40 @@ export const pushRows = async (
   expect(refused, `fixture: push not applied: ${JSON.stringify(refused)}`).toEqual([])
 }
 
+/**
+ * Reads every row of `table` the user may sync, as another device's first pull would; for a
+ * test to check what reached the server.
+ */
+export const pullRows = async (
+  request: APIRequestContext,
+  token: string,
+  table: string
+): Promise<Record<string, unknown>[]> => {
+  const deviceId = randomUUID()
+  const rows: Record<string, unknown>[] = []
+  let since = 0
+  for (;;) {
+    const response = await request.get('/api/sync/pull', {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { since, limit: 1000, deviceId },
+    })
+    const text = await response.text()
+    expect(response.ok(), `pull → ${response.status()} ${text}`).toBe(true)
+    const { data } = JSON.parse(text) as {
+      data: {
+        changes: { table: string; row: Record<string, unknown> }[]
+        cursor: number
+        hasMore: boolean
+      }
+    }
+    rows.push(...data.changes.filter((change) => change.table === table).map((c) => c.row))
+    if (!data.hasMore) {
+      return rows
+    }
+    since = data.cursor
+  }
+}
+
 /** A book row as the book sheet saves it (book rules 2–3). */
 export const bookRow = (name: string) => {
   const now = Date.now()
@@ -63,6 +97,47 @@ export const bookRow = (name: string) => {
     icon: 'lucideHouse',
     color: '#1d4ed8',
     sortOrder: 0,
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+  }
+}
+
+/** A category row as the category sheet saves it (category rules 2, 9): top level, open. */
+export const categoryRow = (bookId: string, type: 'expense' | 'income', name: string) => {
+  const now = Date.now()
+  return {
+    id: randomUUID(),
+    bookId,
+    type,
+    parentId: null,
+    name,
+    icon: 'lucideShapes',
+    color: '#475569',
+    isArchived: false,
+    sortOrder: 0,
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+  }
+}
+
+/** A THB wallet row as the wallet sheet saves it (wallet rules 2–5); `initialBalance` in satang. */
+export const walletRow = (bookId: string, name: string, initialBalance: number) => {
+  const now = Date.now()
+  return {
+    id: randomUUID(),
+    bookId,
+    name,
+    currencyCode: 'THB',
+    initialBalance,
+    icon: 'lucideWallet',
+    color: '#15803d',
+    excludeFromTotal: false,
+    isCreditCard: false,
+    isArchived: false,
+    sortOrder: 0,
+    hiddenCategoryIds: [],
     createdAt: now,
     updatedAt: now,
     deletedAt: null,

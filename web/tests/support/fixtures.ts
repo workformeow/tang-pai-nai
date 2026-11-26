@@ -1,11 +1,20 @@
 import { expect, test as base } from '@playwright/test'
 import { randomInt, randomUUID } from 'node:crypto'
-import { bookRow, pushRows, signUp } from './api'
+import { bookRow, categoryRow, pushRows, signUp, walletRow } from './api'
 
 /** What a fixture set up, for the test to refer to. */
 export interface Book {
   id: string
   name: string
+}
+
+/** A book with one expense category and one THB wallet, as `withWallet` pushed them. */
+export interface WalletSetup {
+  /** The user's access token, for reading back what reached the server (`pullRows`). */
+  token: string
+  book: Book
+  category: { id: string; name: string }
+  wallet: { id: string; name: string; initialBalance: number }
 }
 
 interface E2eFixtures {
@@ -17,6 +26,8 @@ interface E2eFixtures {
   signIn: () => Promise<void>
   /** A signed-in user with one book (pushed through the API), the app open on it. */
   withBook: Book
+  /** A signed-in user with a book, one expense category and one wallet, the app open on it. */
+  withWallet: WalletSetup
 }
 
 /** A random private address; collisions between tests of one run are unlikely enough. */
@@ -50,6 +61,30 @@ export const test = base.extend<E2eFixtures>({
       'fixture withBook: the app never showed the pushed book'
     ).toBeVisible()
     await use({ id: row.id, name: row.name })
+  },
+  withWallet: async ({ page, email }, use) => {
+    const token = await signUp(page.request, email)
+    const book = bookRow('ครอบครัว')
+    const category = categoryRow(book.id, 'expense', 'อาหาร')
+    const wallet = walletRow(book.id, 'เงินสด', 100_000)
+    // In this order: a row is pushed after the rows it points at.
+    await pushRows(page.request, token, [
+      { table: 'books', row: book },
+      { table: 'categories', row: category },
+      { table: 'wallets', row: wallet },
+    ])
+    // The first pull brings them in; the Transactions tab replaces the first-wallet step.
+    await page.goto('/')
+    await expect(
+      page.getByText('ยอดรวม ฿1,000.00'),
+      'fixture withWallet: the app never showed the pushed wallet'
+    ).toBeVisible()
+    await use({
+      token,
+      book: { id: book.id, name: book.name },
+      category: { id: category.id, name: category.name },
+      wallet: { id: wallet.id, name: wallet.name, initialBalance: wallet.initialBalance },
+    })
   },
 })
 
