@@ -17,7 +17,8 @@ export default defineConfig({
   forbidOnly: CI,
   retries: CI ? 2 : 0,
   workers: CI ? 1 : undefined,
-  reporter: 'html',
+  // CI prints each test to its log as well; the HTML report goes up as an artifact (e2e.yml).
+  reporter: CI ? [['list'], ['html', { open: 'never' }]] : 'html',
   use: {
     baseURL: WEB_ORIGIN,
     // `ng serve --ssl` makes its own certificate.

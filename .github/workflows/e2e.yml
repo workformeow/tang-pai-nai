@@ -1,0 +1,44 @@
+name: E2E
+# The web app against the real API (web/tests/README.md), so a change to either app runs it.
+on:
+  push:
+    branches: [main, develop]
+    paths: ['web/**', 'api/**', '.github/workflows/e2e.yml']
+  pull_request:
+    branches: [main, develop]
+    paths: ['web/**', 'api/**', '.github/workflows/e2e.yml']
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            web/package-lock.json
+            api/package-lock.json
+      # The API Playwright starts (tests/support/start-api.ts): its packages, and the .env.dev
+      # it insists on in development (start-api.ts sets every value it reads itself).
+      - run: npm ci
+        working-directory: api
+      - run: npm run setup-env
+        working-directory: api
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - run: npm run e2e
+      # Traces of retried tests, screenshots, and the API's log (it holds only test users' codes).
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: |
+            web/playwright-report/
+            web/test-results/
+            web/playwright/api.log
+          retention-days: 14

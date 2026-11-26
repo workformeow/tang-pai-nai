@@ -42,7 +42,8 @@ in the same PR when a behavior change is intended. Put `<name>.spec.ts` beside t
 (both languages have the same keys) apply at all times.
 
 End-to-end tests (Playwright, against the real API) live in `tests/` (`npm run e2e`); their plan,
-decisions and progress are in [`tests/README.md`](tests/README.md).
+decisions and progress are in [`tests/README.md`](tests/README.md). CI runs them in
+`.github/workflows/e2e.yml` on every change to `web/` or `api/`.
 
 ## 2. Folder structure
 

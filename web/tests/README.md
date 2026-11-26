@@ -17,7 +17,7 @@ when its commit lands. Backlog entry in [`ROADMAP.md`](../../ROADMAP.md) → "En
 | 6    | Rate limits: too many wrong passwords, too many code requests              | ✅    |
 | 7    | Edit profile (display name)                                                | ✅    |
 | 8    | Sign out → sign-in page, local data wiped                                  | ✅    |
-| 9    | Into CI (`.github/workflows/web.yml` at the repo root), once steady        | ⬜    |
+| 9    | Into CI (`.github/workflows/e2e.yml` at the repo root), once steady        | ✅    |
 | —    | Later, if wanted: one journey test through the UI end to end (`test.step`) | ⬜    |
 
 Steps 5 and 6 are one test per case (one wrong input, one limit each), not one test for all.
@@ -87,6 +87,15 @@ One file or test: add it after `--`, e.g. `npm run e2e:chromium -- tests/sign-up
   does), so over HTTP a WebKit test is signed out after every reload. The API stays plain HTTP
   behind the proxy, as in dev.
 - **No API change**: the tests drive the API exactly as it ships, with an e2e env.
+- **CI** (step 9): its own workflow, `.github/workflows/e2e.yml`, run on every PR and push to
+  `develop` / `main` that touches `web/` **or `api/`** (a change to either can break the
+  pair); `web.yml` and `api.yml` stay as they were, so an API-only change doesn't rerun the
+  web's unit tests and build. It installs `api/` and runs its `setup-env` (the API exits
+  without `.env.dev` in development; `start-api.ts` sets every value it reads itself), then
+  `npm run e2e`. With `CI` set, `playwright.config.ts` runs one worker, retries a failed test
+  twice (a trace of each retry), never reuses `ng serve`, and prints each test to the log; the
+  HTML report, `test-results/` and `playwright/api.log` go up as the `playwright-report`
+  artifact (14 days), pass or fail.
 
 ### API env for e2e (`start-api.ts`)
 
@@ -221,3 +230,11 @@ and **per IP**. Every test comes from 127.0.0.1, so 20 sign-ups in a run would h
   is polled (a vault written again after the wipe would stay and still fail it). WebKit logs
   "Importing a module script failed" from `ng serve` when a navigation cuts off a lazy chunk;
   it is noise, the tests pass. 2 tests, steady over `--repeat-each=5`.
+- **Step 9** (2026-11-26): `.github/workflows/e2e.yml` (see Decisions → CI); the plan named
+  `web.yml`, but a job there would need `api/**` in its triggers, rerunning the web's unit
+  tests and build on every API change. `playwright.config.ts`: in CI the `list` reporter
+  beside the HTML one. Checked locally with `CI=1` (one worker, no reuse): 26 tests in about a
+  minute. Not checked until it runs on GitHub: the Ubuntu runner itself (Node from `.nvmrc`,
+  WebKit's system packages from `--with-deps`, `ng serve --ssl` there). Once, before CI, steps 5
+  and 6 each failed one test on Chromium in a full local run beside another run, and passed in
+  every run after (no error kept); the retries in CI will show it as "flaky" if it comes back.
