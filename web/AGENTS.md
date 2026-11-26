@@ -41,6 +41,9 @@ in the same PR when a behavior change is intended. Put `<name>.spec.ts` beside t
 (Vitest via `ng test`, globals enabled). Guard-rail specs such as `core/i18n/translations.spec.ts`
 (both languages have the same keys) apply at all times.
 
+End-to-end tests (Playwright, against the real API) live in `tests/` (`npm run e2e`); their plan,
+decisions and progress are in [`tests/README.md`](tests/README.md).
+
 ## 2. Folder structure
 
 ```
