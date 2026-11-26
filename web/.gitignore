@@ -54,3 +54,10 @@ Thumbs.db
 
 # Named Cloudflare tunnel for `npm run dev` (per machine)
 .env.tunnel
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
