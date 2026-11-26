@@ -22,8 +22,8 @@ interface E2eFixtures {
   email: string
   /** This test's client address (`X-Forwarded-For`): its own per-IP rate limits. */
   clientIp: string
-  /** Signs `email` up through the API (no UI) and opens the app signed in. */
-  signIn: () => Promise<void>
+  /** Signs `email` up through the API (no UI), opens the app signed in; answers the token. */
+  signIn: () => Promise<string>
   /** A signed-in user with one book (pushed through the API), the app open on it. */
   withBook: Book
   /** A signed-in user with a book, one expense category and one wallet, the app open on it. */
@@ -47,8 +47,9 @@ export const test = base.extend<E2eFixtures>({
   extraHTTPHeaders: async ({ clientIp }, use) => use({ 'X-Forwarded-For': clientIp }),
   signIn: async ({ page, email }, use) =>
     use(async () => {
-      await signUp(page.request, email)
+      const token = await signUp(page.request, email)
       await page.goto('/')
+      return token
     }),
   withBook: async ({ page, email }, use) => {
     const token = await signUp(page.request, email)

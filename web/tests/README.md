@@ -15,7 +15,7 @@ when its commit lands. Backlog entry in [`ROADMAP.md`](../../ROADMAP.md) → "En
 | 4    | Add a transaction (UI) → synced, there after a reload; given: `withWallet` | ✅    |
 | 5    | Wrong input: bad email, wrong code (`OTP_INVALID`), 5 wrong (`OTP_LOCKED`) | ✅    |
 | 6    | Rate limits: too many wrong passwords, too many code requests              | ✅    |
-| 7    | Edit profile (display name)                                                | ⬜    |
+| 7    | Edit profile (display name)                                                | ✅    |
 | 8    | Sign out → sign-in page, local data wiped                                  | ⬜    |
 | 9    | Into CI (`.github/workflows/web.yml` at the repo root), once steady        | ⬜    |
 | —    | Later, if wanted: one journey test through the UI end to end (`test.step`) | ⬜    |
@@ -48,23 +48,24 @@ One file or test: add it after `--`, e.g. `npm run e2e:chromium -- tests/sign-up
 
 ## Files
 
-| File                              | What                                                                                                                  |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `playwright.config.ts`            | browsers, ports, the two `webServer`s (API, `ng serve --ssl`)                                                         |
-| `tsconfig.e2e.json`               | types the config and `tests/` (ESLint's project service, `typecheck`)                                                 |
-| `tests/package.json`              | `"type": "module"` for `tests/` only (`import.meta`; the app has none)                                                |
-| `tests/support/start-api.ts`      | new `api/data/e2e.db`, migrate, start the API with the e2e env and log                                                |
-| `tests/support/proxy.e2e.json`    | `/api` → API on 3100, `Origin: https://localhost:4300`                                                                |
-| `tests/support/mail.ts`           | `readMail(email, after?)`: the newest code (and link) mailed to `email`                                               |
-| `tests/support/fixtures.ts`       | `test` / `expect` for every spec: `email`, `clientIp`, `signIn`, `withBook`, `withWallet`                             |
-| `tests/support/api.ts`            | through the API: `signUp`, `setPassword`, `askForCode`, `pushRows`, `pullRows`, `bookRow`, `categoryRow`, `walletRow` |
-| `tests/groundwork.spec.ts`        | step 0: sign-in through the API, per-test IP rate limits                                                              |
-| `tests/sign-up.spec.ts`           | step 1: sign up through the UI                                                                                        |
-| `tests/first-book.spec.ts`        | step 2: create the first book through the UI                                                                          |
-| `tests/first-wallet.spec.ts`      | step 3: create the first wallet through the UI                                                                        |
-| `tests/wrong-input.spec.ts`       | step 5: a bad email, a wrong code, a locked code (one test each)                                                      |
-| `tests/rate-limits.spec.ts`       | step 6: too many wrong passwords, too many code requests (one test each)                                              |
-| `tests/first-transaction.spec.ts` | step 4: add a transaction through the UI, reload, read it back from the server                                        |
+| File                              | What                                                                                                                           |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `playwright.config.ts`            | browsers, ports, the two `webServer`s (API, `ng serve --ssl`)                                                                  |
+| `tsconfig.e2e.json`               | types the config and `tests/` (ESLint's project service, `typecheck`)                                                          |
+| `tests/package.json`              | `"type": "module"` for `tests/` only (`import.meta`; the app has none)                                                         |
+| `tests/support/start-api.ts`      | new `api/data/e2e.db`, migrate, start the API with the e2e env and log                                                         |
+| `tests/support/proxy.e2e.json`    | `/api` → API on 3100, `Origin: https://localhost:4300`                                                                         |
+| `tests/support/mail.ts`           | `readMail(email, after?)`: the newest code (and link) mailed to `email`                                                        |
+| `tests/support/fixtures.ts`       | `test` / `expect` for every spec: `email`, `clientIp`, `signIn`, `withBook`, `withWallet`                                      |
+| `tests/support/api.ts`            | through the API: `signUp`, `getMe`, `setPassword`, `askForCode`, `pushRows`, `pullRows`, `bookRow`, `categoryRow`, `walletRow` |
+| `tests/groundwork.spec.ts`        | step 0: sign-in through the API, per-test IP rate limits                                                                       |
+| `tests/sign-up.spec.ts`           | step 1: sign up through the UI                                                                                                 |
+| `tests/first-book.spec.ts`        | step 2: create the first book through the UI                                                                                   |
+| `tests/first-wallet.spec.ts`      | step 3: create the first wallet through the UI                                                                                 |
+| `tests/wrong-input.spec.ts`       | step 5: a bad email, a wrong code, a locked code (one test each)                                                               |
+| `tests/rate-limits.spec.ts`       | step 6: too many wrong passwords, too many code requests (one test each)                                                       |
+| `tests/edit-profile.spec.ts`      | step 7: change the display name from the Account tab                                                                           |
+| `tests/first-transaction.spec.ts` | step 4: add a transaction through the UI, reload, read it back from the server                                                 |
 
 ## Decisions
 
@@ -117,7 +118,7 @@ Codes are stored hashed, so the database can't give them back.
 - **Every test**: Playwright gives each test a new browser context (cookies, localStorage,
   IndexedDB empty), and the `email` fixture is a new address (`e2e-<uuid>@example.test`), so
   each test has its own user. Nothing carries over between tests.
-- **Tests that need a signed-in user** call `await signIn()`: it signs `email` up through the
+- **Tests that need a signed-in user** call `await signIn()` (it answers the access token): it signs `email` up through the
   API with `page.request` (same cookie jar as the page), then opens `/`, where the session is
   restored. A new user lands on the first-book step ("สร้างสมุดแรก"). Only step 1 signs up
   through the UI.
@@ -202,3 +203,10 @@ and **per IP**. Every test comes from 127.0.0.1, so 20 sign-ups in a run would h
   a day), so a run with repeats hit it; the e2e env raises it. Match the message in its
   `alert` (`getByRole('alert').filter({ hasText })`): an anchored `getByText` regex missed it.
   4 tests, steady over `--repeat-each=3`; the whole suite over `--repeat-each=2`.
+- **Step 7** (2026-11-26): `tests/edit-profile.spec.ts` on `signIn()` — Account tab: the card
+  shows the email's local part as the name → the card ("แก้ไขโปรไฟล์") → ชื่อที่แสดง → บันทึก →
+  toast "บันทึกแล้ว", the card's name line; the same after a reload; `getMe` (`GET /auth/me`)
+  has it, since the device's vault keeps the name and a reload alone proves nothing about the
+  server. The card's accessible name is its `aria-label` only ("แก้ไขโปรไฟล์"), so its name
+  and email are found inside it with `getByText(…, { exact: true })`. 2 tests, steady over
+  `--repeat-each=3`.

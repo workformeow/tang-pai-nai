@@ -22,6 +22,19 @@ export const signUp = async (request: APIRequestContext, email: string): Promise
   return body.data.accessToken
 }
 
+/** The user as the server has it (`GET /auth/me`), for a test to check what was saved. */
+export const getMe = async (
+  request: APIRequestContext,
+  token: string
+): Promise<{ displayName: string; email: string }> => {
+  const response = await request.get('/api/auth/me', {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  const text = await response.text()
+  expect(response.ok(), `me → ${response.status()} ${text}`).toBe(true)
+  return (JSON.parse(text) as { data: { displayName: string; email: string } }).data
+}
+
 /** Gives the signed-in user a password (right after sign-in counts as recent auth). */
 export const setPassword = async (
   request: APIRequestContext,
