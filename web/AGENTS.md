@@ -1196,3 +1196,9 @@ CI (`.github/workflows/web.yml` at the repo root) runs lint, typecheck, test and
 Same as the API (`../api/AGENTS.md` §10–11): Conventional Commits (`feat(<scope>): ...`) with a bullet
 body, one logical change per commit. **Do NOT run `git commit` or `git push` unless the user
 explicitly asks.** When the user wants to commit themselves, suggest a message instead.
+
+## 7. Reporting back
+
+Same as the API (`../api/AGENTS.md` §12): when a task or step is finished, report it short,
+easy to read and complete. What changed (grouped, with file links), what was checked and its
+result (and what wasn't), anything found that changes the plan, and what comes next.

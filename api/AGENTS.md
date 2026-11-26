@@ -984,3 +984,14 @@ fix(logger): prevent metadata from clobbering reserved log fields
 - Work **one logical change per commit** — small, reviewable slices; do not batch unrelated changes.
 - **Do NOT run `git commit` or `git push`** unless the user explicitly asks.
 - When the user wants to commit themselves, provide a suggested commit message (§10 format) instead of committing.
+
+## 12. Reporting back
+
+Owner's rule (2026-11-26): when a task or step is finished, report it **short, easy to read and
+complete**: nothing done may be left out, and nothing padded in.
+
+- What changed, grouped (code, tests, docs, config), each with its file link.
+- What was checked and the result (which commands, how many tests passed); say plainly what
+  was **not** checked or still fails.
+- Anything found on the way that changes the plan (a decision taken, a workaround, a leftover).
+- What comes next, or the one question that blocks it.
