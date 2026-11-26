@@ -177,9 +177,10 @@ and **per IP**. Every test comes from 127.0.0.1, so 20 sign-ups in a run would h
   satang, the wallet and category ids). A plain save shows no toast (the row is the feedback).
   Found: **on iPhone the sheet opens with the keypad closed.** CDK counts only inputs as
   tabbable on iOS, so the drawer's `autoFocus: 'first-tabbable'` focuses the date field, whose
-  `focusin` closes the keypad (`AmountKeypad.leave`). Chromium keeps it open. The test taps the
-  amount row first, as a user would; the app fix is the owner's call. 2 tests, steady over
-  `--repeat-each=3`.
+  `focusin` closes the keypad (`AmountKeypad.leave`). Chromium keeps it open. Fixed (owner OK):
+  while the keypad is open, the transaction, transfer and debt-entry sheets set the drawer's
+  `[autoFocus]` to `app-calc-amount-field button`; the test checks it on WebKit by typing on
+  the keypad without tapping the amount row. 2 tests, steady over `--repeat-each=3`.
 - **Step 5** (2026-11-26): `tests/wrong-input.spec.ts`, one test per case — "not-an-email" →
   "รูปแบบอีเมลไม่ถูกต้อง" and no code step; a wrong code → "รหัสไม่ถูกต้อง ลองอีกครั้ง", then the
   right one signs in; 4 wrong → "รหัสไม่ถูกต้อง", the 5th → "ใส่รหัสผิดหลายครั้งเกินไป …"

@@ -16,10 +16,7 @@ test('adds an expense that stays after a reload and reaches the server', async (
       .getByRole('navigation', { name: 'เมนูหลัก' })
       .getByRole('button', { name: 'เพิ่มธุรกรรม' })
       .click()
-    // Tap the amount row for its keypad. It opens with the sheet in Chromium, but on iPhone
-    // (WebKit) the drawer's first focus lands on the date field and closes it (tests/README.md,
-    // step 4 notes).
-    await page.getByRole('button', { name: /^จำนวนเงิน/ }).click()
+    // The amount's keypad is open when the sheet opens, on iPhone too (tests/README.md, step 4).
     const keypad = page.getByRole('group', { name: 'แป้นตัวเลข' })
     for (const key of ['2', '5', '0']) {
       await keypad.getByRole('button', { name: key, exact: true }).click()
