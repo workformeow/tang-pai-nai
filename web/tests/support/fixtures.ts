@@ -1,6 +1,12 @@
 import { expect, test as base } from '@playwright/test'
 import { randomInt, randomUUID } from 'node:crypto'
-import { readMail } from './mail'
+import { bookRow, pushRows, signUp } from './api'
+
+/** What a fixture set up, for the test to refer to. */
+export interface Book {
+  id: string
+  name: string
+}
 
 interface E2eFixtures {
   /** A new address for this test: its own user, its own per-email rate limits. */
@@ -9,6 +15,8 @@ interface E2eFixtures {
   clientIp: string
   /** Signs `email` up through the API (no UI) and opens the app signed in. */
   signIn: () => Promise<void>
+  /** A signed-in user with one book (pushed through the API), the app open on it. */
+  withBook: Book
 }
 
 /** A random private address; collisions between tests of one run are unlikely enough. */
@@ -17,7 +25,8 @@ const randomIp = () => `10.${randomInt(256)}.${randomInt(256)}.${randomInt(1, 25
 /**
  * The tests' `test`: every test gets a fresh browser context (Playwright's default), a unique
  * email and its own client IP, so nothing one test does (users, rate limits) reaches another.
- * See tests/README.md → "A clean start for every test".
+ * Fixtures that set things up go through the API, never the UI another test covers.
+ * See tests/README.md → "A clean start for every test", "One test, one behavior".
  */
 export const test = base.extend<E2eFixtures>({
   // eslint-disable-next-line no-empty-pattern
@@ -27,15 +36,21 @@ export const test = base.extend<E2eFixtures>({
   extraHTTPHeaders: async ({ clientIp }, use) => use({ 'X-Forwarded-For': clientIp }),
   signIn: async ({ page, email }, use) =>
     use(async () => {
-      const start = await page.request.post('/api/auth/email/start', {
-        data: { email, lang: 'th' },
-      })
-      expect(start.status(), await start.text()).toBeLessThan(300)
-      const { code } = await readMail(email)
-      const verify = await page.request.post('/api/auth/email/verify', { data: { email, code } })
-      expect(verify.status(), await verify.text()).toBeLessThan(300)
+      await signUp(page.request, email)
       await page.goto('/')
     }),
+  withBook: async ({ page, email }, use) => {
+    const token = await signUp(page.request, email)
+    const row = bookRow('ครอบครัว')
+    await pushRows(page.request, token, [{ table: 'books', row }])
+    // The first pull brings the book in; the switcher names it once it's there.
+    await page.goto('/')
+    await expect(
+      page.getByRole('button', { name: `สมุด ${row.name} เปลี่ยนสมุด` }),
+      'fixture withBook: the app never showed the pushed book'
+    ).toBeVisible()
+    await use({ id: row.id, name: row.name })
+  },
 })
 
 export { expect }

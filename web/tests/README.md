@@ -11,7 +11,7 @@ when its commit lands. Backlog entry in [`ROADMAP.md`](../../ROADMAP.md) → "En
 | 0    | Groundwork: API start-up, helpers, fixtures, remove the generated files    | ✅    |
 | 1    | Sign up with an email code (UI) → signed in, on the first-book step        | ✅    |
 | 2    | Create the first book (UI); given: a user                                  | ✅    |
-| 3    | Create the first wallet (UI); given: a user + a book (`withBook`)          | ⬜    |
+| 3    | Create the first wallet (UI); given: a user + a book (`withBook`)          | ✅    |
 | 4    | Add a transaction (UI) → synced, there after a reload; given: `withWallet` | ⬜    |
 | 5    | Wrong input: bad email, wrong code (`OTP_INVALID`), 5 wrong (`OTP_LOCKED`) | ⬜    |
 | 6    | Rate limits: too many wrong passwords, too many code requests              | ⬜    |
@@ -48,18 +48,20 @@ One file or test: add it after `--`, e.g. `npm run e2e:chromium -- tests/sign-up
 
 ## Files
 
-| File                           | What                                                                     |
-| ------------------------------ | ------------------------------------------------------------------------ |
-| `playwright.config.ts`         | browsers, ports, the two `webServer`s (API, `ng serve --ssl`)            |
-| `tsconfig.e2e.json`            | types the config and `tests/` (ESLint's project service, `typecheck`)    |
-| `tests/package.json`           | `"type": "module"` for `tests/` only (`import.meta`; the app has none)   |
-| `tests/support/start-api.ts`   | new `api/data/e2e.db`, migrate, start the API with the e2e env and log   |
-| `tests/support/proxy.e2e.json` | `/api` → API on 3100, `Origin: https://localhost:4300`                   |
-| `tests/support/mail.ts`        | `readMail(email, after?)`: the newest code (and link) mailed to `email`  |
-| `tests/support/fixtures.ts`    | `test` / `expect` to import in every spec: `email`, `clientIp`, `signIn` |
-| `tests/groundwork.spec.ts`     | step 0: sign-in through the API, per-test IP rate limits                 |
-| `tests/sign-up.spec.ts`        | step 1: sign up through the UI                                           |
-| `tests/first-book.spec.ts`     | step 2: create the first book through the UI                             |
+| File                           | What                                                                                 |
+| ------------------------------ | ------------------------------------------------------------------------------------ |
+| `playwright.config.ts`         | browsers, ports, the two `webServer`s (API, `ng serve --ssl`)                        |
+| `tsconfig.e2e.json`            | types the config and `tests/` (ESLint's project service, `typecheck`)                |
+| `tests/package.json`           | `"type": "module"` for `tests/` only (`import.meta`; the app has none)               |
+| `tests/support/start-api.ts`   | new `api/data/e2e.db`, migrate, start the API with the e2e env and log               |
+| `tests/support/proxy.e2e.json` | `/api` → API on 3100, `Origin: https://localhost:4300`                               |
+| `tests/support/mail.ts`        | `readMail(email, after?)`: the newest code (and link) mailed to `email`              |
+| `tests/support/fixtures.ts`    | `test` / `expect` to import in every spec: `email`, `clientIp`, `signIn`, `withBook` |
+| `tests/support/api.ts`         | fixture helpers through the API: `signUp`, `pushRows`, `bookRow`                     |
+| `tests/groundwork.spec.ts`     | step 0: sign-in through the API, per-test IP rate limits                             |
+| `tests/sign-up.spec.ts`        | step 1: sign up through the UI                                                       |
+| `tests/first-book.spec.ts`     | step 2: create the first book through the UI                                         |
+| `tests/first-wallet.spec.ts`   | step 3: create the first wallet through the UI                                       |
 
 ## Decisions
 
@@ -115,6 +117,11 @@ Codes are stored hashed, so the database can't give them back.
   API with `page.request` (same cookie jar as the page), then opens `/`, where the session is
   restored. A new user lands on the first-book step ("สร้างสมุดแรก"). Only step 1 signs up
   through the UI.
+- **Tests that need data** ask for a fixture that pushes it through `/api/sync/push` before the
+  app opens (`tests/support/api.ts`: `signUp`, `pushRows`, `bookRow`), so the app's first pull
+  brings it in. `withBook` = a signed-in user with one book "ครอบครัว" and no wallet; it waits
+  until the header names the book. A pushed book has **no categories** (the app writes the
+  default set only when the book sheet creates a book); a fixture that needs them pushes them.
 
 ### Rate limits
 
@@ -150,3 +157,9 @@ and **per IP**. Every test comes from 127.0.0.1, so 20 sign-ups in a run would h
   the server accepted a write without reading the database: a refused push stays on "รอ sync" or
   "sync ไม่สำเร็จ". It doesn't prove the row is on the server; a second device pulling it does
   (step 4). 2 tests, steady over `--repeat-each=3`.
+- **Step 3** (2026-11-26): `tests/first-wallet.spec.ts` on `withBook` (the first fixture that
+  pushes data) — เพิ่มกระเป๋าเงิน → ชื่อกระเป๋าเงิน, ยอดเงินเริ่มต้น 1500 → บันทึก → the toast,
+  the Transactions tab with "ยอดรวม ฿1,500.00", "sync แล้ว", and the Wallets tab lists it. Right
+  after a sheet closes, `ariaSnapshot()` still shows only the dialog: the page comes back into
+  the accessibility tree when the close animation ends (not an app bug; `expect` waits through
+  it). 2 tests, steady over `--repeat-each=3`.
