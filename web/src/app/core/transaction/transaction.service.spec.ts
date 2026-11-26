@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
+import { BookService } from '@/core/book'
 import th from '@/core/i18n/th.json'
 import { NetworkStatusService } from '@/core/network'
 import { findOp, getRow, listOps, OfflineService, putRow, SyncService } from '@/core/offline'
@@ -10,6 +11,7 @@ import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
 import { WalletService } from '@/core/wallet'
 import { ActivityService } from './activity.service'
+import { PeriodService } from './period.service'
 import { TransactionService } from './transaction.service'
 import type { TransactionValues } from './transaction.type'
 
@@ -370,7 +372,6 @@ describe('TransactionService', () => {
     expect(service.viewWalletIds()).toEqual(['kid'])
     expect(JSON.parse(localStorage.getItem('tpn-book:tx:view:p1') ?? '{}')).toEqual({
       walletId: 'kid',
-      unit: 'month',
     })
   })
 
@@ -380,35 +381,85 @@ describe('TransactionService', () => {
     expect(service.viewWalletIds().sort()).toEqual(['card', 'cash', 'kcard'])
   })
 
-  it('starts the period tabs at the oldest transaction and goes back to the current one on a new unit', () => {
-    service.today.set('2026-11-02')
-    transaction('old', { occurredOn: '2026-08-20' })
-    expect(service.tabs()).toEqual([-3, -2, -1, 0, 'future'])
-    service.tab.set(-1)
-    expect(service.range()).toEqual({ from: '2026-10-01', to: '2026-10-31' })
-    service.selectUnit('year')
-    expect(service.tab()).toBe(0)
-    expect(service.range()).toEqual({ from: '2026-01-01', to: '2026-12-31' })
-  })
+  describe('the period both tabs share (PeriodService)', () => {
+    const period = () => TestBed.inject(PeriodService)
 
-  it('keeps the chosen period and wallet after a write or a pull (the book row is read again)', () => {
-    service.today.set('2026-11-02')
-    transaction('old', { occurredOn: '2026-08-20' })
-    TestBed.tick()
-    service.selectWallet('card')
-    service.tab.set(-1)
-    service.save(null, values)
-    TestBed.tick()
-    pulled('books', {
-      id: 'p1',
-      name: 'renamed',
-      icon: 'lucideHouse',
-      color: '#16a34a',
-      sortOrder: 0,
+    it('starts the tabs at the oldest transaction and goes back to the current one on a new unit', () => {
+      service.today.set('2026-11-02')
+      transaction('old', { occurredOn: '2026-08-20' })
+      expect(period().tabs()).toEqual([-3, -2, -1, 0, 'future'])
+      period().select(-1)
+      expect(period().range()).toEqual({ from: '2026-10-01', to: '2026-10-31' })
+      expect(service.items().map((item) => item.id)).toEqual([])
+      period().selectUnit('year')
+      expect(period().tab()).toBe(0)
+      expect(period().range()).toEqual({ from: '2026-01-01', to: '2026-12-31' })
+      expect(service.items().map((item) => item.id)).toEqual(['old'])
     })
-    TestBed.tick()
-    expect(service.tab()).toBe(-1)
-    expect(service.viewWalletId()).toBe('card')
+
+    it('moves to the next or previous period and stops at the ends', () => {
+      service.today.set('2026-11-02')
+      period().move(1)
+      expect(period().tab()).toBe('future')
+      period().move(1)
+      expect(period().tab()).toBe('future')
+      period().move(-1)
+      period().move(-1)
+      expect(period().tab()).toBe(-1)
+      expect(period().tabIndex()).toBe(0)
+    })
+
+    it('keeps the chosen period and wallet after a write or a pull (the book row is read again)', () => {
+      service.today.set('2026-11-02')
+      transaction('old', { occurredOn: '2026-08-20' })
+      TestBed.tick()
+      service.selectWallet('card')
+      period().select(-1)
+      service.save(null, values)
+      TestBed.tick()
+      pulled('books', {
+        id: 'p1',
+        name: 'renamed',
+        icon: 'lucideHouse',
+        color: '#16a34a',
+        sortOrder: 0,
+      })
+      TestBed.tick()
+      expect(period().tab()).toBe(-1)
+      expect(service.viewWalletId()).toBe('card')
+    })
+
+    it('moves the current period and "อนาคต" on with the date, and keeps any other', () => {
+      service.today.set('2026-11-30')
+      TestBed.tick()
+      period().select(0)
+      service.today.set('2026-12-01')
+      TestBed.tick()
+      expect(period().range()).toEqual({ from: '2026-12-01', to: '2026-12-31' })
+      period().select('future')
+      service.today.set('2027-01-01')
+      TestBed.tick()
+      expect(period().range()).toEqual({ from: '2027-02-01', to: null })
+      period().select(-1)
+      service.today.set('2027-02-01')
+      TestBed.tick()
+      expect(period().range()).toEqual({ from: '2026-12-01', to: '2026-12-31' })
+      expect(period().tab()).toBe(-2)
+    })
+
+    it('remembers the unit per book but not a custom range, and reads the old Transactions key', () => {
+      period().selectUnit('week')
+      expect(localStorage.getItem('tpn-book:tx:period:unit:p1')).toBe('week')
+      period().selectCustom({ from: '2026-10-01', to: '2026-10-15' })
+      expect(period().tab()).toBe(0)
+      expect(period().custom()).toEqual({ from: '2026-10-01', to: '2026-10-15' })
+      expect(localStorage.getItem('tpn-book:tx:period:unit:p1')).toBe('week')
+      localStorage.setItem('tpn-book:tx:view:p2', JSON.stringify({ walletId: null, unit: 'year' }))
+      TestBed.inject(BookService).select('p2')
+      TestBed.tick()
+      expect(period().unit()).toBe('year')
+      expect(localStorage.getItem('tpn-book:tx:period:unit:p2')).toBe('year')
+    })
   })
 
   it('narrows the list to categories, counted or excluded rows, and a currency (report.md)', () => {

@@ -4,16 +4,15 @@ import { ActivatedRoute, convertToParamMap } from '@angular/router'
 import { BehaviorSubject } from 'rxjs'
 import th from '@/core/i18n/th.json'
 import type { LocalDatabase } from '@/core/offline'
-import type { ReportService } from '@/core/report'
 import { PageTitleStrategy } from '@/core/routing'
 import type { TransactionService } from '@/core/transaction'
+import { PeriodService } from '@/core/transaction'
 import { setUpReports } from '@/features/reports/report-testing'
 import { ReportCategoryPage } from './report-category-page'
 
 describe('ReportCategoryPage', () => {
   let fixture: ComponentFixture<ReportCategoryPage>
   let db: LocalDatabase
-  let reports: ReportService
   let transactions: TransactionService
   const params = new BehaviorSubject(convertToParamMap({ id: 'food' }))
 
@@ -32,7 +31,7 @@ describe('ReportCategoryPage', () => {
   const title = () => TestBed.inject(PageTitleStrategy).pageTitle()
 
   beforeEach(async () => {
-    ;({ db, reports, transactions } = await setUpReports([
+    ;({ db, transactions } = await setUpReports([
       { provide: ActivatedRoute, useValue: { paramMap: params } },
     ]))
   })
@@ -88,7 +87,7 @@ describe('ReportCategoryPage', () => {
 
   it('follows the period and says when it has nothing', async () => {
     await open({ id: 'food' })
-    reports.tab.set(0)
+    TestBed.inject(PeriodService).select(0)
     await settle()
     expect(text()).toContain(th.reports.noneInPeriod)
   })

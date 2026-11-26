@@ -4,6 +4,7 @@ import th from '@/core/i18n/th.json'
 import type { LocalDatabase } from '@/core/offline'
 import type { ReportService } from '@/core/report'
 import type { TransactionService } from '@/core/transaction'
+import { PeriodService } from '@/core/transaction'
 import { setUpReports } from '@/features/reports/report-testing'
 import { ReportsPage } from './reports-page'
 
@@ -103,7 +104,7 @@ describe('ReportsPage', () => {
 
   it('puts the breakdown before the trend, and has no trend for a month (rule 7)', async () => {
     expect(element().querySelector('app-report-trend')).toBeNull()
-    reports.selectUnit('year')
+    TestBed.inject(PeriodService).selectUnit('year')
     await settle()
     const order = [...element().querySelectorAll('app-report-share-list, app-report-trend')].map(
       (el) => el.tagName.toLowerCase()
@@ -112,7 +113,7 @@ describe('ReportsPage', () => {
   })
 
   it('splits a year into its months; a bar shows its figures and keeps the period (rule 7)', async () => {
-    reports.selectUnit('year')
+    TestBed.inject(PeriodService).selectUnit('year')
     await settle()
     const bars = () => [...element().querySelectorAll<HTMLButtonElement>('app-report-trend button')]
     expect(bars()).toHaveLength(12)
@@ -122,7 +123,7 @@ describe('ReportsPage', () => {
     expect(text()).toContain(th.reports.trendHint.month)
     bars()[9].click()
     await settle()
-    expect(reports.tab()).toBe(0)
+    expect(TestBed.inject(PeriodService).tab()).toBe(0)
     expect(bars()[9].getAttribute('aria-pressed')).toBe('true')
     const detail = element().querySelector('app-report-trend [aria-live]')?.textContent ?? ''
     expect(detail.replace(/\s+/g, ' ')).toContain('ต.ค. 2026 รายรับ 50,000.00 รายจ่าย 1,450.00')
@@ -161,5 +162,35 @@ describe('ReportsPage', () => {
     expect(reports.currencyCode()).toBe('USD')
     expect(element().querySelector('app-report-summary-card')?.textContent).toContain('USD')
     expect(element().querySelector('app-report-share-list a')?.textContent).toContain('7.00')
+  })
+
+  it('shows the period both tabs share, "อนาคต" too, named on the card (Q2)', async () => {
+    expect(
+      [...element().querySelectorAll('app-period-strip [role="tab"]')].map((chip) =>
+        chip.textContent.trim()
+      )
+    ).toEqual([
+      '09/2026',
+      th.transactions.period.monthLast,
+      th.transactions.period.monthThis,
+      th.transactions.period.future,
+    ])
+    expect(tab(th.transactions.period.monthLast)?.getAttribute('aria-selected')).toBe('true')
+    setup.transaction('2026-12-20', 'food', 90000)
+    tab(th.transactions.period.future)?.click()
+    await settle()
+    expect(TestBed.inject(PeriodService).tab()).toBe('future')
+    const card = element().querySelector('app-report-summary-card')?.textContent ?? ''
+    expect(card).toContain(th.transactions.period.future)
+    expect(card).toContain('-900.00')
+    expect(card).not.toContain('/วัน')
+  })
+
+  it('draws no trend for a week, even one across two months', async () => {
+    TestBed.inject(PeriodService).selectUnit('week')
+    TestBed.inject(PeriodService).select(-5)
+    await settle()
+    expect(element().querySelector('app-report-summary-card')).not.toBeNull()
+    expect(element().querySelector('app-report-trend')).toBeNull()
   })
 })

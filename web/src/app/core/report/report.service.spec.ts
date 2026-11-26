@@ -3,18 +3,18 @@ import { TestBed } from '@angular/core/testing'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
-import { BookService } from '@/core/book'
 import th from '@/core/i18n/th.json'
 import { NetworkStatusService } from '@/core/network'
 import { findOp, OfflineService, putRow, SyncService } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
-import { TransactionService } from '@/core/transaction'
+import { PeriodService, TransactionService } from '@/core/transaction'
 import { ReportService } from './report.service'
 
 describe('ReportService', () => {
   let db: LocalDatabase
   let service: ReportService
+  const period = () => TestBed.inject(PeriodService)
   let transactions: TransactionService
   const changes = signal(0)
 
@@ -159,7 +159,7 @@ describe('ReportService', () => {
     transfer('2026-10-08', 'card', 'save', 500)
     transfer('2026-10-10', 'cash', 'card', 100)
     TestBed.tick()
-    service.tab.set(-1)
+    period().select(-1)
   })
 
   afterEach(() => db.close())
@@ -191,7 +191,7 @@ describe('ReportService', () => {
 
   it('averages the current period over the days up to today (rule 10)', () => {
     transaction('2026-11-01', 'food', 1001)
-    service.tab.set(0)
+    period().select(0)
     expect(service.summaries()[0]).toMatchObject({ expense: 1001, perDay: 501 })
   })
 
@@ -232,14 +232,16 @@ describe('ReportService', () => {
     expect(
       service.categoryTotal(service.range(), service.walletIds(), ['food', 'coffee'], 'THB')
     ).toBe(1300)
-    expect(
-      service.categoryTotal(service.previousRange(), service.walletIds(), ['food', 'coffee'], 'THB')
-    ).toBe(400)
+    expect(service.previousRange()).toEqual({ from: '2026-09-01', to: '2026-09-30' })
+    const september = { from: '2026-09-01', to: '2026-09-30' }
+    expect(service.categoryTotal(september, service.walletIds(), ['food', 'coffee'], 'THB')).toBe(
+      400
+    )
   })
 
   it('splits the chosen period into its own months, none inside one month (rule 7)', () => {
     expect(service.trend()).toBeNull()
-    service.selectUnit('year')
+    period().selectUnit('year')
     const year = service.trend()
     expect(year?.step).toBe('month')
     expect(year?.points).toHaveLength(12)
@@ -251,16 +253,16 @@ describe('ReportService', () => {
       income: 50000,
       expense: 1450,
     })
-    service.selectUnit('quarter')
+    period().selectUnit('quarter')
     expect(service.trend()?.points.map((point) => point.from)).toEqual([
       '2026-10-01',
       '2026-11-01',
       '2026-12-01',
     ])
-    service.selectCustom({ from: '2026-10-01', to: '2026-10-15' })
+    period().selectCustom({ from: '2026-10-01', to: '2026-10-15' })
     expect(service.trend()).toBeNull()
     // The first and last part are cut to the range.
-    service.selectCustom({ from: '2026-09-15', to: '2026-10-05' })
+    period().selectCustom({ from: '2026-09-15', to: '2026-10-05' })
     expect(service.trend()).toEqual({
       step: 'month',
       points: [
@@ -268,11 +270,11 @@ describe('ReportService', () => {
         { from: '2026-10-01', to: '2026-10-05', income: 50000, expense: 1000 },
       ],
     })
-    service.selectCustom({ from: '2025-02-10', to: '2026-10-31' })
+    period().selectCustom({ from: '2025-02-10', to: '2026-10-31' })
     expect(service.trend()?.step).toBe('quarter')
     expect(service.trend()?.points.at(0)?.from).toBe('2025-02-10')
     expect(service.trend()?.points).toHaveLength(8)
-    service.selectCustom({ from: '2022-06-01', to: '2026-10-31' })
+    period().selectCustom({ from: '2022-06-01', to: '2026-10-31' })
     expect(service.trend()?.step).toBe('year')
     expect(service.trend()?.points.map((point) => point.from)).toEqual([
       '2022-06-01',
@@ -290,7 +292,7 @@ describe('ReportService', () => {
     ])
     // Only transfers moved the balance: still worth a card, not the empty state.
     expect(service.hasData()).toBe(true)
-    service.tab.set(-3)
+    period().select(-2)
     expect(service.hasData()).toBe(false)
   })
 
@@ -301,7 +303,7 @@ describe('ReportService', () => {
     expect(service.currencyCode()).toBe('THB')
     service.chosenCurrency.set('USD')
     expect(service.breakdown().map((share) => share.amount)).toEqual([700])
-    service.selectUnit('year')
+    period().selectUnit('year')
     expect(service.trend()?.points.at(9)).toMatchObject({ expense: 700, income: 0 })
   })
 
@@ -335,26 +337,57 @@ describe('ReportService', () => {
     ])
   })
 
-  it('has no "อนาคต" tab, and the period before a custom range is as long as it', () => {
-    expect(service.tabs()).toEqual([-2, -1, 0])
-    service.selectCustom({ from: '2026-10-11', to: '2026-10-20' })
+  it('compares a custom range with the days just before it, as long as it (E4)', () => {
+    period().selectCustom({ from: '2026-10-11', to: '2026-10-20' })
     expect(service.range()).toEqual({ from: '2026-10-11', to: '2026-10-20' })
     expect(service.previousRange()).toEqual({ from: '2026-10-01', to: '2026-10-10' })
   })
 
-  it('remembers its unit per book, apart from the Transactions tab, and never a custom range', () => {
-    service.selectUnit('year')
-    expect(localStorage.getItem('tpn-book:report:unit:p1')).toBe('year')
-    expect(transactions.unit()).toBe('month')
-    TestBed.inject(BookService).select('p2')
-    TestBed.tick()
-    expect(service.unit()).toBe('month')
-    TestBed.inject(BookService).select('p1')
-    TestBed.tick()
-    expect(service.unit()).toBe('year')
-    expect(service.tab()).toBe(0)
-    service.selectCustom({ from: '2026-10-11', to: '2026-10-20' })
-    expect(localStorage.getItem('tpn-book:report:unit:p1')).toBe('year')
+  it('has every unit of the Transactions tab, "วัน" and "สัปดาห์" too (Q2)', () => {
+    period().selectUnit('week')
+    period().select(-5)
+    expect(service.range()).toEqual({ from: '2026-09-28', to: '2026-10-04' })
+    expect(service.summaries()[0]).toMatchObject({ income: 50000, expense: 400 })
+    expect(service.previousRange()).toEqual({ from: '2026-09-21', to: '2026-09-27' })
+    expect(service.trend()).toBeNull()
+    transaction('2026-11-02', 'food', 250)
+    period().selectUnit('day')
+    expect(service.range()).toEqual({ from: '2026-11-02', to: '2026-11-02' })
+    expect(service.summaries()[0]).toMatchObject({ expense: 250, perDay: null })
+  })
+
+  it('runs "ทั้งหมด" from the first row to the last, with no period before it', () => {
+    transaction('2026-12-20', 'food', 900)
+    period().selectUnit('all')
+    expect(service.range()).toEqual({ from: '2026-09-30', to: '2026-12-20' })
+    expect(service.summaries()[0]).toMatchObject({ income: 50000, expense: 2750 })
+    expect(service.previousRange()).toBeNull()
+    expect(service.trend()?.points.map((point) => point.from)).toEqual([
+      '2026-09-30',
+      '2026-10-01',
+      '2026-11-01',
+      '2026-12-01',
+    ])
+  })
+
+  it('reports "อนาคต" like any month: its rows, or nothing, with no day average or period before', () => {
+    period().select('future')
+    expect(service.range()).toEqual({ from: '2026-12-01', to: '2026-12-31' })
+    expect(service.hasData()).toBe(false)
+    transaction('2026-12-20', 'food', 900)
+    transaction('2027-01-05', 'salary', 2000)
+    expect(service.range()).toEqual({ from: '2026-12-01', to: '2027-01-05' })
+    expect(service.summaries()[0]).toMatchObject({ income: 2000, expense: 900, perDay: null })
+    expect(service.hasData()).toBe(true)
+    expect(service.previousRange()).toBeNull()
+    expect(service.trend()?.points).toHaveLength(2)
+  })
+
+  it('shares the period with the Transactions tab both ways (Q2)', () => {
+    expect(transactions.items().map((item) => item.occurredOn)).toContain('2026-10-05')
+    period().selectUnit('year')
+    expect(transactions.items().map((item) => item.occurredOn)).toContain('2026-09-30')
+    expect(service.range()).toEqual({ from: '2026-01-01', to: '2026-12-31' })
   })
 
   it('keeps the chosen period when a write or a pull reads the book again', () => {
@@ -366,6 +399,6 @@ describe('ReportService', () => {
       sortOrder: 0,
     })
     TestBed.tick()
-    expect(service.tab()).toBe(-1)
+    expect(period().tab()).toBe(-1)
   })
 })

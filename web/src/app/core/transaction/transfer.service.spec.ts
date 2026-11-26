@@ -10,6 +10,7 @@ import { findOp, getRow, listOps, OfflineService, putRow, SyncService } from '@/
 import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
 import { WalletService } from '@/core/wallet'
+import { PeriodService } from './period.service'
 import { TransactionService } from './transaction.service'
 import { TransferService } from './transfer.service'
 import type { TransferValues } from './transaction.type'
@@ -277,7 +278,7 @@ describe('TransferService', () => {
     transaction('t1')
     transfer('r1', { occurredOn: '2026-09-15' })
     expect(TestBed.inject(BookService).transactionCount('p1')).toBe(2)
-    expect(service.tabs()).toEqual([-2, -1, 0, 'future'])
+    expect(TestBed.inject(PeriodService).tabs()).toEqual([-2, -1, 0, 'future'])
   })
 
   it('opens a fix with the refused values', () => {

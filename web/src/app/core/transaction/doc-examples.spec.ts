@@ -1,6 +1,6 @@
 import th from '@/core/i18n/th.json'
 import { activityDaysLeft, activityLeftText, latestAction } from './activity'
-import { periodLabel, periodRange, periodTabs } from './period'
+import { closedRange, periodLabel, periodRange, periodTabs, sameRange } from './period'
 import type { Transaction } from './transaction.type'
 
 // The e.g. lines in period.ts and activity.ts, checked as written.
@@ -23,6 +23,17 @@ describe('doc examples (period.ts)', () => {
     expect(periodLabel('custom', 0, today, { from: '2026-11-01', to: null })).toEqual({
       text: '01/11/2026 – …',
     })
+    const now = '2026-11-26'
+    expect(closedRange(none, now, '2026-08-03', '2026-12-05')).toEqual({
+      from: '2026-08-03',
+      to: '2026-12-05',
+    })
+    expect(closedRange({ from: '2026-12-01', to: null }, now, '2026-08-03', null)).toEqual({
+      from: '2026-12-01',
+      to: '2026-12-31',
+    })
+    expect(closedRange(none, now, null, null)).toEqual({ from: '2026-11-26', to: '2026-11-26' })
+    expect(sameRange(none, none)).toBe(true)
   })
 })
 

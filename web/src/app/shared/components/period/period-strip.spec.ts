@@ -22,7 +22,7 @@ class Host {
     { id: 0, label: 'เดือนนี้' },
     { id: 'future', label: 'อนาคต' },
   ]
-  selected = signal<number | string>(0)
+  selected = signal<number | string | null>(0)
   swiped: number[] = []
 }
 
@@ -50,6 +50,18 @@ describe('PeriodStrip and Swipe', () => {
     fixture.detectChanges()
     expect(host.selected()).toBe('future')
     expect(tabs[2].getAttribute('aria-selected')).toBe('true')
+  })
+
+  it('marks no chip when the chosen period has none', () => {
+    const { fixture, element, host } = setup()
+    host.selected.set(null)
+    fixture.detectChanges()
+    const tabs = [...element.querySelectorAll<HTMLElement>('[role="tab"]')]
+    expect(tabs.map((tab) => tab.getAttribute('aria-selected'))).toEqual([
+      'false',
+      'false',
+      'false',
+    ])
   })
 
   it('turns a sideways touch swipe into the next (+1) or previous (−1) period', () => {
