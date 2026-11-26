@@ -10,7 +10,7 @@ when its commit lands. Backlog entry in [`ROADMAP.md`](../../ROADMAP.md) → "En
 | ---- | -------------------------------------------------------------------------- | ----- |
 | 0    | Groundwork: API start-up, helpers, fixtures, remove the generated files    | ✅    |
 | 1    | Sign up with an email code (UI) → signed in, on the first-book step        | ✅    |
-| 2    | Create the first book (UI); given: a user                                  | ⬜    |
+| 2    | Create the first book (UI); given: a user                                  | ✅    |
 | 3    | Create the first wallet (UI); given: a user + a book (`withBook`)          | ⬜    |
 | 4    | Add a transaction (UI) → synced, there after a reload; given: `withWallet` | ⬜    |
 | 5    | Wrong input: bad email, wrong code (`OTP_INVALID`), 5 wrong (`OTP_LOCKED`) | ⬜    |
@@ -59,6 +59,7 @@ One file or test: add it after `--`, e.g. `npm run e2e:chromium -- tests/sign-up
 | `tests/support/fixtures.ts`    | `test` / `expect` to import in every spec: `email`, `clientIp`, `signIn` |
 | `tests/groundwork.spec.ts`     | step 0: sign-in through the API, per-test IP rate limits                 |
 | `tests/sign-up.spec.ts`        | step 1: sign up through the UI                                           |
+| `tests/first-book.spec.ts`     | step 2: create the first book through the UI                             |
 
 ## Decisions
 
@@ -143,3 +144,9 @@ and **per IP**. Every test comes from 127.0.0.1, so 20 sign-ups in a run would h
   click เข้าสู่ระบบ after it (the button is disabled, then gone). The OTP input is found by its
   (screen-reader-only) label, `getByLabel('รหัส 6 หลัก')`; no test id needed. 2 tests, steady
   over `--repeat-each=3`.
+- **Step 2** (2026-11-26): `tests/first-book.spec.ts` — `signIn()` → สร้างสมุด → ชื่อสมุด → บันทึก
+  → the toast, the header's switcher "สมุด <name> เปลี่ยนสมุด", the first-wallet step, and the
+  sync status button settling on "สถานะ sync: sync แล้ว …". That last check is how a test sees
+  the server accepted a write without reading the database: a refused push stays on "รอ sync" or
+  "sync ไม่สำเร็จ". It doesn't prove the row is on the server; a second device pulling it does
+  (step 4). 2 tests, steady over `--repeat-each=3`.
