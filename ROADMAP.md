@@ -111,6 +111,21 @@ decision "Local-first").
 
 ---
 
+## Done: Shared book read every 5 minutes while live (2026-11-26)
+
+Web only, no API change. Was in the Backlog (live-sync decision 1) until Ably had run on
+staging; with Ably working, a poke already reads another device's write at once, so the timed
+read is only a net for a lost poke.
+
+- `SharingService`: the timer still ticks every minute, but while `LiveService.connected()` it
+  skips a tick when the shared book's rows were read less than 4½ minutes ago (`rowsReadAt`,
+  set when `fetchRows` reads its last page, so a poke's read counts too). Without a live
+  connection (dropped, `disabled`, Ably down) it reads every minute as before; with no shared
+  book in use the tick returns at once, as before. live-sync.md rule 12, decision 1.
+- **Tests**: `sharing.service.spec.ts` (every minute without live, skipped while live until about
+  5 minutes, a poke's read moves the next one, every minute again when live drops);
+  `fakeLive()` exposes `connected`.
+
 ## Done: One period for Transactions and Reports, summary table (2026-11-26)
 
 Web only, no API change. Owner: a month chosen on Transactions wasn't the month on Reports,
@@ -2009,9 +2024,6 @@ Agreed with the user. Do not re-propose alternatives unless asked.
   state, so edits between pulls would be lost, each device would differ and a member keeps
   nothing (shared-activity.md → Out of scope). Restoring a row someone else deleted could come
   with it.
-- **Longer shared refresh while live** (live-sync decision 1): a device with a live connection
-  could stretch the shared book's 1-minute read to 5 minutes. Not before Ably runs on
-  staging for a while.
 - **Live updates of sharing** (after #20): poke the `user:` channel when an invite arrives or a
   member's role or wallets change, so the Account tab's dot and the switcher update at once.
   Invites are rare, so the next app open is enough for now.

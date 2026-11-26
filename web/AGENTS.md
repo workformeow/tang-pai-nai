@@ -680,7 +680,8 @@ Spec: [sharing.md](../docs/features/sharing.md).
   any op that isn't a transaction. An editor's write lands in the TEMP outbox and an effect
   pushes it at once (`SyncService.pushShared`, no pull); `STALE` → toast + read again,
   `NOT_SHARED` (or a 404 read) → toast + back to an own book. `refreshShared()` reads what
-  changed (every minute, back online, on visibility). `BookService.select()` /
+  changed (every minute, or every 5 while `LiveService.connected()`; back online, on
+  visibility, on a poke). `BookService.select()` /
   `leaveShared()` drop the TEMP tables; a lock clears it too.
 - The shell loads the service with a dynamic `import()` after its first render (like
   `RecurringService`) and holds it in a signal for the Account tab's invite dot and the switch
