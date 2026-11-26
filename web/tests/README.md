@@ -19,8 +19,16 @@ when its commit lands. Backlog entry in [`ROADMAP.md`](../../ROADMAP.md) → "En
 | 8    | Sign out → sign-in page, local data wiped                                  | ✅    |
 | 9    | Into CI (`.github/workflows/e2e.yml` at the repo root), once steady        | ✅    |
 | —    | Later, if wanted: one journey test through the UI end to end (`test.step`) | ⬜    |
+| —    | Backlog: UI text from `th.json` / `en.json`, then an English run           | ⬜    |
 
 Steps 5 and 6 are one test per case (one wrong input, one limit each), not one test for all.
+
+**Backlog, UI text** (owner, 2026-11-26): the tests type the Thai text (`'แก้ไขโปรไฟล์'`), so
+they run in Thai only and a wording change breaks them though the app works. Later: read it
+from `src/app/core/i18n/th.json` (as the unit specs do, `th.profile.edit`), then add an English
+run on `en.json`. English is checked today only by `translations.spec.ts` (same keys, none empty).
+Locators stay on roles and names; a `data-testid` only where an element has no name to find it
+by (owner agreed, 2026-11-26).
 
 ✅ done · 🚧 in progress · ⬜ not started
 
@@ -217,9 +225,10 @@ and **per IP**. Every test comes from 127.0.0.1, so 20 sign-ups in a run would h
   shows the email's local part as the name → the card ("แก้ไขโปรไฟล์") → ชื่อที่แสดง → บันทึก →
   toast "บันทึกแล้ว", the card's name line; the same after a reload; `getMe` (`GET /auth/me`)
   has it, since the device's vault keeps the name and a reload alone proves nothing about the
-  server. The card's accessible name is its `aria-label` only ("แก้ไขโปรไฟล์"), so its name
-  and email are found inside it with `getByText(…, { exact: true })`. 2 tests, steady over
-  `--repeat-each=3`.
+  server. The card's name and email are found inside it with `getByText(…, { exact: true })`.
+  2 tests, steady over `--repeat-each=3`. Found: the card's `aria-label` ("แก้ไขโปรไฟล์") hid
+  who is signed in from screen readers; fixed after step 9 (its name is now its text, then
+  "แก้ไขโปรไฟล์" in an `sr-only` span).
 - **Step 8** (2026-11-26): `tests/sign-out.spec.ts` on `withWallet` (data on the device) — the
   vault (IndexedDB `tpn-vault`) is there first → Account tab → ออกจากระบบ → the sheet says the
   device's data goes → its ออกจากระบบ → `/auth/sign-in`, the vault gone; a reload and `/` stay
