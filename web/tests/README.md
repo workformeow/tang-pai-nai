@@ -9,13 +9,18 @@ when its commit lands. Backlog entry in [`ROADMAP.md`](../../ROADMAP.md) → "En
 | Step | What                                                                       | State |
 | ---- | -------------------------------------------------------------------------- | ----- |
 | 0    | Groundwork: API start-up, helpers, fixtures, remove the generated files    | ✅    |
-| 1    | Sign up with an email code → display name → first book                     | ⬜    |
-| 2    | Wrong input: bad email, wrong code (`OTP_INVALID`), 5 wrong (`OTP_LOCKED`) | ⬜    |
-| 3    | Rate limits: too many wrong passwords, too many code requests              | ⬜    |
-| 4    | First wallet + a transaction → synced, still there after a reload          | ⬜    |
-| 5    | Edit profile (display name)                                                | ⬜    |
-| 6    | Sign out → sign-in page, local data wiped                                  | ⬜    |
-| 7    | Into CI (`.github/workflows/web.yml` at the repo root), once steady        | ⬜    |
+| 1    | Sign up with an email code (UI) → signed in, on the first-book step        | ⬜    |
+| 2    | Create the first book (UI); given: a user                                  | ⬜    |
+| 3    | Create the first wallet (UI); given: a user + a book (`withBook`)          | ⬜    |
+| 4    | Add a transaction (UI) → synced, there after a reload; given: `withWallet` | ⬜    |
+| 5    | Wrong input: bad email, wrong code (`OTP_INVALID`), 5 wrong (`OTP_LOCKED`) | ⬜    |
+| 6    | Rate limits: too many wrong passwords, too many code requests              | ⬜    |
+| 7    | Edit profile (display name)                                                | ⬜    |
+| 8    | Sign out → sign-in page, local data wiped                                  | ⬜    |
+| 9    | Into CI (`.github/workflows/web.yml` at the repo root), once steady        | ⬜    |
+| —    | Later, if wanted: one journey test through the UI end to end (`test.step`) | ⬜    |
+
+Steps 5 and 6 are one test per case (one wrong input, one limit each), not one test for all.
 
 ✅ done · 🚧 in progress · ⬜ not started
 
@@ -44,6 +49,12 @@ run waits for `ng serve` to build (about a minute). The report: `npx playwright 
 
 ## Decisions
 
+- **One test, one behavior** (owner, 2026-11-26): a test drives the UI only for the one thing it
+  is about; everything before it (a user, a book, a wallet) comes from a **fixture through the
+  API**, never through the UI another test covers. So a broken wallet screen fails the wallet
+  test alone, and the transaction test still runs and passes. A fixture that fails says so in
+  its message (`fixture withWallet: push failed …`), so a setup failure never reads as a bug in
+  the screen under test. A journey test through the whole UI is optional and comes last.
 - **Where**: `web/tests/*.spec.ts`; `tests/` is outside `src/`, so `ng test` (Vitest) never picks
   them up. Every spec imports `test` and `expect` from `./support/fixtures`, never from
   `@playwright/test`.
