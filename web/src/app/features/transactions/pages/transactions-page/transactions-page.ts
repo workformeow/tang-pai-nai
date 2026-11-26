@@ -29,19 +29,18 @@ import { SharingService } from '@/core/sharing'
 import {
   FUTURE,
   latestAction,
-  periodLabel,
+  PeriodService,
   TransactionService,
   TransferService,
   ActivityService,
 } from '@/core/transaction'
-import type { EntryItem, MoneySummary, PeriodTab } from '@/core/transaction'
+import type { EntryItem, MoneySummary } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import { DueSheet } from '@/features/transactions/components/due-sheet'
 import { EntryRow } from '@/features/transactions/components/entry-row'
 import { UpcomingRow } from '@/features/transactions/components/upcoming-row'
 import { addDayTotals, addUpcoming, groupByDay } from '@/features/transactions/day-groups'
 import type { DayContext, DayGroup } from '@/features/transactions/day-groups'
-import { CurrencyFlag } from '@/shared/components/currency-flag'
 import { EmptyState } from '@/shared/components/empty-state'
 import { MoneySummaryCard, MoneySummaryTable } from '@/shared/components/money-summary'
 import type { MoneySplit, MoneySummaryRow } from '@/shared/components/money-summary'
@@ -64,7 +63,6 @@ import { formatAmount, formatMoney } from '@/shared/utils'
     EmptyState,
     MoneySummaryCard,
     MoneySummaryTable,
-    CurrencyFlag,
     PeriodStrip,
     Swipe,
     Slide,
@@ -80,6 +78,7 @@ import { formatAmount, formatMoney } from '@/shared/utils'
 })
 export class TransactionsPage {
   protected transactionService = inject(TransactionService)
+  protected periodService = inject(PeriodService)
   private transferService = inject(TransferService)
   private activityService = inject(ActivityService)
   protected recurringService = inject(RecurringService)
@@ -163,27 +162,6 @@ export class TransactionsPage {
   /** The due bills' sheet. */
   protected dueOpen = signal(false)
 
-  // ── The period tabs ────────────────────────────────────────────────────────
-
-  /** The period tabs with their labels (`09/2026 · เดือนที่แล้ว · เดือนนี้ · อนาคต`). */
-  protected chips = computed(() => {
-    this.languageService.language()
-    const unit = this.transactionService.unit()
-    const today = this.transactionService.today()
-    const custom = this.transactionService.custom()
-    return this.transactionService.tabs().map((tab) => {
-      const result = periodLabel(unit, tab, today, custom)
-      return {
-        id: tab,
-        label: 'key' in result ? this.t(result.key) : result.text,
-      }
-    })
-  })
-  /** The chosen tab's place, oldest first: the list slides in from that side (`appSlide`). */
-  protected tabIndex = computed(() =>
-    this.transactionService.tabs().indexOf(this.transactionService.tab())
-  )
-
   // ── The period: its summary and its days ───────────────────────────────────
 
   /** Rule 11 per currency; signed figures without the symbol (Money Lover style). */
@@ -214,24 +192,6 @@ export class TransactionsPage {
       split: split(line),
     }))
   })
-  /**
-   * The summary's currency chip (owner 2026-11, like Reports): one currency's card, or 'all' for
-   * the compact table. Chips show only with more than one currency (so on "ทุกกระเป๋า").
-   */
-  /** A currency code, `'all'`, or null for the first currency. */
-  protected summaryCurrency = signal<string | null>(null)
-  protected summaryChoice = computed(() => {
-    const lines = this.summary()
-    const chosen = this.summaryCurrency()
-    if (chosen === 'all' && lines.length > 1) {
-      return 'all'
-    }
-    return lines.find((line) => line.currencyCode === chosen) ?? lines.at(0) ?? null
-  })
-  protected summaryLine = computed(() => {
-    const choice = this.summaryChoice()
-    return choice === 'all' ? null : choice
-  })
   /** The period's rows (one page of them at a time) grouped by day, newest first. */
   protected days = computed<DayGroup[]>(() => {
     this.languageService.language()
@@ -243,11 +203,11 @@ export class TransactionsPage {
       return { pending: waiting, touchedBy: this.touchedBy(item, waiting) }
     })
     addDayTotals(groups, all, context.money)
-    if (this.transactionService.tab() !== FUTURE) {
+    if (this.periodService.tab() !== FUTURE) {
       return groups
     }
     const walletIds = this.transactionService.viewWalletIds()
-    const upcoming = this.recurringService.upcoming(this.transactionService.range(), walletIds)
+    const upcoming = this.recurringService.upcoming(this.periodService.range(), walletIds)
     return addUpcoming(groups, upcoming, walletIds, context)
   })
 
@@ -259,7 +219,7 @@ export class TransactionsPage {
    * end of the list scrolls into view. Back to one page when the period or wallet changes.
    */
   private limit = linkedSignal({
-    source: () => [this.transactionService.range(), this.transactionService.viewWalletIds()],
+    source: () => [this.periodService.range(), this.transactionService.viewWalletIds()],
     computation: () => this.PAGE,
   })
   protected hasMore = computed(() => this.transactionService.items().length > this.limit())
@@ -332,20 +292,6 @@ export class TransactionsPage {
 
   protected payCard(id: string): void {
     this.transferService.pay(id)
-  }
-
-  protected choose(id: number | string): void {
-    this.transactionService.tab.set(id as PeriodTab)
-  }
-
-  /** A sideways swipe over the list moves to the next or previous period. */
-  protected move(step: 1 | -1): void {
-    const tabs = this.transactionService.tabs()
-    const index = tabs.indexOf(this.transactionService.tab())
-    const next = index < 0 ? undefined : tabs[index + step]
-    if (next !== undefined) {
-      this.transactionService.tab.set(next)
-    }
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────

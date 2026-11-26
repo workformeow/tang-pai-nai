@@ -8,8 +8,12 @@ import th from '@/core/i18n/th.json'
 import { SyncService } from '@/core/offline'
 import type { SyncStatus } from '@/core/offline'
 import { ReportService } from '@/core/report'
-import type { ReportUnit } from '@/core/report'
-import { ActivityService, TransactionService, TransferService } from '@/core/transaction'
+import {
+  ActivityService,
+  PeriodService,
+  TransactionService,
+  TransferService,
+} from '@/core/transaction'
 import type { ActivityScope, PeriodUnit, TransferSheetState } from '@/core/transaction'
 import { TransactionsHeader } from './transactions-header'
 
@@ -19,23 +23,12 @@ describe('TransactionsHeader', () => {
   const customSheet = signal(false)
   const transferSheet = signal<TransferSheetState | null>(null)
   const activityScope = signal<ActivityScope | null>(null)
-  const transactions = {
-    viewWallet: signal(null),
-    walletSheet: signal(false),
-    customSheet,
-    unit,
-    selectUnit: (next: PeriodUnit) => unit.set(next),
-  }
+  const transactions = { viewWallet: signal(null), walletSheet: signal(false) }
+  /** The period both tabs share. */
+  const period = { customSheet, unit, selectUnit: (next: PeriodUnit) => unit.set(next) }
 
-  const reportUnit = signal<ReportUnit>('month')
-  const reportCustomSheet = signal(false)
   const manyCurrencies = signal(false)
-  const reports = {
-    unit: reportUnit,
-    manyCurrencies,
-    customSheet: reportCustomSheet,
-    selectUnit: (next: ReportUnit) => reportUnit.set(next),
-  }
+  const reports = { manyCurrencies }
 
   const element = () => fixture.nativeElement as HTMLElement
   const items = () =>
@@ -54,8 +47,6 @@ describe('TransactionsHeader', () => {
 
   beforeEach(async () => {
     unit.set('month')
-    reportUnit.set('month')
-    reportCustomSheet.set(false)
     manyCurrencies.set(false)
     customSheet.set(false)
     transferSheet.set(null)
@@ -72,6 +63,7 @@ describe('TransactionsHeader', () => {
         { provide: TransactionService, useValue: transactions },
         { provide: ActivityService, useValue: { scope: activityScope } },
         { provide: ReportService, useValue: reports },
+        { provide: PeriodService, useValue: period },
         {
           provide: TransferService,
           useValue: { open: (state: TransferSheetState) => transferSheet.set(state) },
@@ -182,7 +174,7 @@ describe('TransactionsHeader', () => {
     expect(item(th.activity.menu)?.textContent).toContain(th.activity.lastDay)
   })
 
-  it('heads the Reports tab with only ดูตาม and the report units (report.md Q2)', async () => {
+  it('heads the Reports tab with only ดูตาม, every unit of the period both tabs share (report.md Q2)', async () => {
     fixture.componentRef.setInput('view', 'reports')
     await settle()
     menuButton()?.click()
@@ -191,22 +183,16 @@ describe('TransactionsHeader', () => {
     expect(item(th.transfers.open)).toBeUndefined()
     item(th.transactions.viewBy)?.click()
     await settle()
-    expect(items().slice(1)).toEqual(
-      ['month', 'quarter', 'year', 'custom'].map(
-        (key) => th.transactions.unit[key as keyof typeof th.transactions.unit]
-      )
-    )
+    expect(items().slice(1)).toEqual(Object.values(th.transactions.unit))
     item(th.transactions.unit.quarter)?.click()
     await settle()
-    expect(reportUnit()).toBe('quarter')
-    expect(unit()).toBe('month')
+    expect(unit()).toBe('quarter')
     menuButton()?.click()
     await settle()
     item(th.transactions.viewBy)?.click()
     await settle()
     item(th.transactions.unit.custom)?.click()
-    expect(reportCustomSheet()).toBe(true)
-    expect(customSheet()).toBe(false)
+    expect(customSheet()).toBe(true)
   })
 
   it('opens ภาพรวม from the Reports menu only when the book holds more than one currency (#24)', async () => {

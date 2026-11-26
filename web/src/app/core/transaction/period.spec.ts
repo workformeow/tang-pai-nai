@@ -1,4 +1,4 @@
-import { FUTURE, periodLabel, periodRange, periodTabs } from './period'
+import { closedRange, FUTURE, periodLabel, periodRange, periodTabs, sameRange } from './period'
 
 const today = '2026-11-02'
 const custom = { from: '2026-10-01', to: '2026-10-15' }
@@ -50,5 +50,54 @@ describe('periodLabel', () => {
       key: 'transactions.period.future',
     })
     expect(periodLabel('custom', 0, today, custom)).toEqual({ text: '01/10/2026 – 15/10/2026' })
+  })
+})
+
+describe('closedRange', () => {
+  const none = { from: null, to: null }
+
+  it('keeps a range with both ends', () => {
+    expect(closedRange(custom, today, '2026-08-03', '2026-12-05')).toEqual(custom)
+  })
+
+  it('runs "ทั้งหมด" from the first row to the last one, or to today when that is later', () => {
+    expect(closedRange(none, today, '2026-08-03', '2026-12-05')).toEqual({
+      from: '2026-08-03',
+      to: '2026-12-05',
+    })
+    expect(closedRange(none, today, '2026-08-03', '2026-10-20')).toEqual({
+      from: '2026-08-03',
+      to: today,
+    })
+  })
+
+  it('runs "อนาคต" to the last row, at least to the end of its first month', () => {
+    const future = periodRange('month', FUTURE, today, none)
+    expect(closedRange(future, today, '2026-08-03', '2027-02-14')).toEqual({
+      from: '2026-12-01',
+      to: '2027-02-14',
+    })
+    expect(closedRange(future, today, '2026-08-03', '2026-11-20')).toEqual({
+      from: '2026-12-01',
+      to: '2026-12-31',
+    })
+  })
+
+  it('starts an open custom range on the first row, never after its end', () => {
+    expect(closedRange({ from: null, to: '2026-10-15' }, today, '2026-08-03', null)).toEqual({
+      from: '2026-08-03',
+      to: '2026-10-15',
+    })
+    expect(closedRange({ from: null, to: '2026-10-15' }, today, null, null)).toEqual({
+      from: '2026-10-15',
+      to: '2026-10-15',
+    })
+  })
+})
+
+describe('sameRange', () => {
+  it('compares both ends', () => {
+    expect(sameRange(custom, { ...custom })).toBe(true)
+    expect(sameRange(custom, { from: custom.from, to: null })).toBe(false)
   })
 })

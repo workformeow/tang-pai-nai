@@ -18,7 +18,8 @@ export interface PeriodChip {
 })
 export class PeriodStrip {
   chips = input.required<readonly PeriodChip[]>()
-  selected = input.required<number | string>()
+  /** The chosen chip; null when none is (a range older than the chips). */
+  selected = input.required<number | string | null>()
   /** The tablist's accessible name. */
   label = input.required<string>()
   chosen = output<number | string>()

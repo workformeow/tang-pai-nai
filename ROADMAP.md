@@ -83,7 +83,7 @@ merging.
 | 7   | Category                       | ✅  | ✅  | 7.1 categories, default set, Account › หมวดหมู่; 7.2 hide per wallet (both forms); 7.3 merge. [spec](docs/features/category.md)                                                                                                                         |
 | 8   | Transaction                    | ✅  | ✅  | 8.1 table, form + keypad, Money Lover tab, real balances; 8.2 quick amounts, toasts on top. [spec](docs/features/transaction.md)                                                                                                                        |
 | 9   | Transfer                       | ✅  | ✅  | two linked rows of one `transfers` row, outside income / expense; ⋮ menu, Wallets tab button. [spec](docs/features/transfer.md)                                                                                                                         |
-| 10  | Reports                        | —   | ✅  | on the device: H1 summary with balances, trend, by category with drill-down pages; Transactions header shared. [spec](docs/features/report.md)                                                                                                          |
+| 10  | Reports                        | —   | ✅  | on the device: H1 summary with balances, trend, by category with drill-down pages; Transactions header and (since 2026-11) chosen period shared. [spec](docs/features/report.md)                                                                         |
 | 11  | Budget                         | ⏸   | ⏸   | moved to the backlog after #10 (owner: not used in Money Lover; reports cover it); see Backlog                                                                                                                                                          |
 | 12  | Recurring transactions         | ✅  | ✅  | rules recorded on the device when due (or asked first), deterministic ids, "อนาคต" shows what comes. [spec](docs/features/recurring.md)                                                                                                                 |
 | 13  | Debt / loan                    | ✅  | ✅  | borrowed / lent, entries outside income / expense, counted once per debt, instalments as rules, "หนี้สิน" card. [spec](docs/features/debt.md)                                                                                                           |
@@ -110,6 +110,33 @@ After #8 the app can replace Money Lover for daily use. Until #17, everything ru
 decision "Local-first").
 
 ---
+
+## Done: One period for Transactions and Reports, summary table (2026-11-26)
+
+Web only, no API change. Owner: a month chosen on Transactions wasn't the month on Reports,
+and the currency chips over the Transactions summary read as a filter of the list. Mock-up:
+[summary-period.html](docs/features/mockups/summary-period.html) (owner's choice A, no link).
+
+- **One period** (report.md Q2, rule 8): `PeriodService` (`core/transaction/period.service.ts`)
+  holds `unit` + `range` (the days) for both tabs; tabs and chips are worked out from the range.
+  Reports gets every Transactions unit, วัน / สัปดาห์ / ทั้งหมด and "อนาคต" too (counted like any
+  month, the empty state when empty; no average per day, no previous period; `closedRange`
+  ends "ทั้งหมด" / "อนาคต" at the book's last row). No trend for a day or a week. The unit is
+  kept per book (`tpn-book:tx:period:unit:`, the old Transactions key read once; the Reports
+  key `tpn-book:report:unit:` is no longer read); the range starts on the current period, and
+  the current one (or "อนาคต") moves with the date while the app is open.
+- **Duplicates removed**: the period state in `TransactionService` and `ReportService`,
+  `ReportUnit` / `REPORT_UNITS`, the chip and swipe code of the Transactions page and
+  `reportView()`, the range sheets of two report pages (one in the shell now), the header
+  menu's per-tab branches. Initial bundle 820.7 → 823.0 kB.
+- **Summary** (transaction.md → Web screens, currency.md): more than one currency is one
+  `app-money-summary-table`, a row per currency, no chips, no link to Reports
+  (`transactions.allCurrencies` removed).
+- **Tests**: `period.spec.ts` / `doc-examples.spec.ts` (`closedRange`, `sameRange`),
+  `transaction.service.spec.ts` (the shared period: tabs, move, kept over a pull, the date
+  moving on, the unit kept and migrated), `report.service.spec.ts` (week / day / ทั้งหมด /
+  อนาคต, both tabs), `reports-page.spec.ts` (shared chips, อนาคต on the card, no week trend),
+  `transactions-page.spec.ts` (the table, no chips), the header, unit menu and strip specs.
 
 ## Done: Disabled categories (2026-11-23)
 

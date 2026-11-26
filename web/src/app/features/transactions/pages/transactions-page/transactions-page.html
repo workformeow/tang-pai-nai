@@ -19,16 +19,16 @@
   }
 </div>
 <app-period-strip
-  [chips]="chips()"
-  [selected]="transactionService.tab()"
+  [chips]="periodService.chips()"
+  [selected]="periodService.tab()"
   [label]="'transactions.periods' | transloco"
-  (chosen)="choose($event)"
+  (chosen)="periodService.select($event)"
 />
 <div
   class="flex flex-col gap-3 px-4 pt-1 pb-4"
   appSwipe
-  [appSlide]="tabIndex()"
-  (swiped)="move($event)"
+  [appSlide]="periodService.tabIndex()"
+  (swiped)="periodService.move($event)"
 >
   @if (cardDue(); as card) {
     <!-- Credit-card rule 7: a card in view that owes money, with its pay sheet. -->
@@ -81,39 +81,10 @@
       />
     </button>
   }
+  <!-- More than one currency: one row each, no chips (owner 2026-11: chips read as a list filter). -->
   @if (summary().length > 1) {
-    <!-- More than one currency: one at a time, or all in a table (owner 2026-11, like Reports). -->
-    <div
-      class="flex flex-wrap gap-2"
-      role="tablist"
-      [attr.aria-label]="'wallets.currency' | transloco"
-    >
-      <button
-        type="button"
-        role="tab"
-        class="flex min-h-9 items-center rounded-full bg-muted px-3.5 text-sm text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-selected:bg-primary aria-selected:font-semibold aria-selected:text-primary-foreground"
-        [attr.aria-selected]="summaryChoice() === 'all'"
-        (click)="summaryCurrency.set('all')"
-      >
-        {{ 'transactions.allCurrencies' | transloco }}
-      </button>
-      @for (line of summary(); track line.currencyCode) {
-        <button
-          type="button"
-          role="tab"
-          class="flex min-h-9 items-center gap-1.5 rounded-full bg-muted px-3.5 text-sm text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-selected:bg-primary aria-selected:font-semibold aria-selected:text-primary-foreground"
-          [attr.aria-selected]="summaryChoice() === line"
-          (click)="summaryCurrency.set(line.currencyCode)"
-        >
-          <app-currency-flag class="h-3.5 w-5" [code]="line.currencyCode" />
-          {{ line.currencyCode }}
-        </button>
-      }
-    </div>
-  }
-  @if (summaryChoice() === 'all') {
     <app-money-summary-table [lines]="summary()" />
-  } @else if (summaryLine(); as line) {
+  } @else if (summary().at(0); as line) {
     <app-money-summary-card [line]="line" />
   }
   @for (group of days(); track group.day) {

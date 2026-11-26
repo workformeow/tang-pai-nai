@@ -4,14 +4,14 @@ import { NgIcon, provideIcons } from '@ng-icons/core'
 import { lucideChartPie } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { ReportService } from '@/core/report'
-import { TransactionService } from '@/core/transaction'
+import { PeriodService, TransactionService } from '@/core/transaction'
 import { ReportShareList } from '@/features/reports/components/share-list'
 import { ReportSummaryCard } from '@/features/reports/components/summary-card'
 import { ReportTrend } from '@/features/reports/components/trend-chart'
 import { reportView } from '@/features/reports/report-view'
 import { CurrencyFlag } from '@/shared/components/currency-flag'
 import { EmptyState } from '@/shared/components/empty-state'
-import { CustomRangeSheet, PeriodStrip, Swipe } from '@/shared/components/period'
+import { PeriodStrip, Swipe } from '@/shared/components/period'
 
 /**
  * The Reports tab (docs/features/report.md → Web screens, owner's choices in #10). The header
@@ -31,7 +31,6 @@ import { CustomRangeSheet, PeriodStrip, Swipe } from '@/shared/components/period
     EmptyState,
     PeriodStrip,
     Swipe,
-    CustomRangeSheet,
     ReportSummaryCard,
     ReportTrend,
     ReportShareList,
@@ -42,6 +41,7 @@ import { CustomRangeSheet, PeriodStrip, Swipe } from '@/shared/components/period
 })
 export class ReportsPage {
   protected reportService = inject(ReportService)
+  protected periodService = inject(PeriodService)
   protected transactionService = inject(TransactionService)
   protected view = reportView()
 

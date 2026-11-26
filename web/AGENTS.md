@@ -439,13 +439,23 @@ values, fixOpId?, bookId?)` (remembers the wallet: `defaultWalletId()`), `remove
   `values` + `type`: "copy"), `frequentCategoryIds(bookId, type)` ("ใช้บ่อย", last 90 days),
   `lastType()` / `rememberType()` (8.2). The Transactions tab's view
   lives here too, shared by the header and the page: `viewWalletId` (null = "ทุกกระเป๋า",
-  `viewWalletIds()` leaves out wallets excluded from the total, except credit cards), `unit`
-  (`PeriodUnit`), `tab`,
-  `custom`, `range()`, `tabs()`, `items()`, `summaryLines()`, `today`; `selectWallet` /
-  `selectUnit` / `selectCustom` remember wallet and unit per book (`tpn-book:tx:…`, wiped
-  with the device). An effect tombstones live transactions whose wallet or category is a
+  `viewWalletIds()` leaves out wallets excluded from the total, except credit cards),
+  `items()`, `summaryLines()`, `today` (`PeriodService`'s); `selectWallet` remembers the
+  wallet per book (`tpn-book:tx:view:…`, wiped with the device).
+- **`PeriodService`** (`core/transaction/period.service.ts`): the one chosen period of the
+  Transactions and Reports tabs (owner, 2026-11; report.md Q2). State is `unit` and `range`
+  (the days); `tabs()`, `tab()` (the tab whose days are `range`, null when none),
+  `tabIndex()`, `chips()` (translated labels) are worked out from them, back to the book's
+  `firstDay()` or the chosen range, whichever is older; `lastDay()` ends "ทั้งหมด" and
+  "อนาคต" in the reports. `select(tab)` / `move(±1)` / `selectUnit` / `selectCustom`;
+  `customSheet` (the shell mounts the one range sheet); `today` refreshes on visibility and
+  every minute, and a range that was the current period or "อนาคต" moves with it. The unit is
+  kept per book (`tpn-book:tx:period:unit:…`, read once from the old `tx:view` key), never
+  custom; the range starts on the current period. Pages bind `app-period-strip` and `appSwipe`
+  straight to it. An effect tombstones live transactions whose wallet or category is a
   tombstone here (rule 10); the shell injects the service so it runs.
-- `core/transaction/period.ts`: `periodRange`, `periodTabs`, `periodLabel` (pure, ค.ศ.).
+- `core/transaction/period.ts`: `periodRange`, `periodTabs`, `periodLabel`, `closedRange`
+  (both ends for the reports), `sameRange` (pure, ค.ศ.).
 - `core/transaction/quick-amounts.ts`: `QUICK_AMOUNTS` and `QuickAmountsService` (`enabled`,
   `setEnabled`; a device setting in `localStorage` like the theme, Account › การแสดงผล).
   `app-calc-keypad` draws them from `quickAmounts` and emits `quickPressed`; the sheet adds them
@@ -481,8 +491,8 @@ values, fixOpId?, bookId?)` (remembers the wallet: `defaultWalletId()`), `remove
   `shared/components/slide`, which slides it in from the side of the chosen period (Web
   Animations, a fade only under reduced motion; the page host has `overflow-x-clip` for it); its summary card is `shared/components/money-summary`
   (`app-money-summary-card`, also used by a shared wallet's page, so the two never drift; its
-  `split` is the cash / card line, credit-card.md rule 10; with several currencies the page puts
-  currency chips over it and `app-money-summary-table` for ทั้งหมด). ➕
+  `split` is the cash / card line, credit-card.md rule 10; with several currencies the page shows
+  `app-money-summary-table` instead, one row per currency, no chips). ➕
   opens the sheet (`BottomTabBar.add()`); "fix" goes to
   `/transactions?fix=<opId>` (the page asks both services; each opens only its own table's op).
   `sheets/transfer-sheet` (views `form` / `pick` (from or to) / `note`) is
@@ -503,11 +513,10 @@ values, fixOpId?, bookId?)` (remembers the wallet: `defaultWalletId()`), `remove
 Spec: [report.md](../docs/features/report.md). Read only: every figure is an aggregate over the
 local database, nothing is stored.
 
-- `ReportService`: its own `unit` (`ReportUnit`: month / quarter / year / custom, kept per
-  book in `tpn-book:report:unit:…`, never custom), `tab` (a number, no "อนาคต"),
-  `custom`, `customSheet`, `type` (the breakdown's tab), `chosenCurrency` / `currencyCode()`;
-  `walletIds` and `today` are the Transactions tab's (Q3). `range()` / `previousRange()` always
-  have both ends. `summaries()` (per currency: income, expense, net, transfer, left-out count
+- `ReportService`: the period is `PeriodService`'s (Q2); `type` (the breakdown's tab),
+  `chosenCurrency` / `currencyCode()`; `walletIds` is the Transactions tab's (Q3). `range()` is
+  `closedRange` of the shared range (both ends); `previousRange()` is null for "ทั้งหมด" and a
+  period after today. No trend for a day or a week. `summaries()` (per currency: income, expense, net, transfer, left-out count
   and sum, `start` / `end` balances, `perDay`), `hasData()`, `breakdown()`, `trend()`; the
   page-level reads `byCategory(range, walletIds, type, currency, parentId?)` (a parent's split,
   its own money as `direct`) and `categoryTotal(range, walletIds, ids, currency)`.
@@ -516,23 +525,25 @@ local database, nothing is stored.
   `typeChosen` out; there is no separate tab bar).
 - `features/reports`: the tab page, `/reports/category/:id[/:sub]` (`sub` = a child's id or
   `direct`) and `/reports/excluded`; `components/` (summary card H1, trend bars as buttons,
-  share list, the day list drawn 100 at a time); `report-view.ts` (`reportView()`: chips,
-  swipe, money; `periodName`, `sharePercent`). Its lists come from `TransactionService.list`
+  share list, the day list drawn 100 at a time); `report-view.ts` (`reportView()`: the
+  period's name, money; `periodName`, `sharePercent`). Its lists come from `TransactionService.list`
   with a third argument, a `ListFilter` (`categoryIds`, `report` `counted` | `excluded`,
   `currencyCode`).
 - Charts are plain elements with token colours (no chart library, owner's choice in #10):
   heights and widths as `%` styles, every bar pair a button with an `aria-label`.
 - The header is `layout/transactions-header` with `view="reports"` ("ภาพรวม" while
-  `manyCurrencies()`, and "ดูตาม", the report units); `app-header` shows it on `/reports`
+  `manyCurrencies()`, and "ดูตาม", every unit of `PeriodService`); `app-header` shows it on `/reports`
   itself (`isReportsTab`).
 - **ภาพรวม** (#24, [currency-overview.md](../docs/features/currency-overview.md)):
   `/reports/currencies`, every currency side by side over `ReportService.allWalletIds()`
   (every counted wallet, whatever the switcher chose): `overview()`, `walletCounts()`. Its
-  "ดูตาม" sits in `app-header` (`isReportCurrencies`, `layout/report-unit-menu`, `@defer`red
-  so the shell never loads `ReportService`) and sets the Reports tab's own unit. The tab's custom range
-  sheet lives in the page (`@defer`), so the shell never loads `ReportService`.
-- Shared with the Transactions tab: `shared/components/period` (`app-period-strip`, the
-  `appSwipe` directive, `app-custom-range-sheet` with `range` in and `applied` out).
+  "ดูตาม" sits in `app-header` (`isReportCurrencies`, `layout/report-unit-menu`, `@defer`red)
+  and sets `PeriodService`'s unit. The one custom range sheet is the shell's (`PeriodService`
+  lives in `core/transaction`, which the shell loads anyway), so the shell never loads
+  `ReportService`.
+- Shared with the Transactions tab: `PeriodService` (the state) and `shared/components/period`
+  (`app-period-strip` with `selected` null when no chip is chosen, the `appSwipe` directive,
+  `app-custom-range-sheet` with `range` in and `applied` out).
 - Specs: `report.service.spec.ts` on a test database; the pages use
   `features/reports/report-testing.ts` (`setUpReports()`: real services, a seeded October).
 

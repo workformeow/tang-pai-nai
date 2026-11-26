@@ -13,9 +13,9 @@ import {
   WalletService,
 } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
-import { addDays, toDay } from '@/shared/utils'
+import { addDays } from '@/shared/utils'
 import { hasOrphans, sweepOrphans } from './orphan-sweep'
-import { PERIOD_UNITS, periodRange, periodTabs } from './period'
+import { PeriodService } from './period.service'
 import { mergeEntries, toEventOption, toTransaction, toTransfer } from './transaction-rows'
 import {
   EVENT_TABLE,
@@ -23,7 +23,6 @@ import {
   TRANSACTION_TABLE,
   TRANSFER_TABLE,
 } from './transaction.type'
-import type { PeriodTab, PeriodUnit } from './period'
 import type {
   DayRange,
   DebtEntryItem,
@@ -53,12 +52,13 @@ export class TransactionService {
   private syncService = inject(SyncService)
   private bookService = inject(BookService)
   private walletService = inject(WalletService)
+  private periodService = inject(PeriodService)
   private window = inject(DOCUMENT).defaultView
 
   canWrite = this.bookService.canWrite
   serverDown = this.bookService.serverDown
-  /** The device's date, refreshed when the app comes back and every minute. */
-  today = signal(toDay())
+  /** The device's date (`PeriodService`), refreshed when the app comes back and every minute. */
+  today = this.periodService.today
   /** Transactions and transfers with an op still waiting to sync ("รอ sync"). */
   pendingIds = computed(
     () =>
@@ -113,17 +113,13 @@ export class TransactionService {
   }
 
   // ── The Transactions tab's view (transaction.md → Web screens) ─────────────
-  // Shared by the header (wallet switcher, ⋮ "ดูตาม") and the page. The wallet and the unit
-  // are remembered per book.
+  // Shared by the header (wallet switcher) and the page; the wallet is remembered per book. The
+  // period is `PeriodService`'s, shared with the Reports tab.
 
   /** The chosen wallet, or null for "ทุกกระเป๋า". */
   viewWalletId = signal<string | null>(null)
-  unit = signal<PeriodUnit>('month')
-  tab = signal<PeriodTab>(0)
-  custom = signal<DayRange>({ from: null, to: null })
-  /** The header's wallet switcher sheet and the custom range sheet. */
+  /** The header's wallet switcher sheet. */
   walletSheet = signal(false)
-  customSheet = signal(false)
 
   /** The chosen wallet while it's live, else null ("ทุกกระเป๋า"). */
   viewWallet = computed<Wallet | null>(() => {
@@ -144,47 +140,15 @@ export class TransactionService {
       .filter((item) => !item.excludeFromTotal || item.isCreditCard)
       .map((item) => item.id)
   })
-  /** The book's oldest transaction or transfer day, where the period tabs start. */
-  firstDay = computed<string | null>(() => {
-    const bookId = this.bookService.current()?.id
-    if (!bookId) {
-      return null
-    }
-    return this.read((db) => {
-      const value = db.selectValue(
-        `SELECT min(day) FROM (
-           SELECT min(occurred_on) AS day FROM ${TRANSACTION_TABLE}
-           WHERE book_id = ? AND deleted_at IS NULL
-           UNION ALL
-           SELECT min(occurred_on) FROM ${TRANSFER_TABLE} WHERE book_id = ? AND deleted_at IS NULL
-           UNION ALL
-           SELECT min(occurred_on) FROM ${DEBT_ENTRY_TABLE}
-           WHERE book_id = ? AND deleted_at IS NULL AND wallet_id IS NOT NULL
-         )`,
-        [bookId, bookId, bookId]
-      )
-      return typeof value === 'string' ? value : null
-    }, null)
-  })
-  tabs = computed(() => periodTabs(this.unit(), this.today(), this.firstDay()))
-  range = computed(() => periodRange(this.unit(), this.tab(), this.today(), this.custom()))
-  items = computed(() => this.entries(this.range(), this.viewWalletIds()))
-  summaryLines = computed(() => this.summary(this.range(), this.viewWalletIds()))
+  items = computed(() => this.entries(this.periodService.range(), this.viewWalletIds()))
+  summaryLines = computed(() => this.summary(this.periodService.range(), this.viewWalletIds()))
 
   constructor() {
-    // Each book has its own remembered wallet and unit; a new book starts on "ทุกกระเป๋า".
+    // Each book has its own remembered wallet; a new book starts on "ทุกกระเป๋า".
     effect(() => {
       const bookId = this.bookService.currentId() ?? ''
-      untracked(() => {
-        const saved = this.readView(bookId)
-        this.viewWalletId.set(saved.walletId)
-        this.unit.set(saved.unit)
-        this.tab.set(0)
-      })
+      untracked(() => this.viewWalletId.set(this.readWallet(bookId)))
     })
-    const refresh = () => this.today.set(toDay())
-    this.window?.document.addEventListener('visibilitychange', refresh)
-    this.window?.setInterval(refresh, 60_000)
     // Rule 10 (orphan-sweep.ts): rows left pointing at a tombstone here become tombstones too.
     effect(() => {
       this.offlineService.changes()
@@ -204,19 +168,6 @@ export class TransactionService {
   selectWallet(id: string | null): void {
     this.viewWalletId.set(id)
     this.writeView()
-  }
-
-  /** Chooses "ดูตาม"; the tabs start again on the current period. */
-  selectUnit(unit: PeriodUnit): void {
-    this.unit.set(unit)
-    this.tab.set(0)
-    this.writeView()
-  }
-
-  /** A custom range (from ≤ to). */
-  selectCustom(range: DayRange): void {
-    this.custom.set(range)
-    this.selectUnit('custom')
   }
 
   // ── Reading the list ───────────────────────────────────────────────────────
@@ -687,25 +638,18 @@ export class TransactionService {
     return { sql: parts.join(' AND '), params }
   }
 
-  private readView(bookId: string): { walletId: string | null; unit: PeriodUnit } {
+  private readWallet(bookId: string): string | null {
     try {
       const raw = this.storage()?.getItem(`${TRANSACTION_PREF_PREFIX}view:${bookId}`)
       const parsed: unknown = raw ? JSON.parse(raw) : null
       if (parsed && typeof parsed === 'object') {
-        const { walletId, unit } = parsed as Record<string, unknown>
-        return {
-          walletId: typeof walletId === 'string' ? walletId : null,
-          // A custom range isn't kept, so it comes back as a month.
-          unit:
-            PERIOD_UNITS.includes(unit as PeriodUnit) && unit !== 'custom'
-              ? (unit as PeriodUnit)
-              : 'month',
-        }
+        const { walletId } = parsed as Record<string, unknown>
+        return typeof walletId === 'string' ? walletId : null
       }
     } catch {
       // A blocked or broken storage only loses the convenience.
     }
-    return { walletId: null, unit: 'month' }
+    return null
   }
 
   private writeView(): void {
@@ -716,7 +660,7 @@ export class TransactionService {
     try {
       this.storage()?.setItem(
         `${TRANSACTION_PREF_PREFIX}view:${bookId}`,
-        JSON.stringify({ walletId: this.viewWalletId(), unit: this.unit() })
+        JSON.stringify({ walletId: this.viewWalletId() })
       )
     } catch {
       // As above.

@@ -11,7 +11,7 @@ import { findOp, OfflineService, putRow, SyncService } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
 import { ReportService } from '@/core/report'
-import { TransactionService } from '@/core/transaction'
+import { PeriodService, TransactionService } from '@/core/transaction'
 
 /**
  * The report pages' specs: a test database with one book, three wallets (one left out of
@@ -158,6 +158,6 @@ export const setUpReports = async (providers: Provider[] = []) => {
     note: '',
   })
   TestBed.tick()
-  reports.tab.set(-1)
+  TestBed.inject(PeriodService).select(-1)
   return { db, pulled, wallet, transaction, transactions, reports }
 }

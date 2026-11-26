@@ -180,7 +180,7 @@
           <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
           {{ 'transactions.viewBy' | transloco }}
         </button>
-        @for (unit of units(); track unit) {
+        @for (unit of units; track unit) {
           <button
             type="button"
             role="menuitemradio"

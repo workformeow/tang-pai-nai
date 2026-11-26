@@ -105,6 +105,32 @@ export const periodTabs = (
   return unit === 'month' ? [...tabs, FUTURE] : tabs
 }
 
+/**
+ * A range with both ends (the Reports tab's figures need them): an open start begins on the
+ * book's first day, an open end runs to the book's last day or today, whichever is later, and a
+ * range that starts after today runs at least to the end of its first month.
+ * e.g. today `'2026-11-26'`: `closedRange({ from: null, to: null }, today, '2026-08-03', '2026-12-05')` →
+ * `{ from: '2026-08-03', to: '2026-12-05' }` ("ทั้งหมด"),
+ * `({ from: '2026-12-01', to: null }, today, '2026-08-03', null)` → `{ from: '2026-12-01', to: '2026-12-31' }`
+ * ("อนาคต" with nothing in it), `({ from: null, to: null }, today, null, null)` → `{ from: '2026-11-26', to: '2026-11-26' }`
+ */
+export const closedRange = (
+  range: DayRange,
+  today: string,
+  firstDay: string | null,
+  lastDay: string | null
+): { from: string; to: string } => {
+  const from = range.from ?? firstDay ?? today
+  if (range.to) {
+    return { from: from > range.to ? range.to : from, to: range.to }
+  }
+  const floor = from > today ? addDays(addMonths(from, 1), -1) : today
+  return { from, to: lastDay && lastDay > floor ? lastDay : floor }
+}
+
+/** Whether two ranges cover the same days. e.g. `sameRange({ from: null, to: null }, { from: null, to: null })` → `true` */
+export const sameRange = (a: DayRange, b: DayRange): boolean => a.from === b.from && a.to === b.to
+
 /** The label's pieces; the page translates `key` or shows `text` (always ค.ศ.). */
 export type PeriodLabel = { key: string } | { text: string }
 

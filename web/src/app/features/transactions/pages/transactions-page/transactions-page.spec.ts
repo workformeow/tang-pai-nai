@@ -12,7 +12,7 @@ import { NetworkStatusService } from '@/core/network'
 import { findOp, OfflineService, putRow, SyncService } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
-import { TransactionService, TransferService } from '@/core/transaction'
+import { PeriodService, TransactionService, TransferService } from '@/core/transaction'
 import { addDays, toDay } from '@/shared/utils'
 import { TransactionsPage } from './transactions-page'
 
@@ -232,7 +232,7 @@ describe('TransactionsPage', () => {
     for (let i = 0; i < 150; i++) {
       transaction(`t${String(i).padStart(3, '0')}`, { createdAt: i })
     }
-    transactions.selectUnit('all')
+    TestBed.inject(PeriodService).selectUnit('all')
     await settle()
     expect(rows()).toHaveLength(100)
     expect(element().querySelector('div.h-px')).not.toBeNull()
@@ -378,10 +378,10 @@ describe('TransactionsPage', () => {
     })
   })
 
-  describe('currency chips over the summary (owner 2026-11)', () => {
-    const tabs = () =>
-      [...element().querySelectorAll<HTMLButtonElement>('[role="tab"]')].filter((tab) =>
-        tab.closest(`[aria-label="${th.wallets.currency}"]`)
+  describe('the summary with several currencies (owner 2026-11)', () => {
+    const tableRows = () =>
+      [...element().querySelectorAll('app-money-summary-table tbody tr')].map((tr) =>
+        tr.textContent.replace(/s+/g, ' ').trim()
       )
 
     beforeEach(() => {
@@ -408,40 +408,24 @@ describe('TransactionsPage', () => {
       })
     })
 
-    it('shows one currency at a time, or all of them in a table', async () => {
+    it('shows one row per currency in a table, with no chips that look like a list filter', async () => {
       transaction('a', { amount: 6500 })
       transaction('b', { amount: 1200, walletId: 'yen' })
       await settle()
-      expect(tabs().map((tab) => tab.textContent.trim())).toEqual([
-        th.transactions.allCurrencies,
-        'THB',
-        'JPY',
-      ])
-      // The first currency to start with.
-      expect(tabs()[1].getAttribute('aria-selected')).toBe('true')
-      expect(element().querySelectorAll('app-money-summary-card')).toHaveLength(1)
-      expect(element().querySelector('app-money-summary-card')?.textContent).toContain('-65.00')
-
-      tabs()[2].click()
-      await settle()
-      expect(element().querySelector('app-money-summary-card')?.textContent).toContain('-1,200')
-
-      tabs()[0].click()
-      await settle()
       expect(element().querySelector('app-money-summary-card')).toBeNull()
-      const table = element().querySelectorAll('app-money-summary-table tbody tr')
-      expect([...table].map((tr) => tr.querySelector('th')?.textContent.trim())).toEqual([
-        'THB',
-        'JPY',
-      ])
+      expect(tableRows()).toEqual(['THB 0.00-65.00-65.00', 'JPY 0-1,200-1,200'])
+      // Only the period chips: nothing over the summary to tap.
+      expect(element().querySelector(`[aria-label="${th.wallets.currency}"]`)).toBeNull()
+      // The list keeps every row, as before.
+      expect(rows()).toHaveLength(2)
     })
 
-    it('has no chips with one currency in view', async () => {
+    it('keeps the card with one currency in view', async () => {
       transaction('a', { amount: 6500 })
       transaction('b', { amount: 1200, walletId: 'yen' })
       transactions.selectWallet('cash')
       await settle()
-      expect(tabs()).toEqual([])
+      expect(element().querySelector('app-money-summary-table')).toBeNull()
       expect(element().querySelectorAll('app-money-summary-card')).toHaveLength(1)
     })
   })
@@ -491,7 +475,7 @@ describe('TransactionsPage', () => {
       transaction('t1', { occurredOn: '2026-11-05', recurringId: 'r1' })
       await settle()
       expect(rows()[0].querySelector('ng-icon[name="lucideRepeat"]')).not.toBeNull()
-      transactions.tab.set('future')
+      TestBed.inject(PeriodService).select('future')
       await settle()
       const text = element().textContent
       expect(text).toContain(th.recurring.notRecorded)

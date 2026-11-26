@@ -2,15 +2,14 @@ import { TestBed } from '@angular/core/testing'
 import type { ComponentFixture } from '@angular/core/testing'
 import th from '@/core/i18n/th.json'
 import type { LocalDatabase } from '@/core/offline'
-import type { ReportService } from '@/core/report'
 import type { TransactionService } from '@/core/transaction'
+import { PeriodService } from '@/core/transaction'
 import { setUpReports } from '@/features/reports/report-testing'
 import { ReportCurrenciesPage } from './report-currencies-page'
 
 describe('ReportCurrenciesPage', () => {
   let fixture: ComponentFixture<ReportCurrenciesPage>
   let db: LocalDatabase
-  let reports: ReportService
   let transactions: TransactionService
   let setup: Awaited<ReturnType<typeof setUpReports>>
 
@@ -25,7 +24,7 @@ describe('ReportCurrenciesPage', () => {
 
   beforeEach(async () => {
     setup = await setUpReports()
-    ;({ db, reports, transactions } = setup)
+    ;({ db, transactions } = setup)
     setup.wallet('usd', { currencyCode: 'USD', sortOrder: 3, initialBalance: 20000 })
     setup.transaction('2026-10-10', 'food', 1250, { walletId: 'usd' })
     TestBed.tick()
@@ -58,11 +57,11 @@ describe('ReportCurrenciesPage', () => {
   })
 
   it('shares the Reports period: chips and swipe move it, and an empty period says so', async () => {
-    reports.tab.set(-3)
+    TestBed.inject(PeriodService).select('future')
     await settle()
     expect(rows()).toEqual([])
     expect(element().textContent).toContain(th.reports.overviewEmpty)
-    reports.tab.set(-1)
+    TestBed.inject(PeriodService).select(-1)
     await settle()
     expect(rows()).toHaveLength(2)
   })

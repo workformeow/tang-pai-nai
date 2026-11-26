@@ -1,10 +1,5 @@
 import type { CategoryType } from '@/core/category'
 
-/** "ดูตาม" on the Reports tab (report.md Q2): no day, week or "all". */
-export type ReportUnit = 'month' | 'quarter' | 'year' | 'custom'
-
-export const REPORT_UNITS: readonly ReportUnit[] = ['month', 'quarter', 'year', 'custom']
-
 /** How the trend splits the chosen period (rule 7). */
 export type TrendStep = 'month' | 'quarter' | 'year'
 
@@ -14,9 +9,6 @@ export const TREND_STEP_MONTHS: Readonly<Record<TrendStep, number>> = {
   quarter: 3,
   year: 12,
 }
-
-/** Per book on the device, wiped with it (`tpn-book:` keys). */
-export const REPORT_PREF_PREFIX = 'tpn-book:report:'
 
 /** One currency's summary card (rules 1, 9–11). Amounts in minor units. */
 export interface ReportSummary {

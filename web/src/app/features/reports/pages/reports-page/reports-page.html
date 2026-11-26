@@ -1,11 +1,11 @@
 <app-period-strip
   class="pt-2"
-  [chips]="view.chips()"
-  [selected]="reportService.tab()"
+  [chips]="periodService.chips()"
+  [selected]="periodService.tab()"
   [label]="'transactions.periods' | transloco"
-  (chosen)="view.choose($event)"
+  (chosen)="periodService.select($event)"
 />
-<div class="flex flex-col gap-3 px-4 pt-1 pb-4" appSwipe (swiped)="view.move($event)">
+<div class="flex flex-col gap-3 px-4 pt-1 pb-4" appSwipe (swiped)="periodService.move($event)">
   @if (reportService.hasData()) {
     @if (reportService.currencies().length > 1) {
       <!-- Q6, B in #23: the whole page is one currency at a time, chosen on top. -->
@@ -84,11 +84,3 @@
     </button>
   }
 </div>
-<!-- "ดูตาม › กำหนดเอง" of this tab (the header's menu opens it). -->
-@defer (when reportService.customSheet()) {
-  <app-custom-range-sheet
-    [(open)]="reportService.customSheet"
-    [range]="reportService.custom()"
-    (applied)="reportService.selectCustom($event)"
-  />
-}

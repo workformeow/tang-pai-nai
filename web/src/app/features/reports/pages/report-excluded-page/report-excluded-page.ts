@@ -1,7 +1,7 @@
 import { Component, computed, inject } from '@angular/core'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { ReportService } from '@/core/report'
-import { TransactionService } from '@/core/transaction'
+import { PeriodService, TransactionService } from '@/core/transaction'
 import { ReportDayList } from '@/features/reports/components/day-list'
 import { reportView } from '@/features/reports/report-view'
 import { PeriodStrip, Swipe } from '@/shared/components/period'
@@ -19,6 +19,7 @@ import { PeriodStrip, Swipe } from '@/shared/components/period'
 })
 export class ReportExcludedPage {
   protected reportService = inject(ReportService)
+  protected periodService = inject(PeriodService)
   private transactionService = inject(TransactionService)
   protected view = reportView()
 

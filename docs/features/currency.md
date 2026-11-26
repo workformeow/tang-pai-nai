@@ -67,7 +67,7 @@ New in #23: MOP, KHR, IDR, PHP, MMK, INR, AED, CHF, TRY, CAD, NZD.
    of rule 6.
 6. **Lists per currency follow the book's wallet order** (owner, #23: the user orders wallets
    already): the Wallets tab's totals and the cards' owed totals, the Transactions tab's summary
-   lines, Reports' summary cards and currency chips, an event's money. A currency sits where its
+   table rows, Reports' summary cards and currency chips, an event's money. A currency sits where its
    first wallet sits in the book's order (archived wallets included); one with no wallet goes
    after, by rule 5.
 7. **Amounts always use the currency's `minorUnit`** for display and input (`formatMoney`,
@@ -109,9 +109,9 @@ no admin role.
   THB wallet (`QuickAmountsService.forCurrency`); "." off with `minorUnit` 0 (rule 7).
 - **Wallets tab**: rule 8 on the totals when there is more than one currency (one currency looks
   as before); the flag and code under the name of a wallet that isn't THB.
-- **Transactions tab** (owner, 2026-11): with more than one currency in view, the same chips over
-  the summary card, led by ทั้งหมด (a table, one row per currency); they choose the summary only,
-  the list keeps every currency (transaction.md → Web screens).
+- **Transactions tab** (owner, 2026-11): with more than one currency in view, one table, a row
+  per currency, no chips (they read as a filter of the list); the list keeps every currency
+  (transaction.md → Web screens).
 - **Reports** (report.md Q6, mock-up B): the currency chips (flag + code) on top, one summary
   card of the chosen currency naming it (one currency too), its income / expense tiles choosing
   the breakdown (no tab bar); a category page names its currency in its card's corner.

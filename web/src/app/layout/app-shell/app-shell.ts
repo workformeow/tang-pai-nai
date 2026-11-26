@@ -19,7 +19,7 @@ import { NetworkStatusService } from '@/core/network'
 import { SyncService } from '@/core/offline'
 import { NavHistory } from '@/core/routing'
 import type { SharingService } from '@/core/sharing'
-import { TransactionService, TransferService } from '@/core/transaction'
+import { PeriodService, TransactionService, TransferService } from '@/core/transaction'
 import { KeyboardService } from '@/core/viewport'
 import { WalletService } from '@/core/wallet'
 import { AppHeader } from '@/layout/app-header/app-header'
@@ -90,6 +90,7 @@ export class AppShell {
   protected categoryService = inject(CategoryService)
   /** Also keeps its sweep of transactions whose wallet or category was deleted (rule 10). */
   protected transactionService = inject(TransactionService)
+  protected periodService = inject(PeriodService)
   /** Also keeps its sweep of transfers whose wallet was deleted (transfer rule 8). */
   protected transferService = inject(TransferService)
   protected switchSheetOpen = this.bookService.switchSheet

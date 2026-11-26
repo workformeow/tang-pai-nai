@@ -8,7 +8,7 @@ import { CATEGORY_DEFAULT_ICON, CategoryService } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
 import { ReportService } from '@/core/report'
 import { PageTitleStrategy } from '@/core/routing'
-import { TransactionService } from '@/core/transaction'
+import { PeriodService, TransactionService } from '@/core/transaction'
 import { ReportDayList } from '@/features/reports/components/day-list'
 import { ReportShareList } from '@/features/reports/components/share-list'
 import { periodName, reportView, sharePercent } from '@/features/reports/report-view'
@@ -47,6 +47,7 @@ type Scope = 'whole' | 'direct' | 'child'
 })
 export class ReportCategoryPage {
   protected reportService = inject(ReportService)
+  protected periodService = inject(PeriodService)
   private categoryService = inject(CategoryService)
   private transactionService = inject(TransactionService)
   private languageService = inject(LanguageService)
@@ -93,7 +94,10 @@ export class ReportCategoryPage {
   })
 
   protected total = computed(() => this.totalOf(this.reportService.range()))
-  private previous = computed(() => this.totalOf(this.reportService.previousRange()))
+  private previous = computed(() => {
+    const range = this.reportService.previousRange()
+    return range ? this.totalOf(range) : 0
+  })
   /** The share's whole: the type's total, or the parent's for a sub-category. */
   private whole = computed(() => {
     const category = this.category()
@@ -184,14 +188,14 @@ export class ReportCategoryPage {
     return `${this.transloco.translate('reports.shareOf', { share, whole })} · ${this.view.period()}`
   })
 
-  /** E4: the same category in the period before. */
+  /** E4: the same category in the period before; none for "ทั้งหมด" or a period to come. */
   protected previousLine = computed(() => {
     this.languageService.language()
-    const period = periodName(
-      this.reportService.unit(),
-      this.reportService.previousRange(),
-      this.languageService.locale()
-    )
+    const range = this.reportService.previousRange()
+    if (!range) {
+      return null
+    }
+    const period = periodName(this.periodService.unit(), range, this.languageService.locale())
     return this.transloco.translate('reports.previous', {
       period,
       amount: this.view.amount(this.previous(), false),
