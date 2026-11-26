@@ -9,7 +9,7 @@ when its commit lands. Backlog entry in [`ROADMAP.md`](../../ROADMAP.md) → "En
 | Step | What                                                                       | State |
 | ---- | -------------------------------------------------------------------------- | ----- |
 | 0    | Groundwork: API start-up, helpers, fixtures, remove the generated files    | ✅    |
-| 1    | Sign up with an email code (UI) → signed in, on the first-book step        | ⬜    |
+| 1    | Sign up with an email code (UI) → signed in, on the first-book step        | ✅    |
 | 2    | Create the first book (UI); given: a user                                  | ⬜    |
 | 3    | Create the first wallet (UI); given: a user + a book (`withBook`)          | ⬜    |
 | 4    | Add a transaction (UI) → synced, there after a reload; given: `withWallet` | ⬜    |
@@ -46,6 +46,7 @@ run waits for `ng serve` to build (about a minute). The report: `npx playwright 
 | `tests/support/mail.ts`        | `readMail(email, after?)`: the newest code (and link) mailed to `email`  |
 | `tests/support/fixtures.ts`    | `test` / `expect` to import in every spec: `email`, `clientIp`, `signIn` |
 | `tests/groundwork.spec.ts`     | step 0: sign-in through the API, per-test IP rate limits                 |
+| `tests/sign-up.spec.ts`        | step 1: sign up through the UI                                           |
 
 ## Decisions
 
@@ -125,3 +126,8 @@ and **per IP**. Every test comes from 127.0.0.1, so 20 sign-ups in a run would h
   `tests/example.spec.ts` and `web/.github/workflows/playwright.yml` (GitHub only reads the
   root `.github/`; CI is step 7). Assert something a signed-in page shows, not only
   `not.toHaveURL(/auth/)`: that passes before the redirect would happen.
+- **Step 1** (2026-11-26): `tests/sign-up.spec.ts` — sign-in page → อีเมล → ส่งรหัส → the code
+  from the mail into "รหัส 6 หลัก" → the first-book step. The sixth digit submits by itself: don't
+  click เข้าสู่ระบบ after it (the button is disabled, then gone). The OTP input is found by its
+  (screen-reader-only) label, `getByLabel('รหัส 6 หลัก')`; no test id needed. 2 tests, steady
+  over `--repeat-each=3`.
