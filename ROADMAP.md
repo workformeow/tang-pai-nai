@@ -2033,6 +2033,8 @@ Agreed with the user. Do not re-propose alternatives unless asked.
   and wallet, a transaction that syncs, edit profile, sign out. Chromium and WebKit (closest to
   Safari) at phone size; into CI once they are steady. Today Playwright is only a manual check
   per feature ("How we build a feature" step 3) and nothing tests the web against the real API.
+  **🚧 Started 2026-11-26** on `test/web-e2e`: plan, decisions and progress per step in
+  [web/tests/README.md](web/tests/README.md) (read it first when continuing).
 - **Copy categories into a new book**: not wanted (owner, 2026-11). A new book gets only the
   default set, in the language the app has when the book is made (category rule 8); books stay
   apart, so one book's own categories ("เกม Genshin") never follow into another. A new wallet

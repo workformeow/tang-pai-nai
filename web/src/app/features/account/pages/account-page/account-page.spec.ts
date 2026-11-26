@@ -105,7 +105,11 @@ describe('AccountPage', () => {
   it('opens "แก้ไขโปรไฟล์" from the name card on top (design A)', async () => {
     TestBed.inject(AuthStore).user.set({ displayName: 'mom', email: 'm@example.com' } as AuthUser)
     fixture.detectChanges()
-    const card = page().querySelector(`button[aria-label="${th.profile.edit}"]`) as HTMLElement
+    // Its name is its text: who is signed in, then the action (hidden beside the pencil).
+    const card = [...page().querySelectorAll('button')].find((b) =>
+      b.textContent.includes(th.profile.edit)
+    ) as HTMLElement
+    expect(card.hasAttribute('aria-label')).toBe(false)
     expect(card.textContent).toContain('mom')
     expect(card.textContent).toContain('m@example.com')
     card.click()

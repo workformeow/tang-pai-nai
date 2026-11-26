@@ -41,6 +41,10 @@ in the same PR when a behavior change is intended. Put `<name>.spec.ts` beside t
 (Vitest via `ng test`, globals enabled). Guard-rail specs such as `core/i18n/translations.spec.ts`
 (both languages have the same keys) apply at all times.
 
+End-to-end tests (Playwright, against the real API) live in `tests/` (`npm run e2e`); their plan,
+decisions and progress are in [`tests/README.md`](tests/README.md). CI runs them in
+`.github/workflows/e2e.yml` on every change to `web/` or `api/`.
+
 ## 2. Folder structure
 
 ```
@@ -1194,3 +1198,9 @@ CI (`.github/workflows/web.yml` at the repo root) runs lint, typecheck, test and
 Same as the API (`../api/AGENTS.md` §10–11): Conventional Commits (`feat(<scope>): ...`) with a bullet
 body, one logical change per commit. **Do NOT run `git commit` or `git push` unless the user
 explicitly asks.** When the user wants to commit themselves, suggest a message instead.
+
+## 7. Reporting back
+
+Same as the API (`../api/AGENTS.md` §12): when a task or step is finished, report it short,
+easy to read and complete. What changed (grouped, with file links), what was checked and its
+result (and what wasn't), anything found that changes the plan, and what comes next.

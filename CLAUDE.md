@@ -24,7 +24,8 @@ decisions), then the feature's doc in `docs/features/`, then the `AGENTS.md` of 
   what will need updating and ask. This applies to the first round of a new fix too.
 - Before calling a change done, run that app's checks: `npm run fix`, `npm run typecheck`,
   `npm test`, and in `web/` also `npm run build`. CI (`.github/workflows/api.yml` / `web.yml`) runs
-  the same checks.
+  the same checks, and `e2e.yml` runs the web's end-to-end tests against the API
+  (`web/tests/README.md`).
 - Reply to the user in Thai. Code, comments, commit messages and docs are in English. User-facing
   UI text exists in Thai (default) and English, as translation keys in `web/src/app/core/i18n/`
   (`web/AGENTS.md` → UI text).

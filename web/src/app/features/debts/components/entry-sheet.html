@@ -1,5 +1,11 @@
 @let f = form.controls;
-<hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="finish()">
+<!-- An open keypad keeps the first focus on its amount row: on iOS CDK counts only inputs as
+     tabbable, so "first-tabbable" would focus the date field and close the keypad. -->
+<hlm-drawer
+  [state]="open() ? 'open' : 'closed'"
+  [autoFocus]="keypad.open() ? 'app-calc-amount-field button' : 'first-tabbable'"
+  (closed)="finish()"
+>
   <hlm-drawer-content
     *hlmDrawerPortal
     class="mx-auto h-[92dvh] w-full max-w-120 overflow-x-clip data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
