@@ -4,27 +4,29 @@ import { NgIcon, provideIcons } from '@ng-icons/core'
 import { lucideChartPie, lucideWallet } from '@ng-icons/lucide'
 import { LanguageService } from '@/core/i18n'
 import { ReportService } from '@/core/report'
+import { PeriodService } from '@/core/transaction'
 import { reportView } from '@/features/reports/report-view'
 import { CurrencyFlag } from '@/shared/components/currency-flag'
 import { EmptyState } from '@/shared/components/empty-state'
-import { CustomRangeSheet, PeriodStrip, Swipe } from '@/shared/components/period'
+import { PeriodStrip, Swipe } from '@/shared/components/period'
 import { formatAmount, formatMoney } from '@/shared/utils'
 
 /**
  * "ภาพรวม" (#24, P1 of mockups/currency-overview.html): every currency of the Reports
  * period side by side, one row each, over every counted wallet of the book whatever the wallet
- * switcher chose. The period is the Reports tab's own (the header's unit menu, the chips, the
+ * switcher chose. The period is the one both tabs share (the header's unit menu, the chips, the
  * swipe), so going back keeps it. Rows are not links: ‹ is the way back.
  */
 @Component({
   selector: 'app-report-currencies-page',
-  imports: [TranslocoPipe, NgIcon, CurrencyFlag, EmptyState, PeriodStrip, Swipe, CustomRangeSheet],
+  imports: [TranslocoPipe, NgIcon, CurrencyFlag, EmptyState, PeriodStrip, Swipe],
   providers: [provideIcons({ lucideChartPie, lucideWallet })],
   host: { class: 'flex flex-col' },
   templateUrl: './report-currencies-page.html',
 })
 export class ReportCurrenciesPage {
   protected reportService = inject(ReportService)
+  protected periodService = inject(PeriodService)
   private languageService = inject(LanguageService)
   protected view = reportView()
 

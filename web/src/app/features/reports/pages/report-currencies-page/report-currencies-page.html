@@ -1,11 +1,11 @@
 <app-period-strip
   class="pt-2"
-  [chips]="view.chips()"
-  [selected]="reportService.tab()"
+  [chips]="periodService.chips()"
+  [selected]="periodService.tab()"
   [label]="'transactions.periods' | transloco"
-  (chosen)="view.choose($event)"
+  (chosen)="periodService.select($event)"
 />
-<div class="flex flex-col gap-3 px-4 pt-1 pb-4" appSwipe (swiped)="view.move($event)">
+<div class="flex flex-col gap-3 px-4 pt-1 pb-4" appSwipe (swiped)="periodService.move($event)">
   <p
     class="flex items-center gap-1.5 self-start rounded-full bg-muted px-3 py-1 text-sm text-muted-foreground"
   >
@@ -59,11 +59,3 @@
     </app-empty-state>
   }
 </div>
-<!-- The header's "ดูตาม › กำหนดเอง" on this page. -->
-@defer (when reportService.customSheet()) {
-  <app-custom-range-sheet
-    [(open)]="reportService.customSheet"
-    [range]="reportService.custom()"
-    (applied)="reportService.selectCustom($event)"
-  />
-}

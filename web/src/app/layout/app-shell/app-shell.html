@@ -73,11 +73,11 @@
 @defer (when transactionService.walletSheet()) {
   <app-view-wallet-sheet [(open)]="transactionService.walletSheet" />
 }
-@defer (when transactionService.customSheet()) {
+@defer (when periodService.customSheet()) {
   <app-custom-range-sheet
-    [(open)]="transactionService.customSheet"
-    [range]="transactionService.custom()"
-    (applied)="transactionService.selectCustom($event)"
+    [(open)]="periodService.customSheet"
+    [range]="periodService.custom()"
+    (applied)="periodService.selectCustom($event)"
   />
 }
 @defer (when transactionService.sheet() !== null) {

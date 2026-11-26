@@ -1,19 +1,18 @@
-import { DOCUMENT } from '@angular/common'
-import { computed, effect, inject, Service, signal, untracked } from '@angular/core'
+import { computed, inject, Service, signal } from '@angular/core'
 import { BookService } from '@/core/book'
 import { CATEGORY_TABLE } from '@/core/category'
 import type { CategoryType } from '@/core/category'
 import { OfflineService } from '@/core/offline'
 import type { LocalDatabase, SqlValue } from '@/core/offline'
 import {
+  closedRange,
   FUTURE,
   periodRange,
-  periodTabs,
+  PeriodService,
   TRANSACTION_TABLE,
   TransactionService,
   TRANSFER_TABLE,
 } from '@/core/transaction'
-import type { DayRange, PeriodTab } from '@/core/transaction'
 import {
   DEBT_ENTRY_SIGN_SQL,
   DEBT_ENTRY_TABLE,
@@ -22,17 +21,10 @@ import {
   WalletService,
 } from '@/core/wallet'
 import { addDays, addMonths, fromDay } from '@/shared/utils'
-import { REPORT_PREF_PREFIX, REPORT_UNITS, TREND_STEP_MONTHS } from './report.type'
-import type {
-  CategoryShare,
-  ReportSummary,
-  ReportUnit,
-  Trend,
-  TrendPoint,
-  TrendStep,
-} from './report.type'
+import { TREND_STEP_MONTHS } from './report.type'
+import type { CategoryShare, ReportSummary, Trend, TrendPoint, TrendStep } from './report.type'
 
-/** A period with both ends (every report unit has them). */
+/** A period with both ends (`closedRange`). */
 interface FullRange {
   from: string
   to: string
@@ -58,9 +50,9 @@ const stepStart = (day: string, step: TrendStep): string => {
 }
 
 /**
- * The Reports tab (docs/features/report.md): its own period (remembered per book), the
- * Transactions tab's chosen wallet (Q3), and every figure as one aggregate over the local
- * database (Volume). Nothing here writes.
+ * The Reports tab (docs/features/report.md): the Transactions tab's period (`PeriodService`,
+ * Q2) and chosen wallet (Q3), and every figure as one aggregate over the local database
+ * (Volume). Nothing here writes.
  */
 @Service()
 export class ReportService {
@@ -68,20 +60,14 @@ export class ReportService {
   private bookService = inject(BookService)
   private walletService = inject(WalletService)
   private transactionService = inject(TransactionService)
-  private window = inject(DOCUMENT).defaultView
+  private periodService = inject(PeriodService)
 
-  unit = signal<ReportUnit>('month')
-  /** The chosen period: 0 = the current one, −1 = the one before, … (never "อนาคต"). */
-  tab = signal(0)
-  custom = signal<DayRange>({ from: null, to: null })
-  /** The custom range sheet of this tab. */
-  customSheet = signal(false)
   /** The breakdown's type tab (รายจ่าย / รายรับ). */
   type = signal<CategoryType>('expense')
   /** The currency chosen for the trend and breakdown (Q6); null = the first in view. */
   chosenCurrency = signal<string | null>(null)
 
-  today = this.transactionService.today
+  today = this.periodService.today
   /** "ทุกกระเป๋า" or the wallet chosen on either tab (Q3). */
   walletIds = this.transactionService.viewWalletIds
 
@@ -106,22 +92,32 @@ export class ReportService {
     () => new Set(this.countedWallets().map((wallet) => wallet.currencyCode)).size > 1
   )
 
-  /** Oldest first back to the book's oldest row; never the month view's "อนาคต". */
-  tabs = computed(() =>
-    periodTabs(this.unit(), this.today(), this.transactionService.firstDay()).filter(
-      (tab) => tab !== FUTURE
+  /** The chosen period with both ends: "ทั้งหมด" and "อนาคต" run to the book's last row. */
+  range = computed<FullRange>(() =>
+    closedRange(
+      this.periodService.range(),
+      this.today(),
+      this.periodService.firstDay(),
+      this.periodService.lastDay()
     )
   )
-  range = computed<FullRange>(() => this.full(this.rangeOf(this.tab())))
-  /** The period before the chosen one, same length (E4). */
-  previousRange = computed<FullRange>(() => {
-    const tab = this.tab()
-    if (this.unit() !== 'custom' && typeof tab === 'number') {
-      return this.full(this.rangeOf(tab - 1))
+  /**
+   * The period before the chosen one, same length (E4); null when there is none to compare
+   * with ("ทั้งหมด", or a period after today).
+   */
+  previousRange = computed<FullRange | null>(() => {
+    const unit = this.periodService.unit()
+    const tab = this.periodService.tab()
+    const range = this.range()
+    if (unit === 'all' || tab === FUTURE || range.from > this.today()) {
+      return null
     }
-    const { from, to } = this.range()
-    const days = dayCount(from, to)
-    return { from: addDays(from, -days), to: addDays(from, -1) }
+    if (unit !== 'custom' && typeof tab === 'number') {
+      const before = periodRange(unit, tab - 1, this.today(), this.periodService.range())
+      return { from: before.from ?? range.from, to: before.to ?? range.from }
+    }
+    const days = dayCount(range.from, range.to)
+    return { from: addDays(range.from, -days), to: addDays(range.from, -1) }
   })
 
   /** One card per currency, in currency order (rules 1, 9–11). */
@@ -153,12 +149,16 @@ export class ReportService {
     const code = this.currencyCode()
     return code ? this.byCategory(this.range(), this.walletIds(), this.type(), code) : []
   })
-  /** Rule 7: the chosen period split into its months (quarters, years for a long range). */
+  /**
+   * Rule 7: the chosen period split into its months (quarters, years for a long range); none for
+   * a day or a week, even one across two months.
+   */
   trend = computed<Trend | null>(() => {
     const code = this.currencyCode()
     const { from, to } = this.range()
     const months = monthCount(from, to)
-    if (!code || months <= 1) {
+    const unit = this.periodService.unit()
+    if (!code || months <= 1 || unit === 'day' || unit === 'week') {
       return null
     }
     const step: TrendStep = months <= 12 ? 'month' : months <= 36 ? 'quarter' : 'year'
@@ -176,30 +176,6 @@ export class ReportService {
     }
     return { step, points: this.bucket(points, this.walletIds(), code) }
   })
-
-  constructor() {
-    // Each book has its own remembered unit; a new book starts on the month.
-    effect(() => {
-      const bookId = this.bookService.currentId() ?? ''
-      untracked(() => {
-        this.unit.set(this.readUnit(bookId))
-        this.tab.set(0)
-      })
-    })
-  }
-
-  selectUnit(unit: ReportUnit): void {
-    this.unit.set(unit)
-    this.tab.set(0)
-    if (unit !== 'custom') {
-      this.writeUnit(unit)
-    }
-  }
-
-  selectCustom(range: DayRange): void {
-    this.custom.set(range)
-    this.selectUnit('custom')
-  }
 
   /**
    * The breakdown (rules 4–6): top-level categories of `type` with their sub-categories' money
@@ -298,11 +274,6 @@ export class ReportService {
     return line ? (type === 'income' ? line.income : line.expense) : 0
   }
 
-  /** The days the tab covers; `custom` is the range the user chose. */
-  rangeOf(tab: PeriodTab): DayRange {
-    return periodRange(this.unit(), tab, this.today(), this.custom())
-  }
-
   private summarize(range: FullRange, walletIds: readonly string[]): ReportSummary[] {
     const base = this.transactionService.summary(range, walletIds)
     const where = this.where(range, walletIds)
@@ -363,9 +334,9 @@ export class ReportService {
           excluded: left.sum,
           start: start.get(line.currencyCode) ?? 0,
           end: end.get(line.currencyCode) ?? 0,
-          // Rounded half up to the minor unit, in integers.
+          // Rounded half up to the minor unit, in integers; none for a period still to come.
           perDay:
-            dayCount(range.from, range.to) > 1
+            dayCount(range.from, range.to) > 1 && range.from <= today
               ? Math.floor((2 * line.expense + days) / (2 * days))
               : null,
         }
@@ -480,46 +451,6 @@ export class ReportService {
       sql: `t.book_id = ? AND t.deleted_at IS NULL AND t.occurred_on >= ? AND t.occurred_on <= ?
         AND t.wallet_id IN (${walletIds.map(() => '?').join(', ')})`,
       params: [bookId, range.from, range.to, ...walletIds],
-    }
-  }
-
-  /** Every report unit has both ends; a custom range not chosen yet falls back to today. */
-  private full(range: DayRange): FullRange {
-    const today = this.today()
-    return { from: range.from ?? range.to ?? today, to: range.to ?? range.from ?? today }
-  }
-
-  private readUnit(bookId: string): ReportUnit {
-    try {
-      const saved = this.storage()?.getItem(`${REPORT_PREF_PREFIX}unit:${bookId}`)
-      // A custom range isn't kept, so it comes back as a month.
-      return REPORT_UNITS.includes(saved as ReportUnit) && saved !== 'custom'
-        ? (saved as ReportUnit)
-        : 'month'
-    } catch {
-      return 'month'
-    }
-  }
-
-  private writeUnit(unit: ReportUnit): void {
-    const bookId = this.bookService.current()?.id
-    try {
-      if (bookId) {
-        this.storage()?.setItem(`${REPORT_PREF_PREFIX}unit:${bookId}`, unit)
-      }
-    } catch {
-      // A blocked storage only loses the convenience.
-    }
-  }
-
-  /** Lasting on a trusted device, for the tab's life on an untrusted one (like the book). */
-  private storage(): Storage | null {
-    try {
-      return this.offlineService.isTrusted()
-        ? (this.window?.localStorage ?? null)
-        : (this.window?.sessionStorage ?? null)
-    } catch {
-      return null
     }
   }
 

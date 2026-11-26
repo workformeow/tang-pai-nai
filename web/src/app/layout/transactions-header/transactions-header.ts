@@ -19,12 +19,12 @@ import {
 } from '@ng-icons/lucide'
 import { BookService } from '@/core/book'
 import { LanguageService } from '@/core/i18n'
-import { REPORT_UNITS, ReportService } from '@/core/report'
-import type { ReportUnit } from '@/core/report'
+import { ReportService } from '@/core/report'
 import {
   activityDaysLeft,
   activityLeftText,
   PERIOD_UNITS,
+  PeriodService,
   TransactionService,
   TransferService,
   ActivityService,
@@ -79,6 +79,7 @@ export class TransactionsHeader {
   protected activityService = inject(ActivityService)
   private transferService = inject(TransferService)
   protected reportService = inject(ReportService)
+  private periodService = inject(PeriodService)
   private languageService = inject(LanguageService)
   private transloco = inject(TranslocoService)
   private t = (key: string, params?: Record<string, unknown>) =>
@@ -87,12 +88,9 @@ export class TransactionsHeader {
 
   /** Which tab it heads: the Transactions tab's menu, or the Reports tab's (report.md Q2). */
   view = input<'transactions' | 'reports'>('transactions')
-  protected units = computed<readonly PeriodUnit[]>(() =>
-    this.view() === 'reports' ? REPORT_UNITS : PERIOD_UNITS
-  )
-  protected currentUnit = computed<PeriodUnit>(() =>
-    this.view() === 'reports' ? this.reportService.unit() : this.transactionService.unit()
-  )
+  /** "ดูตาม": the one period both tabs share (`PeriodService`). */
+  protected readonly units = PERIOD_UNITS
+  protected currentUnit = this.periodService.unit
   protected walletName = computed(() => {
     this.languageService.language()
     return (
@@ -219,19 +217,11 @@ export class TransactionsHeader {
 
   protected choose(unit: PeriodUnit): void {
     this.closeMenu(true)
-    if (this.view() === 'reports') {
-      if (unit === 'custom') {
-        this.reportService.customSheet.set(true)
-      } else {
-        this.reportService.selectUnit(unit as ReportUnit)
-      }
-      return
-    }
     if (unit === 'custom') {
-      this.transactionService.customSheet.set(true)
+      this.periodService.customSheet.set(true)
       return
     }
-    this.transactionService.selectUnit(unit)
+    this.periodService.selectUnit(unit)
   }
 
   private focusIn(selector: string): void {

@@ -2,13 +2,12 @@ import { Component, ElementRef, inject, signal, viewChild } from '@angular/core'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import { lucideCalendarRange, lucideCheck, lucideChevronDown } from '@ng-icons/lucide'
-import { REPORT_UNITS, ReportService } from '@/core/report'
-import type { ReportUnit } from '@/core/report'
+import { PERIOD_UNITS, PeriodService } from '@/core/transaction'
+import type { PeriodUnit } from '@/core/transaction'
 
 /**
  * "ดูตาม" at the top right of a report page that has no ⋮ (the all-currencies page, #24): the
- * Reports tab's own units, so a change here is the Reports tab's change too. `app-header`
- * `@defer`s it, which keeps `ReportService` out of the shell.
+ * period both tabs share (`PeriodService`), so a change here is theirs too.
  */
 @Component({
   selector: 'app-report-unit-menu',
@@ -22,12 +21,12 @@ import type { ReportUnit } from '@/core/report'
   templateUrl: './report-unit-menu.html',
 })
 export class ReportUnitMenu {
-  protected reportService = inject(ReportService)
+  protected periodService = inject(PeriodService)
   private host = inject<ElementRef<HTMLElement>>(ElementRef)
   private button = viewChild.required<ElementRef<HTMLElement>>('button')
   private menu = viewChild<ElementRef<HTMLElement>>('menu')
 
-  protected readonly units = REPORT_UNITS
+  protected readonly units = PERIOD_UNITS
   protected open = signal(false)
 
   protected toggle(): void {
@@ -52,12 +51,12 @@ export class ReportUnitMenu {
     }
   }
 
-  protected choose(unit: ReportUnit): void {
+  protected choose(unit: PeriodUnit): void {
     this.close(true)
     if (unit === 'custom') {
-      this.reportService.customSheet.set(true)
+      this.periodService.customSheet.set(true)
     } else {
-      this.reportService.selectUnit(unit)
+      this.periodService.selectUnit(unit)
     }
   }
 
