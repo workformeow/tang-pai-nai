@@ -237,10 +237,18 @@ describe('SharingService › a shared book in use (sharing rules 9–16)', () =>
     await settle()
   }
 
+  /** The service's timed read (its `setInterval` callback). */
+  let timedRead: () => void
+
   beforeEach(async () => {
     toastState.dismiss()
     setup = await setUpSharing()
+    const setInterval = vi.spyOn(window, 'setInterval')
     service = TestBed.inject(SharingService)
+    // The last one: services it injects (the period's minute tick) start theirs first.
+    const minutely = setInterval.mock.calls.filter((call) => call[1] === 60_000)
+    timedRead = minutely.at(-1)?.[0] as () => void
+    setInterval.mockRestore()
     bookService = TestBed.inject(BookService)
     TestBed.tick()
     setup.http.expectOne('/api/sharing/with-me').flush(envelope(NOTHING))
@@ -344,6 +352,41 @@ describe('SharingService › a shared book in use (sharing rules 9–16)', () =>
     bookService.leaveShared()
     TestBed.tick()
     expect(setup.live.has('book:pz')).toBe(false)
+  })
+
+  it('reads every minute, or every 5 minutes while live sync is connected (live-sync decision 1)', async () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1_000_000)
+    try {
+      await openIt()
+      const readAt = async (time: number, reads: boolean) => {
+        now.mockReturnValue(time)
+        timedRead()
+        if (reads) {
+          setup.http.expectOne(rowsUrl(3)).flush(envelope(page([], 3)))
+          await settle()
+        } else {
+          setup.http.expectNone(rowsUrl(3))
+        }
+      }
+      // Not live: every minute.
+      await readAt(1_060_000, true)
+      // Live: skipped until about 5 minutes after the last read (half a minute of slack).
+      setup.liveConnected.set(true)
+      await readAt(1_120_000, false)
+      await readAt(1_300_000, false)
+      await readAt(1_330_000, true)
+      // A poke's read counts as a read.
+      now.mockReturnValue(1_400_000)
+      setup.live.get('book:pz')?.onPoke()
+      setup.http.expectOne(rowsUrl(3)).flush(envelope(page([], 3)))
+      await settle()
+      await readAt(1_600_000, false)
+      // Live drops: every minute again.
+      setup.liveConnected.set(false)
+      await readAt(1_620_000, true)
+    } finally {
+      now.mockRestore()
+    }
   })
 
   it('goes back to an own book when a read answers 404', async () => {

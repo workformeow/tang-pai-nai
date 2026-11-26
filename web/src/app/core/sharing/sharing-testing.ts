@@ -149,6 +149,7 @@ export const setUpSharing = async (routes: Routes = []) => {
     sync,
     sharedActive,
     live: live.listeners,
+    liveConnected: live.connected,
     http: TestBed.inject(HttpTestingController),
   }
 }

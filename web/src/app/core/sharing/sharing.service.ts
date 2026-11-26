@@ -42,6 +42,8 @@ const KNOWN_CODES = new Set([
 const ROWS_PAGE = 5000
 /** How often a shared book in use reads what changed (others' writes). */
 const REFRESH_MS = 60_000
+/** The same while live sync is connected: pokes bring the changes, this only catches a lost one. */
+const LIVE_REFRESH_MS = 5 * 60_000
 
 @Injectable({ providedIn: 'root' })
 export class SharingService {
@@ -65,6 +67,8 @@ export class SharingService {
   private pushing: Promise<void> | null = null
   private refreshing: Promise<void> | null = null
   private refreshAgain = false
+  /** When the shared book's rows were last read in full (`Date.now()`), 0 before any. */
+  private rowsReadAt = 0
   /** The shared book in use, once its rows are in (live-sync rule 10). */
   private liveBookId = computed(() => {
     const shared = this.bookService.shared()
@@ -117,7 +121,15 @@ export class SharingService {
       })
       onCleanup(stop)
     })
-    this.window?.setInterval(() => void this.refreshShared(), REFRESH_MS)
+    // Timed reads: every minute, or every 5 while live sync is connected (live-sync decision 1).
+    // A poke's read counts too, so a busy book is read less; half a tick of slack keeps the
+    // gap near 5 minutes, not 6.
+    this.window?.setInterval(() => {
+      const quiet = Date.now() - this.rowsReadAt < LIVE_REFRESH_MS - REFRESH_MS / 2
+      if (!(this.liveService.connected() && quiet)) {
+        void this.refreshShared()
+      }
+    }, REFRESH_MS)
     this.window?.document.addEventListener('visibilitychange', () => {
       if (this.window?.document.visibilityState === 'visible') {
         void this.refreshShared()
@@ -222,6 +234,7 @@ export class SharingService {
       pages.push(data)
       cursor = data.cursor
       if (!data.hasMore) {
+        this.rowsReadAt = Date.now()
         return pages
       }
     }
