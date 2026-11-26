@@ -14,7 +14,7 @@ when its commit lands. Backlog entry in [`ROADMAP.md`](../../ROADMAP.md) → "En
 | 3    | Create the first wallet (UI); given: a user + a book (`withBook`)          | ✅    |
 | 4    | Add a transaction (UI) → synced, there after a reload; given: `withWallet` | ✅    |
 | 5    | Wrong input: bad email, wrong code (`OTP_INVALID`), 5 wrong (`OTP_LOCKED`) | ✅    |
-| 6    | Rate limits: too many wrong passwords, too many code requests              | ⬜    |
+| 6    | Rate limits: too many wrong passwords, too many code requests              | ✅    |
 | 7    | Edit profile (display name)                                                | ⬜    |
 | 8    | Sign out → sign-in page, local data wiped                                  | ⬜    |
 | 9    | Into CI (`.github/workflows/web.yml` at the repo root), once steady        | ⬜    |
@@ -48,22 +48,23 @@ One file or test: add it after `--`, e.g. `npm run e2e:chromium -- tests/sign-up
 
 ## Files
 
-| File                              | What                                                                                      |
-| --------------------------------- | ----------------------------------------------------------------------------------------- |
-| `playwright.config.ts`            | browsers, ports, the two `webServer`s (API, `ng serve --ssl`)                             |
-| `tsconfig.e2e.json`               | types the config and `tests/` (ESLint's project service, `typecheck`)                     |
-| `tests/package.json`              | `"type": "module"` for `tests/` only (`import.meta`; the app has none)                    |
-| `tests/support/start-api.ts`      | new `api/data/e2e.db`, migrate, start the API with the e2e env and log                    |
-| `tests/support/proxy.e2e.json`    | `/api` → API on 3100, `Origin: https://localhost:4300`                                    |
-| `tests/support/mail.ts`           | `readMail(email, after?)`: the newest code (and link) mailed to `email`                   |
-| `tests/support/fixtures.ts`       | `test` / `expect` for every spec: `email`, `clientIp`, `signIn`, `withBook`, `withWallet` |
-| `tests/support/api.ts`            | through the API: `signUp`, `pushRows`, `pullRows`, `bookRow`, `categoryRow`, `walletRow`  |
-| `tests/groundwork.spec.ts`        | step 0: sign-in through the API, per-test IP rate limits                                  |
-| `tests/sign-up.spec.ts`           | step 1: sign up through the UI                                                            |
-| `tests/first-book.spec.ts`        | step 2: create the first book through the UI                                              |
-| `tests/first-wallet.spec.ts`      | step 3: create the first wallet through the UI                                            |
-| `tests/wrong-input.spec.ts`       | step 5: a bad email, a wrong code, a locked code (one test each)                          |
-| `tests/first-transaction.spec.ts` | step 4: add a transaction through the UI, reload, read it back from the server            |
+| File                              | What                                                                                                                  |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `playwright.config.ts`            | browsers, ports, the two `webServer`s (API, `ng serve --ssl`)                                                         |
+| `tsconfig.e2e.json`               | types the config and `tests/` (ESLint's project service, `typecheck`)                                                 |
+| `tests/package.json`              | `"type": "module"` for `tests/` only (`import.meta`; the app has none)                                                |
+| `tests/support/start-api.ts`      | new `api/data/e2e.db`, migrate, start the API with the e2e env and log                                                |
+| `tests/support/proxy.e2e.json`    | `/api` → API on 3100, `Origin: https://localhost:4300`                                                                |
+| `tests/support/mail.ts`           | `readMail(email, after?)`: the newest code (and link) mailed to `email`                                               |
+| `tests/support/fixtures.ts`       | `test` / `expect` for every spec: `email`, `clientIp`, `signIn`, `withBook`, `withWallet`                             |
+| `tests/support/api.ts`            | through the API: `signUp`, `setPassword`, `askForCode`, `pushRows`, `pullRows`, `bookRow`, `categoryRow`, `walletRow` |
+| `tests/groundwork.spec.ts`        | step 0: sign-in through the API, per-test IP rate limits                                                              |
+| `tests/sign-up.spec.ts`           | step 1: sign up through the UI                                                                                        |
+| `tests/first-book.spec.ts`        | step 2: create the first book through the UI                                                                          |
+| `tests/first-wallet.spec.ts`      | step 3: create the first wallet through the UI                                                                        |
+| `tests/wrong-input.spec.ts`       | step 5: a bad email, a wrong code, a locked code (one test each)                                                      |
+| `tests/rate-limits.spec.ts`       | step 6: too many wrong passwords, too many code requests (one test each)                                              |
+| `tests/first-transaction.spec.ts` | step 4: add a transaction through the UI, reload, read it back from the server                                        |
 
 ## Decisions
 
@@ -87,18 +88,19 @@ One file or test: add it after `--`, e.g. `npm run e2e:chromium -- tests/sign-up
 
 ### API env for e2e (`start-api.ts`)
 
-| Key                          | Value                    | Why                                  |
-| ---------------------------- | ------------------------ | ------------------------------------ |
-| `DATABASE_URL`               | `file:./data/e2e.db`     | own database, never `local.db`       |
-| `EMAIL_PROVIDER`             | `console`                | the code is read from stdout (below) |
-| `WEB_ORIGIN`, `CORS_ORIGINS` | `https://localhost:4300` | the e2e web's origin                 |
-| `TURNSTILE_*`                | empty                    | bot check off                        |
-| `PASSWORD_BREACH_CHECK`      | `off`                    | no call to HIBP                      |
-| `LIVE_PROVIDER`              | `disabled`               | live sync isn't tested yet           |
-| `DEMO_ENABLED`               | `false`                  |                                      |
-| `JWT_SECRET`, `OTP_PEPPER`   | random per run           | required by the API                  |
-| `TRUST_PROXY_HOPS`           | `1`                      | per-test IP (rate limits, below)     |
-| `LOG_FILE_ENABLED`           | `false`, console `warn`  | no files in `api/logs`, quiet output |
+| Key                          | Value                    | Why                                        |
+| ---------------------------- | ------------------------ | ------------------------------------------ |
+| `DATABASE_URL`               | `file:./data/e2e.db`     | own database, never `local.db`             |
+| `EMAIL_PROVIDER`             | `console`                | the code is read from stdout (below)       |
+| `WEB_ORIGIN`, `CORS_ORIGINS` | `https://localhost:4300` | the e2e web's origin                       |
+| `TURNSTILE_*`                | empty                    | bot check off                              |
+| `PASSWORD_BREACH_CHECK`      | `off`                    | no call to HIBP                            |
+| `EMAIL_DAILY_LIMIT`          | `100000`                 | the server-wide cap (100) is below one run |
+| `LIVE_PROVIDER`              | `disabled`               | live sync isn't tested yet                 |
+| `DEMO_ENABLED`               | `false`                  |                                            |
+| `JWT_SECRET`, `OTP_PEPPER`   | random per run           | required by the API                        |
+| `TRUST_PROXY_HOPS`           | `1`                      | per-test IP (rate limits, below)           |
+| `LOG_FILE_ENABLED`           | `false`, console `warn`  | no files in `api/logs`, quiet output       |
 
 ### Reading the email code
 
@@ -188,3 +190,15 @@ and **per IP**. Every test comes from 127.0.0.1, so 20 sign-ups in a run would h
   for its `/api/auth/email/verify` answer (`enterCode`) and uses a different wrong code:
   without that, the message the try before left on screen passes the check while the next try
   hasn't been sent (WebKit lost tries that way). 6 tests, steady over `--repeat-each=3`.
+- **Step 6** (2026-11-26): `tests/rate-limits.spec.ts`, one limit per test. Wrong passwords: a
+  user with a password (`signUp` + `setPassword` through the `request` fixture, so the page
+  stays signed out) → the password tab, 5 wrong → "อีเมลหรือรหัสผ่านไม่ถูกต้อง" each, then the
+  right one → "ลองบ่อยเกินไป รออีก N นาทีแล้วลองใหม่" (`PASSWORD_FAILURES_PER_EMAIL`). Code
+  requests: 20 starts for other emails from the test's IP (`askForCode`, in parallel), then the
+  screen's 21st → the same message, no code step (`STARTS_PER_IP`); the per-email limits
+  can't be filled fast, every start waits a minute after the last (`RESEND_COOLDOWN_MS`). The
+  `request` fixture sends the test's `X-Forwarded-For` too (the 21st is refused only if the 20
+  counted for the same IP). Found: the API caps mail **server-wide** at `EMAIL_DAILY_LIMIT` (100
+  a day), so a run with repeats hit it; the e2e env raises it. Match the message in its
+  `alert` (`getByRole('alert').filter({ hasText })`): an anchored `getByText` regex missed it.
+  4 tests, steady over `--repeat-each=3`; the whole suite over `--repeat-each=2`.

@@ -22,6 +22,31 @@ export const signUp = async (request: APIRequestContext, email: string): Promise
   return body.data.accessToken
 }
 
+/** Gives the signed-in user a password (right after sign-in counts as recent auth). */
+export const setPassword = async (
+  request: APIRequestContext,
+  token: string,
+  password: string
+): Promise<void> => {
+  const response = await request.put('/api/auth/password', {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { newPassword: password, lang: 'th' },
+  })
+  expect(
+    response.ok(),
+    `fixture: set password → ${response.status()} ${await response.text()}`
+  ).toBe(true)
+}
+
+/** Asks for a sign-in code to `email` without reading it: fills a code-request limit. */
+export const askForCode = async (request: APIRequestContext, email: string): Promise<void> => {
+  const response = await request.post('/api/auth/email/start', { data: { email, lang: 'th' } })
+  expect(
+    response.ok(),
+    `fixture: email start → ${response.status()} ${await response.text()}`
+  ).toBe(true)
+}
+
 /** One row pushed as an upsert: what the app's outbox sends for a new row. */
 export interface PushRow {
   table: string

@@ -36,6 +36,8 @@ const env: NodeJS.ProcessEnv = {
   SIGNUP_ENABLED: 'true',
   DEMO_ENABLED: 'false',
   PASSWORD_BREACH_CHECK: 'off',
+  // The server-wide mail cap (100 a day by default): one run sends more (the rate-limit tests).
+  EMAIL_DAILY_LIMIT: '100000',
   GOOGLE_CLIENT_ID: '',
   GOOGLE_CLIENT_SECRET: '',
   TURNSTILE_SITE_KEY: '',
