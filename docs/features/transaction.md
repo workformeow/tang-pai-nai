@@ -182,14 +182,15 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
     current one in view: `09/2026 · เดือนที่แล้ว · เดือนนี้ · อนาคต` (only the month view has
     อนาคต = rows after this month), `31/10/2026 · เมื่อวาน · วันนี้`, `19/10 – 25/10/2026 ·
 สัปดาห์ที่แล้ว · สัปดาห์นี้`, `Q2 2026 …`, `2024 · ปีที่แล้ว · ปีนี้`; a sideways swipe over the list
-    moves period. Only the chosen period's rows show;
+    moves period. Only the chosen period's rows show. The chosen period is the Reports tab's
+    too (one `PeriodService`, report.md Q2): a period chosen on either tab is the other's;
   - the summary card: รายรับ top left, รายจ่าย top right, สุทธิ under รายจ่าย (signed); under
     รายรับ, on "ทุกกระเป๋า" while both kinds were spent, how the expense was paid: เงินสด / โอน
     and บัตรเครดิต (credit-card.md rule 10), small and muted, the amounts aligned. More than one
-    currency: chips over it (ทั้งหมด, then flag + code per currency, as Reports) choose one
-    currency's card, the first to start with, or ทั้งหมด, a table of one row per currency
-    (รายรับ · รายจ่าย · สุทธิ); the chips choose the summary only, the list keeps every row
-    (owner, 2026-11: five stacked cards pushed the list off the screen);
+    currency: **one table**, a row per currency (flag + code · รายรับ · รายจ่าย · สุทธิ), no
+    chips and no link to Reports (owner, 2026-11, mock-up `summary-period.html` A: five stacked
+    cards pushed the list off the screen, and chips over the summary read as a filter of the
+    list; the Reports tab is one tap away);
   - a card per day, newest first: the date large (`02`), วันนี้ / เมื่อวาน / the weekday over
     the month and year (ค.ศ.), the day's net right; rows: the category badge (with the wallet's
     20px badge on its corner on "ทุกกระเป๋า" only, and a credit card's mark before the amount,
@@ -198,7 +199,8 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
     (nothing when empty), "รอ sync" as a small cloud line, the signed amount right in income /
     expense colour without the currency symbol (it comes back when the rows mix currencies);
   - an empty period says so with "เพิ่มธุรกรรม". The chosen wallet and unit are remembered per
-    book on the device. The first-wallet step stays (wallet rule 12).
+    book on the device; the chosen period starts on the current one, and the current one (or
+    "อนาคต") moves on with the date while the app stays open. The first-wallet step stays (wallet rule 12).
 - **Transaction form** (the ➕ opens it to add, a row opens it to edit; owner's choices in #8
   from the Money Lover screenshot and mock-ups; no debt tab, no photo / chat buttons):
   - header: X left, "เพิ่มธุรกรรม" / "แก้ไขธุรกรรม" centred, delete (red, at once with undo)

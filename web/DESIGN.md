@@ -183,7 +183,8 @@ Lover's black and green.
   next to their words) | สุทธิ (semibold). No bars or charts there: Reports has them. A credit
   card shows as a small chip in the card's own colour with a white card glyph, the same in the
   summary and before a row's amount; the word stays in a text colour (a user colour is never
-  text). Several currencies get chips (ทั้งหมด + flag and code) instead of stacked cards.
+  text). Several currencies get one table (a row per currency: flag and code, รายรับ, รายจ่าย,
+  สุทธิ) instead of stacked cards; no chips over it, which read as a filter of the list.
 - **Totals in different currencies** are shown one line per currency, never added together,
   in the book's wallet order, each line led by the currency's **flag and code** (`app-currency-flag`,
   a static SVG; never an emoji flag) because "$" and "¥" are shared (currency.md rules 6, 8).
@@ -332,7 +333,7 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   sheet it opens (last sync, "sync ตอนนี้", rejected items with fix / discard, conflict
   notices) says them in full.
 - **Reports tab** (#10, owner's choices from a three-round mock-up; report.md → Web screens):
-  the Transactions tab's header and period chips, then, in the order a report is read, the
+  the Transactions tab's header and period chips (the same chosen period, "อนาคต" too), then, in the order a report is read, the
   summary, the breakdown, the trend (owner, 2026-11). The **summary card (H1)**: the period's
   name small, then รายรับ / รายจ่าย as the headline (`text-xl` bold) in two tiles tinted with
   the money colours (`bg-income/10`, `bg-expense/10`; ↙ / ↗ beside the word, the amount

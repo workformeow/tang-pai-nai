@@ -30,8 +30,8 @@ None. Every figure is an aggregate over the local database, read like the Report
 1. **The scope is every counted wallet of the book**, whatever the wallet switcher chose:
    the same wallets as the tabs' "ทุกกระเป๋า" (out-of-total wallets left out, credit cards
    kept, archived wallets included for their money). The page says so ("ทุกกระเป๋าในสมุดนี้").
-2. **The period is the Reports tab's own** (unit, chosen period, custom range): changing it
-   here changes it on the Reports tab and the other way round.
+2. **The period is the one the Transactions and Reports tabs share** (unit, chosen period,
+   custom range; report.md Q2): changing it here changes it there and the other way round.
 3. One row per currency **with money moving in the period** (the Reports tab's currency chips),
    in the book's wallet order (currency rule 6). A period with none shows the empty state.
 4. Each row: flag + code; income and expense (signed, without the symbol); the net with the
@@ -55,8 +55,8 @@ None.
 - **The page** `/reports/currencies` (`features/reports/pages/report-currencies-page`, a page in
   the Reports tab with ‹):
   - header: ‹, the title ภาพรวม, then at the top right **"ดูตาม"** as a pill with the current
-    unit (`layout/report-unit-menu`, `@defer`red by `app-header`): เดือน / ไตรมาส / ปี /
-    กำหนดเอง…, the Reports tab's units (rule 2); กำหนดเอง opens the range sheet on this page;
+    unit (`layout/report-unit-menu`, `@defer`red by `app-header`): every unit of the shared
+    period (rule 2); กำหนดเอง opens the shell's range sheet;
   - the period chips and the sideways swipe, as on the Reports tab;
   - a muted pill "ทุกกระเป๋าในสมุดนี้" (rule 1);
   - **P1**, one card listing the currencies (rule 3), one row each (rule 4): flag + code on the

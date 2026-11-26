@@ -56,19 +56,24 @@ No table of its own and no new column. A report reads, for the current book:
    chosen period **split into its months**, income and expense per part, same wallets and
    currency, so nothing on the tab comes from outside the chosen period. A quarter is 3
    months, a year 12; a custom range is split by month up to 12 months, by quarter up to 36,
-   else by year, the first and last part cut to the range. A period inside one month (the
-   month unit, a short custom range) has **no trend**.
+   else by year, the first and last part cut to the range; "ทั้งหมด" and "อนาคต" like a custom
+   range. A period inside one month (the month unit, a short custom range) and a day or a week
+   (even one across two months) have **no trend**.
 8. **Periods and dates** are the Transactions tab's (`period.ts`): weeks start on Monday,
-   ค.ศ. in both languages, `occurredOn` is a calendar date with no time of day.
+   ค.ศ. in both languages, `occurredOn` is a calendar date with no time of day. Since 2026-11
+   the two tabs share **one chosen period** (Q2): every unit of the Transactions tab, "อนาคต"
+   too, and a period chosen on either tab is the other's.
 9. **Balances** (E1): **ยอดเริ่มต้น** / Starting balance = the wallets in view's balance
    (transaction rule 12, transfers and `excludeFromReport` rows included) at the end of the day
    before the period, **ยอดสุดท้าย** / Ending balance = at the end of its last day. So ยอดสุดท้าย
    − ยอดเริ่มต้น = net + the view's transfer net + the `excludeFromReport` rows' signed sum. On
    "ทุกกระเป๋า" it's the wallets of rule 2 (archived ones too, unlike ยอดรวม). Every report
-   unit has both ends (there is no "ทั้งหมด"; a custom range always has both dates).
+   period has both ends (`closedRange`): "ทั้งหมด" runs from the book's first row to its last
+   one or today, whichever is later; "อนาคต" from the 1st of next month to the last row, at
+   least to the end of next month.
 10. **Average expense per day** (E3) = expense ÷ the period's days, rounded half up to the
     minor unit; for the current period, the days up to today. Shown for periods of more than
-    one day with some expense.
+    one day with some expense, never for a period that starts after today ("อนาคต").
 11. **Left out** (E5): when the period has `excludeFromReport` rows, a line "ไม่รวมในรายงาน n
     รายการ" with their signed sum opens a page listing them, so a low total is explained.
 12. **Previous period** (E4): a category page shows the same category's amount in the period
@@ -114,16 +119,17 @@ Owner's choices in #10 (mock-up rounds 1–3; DESIGN.md → Reports):
 - **Reports tab** (`features/reports`, lazy):
   - header: the Transactions tab's (book icon, the **wallet switcher** in the centre, sync
     icon, ⋮), the same chosen wallet (Q3); its ⋮ holds "ภาพรวม ›" (#24, only with more than
-    one currency, [currency-overview.md](currency-overview.md)) and "ดูตาม · เดือน ›" →
-    เดือน / ไตรมาส / ปี / กำหนดเอง… (Q2), its own choice kept per book on the device; custom
-    opens the tab's own range sheet;
-  - the **period chips** (`09/2026 · เดือนที่แล้ว · เดือนนี้`, no "อนาคต"), a sideways swipe
-    moves period;
+    one currency, [currency-overview.md](currency-overview.md)) and "ดูตาม · เดือน ›" → the
+    Transactions tab's units (Q2: วัน / สัปดาห์ / เดือน / ไตรมาส / ปี / ทั้งหมด / กำหนดเอง…),
+    one choice for both tabs kept per book on the device; custom opens the shell's range sheet;
+  - the **period chips** of the Transactions tab (`09/2026 · เดือนที่แล้ว · เดือนนี้ · อนาคต`),
+    the same chosen period, a sideways swipe moves it on both tabs;
   - **currency chips** (flag + code) right under the period chips, only when the view has
     more than one currency (Q6; on top since #23, mock-up `report-currency.html` B): the
     whole page below is the chosen currency, in the book's wallet order (currency rule 6);
   - the **summary card** (H1, reordered by the owner in 2026-11: what came in and went out is
-    what a report is read for), **one**, for the chosen currency: the period's name with the
+    what a report is read for), **one**, for the chosen currency: the period's name ("อนาคต" and
+    "ทั้งหมด" by the chip's word) with the
     currency's flag and code on the right (always, one currency too), รายรับ / รายจ่าย as
     the headline in tiles tinted with the money colours (↙ / ↗ beside the word); the tiles
     are buttons that choose the breakdown's type (#23 B: the picked one outlined in its
@@ -137,7 +143,8 @@ Owner's choices in #10 (mock-up rounds 1–3; DESIGN.md → Reports):
     category, then the top-level categories largest first: badge, name, amount, a bar of its
     size in its colour, the share, and "2 หมวดย่อย" / "เก็บถาวร"; a row opens the category
     page;
-  - the **trend card** last, only for a period longer than a month (rule 7): "รายเดือน"
+  - the **trend card** last, only for a period longer than a month, never a day or a week
+    (rule 7): "รายเดือน"
     (รายไตรมาส, รายปี for a long custom range), a pair of bars per part, a compact scale
     (`50K`); tapping a pair **shows its figures** above the bars ("มี.ค. 2026 · รายรับ … ·
     รายจ่าย …", that pair full strength and outlined, the others faded) and never changes
@@ -178,8 +185,12 @@ Ending balance), หมวดหมู่หลัก / ย่อย (DESIGN.md 
   categories, largest first), each row with a bar of its share in the category's colour; the
   badge + name carry identity (user colours may repeat). Charts are **our own SVG**, no chart
   library.
-- **Q2** period: month (default), quarter, year, custom, with the Transactions tab's chips and
-  ⋮ "ดูตาม"; its own choice, remembered per book. Trend: ~~the last 6 months, 4 quarters or
+- **Q2** period: ~~month (default), quarter, year, custom, its own choice, remembered per
+  book~~ (changed by the owner in 2026-11: a month chosen on Transactions wasn't the month on
+  Reports, mock-up `summary-period.html`): **one period for both tabs** (`PeriodService`), the
+  Transactions tab's units and chips, "อนาคต" too (its rows counted like any month's, the
+  empty state when it has none; no average per day, no previous period), the unit remembered
+  per book, the chosen period kept while the app is open. Trend: ~~the last 6 months, 4 quarters or
   5 years ending at the chosen one; a tap on a bar chooses that period~~ (changed by the owner
   in 2026-11: data from outside the chosen period confused the month view, and a tap that
   moved the period shifted the bars under the finger): the chosen period's own months, none
@@ -197,7 +208,8 @@ Ending balance), หมวดหมู่หลัก / ย่อย (DESIGN.md 
   side (option C) is the page **ภาพรวม** since #24 ([currency-overview.md](currency-overview.md)).
 - **Q7** no API: computed on the device.
 - **Extras**: E1 balances (labels **ยอดเริ่มต้น / ยอดสุดท้าย**, owner's wording, not
-  ต้นงวด / ปลายงวด), E3 average per day, E4 the previous period on a category page, E5 the
+  ต้นงวด / ปลายงวด), E3 average per day, E4 the previous period on a category page (none for
+  "ทั้งหมด" or "อนาคต"), E5 the
   "ไม่รวมในรายงาน" line. **Not** E2 (% against the previous period).
 
 **Summary card**: round 2 (S1 a statement that adds up, S2 the balances on
