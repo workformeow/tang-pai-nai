@@ -8,7 +8,7 @@
 ## Purpose
 
 When one device saves, the others that are open see it **within seconds** instead of on the next
-timed round (5 minutes for own data, 1 minute for a shared book). Example: on a trip, the owner
+timed round (5 minutes for own data; for a shared book, 1 minute, or 5 while live). Example: on a trip, the owner
 and an editor share the book "กองกลาง"; one adds an expense, and the other's list shows it
 almost at once. The same works between one user's own phone and computer.
 
@@ -95,8 +95,10 @@ Chosen with `LIVE_PROVIDER` in the API's env (same pattern as `EMAIL_PROVIDER`, 
     - `user:` → a normal sync round (`SyncService.sync()`), under the same Web Lock;
     - `book:` → reading the shared book's changes (`SharingService.refreshShared()`).
       A round already running takes the poke as "run once more" (as a write during a round does).
-12. The timed rounds stay as they are (5 min own, 1 min shared). Live sync only adds triggers; a
-    device whose live connection drops loses nothing but speed.
+12. The timed rounds: 5 min for own data; for a shared book in use, 1 min, or 5 min while the
+    live connection is up (`LiveService.connected()`). A read made for a poke counts, so the next
+    timed one comes about 5 min after the last read of any kind. Live sync only adds triggers; a
+    device whose live connection drops goes back to the 1-minute read and loses nothing but speed.
 13. A failed token request or connection is quiet: no toast, no pill change. Retries follow the
     SDK's own back-off (`ably`) or rule 11's delays of offline-sync (`local`). It shows in the
     sync sheet only (Web screens).
@@ -133,8 +135,9 @@ listeners live in memory.
 
 ## Decisions (owner, 2026-11, at the start of #20)
 
-1. **Timed rounds while live**: unchanged in this version. Later, a device with a live
-   connection could stretch the shared book's 1-minute refresh to 5 minutes (backlog).
+1. **Timed rounds while live**: unchanged in #20. Changed once Ably ran on staging (owner,
+   2026-11-26): while live, a shared book in use is read every 5 minutes instead of every
+   minute (rule 12); own data stays at 5 minutes.
 2. **The sync sheet line**: shown ("อัปเดตทันที: …"), hidden with `disabled`.
 3. **Background tabs**: stop listening (rule 10).
 
