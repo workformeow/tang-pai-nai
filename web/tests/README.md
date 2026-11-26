@@ -13,7 +13,7 @@ when its commit lands. Backlog entry in [`ROADMAP.md`](../../ROADMAP.md) → "En
 | 2    | Create the first book (UI); given: a user                                  | ✅    |
 | 3    | Create the first wallet (UI); given: a user + a book (`withBook`)          | ✅    |
 | 4    | Add a transaction (UI) → synced, there after a reload; given: `withWallet` | ✅    |
-| 5    | Wrong input: bad email, wrong code (`OTP_INVALID`), 5 wrong (`OTP_LOCKED`) | ⬜    |
+| 5    | Wrong input: bad email, wrong code (`OTP_INVALID`), 5 wrong (`OTP_LOCKED`) | ✅    |
 | 6    | Rate limits: too many wrong passwords, too many code requests              | ⬜    |
 | 7    | Edit profile (display name)                                                | ⬜    |
 | 8    | Sign out → sign-in page, local data wiped                                  | ⬜    |
@@ -62,6 +62,7 @@ One file or test: add it after `--`, e.g. `npm run e2e:chromium -- tests/sign-up
 | `tests/sign-up.spec.ts`           | step 1: sign up through the UI                                                            |
 | `tests/first-book.spec.ts`        | step 2: create the first book through the UI                                              |
 | `tests/first-wallet.spec.ts`      | step 3: create the first wallet through the UI                                            |
+| `tests/wrong-input.spec.ts`       | step 5: a bad email, a wrong code, a locked code (one test each)                          |
 | `tests/first-transaction.spec.ts` | step 4: add a transaction through the UI, reload, read it back from the server            |
 
 ## Decisions
@@ -179,3 +180,10 @@ and **per IP**. Every test comes from 127.0.0.1, so 20 sign-ups in a run would h
   `focusin` closes the keypad (`AmountKeypad.leave`). Chromium keeps it open. The test taps the
   amount row first, as a user would; the app fix is the owner's call. 2 tests, steady over
   `--repeat-each=3`.
+- **Step 5** (2026-11-26): `tests/wrong-input.spec.ts`, one test per case — "not-an-email" →
+  "รูปแบบอีเมลไม่ถูกต้อง" and no code step; a wrong code → "รหัสไม่ถูกต้อง ลองอีกครั้ง", then the
+  right one signs in; 4 wrong → "รหัสไม่ถูกต้อง", the 5th → "ใส่รหัสผิดหลายครั้งเกินไป …"
+  (`MAX_CODE_ATTEMPTS`), and the right code after it is refused the same way. Each try waits
+  for its `/api/auth/email/verify` answer (`enterCode`) and uses a different wrong code:
+  without that, the message the try before left on screen passes the check while the next try
+  hasn't been sent (WebKit lost tries that way). 6 tests, steady over `--repeat-each=3`.
